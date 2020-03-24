@@ -1,4 +1,4 @@
-WT_HOME="libs/wiredtiger"
+WT_HOME=libs/wiredtiger
 SRC="src"
 CXX = g++
 MAKE = make

@@ -6,5 +6,5 @@ wt:
 	$(SHELL) configure; \
 	$(MAKE)
 
-src:
+source:
 	$(MAKE) -C $(SRC)
