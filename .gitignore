@@ -1,0 +1,9 @@
+WiredTiger
+WiredTiger.basecfg
+WiredTiger.lock
+WiredTiger.turtle
+WiredTiger.wt
+WiredTigerLAS.wt
+graph_main
+graph_main.o
+
