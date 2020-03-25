@@ -1,9 +1,9 @@
 include common.mk
 
 wt:
-	cd $(WT_HOME); \
-	$(SHELL) autogen.sh; \
-	$(SHELL) configure; \
+	cd $(WT_HOME) && \
+	./autogen.sh && \
+	./configure && \
 	$(MAKE)
 
 source:
