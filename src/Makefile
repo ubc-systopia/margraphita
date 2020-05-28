@@ -13,6 +13,8 @@ $(TARGET): $(OBJECTS)
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< $(LD_FLAGS) $(LIBS) 
 
+clean:
+	rm *.o graph_api
 
 #graph_main : $(OBJECTS)
 #	$(CXX) $(CXXFLAGS) $(INCLUDES) $(LD_FLAGS) $(LIBS) -o $@

@@ -5,6 +5,5 @@ WiredTiger.lock
 WiredTiger.turtle
 WiredTiger.wt
 WiredTigerLAS.wt
-graph_main
-graph_main.o
-
+graph_api
+*.o
