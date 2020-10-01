@@ -5,6 +5,37 @@
 #include "graph_exception.h"
 
 
+const std::string METADATA  = "metadata";
+const std::string DB_NAME = "db_name";
+const std::string NODE_COLUMNS = "node_columns";
+const std::string EDGE_COLUMNS = "edge_columns";
+const std::string HAS_NODE_ATTR = "has_node_attr";
+const std::string HAS_EDGE_ATTR = "has_edge_attr";
+const std::string NODE_VALUE_COLUMNS = "node_value_columns";
+const std::string EDGE_VALUE_COLUMNS = "edge_value_columns";
+const std::string NODE_VALUE_FORMAT = "node_value_format";
+const std::string EDGE_VALUE_FORMAT = "edge_value_format";
+const std::string READ_OPTIMIZE = "read_optimize";
+const std::string EDGE_ID = "edge_id";
+const std::string NODE_DATA  ="data";
+const std::string IS_DIRECTED = "is_directed";
+const std::string CREATE_NEW  = "create_new";
+
+//Read Optimize columns
+const std::string IN_DEGREE = "in_degree";
+const std::string OUT_DEGREE  = "out_degree";
+
+//Shared column names
+const std::string SRC =  "src";
+const std::string DST =  "dst";
+const std::string ID  = "id";
+const std::string NODE_TABLE = "node";
+const std::string EDGE_TABLE = "edge";
+const std::string SRC_INDEX = "IX_edge_" + SRC;
+const std::string DST_INDEX = "IX_edge_" + DST;
+const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
+
+
 void CommonUtil::set_table(WT_SESSION *session, std::string prefix, std::vector<std::string> columns, std::string key_fmt, std::string val_fmt){
     if(columns.size() !=0){
         std::vector<std::string>::iterator ptr;
@@ -67,4 +98,51 @@ void CommonUtil::set_table(WT_SESSION *session, std::string prefix, std::vector<
         throw GraphException(to_return);
     }
 
+}
+
+std::string create_string_format(std::vector<std::string> to_pack){
+    std::string fmt;
+
+    for (std::vector<std::string>::iterator iter = to_pack.begin(); iter != to_pack.end(); ++ iter){
+        std::string item = *iter;
+        fmt = fmt + std::to_string(item.length()) + 'S';
+    }
+    return fmt;
+}
+
+int close_cursor(WT_CURSOR *cursor) {
+  if (int ret = cursor->close(cursor) != 0) {
+    fprintf(stderr, "Failed to close the cursor\n ");
+    return ret;
+  }
+}
+
+int close_session(WT_SESSION *session) {
+  if (session->close(session, NULL) != 0) {
+    fprintf(stderr, "Failed to close session\n");
+    return (-1);
+  }
+}
+
+int close_connection(WT_CONNECTION *conn) {
+  if (conn->close(conn, NULL) != 0) {
+    fprintf(stderr, "Failed to close connection\n");
+    return (-1);
+  }
+}
+
+int open_connection(char *db_name, WT_CONNECTION **conn) {
+  if (wiredtiger_open(db_name, NULL, "create", conn) != 0) {
+    fprintf(stderr, "Failed to open connection\n");
+    return (-1);
+  }
+  return 0;
+}
+
+int open_session(WT_CONNECTION *conn, WT_SESSION **session) {
+  if (conn->open_session(conn, NULL, NULL, session) != 0) {
+    fprintf(stderr, "Failed to open session\n");
+    return (-1);
+  }
+  return 0;
 }

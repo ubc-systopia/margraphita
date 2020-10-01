@@ -2,18 +2,14 @@
 
 This is my timeline for this project:
 
-* April 7th: 
+* July  17th: 
     - Implement all functions in common.py and StandardGraph.py
     - This only includes the functions absolutely necessary for this to get running. 
     - Leave unused functions with TODOS
 
-* April 8th: 
+* July 20th: 
     - Write the driver functions.
     - Test this thoroughly
 
-* April 9th:
+* July 23rd:
     - PageRank Implementation -- This will be fun
-
-
-        
-
