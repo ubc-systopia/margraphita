@@ -45,6 +45,7 @@ class CommonUtil{
         static std::string create_string_format(std::vector<std::string> to_pack);
         
         //WT Session and Cursor wrangling operations
+        static int open_cursor(WT_CURSOR **cursor);
         static int close_cursor(WT_CURSOR *cursor);
         static int close_session(WT_SESSION *session);
         static int close_connection(WT_CONNECTION *conn);

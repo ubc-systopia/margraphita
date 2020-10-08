@@ -100,7 +100,7 @@ void CommonUtil::set_table(WT_SESSION *session, std::string prefix, std::vector<
 
 }
 
-std::string create_string_format(std::vector<std::string> to_pack){
+std::string CommonUtil::create_string_format(std::vector<std::string> to_pack){
     std::string fmt;
 
     for (std::vector<std::string>::iterator iter = to_pack.begin(); iter != to_pack.end(); ++ iter){
@@ -110,28 +110,28 @@ std::string create_string_format(std::vector<std::string> to_pack){
     return fmt;
 }
 
-int close_cursor(WT_CURSOR *cursor) {
+int CommonUtil::close_cursor(WT_CURSOR *cursor) {
   if (int ret = cursor->close(cursor) != 0) {
     fprintf(stderr, "Failed to close the cursor\n ");
     return ret;
   }
 }
 
-int close_session(WT_SESSION *session) {
+int CommonUtil::close_session(WT_SESSION *session) {
   if (session->close(session, NULL) != 0) {
     fprintf(stderr, "Failed to close session\n");
     return (-1);
   }
 }
 
-int close_connection(WT_CONNECTION *conn) {
+int CommonUtil::close_connection(WT_CONNECTION *conn) {
   if (conn->close(conn, NULL) != 0) {
     fprintf(stderr, "Failed to close connection\n");
     return (-1);
   }
 }
 
-int open_connection(char *db_name, WT_CONNECTION **conn) {
+int CommonUtil::open_connection(char *db_name, WT_CONNECTION **conn) {
   if (wiredtiger_open(db_name, NULL, "create", conn) != 0) {
     fprintf(stderr, "Failed to open connection\n");
     return (-1);
@@ -139,7 +139,7 @@ int open_connection(char *db_name, WT_CONNECTION **conn) {
   return 0;
 }
 
-int open_session(WT_CONNECTION *conn, WT_SESSION **session) {
+int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session) {
   if (conn->open_session(conn, NULL, NULL, session) != 0) {
     fprintf(stderr, "Failed to open session\n");
     return (-1);

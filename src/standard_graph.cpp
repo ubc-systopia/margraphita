@@ -251,3 +251,8 @@ int close(WT_CONNECTION *conn){
   CommonUtil::close_connection(conn);
   return 0;
 }
+
+int main (){
+
+  printf("Tryign this out\n");
+}
