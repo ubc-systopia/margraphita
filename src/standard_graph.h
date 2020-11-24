@@ -55,6 +55,7 @@ private:
   WT_CURSOR *metadata_cursor = NULL;
   // Basic WT session management funcs
   // Now to create and delete the graph
+
   void create_new_graph();
   void add_node(node to_insert);
   bool has_node(int node_id);
@@ -65,28 +66,28 @@ private:
   node get_node(int node_id);
   node get_random_node();
   void delete_node(int node_id);
-
-  
-  
   void delete_related_edges(WT_CURSOR *index_cursor, int node_id);
-  void update_node(int node_id, char *new_attrs);
+  void update_node(int node_id, std::vector<string> new_attrs);
+  int get_in_degree(int node_id); 
+  int get_out_degree(int node_id);
+  std::vector<node> get_nodes();
+
+
   void add_edge(edge to_insert);
   void delete_edge(int src_id, int dst_id);
   void update_node_degree(int node_id, int in_degree, int out_degree);
   edge get_edge(int src_id, int dst_id);
   void update_edge(int src_id, int dst_id, char *new_attrs);
-  std::vector<node> get_nodes();
+  
   std::vector<edge> get_edges();
   std::vector<edge> get_out_edges(int node_id);
   std::vector<node> get_out_nodes(int node_id);
   std::vector<edge> get_in_edges(int node_id);
   std::vector<node> get_in_nodes(int node_id);
-  int get_in_degree(int node_id);
-  int get_out_degree(int node_id);
   void set_node_data(int node_id, int idx, string data);
   void get_node_data(int node_id, int idx);
-  void __record_to_node();
-  void __record_to_edge();
+  node __record_to_node(WT_CURSOR *cursor);
+  edge __record_to_edge();
 
   void get_node_iter();
   void get_edge_iter();

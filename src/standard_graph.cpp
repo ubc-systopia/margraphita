@@ -662,11 +662,14 @@ node StandardGraph::get_node(int node_id) {
     found.data.push_back(data1);
 
   } else {
-    cursor->set_value(cursor, data0, data1);
+    cursor->get_value(cursor, data0, data1);
     found.data.push_back(data0);
     found.data.push_back(data1);
   }
   cursor->close(cursor);
+  free(data0);
+  free(data1);
+  free(attr_list_packed);
   return found;
 }
 
@@ -674,14 +677,245 @@ node StandardGraph::get_random_node() {
   node found;
   int ret = 0;
 
-  WT_CURSOR *cursor;
+  if (this->random_node_cursor == NULL) {
+    ret = _get_table_cursor(NODE_TABLE, this->random_node_cursor, true);
+  }
 
-  ret = _get_table_cursor(NODE_TABLE, cursor, true);
-  ret = cursor->next(cursor);
+  ret = this->random_node_cursor->next(random_node_cursor);
   if (ret != 0) {
     throw GraphException("Could not find a random node");
   }
 
+  char *data0 = (char *)malloc(50 * sizeof(char));
+  char *data1 = (char *)malloc(50 * sizeof(char));
+  char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
+
+  if (this->has_node_attrs && this->read_optimize) {
+    random_node_cursor->get_value(random_node_cursor, attr_list_packed, data0,
+                                  data1, &found.in_degree, &found.out_degree);
+    found.attr = CommonUtil::unpack_string_vector(attr_list_packed, session);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+  } else if (this->read_optimize) {
+    random_node_cursor->get_value(random_node_cursor, data0, data1,
+                                  &found.in_degree, &found.out_degree);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+
+  } else {
+    random_node_cursor->get_value(random_node_cursor, data0, data1);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+  }
+  // random_node_cursor->close(random_node_cursor); <- don't close a cursor
+  // prematurely
+  free(data0);
+  free(data1);
+  free(attr_list_packed);
+  return found;
+}
+
+/**
+ * @brief This function is used to delete a node and all its edges.
+ *
+ * @param node_id
+ */
+void StandardGraph::delete_node(int node_id) {
+  int ret = 0;
+
+  if (this->node_cursor == NULL) {
+    ret = _get_table_cursor(NODE_TABLE, this->node_cursor, false);
+    if (ret != 0) {
+      throw GraphException("Could not get a cursor to the node table");
+    }
+  }
+  // Delete the node with the matching node_id
+  node_cursor->set_key(node_cursor, node_id);
+  ret = node_cursor->remove(node_cursor);
+
+  if (ret != 0) {
+    throw GraphException("Could not delete node with ID " + node_id);
+  }
+
+  // Delete outgoing edges from the victim node
+  // This check is probably not necessary
+  if (this->src_dst_index_cursor == NULL) {
+    string projection = "(" + ID + "," + SRC + "," + DST + ")";
+    ret = _get_index_cursor(EDGE_TABLE, SRC_DST_INDEX, projection,
+                            this->src_dst_index_cursor);
+    if (ret != 0) {
+      throw GraphException("Could not open a SRC_DST index on the edge table.");
+    }
+  }
+  delete_related_edges(src_dst_index_cursor, node_id);
+
+  // Delete incoming edges to the victim node
+  if (this->dst_index_cursor == NULL) {
+    string projection = "(" + DST + ")";
+    ret = _get_index_cursor(EDGE_TABLE, DST_INDEX, projection,
+                            this->dst_index_cursor);
+    if (ret != 0) {
+      throw GraphException(
+          "Could not get a DST index cursor on the edge table");
+    }
+  }
+  delete_related_edges(dst_index_cursor, node_id);
+}
+
+void StandardGraph::delete_related_edges(WT_CURSOR *index_cursor, int node_id) {
+  string table_name = "table:" + EDGE_TABLE;
+  WT_CURSOR *edge_cursor;
+  int ret = 0;
+
+  ret = _get_table_cursor(table_name, edge_cursor, false);
+  if (ret != 0) {
+    throw GraphException("Unable to get a cursor to the edge table.");
+  }
+
+  int edge_id, src, dst = {-1};
+  index_cursor->set_key(index_cursor, node_id);
+  if (index_cursor->search(index_cursor) == 0) {
+    index_cursor->get_value(index_cursor, &edge_id, &src, &dst); //! check
+    edge_cursor->set_key(edge_cursor, edge_id);
+    ret = edge_cursor->remove(edge_cursor);
+    if (ret != 0) {
+      throw GraphException("Failed to delete edge (" + SRC + "," + DST + ")");
+    }
+    int tmp_key;
+    index_cursor->get_key(index_cursor, &tmp_key);
+    while (index_cursor->next(index_cursor) == 0 && tmp_key == node_id) {
+      ret = index_cursor->get_value(index_cursor, &edge_id, &src, &dst);
+      edge_cursor->set_key(edge_cursor, edge_id);
+      ret = edge_cursor->remove(edge_cursor);
+
+      if (ret != 0) {
+        throw GraphException("Failed to delete edge (" + SRC + "," + DST + ")");
+      }
+    }
+  }
+}
+
+/**
+ * @brief This fucntion updates a node with the given attribute vector.
+ * This function assumes that only the node attributes are updated here.
+ * Node data is modified using get/set_node_data() and degrees are modified
+ * automatically on edge insertions/deletions.
+ * @param node_id The Node ID to be updated
+ * @param new_attrs The new node attribute vector.
+ */
+void StandardGraph::update_node(int node_id, vector<string> new_attrs) {
+  WT_CURSOR *cursor;
+  int ret = _get_table_cursor(NODE_TABLE, cursor, false);
+  cursor->set_key(cursor, node_id);
+  int search_ret = cursor->search(cursor);
+
+  if (search_ret != 0) {
+    throw GraphException("Failed to find a node with node_id = " + node_id);
+  }
+
+  // first pack the attr vector
+  char *data0 = (char *)malloc(50 * sizeof(char));
+  char *data1 = (char *)malloc(50 * sizeof(char));
+  char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
+  int in_degree, out_degree = 0;
+
+  // Pack the new attrs;
+  size_t pack_size;
+  string packed_node_attr_fmt;
+  char *new_attr_list_packed = CommonUtil::pack_string_vector(
+      new_attrs, session, &pack_size, &packed_node_attr_fmt);
+
+  // Now get the cursor value and update the attr
+  if (this->has_node_attrs && this->read_optimize) {
+    cursor->get_value(cursor, attr_list_packed, data0, data1, &in_degree,
+                      &out_degree);
+    cursor->set_value(cursor, node_id, new_attr_list_packed, data0, data1,
+                      in_degree, out_degree);
+
+  } else {
+    cursor->get_value(cursor, attr_list_packed, data0, data1);
+    cursor->set_value(cursor, attr_list_packed, data0, data1);
+  }
+
+  ret = cursor->update(cursor);
+  if (ret != 0) {
+    throw GraphException("Failed to update node_id = " + node_id);
+  }
+  free(data0);
+  free(data1);
+  free(attr_list_packed);
+}
+
+int StandardGraph::get_in_degree(int node_id) {
+  if (this->read_optimize) {
+    node found = get_node(node_id);
+    return found.in_degree;
+  } else {
+    if (!has_node(node_id)) {
+      throw GraphException("The node with ID " + std::to_string(node_id) +
+                           " does not exist.");
+    }
+    WT_CURSOR *cursor;
+
+    int ret = _get_index_cursor(EDGE_TABLE, DST_INDEX,
+                                "(" + ID + "," + SRC + "," + DST + ")", cursor);
+    cursor->reset(cursor);
+    cursor->set_key(cursor, node_id);
+    int count = 0;
+
+    if (cursor->search(cursor) == 0) {
+      count++;
+      int id, src, dst = 0;
+      cursor->get_value(cursor, &id, &src, &dst);
+
+      while (cursor->next(cursor) == 0 && dst == node_id) {
+        count++;
+        cursor->get_value(cursor, &id, &src, &dst);
+      }
+    }
+    return count;
+  }
+}
+
+int StandardGraph::get_out_degree(int node_id) {
+  if (read_optimize) {
+    node found = get_node(node_id);
+    return found.out_degree;
+  } else {
+    if (!has_node(node_id)) {
+      throw GraphException("The node with ID " + std::to_string(node_id) +
+                           " does not exist");
+    }
+    WT_CURSOR *cursor;
+
+    int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
+                                "(" + ID + "," + SRC + "," + DST + ")", cursor);
+    cursor->reset(cursor);
+    cursor->set_key(cursor, node_id);
+    int count = 0;
+    if (cursor->search(cursor) == 0) {
+      count++;
+      int id, src, dst = 0;
+      cursor->get_value(cursor, &id, &src, &dst);
+      while (cursor->next(cursor) == 0 && src == node_id) {
+        count++;
+        cursor->get_value(cursor, &id, &src, &dst);
+      }
+    }
+    return count;
+  }
+}
+
+std::vector<node> StandardGraph::get_nodes() {
+  vector<node> nodes;
+
+  WT_CURSOR *cursor;
+  int ret = _get_table_cursor(NODE_TABLE, cursor, false);
+}
+
+node StandardGraph::__record_to_node(WT_CURSOR *cursor) {
+  node found;
+  char *key = (char *)malloc(50 * sizeof(char));
   char *data0 = (char *)malloc(50 * sizeof(char));
   char *data1 = (char *)malloc(50 * sizeof(char));
   char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
@@ -699,23 +933,11 @@ node StandardGraph::get_random_node() {
     found.data.push_back(data1);
 
   } else {
-    cursor->set_value(cursor, data0, data1);
+    cursor->get_value(cursor, data0, data1);
     found.data.push_back(data0);
     found.data.push_back(data1);
   }
-  cursor->close(cursor);
   return found;
-}
-
-/**
- * @brief This function is used to delete a node and all its edges. 
- * 
- * @param node_id 
- */
-void StandardGraph::delete_node(int node_id) {
-
-
-  
 }
 
 int main() { printf("Trying this out\n"); }
