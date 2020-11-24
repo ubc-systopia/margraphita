@@ -17,3 +17,6 @@ all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LD_FLAGS) $(LIBS)
+
+clean:
+	rm -rf *.o test

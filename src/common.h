@@ -1,10 +1,12 @@
 #ifndef BASE_COMMON
 #define BASE_COMMON
 
-#include <unordered_map>
-#include <vector>
+#include <iostream>
+#include <map>
 #include <string>
-#include<iostream>
+#include <unordered_map>
+#include <variant>
+#include <vector>
 #include <wiredtiger.h>
 
 extern const std::string METADATA;
@@ -44,16 +46,37 @@ struct opt_args {
   std::string node_value_format;
   std::string edge_value_format;
   std::vector<std::string> edge_value_columns;
-  
+
   bool create_new;
   bool optimize_create;
 };
+
+typedef struct node {
+  int id;                // node ID
+  std::vector<std::string> attr; // Should this be something else?
+  std::vector<std::string> data; //! I think this is just begging to be a generic. type. What would Galois do?
+  int64_t in_degree = 0;
+  int64_t out_degree = 0;
+} node;
+
+typedef struct edge {
+  int src_id;
+  int dst_id;
+  std::vector<int> attr; // Should this be something else?
+} edge;
 
 class CommonUtil {
 public:
   static void set_table(WT_SESSION *session, std::string prefix,
                         std::vector<std::string> columns, std::string key_fmt,
                         std::string val_fmt);
+
+  static std::vector<int>
+  CommonUtil::get_default_nonstring_attrs(std::string fmt);
+
+  static std::vector<std::string>
+  CommonUtil::get_default_string_attrs(std::string fmt);
+
   static std::string get_db_name(std::string prefix, std::string name);
 
   static void check_graph_params(opt_args params);
@@ -74,15 +97,13 @@ public:
                                             WT_SESSION *session);
 
   static char *pack_string(std::string, WT_SESSION *session, std::string *fmt);
-  static std::string unpack_string(const char *to_unpack,
-                                               WT_SESSION *session);
+  static std::string unpack_string(const char *to_unpack, WT_SESSION *session);
 
   static char *pack_int(int to_pack, WT_SESSION *session);
   static int unpack_int(const char *to_unpack, WT_SESSION *session);
 
   static char *pack_bool(bool, WT_SESSION *session, std::string *fmt);
-  static bool unpack_bool(const char *to_unpack,
-                                      WT_SESSION *session);
+  static bool unpack_bool(const char *to_unpack, WT_SESSION *session);
   // WT Session and Cursor wrangling operations
   static int open_cursor(WT_SESSION *session, WT_CURSOR **cursor,
                          std::string uri, WT_CURSOR *to_dup,

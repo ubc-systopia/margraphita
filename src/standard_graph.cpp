@@ -35,6 +35,11 @@ StandardGraph::StandardGraph(bool create_new, bool read_optimize,
     this->node_value_format = opt_params.node_value_format;
   }
 
+  // Find NODE_ATTR_FORMAT in params
+  if (!opt_params.node_value_format.empty()) {
+    this->node_attr_format = opt_params.node_value_format;
+  }
+
   // Find EDGE_VALUE_COLUMNS in params
   if (!opt_params.edge_value_columns.empty()) {
     this->edge_value_cols = opt_params.edge_value_columns;
@@ -43,13 +48,18 @@ StandardGraph::StandardGraph(bool create_new, bool read_optimize,
   if (!opt_params.edge_value_format.empty()) {
     this->edge_value_format = opt_params.edge_value_format;
   }
-  
-  if(opt_params.create_new == false){
+
+  // Find EGDE_ATTR_FORMAT in params
+  if (!opt_params.edge_value_format.empty()) {
+    this->edge_attr_format = opt_params.edge_value_format;
+  }
+
+  if (opt_params.create_new == false) {
     throw GraphException("Missing param " + CREATE_NEW);
   }
-  if(opt_params.create_new){
+  if (opt_params.create_new) {
     create_new_graph();
-    if(opt_params.optimize_create == false){
+    if (opt_params.optimize_create == false) {
       /**
        *  Create indices with graph.
        * NOTE: If user opts to optimize graph creation, then they're
@@ -59,7 +69,7 @@ StandardGraph::StandardGraph(bool create_new, bool read_optimize,
        */
       create_indices();
     }
-  }else{
+  } else {
     __restore_from_db(db_name);
   }
 }
@@ -91,13 +101,16 @@ void StandardGraph::create_new_graph() {
   node_key_format = 'I';
 
   // Node Column Format: <attributes><data0><data1><in_degree><out_degree>
+  // Add the attributes to the column vector and the format string for that.
   if (!node_value_cols.empty()) {
     node_attr_size = node_value_format.length(); // 0 if the list len=0
+    for (int i = 0; i < node_attr_size; i++) {
+      node_value_format += "S"; // append format string for the <attr> vec
+    }
     node_columns.insert(node_columns.end(), node_value_cols.begin(),
                         node_value_cols.end());
-    // I think this should also append the node_value_format string in case
-    // of a non-empty list of attrs.
   }
+
   // Add Data Column (packign fmt='I', int)
   node_columns.push_back(NODE_DATA + string("0"));
   node_columns.push_back(NODE_DATA + string("1"));
@@ -339,7 +352,7 @@ int StandardGraph::_get_index_cursor(std::string table_name,
                                      std::string idx_name,
                                      std::string projection,
                                      WT_CURSOR *cursor) {
-  std::string index_name = "index:" + table_name + idx_name + projection;
+  std::string index_name = "index:" + table_name + ":" + idx_name + projection;
   if (int ret = session->open_cursor(session, index_name.c_str(), NULL, NULL,
                                      &cursor) != 0) {
     fprintf(stderr, "Failed to open the cursor on the index %s on table %s \n",
@@ -470,6 +483,239 @@ void StandardGraph::_close() {
   char *edge_id_packed = CommonUtil::pack_int(edge_id, session);
   insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
   CommonUtil::close_connection(conn);
+}
+
+/**
+ * @brief The information that gets persisted to WT is of the form:
+ * <node_id>,<attr1>..<attrN>,data0,data1,in_degree,out_degree
+ * attrs are persisted if has_node_attrs is true
+ * data0,data1 are strings. use std::to_string for others.
+ * in_degree and out_degree are persisted if read_optimize is true. ints
+ *
+ *
+ * @param to_insert
+ */
+void StandardGraph::add_node(node to_insert) {
+  int ret = 0;
+  if (this->node_cursor == NULL) {
+    ret = _get_table_cursor(NODE_TABLE, this->node_cursor, false);
+  }
+  this->node_cursor->set_key(this->node_cursor, to_insert.id);
+
+  size_t pack_size = 0; // size for the attr vector
+
+  if ((to_insert.attr.size() == 0) & this->has_node_attrs == true) {
+
+    // using this because I know attrs are represented as strings.
+    to_insert.attr =
+        CommonUtil::get_default_string_attrs(this->node_attr_format);
+  }
+
+  string packed_node_attr_fmt; // This should be equal to node_attr_format after
+                               // packing.
+  char *attr_list_packed = CommonUtil::pack_string_vector(
+      to_insert.attr, session, &pack_size, &packed_node_attr_fmt);
+  assert(packed_node_attr_fmt.compare(this->node_attr_format) ==
+         0); // This is my understanding of this whole mess.
+
+  if (this->has_node_attrs && this->read_optimize) {
+    this->node_cursor->set_value(this->node_cursor, attr_list_packed, "0.0",
+                                 "0.0", 0, 0);
+  } else if (this->read_optimize) {
+    this->node_cursor->set_value(this->node_cursor, "0.0", "0.0", 0, 0);
+  } else {
+    this->node_cursor->set_value(this->node_cursor, "0.0", "0.0");
+  }
+
+  ret = node_cursor->insert(node_cursor);
+
+  if (ret != 0) {
+    throw GraphException("Failed to add node_id" +
+                         std::to_string(to_insert.id));
+  }
+}
+
+void StandardGraph::add_edge(edge to_insert) {}
+
+/**
+ * @brief This function is used to check if a node identified by node_id exists
+ * in the node table.
+ *
+ * @param node_id the node_id to be searched.
+ * @return true if the node is found; false otherwise.
+ */
+bool StandardGraph::has_node(int node_id) {
+  int ret = 0;
+  if (this->node_cursor == NULL) {
+    ret = _get_table_cursor(NODE_TABLE, this->node_cursor, false);
+  }
+  this->node_cursor->set_key(this->node_cursor, node_id);
+  ret = this->node_cursor->search(this->node_cursor);
+  if (ret == 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * @brief This function is used to get the edge id for the edge identified by
+ * <src,dst>
+ *
+ * @param src_id source node_id
+ * @param dst_id dsetination node_id
+ * @return edge_id -1 if the edge_id does not exist; edge_id if it does exists.
+ */
+int StandardGraph::get_edge_id(int src_id, int dst_id) {
+  int ret = 0;
+  int edge_id;
+  string projection = "(" + ID + "," + SRC + "," + DST + ")";
+  if (this->src_dst_index_cursor == NULL) {
+    ret = _get_index_cursor(EDGE_TABLE, SRC_DST_INDEX, projection,
+                            this->src_dst_index_cursor);
+  }
+  this->src_dst_index_cursor->set_key(this->src_dst_index_cursor, src_id,
+                                      dst_id);
+  ret = this->src_dst_index_cursor->search(this->src_dst_index_cursor);
+  if (ret != 0) {
+    return -1;
+  } else {
+
+    ret = this->src_dst_index_cursor->get_value(this->src_dst_index_cursor,
+                                                &edge_id);
+    return edge_id;
+  }
+}
+
+/**
+ * @brief This function tests if the edge identified by <src_id, dst_id> exists
+ *
+ * @param src_id source node id
+ * @param dst_id destination node_id
+ * @return true/false for if the edge exists/does not exist
+ */
+bool StandardGraph::has_edge(int src_id, int dst_id) {
+  int edge_id = get_edge_id(src_id, dst_id);
+
+  if (edge_id > 0) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+int StandardGraph::get_num_nodes() {
+  int ret = 0;
+  WT_CURSOR *cursor;
+  ret = _get_table_cursor(NODE_TABLE, cursor, false);
+
+  int count = 0;
+  while ((ret = cursor->next(cursor)) == 0) {
+    count += 1;
+  }
+  cursor->close(cursor);
+  return count;
+}
+
+int StandardGraph::get_num_edges() {
+  int ret = 0;
+  WT_CURSOR *cursor;
+  ret = _get_table_cursor(EDGE_TABLE, cursor, false);
+
+  int count = 0;
+  while ((ret = cursor->next(cursor)) == 0) {
+    count += 1;
+  }
+  cursor->close(cursor);
+  return count;
+}
+
+node StandardGraph::get_node(int node_id) {
+  node found;
+  int ret = 0;
+
+  WT_CURSOR *cursor;
+
+  ret = _get_table_cursor(NODE_TABLE, cursor, false);
+  cursor->set_key(cursor, node_id);
+
+  ret = cursor->search(cursor);
+  if (ret != 0) {
+    throw GraphException("Could not find a node with nodeId " +
+                         std::to_string(node_id));
+  }
+
+  char *data0 = (char *)malloc(50 * sizeof(char));
+  char *data1 = (char *)malloc(50 * sizeof(char));
+  char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
+
+  if (this->has_node_attrs && this->read_optimize) {
+    cursor->get_value(cursor, attr_list_packed, data0, data1, &found.in_degree,
+                      &found.out_degree);
+    found.attr = CommonUtil::unpack_string_vector(attr_list_packed, session);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+  } else if (this->read_optimize) {
+    cursor->get_value(cursor, data0, data1, &found.in_degree,
+                      &found.out_degree);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+
+  } else {
+    cursor->set_value(cursor, data0, data1);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+  }
+  cursor->close(cursor);
+  return found;
+}
+
+node StandardGraph::get_random_node() {
+  node found;
+  int ret = 0;
+
+  WT_CURSOR *cursor;
+
+  ret = _get_table_cursor(NODE_TABLE, cursor, true);
+  ret = cursor->next(cursor);
+  if (ret != 0) {
+    throw GraphException("Could not find a random node");
+  }
+
+  char *data0 = (char *)malloc(50 * sizeof(char));
+  char *data1 = (char *)malloc(50 * sizeof(char));
+  char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
+
+  if (this->has_node_attrs && this->read_optimize) {
+    cursor->get_value(cursor, attr_list_packed, data0, data1, &found.in_degree,
+                      &found.out_degree);
+    found.attr = CommonUtil::unpack_string_vector(attr_list_packed, session);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+  } else if (this->read_optimize) {
+    cursor->get_value(cursor, data0, data1, &found.in_degree,
+                      &found.out_degree);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+
+  } else {
+    cursor->set_value(cursor, data0, data1);
+    found.data.push_back(data0);
+    found.data.push_back(data1);
+  }
+  cursor->close(cursor);
+  return found;
+}
+
+/**
+ * @brief This function is used to delete a node and all its edges. 
+ * 
+ * @param node_id 
+ */
+void StandardGraph::delete_node(int node_id) {
+
+
+  
 }
 
 int main() { printf("Trying this out\n"); }

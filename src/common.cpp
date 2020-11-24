@@ -2,6 +2,7 @@
 #include "graph_exception.h"
 #include <iostream>
 #include <string>
+#include <variant>
 #include <wiredtiger.h>
 
 const std::string METADATA = "metadata";
@@ -56,6 +57,52 @@ void CommonUtil::set_table(WT_SESSION *session, std::string prefix,
     session->create(session, table_name.c_str(), "key_format=I,value_format=I");
   }
 }
+
+/**
+ * @brief This function is used to construct the default values based on format 
+ * string.  
+ * 
+ * @param fmt This is the format string. 
+ * @return std::vector<int> This is a vector that contains the default values for format types that are represented as ints. (0)
+ */
+  std::vector<int>
+  CommonUtil::get_default_nonstring_attrs(std::string fmt){
+  std::vector<int> ret;
+  std::string zero_attr = "iIlLqQsShHt";
+
+  for (const char &x : fmt) {
+    if (zero_attr.find(x) != std::string::npos) {
+      ret.push_back(0);
+    }else{
+      throw GraphException("Found a non-int type in format string. Abort!");
+    }
+  }
+  return ret;
+  }
+
+
+/**
+ * @brief This function is used to construct the default values based on format 
+ * string.  
+ * 
+ * @param fmt This is the format string. 
+ * @return std::vector<std::string> This is a vector that contains the default values for format types that are represented as strings. ("")
+ */
+  std::vector<std::string>
+  CommonUtil::get_default_string_attrs(std::string fmt){
+  std::vector<std::string> ret;
+  std::string zero_attr = "iIlLqQsShHt";
+
+  for (const char &x : fmt) {
+    if (zero_attr.find(x) != std::string::npos) {
+      throw GraphException("Found a non-int type in format string. Abort!");
+    }else{
+      ret.push_back("");
+    }
+  }
+  return ret;
+
+  }
 
 std::string CommonUtil::get_db_name(std::string prefix, std::string name) {
   return (prefix + "-" + name);
@@ -306,7 +353,7 @@ std::string CommonUtil::unpack_string(const char *to_unpack,
                                       WT_SESSION *session) {
   const char *fmt = "S";
   const char *buffer =
-      (char *)malloc(50 * sizeof(char)); // Again, random guess of buffer size
+      (char *)malloc(50 * sizeof(char)); // ! Fix this Again, random guess of buffer size
 
   WT_PACK_STREAM *ps;
   size_t size;
