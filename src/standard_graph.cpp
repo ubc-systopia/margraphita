@@ -644,32 +644,8 @@ node StandardGraph::get_node(int node_id) {
     throw GraphException("Could not find a node with nodeId " +
                          std::to_string(node_id));
   }
-
-  char *data0 = (char *)malloc(50 * sizeof(char));
-  char *data1 = (char *)malloc(50 * sizeof(char));
-  char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
-
-  if (this->has_node_attrs && this->read_optimize) {
-    cursor->get_value(cursor, attr_list_packed, data0, data1, &found.in_degree,
-                      &found.out_degree);
-    found.attr = CommonUtil::unpack_string_vector(attr_list_packed, session);
-    found.data.push_back(data0);
-    found.data.push_back(data1);
-  } else if (this->read_optimize) {
-    cursor->get_value(cursor, data0, data1, &found.in_degree,
-                      &found.out_degree);
-    found.data.push_back(data0);
-    found.data.push_back(data1);
-
-  } else {
-    cursor->get_value(cursor, data0, data1);
-    found.data.push_back(data0);
-    found.data.push_back(data1);
-  }
+  found = __record_to_node(cursor);
   cursor->close(cursor);
-  free(data0);
-  free(data1);
-  free(attr_list_packed);
   return found;
 }
 
@@ -686,32 +662,9 @@ node StandardGraph::get_random_node() {
     throw GraphException("Could not find a random node");
   }
 
-  char *data0 = (char *)malloc(50 * sizeof(char));
-  char *data1 = (char *)malloc(50 * sizeof(char));
-  char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
-
-  if (this->has_node_attrs && this->read_optimize) {
-    random_node_cursor->get_value(random_node_cursor, attr_list_packed, data0,
-                                  data1, &found.in_degree, &found.out_degree);
-    found.attr = CommonUtil::unpack_string_vector(attr_list_packed, session);
-    found.data.push_back(data0);
-    found.data.push_back(data1);
-  } else if (this->read_optimize) {
-    random_node_cursor->get_value(random_node_cursor, data0, data1,
-                                  &found.in_degree, &found.out_degree);
-    found.data.push_back(data0);
-    found.data.push_back(data1);
-
-  } else {
-    random_node_cursor->get_value(random_node_cursor, data0, data1);
-    found.data.push_back(data0);
-    found.data.push_back(data1);
-  }
+  found = __record_to_node(this->random_node_cursor);
   // random_node_cursor->close(random_node_cursor); <- don't close a cursor
   // prematurely
-  free(data0);
-  free(data1);
-  free(attr_list_packed);
   return found;
 }
 
@@ -911,11 +864,15 @@ std::vector<node> StandardGraph::get_nodes() {
 
   WT_CURSOR *cursor;
   int ret = _get_table_cursor(NODE_TABLE, cursor, false);
+  while ((ret = cursor->next(cursor) == 0)) {
+    node item = __record_to_node(cursor);
+    nodes.push_back(item);
+  }
+  return nodes;
 }
 
 node StandardGraph::__record_to_node(WT_CURSOR *cursor) {
   node found;
-  char *key = (char *)malloc(50 * sizeof(char));
   char *data0 = (char *)malloc(50 * sizeof(char));
   char *data1 = (char *)malloc(50 * sizeof(char));
   char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
@@ -937,7 +894,25 @@ node StandardGraph::__record_to_node(WT_CURSOR *cursor) {
     found.data.push_back(data0);
     found.data.push_back(data1);
   }
+  free(data0);
+  free(data1);
+  free(attr_list_packed);
   return found;
 }
+
+edge StandardGraph::__record_to_edge(WT_CURSOR *cursor) {
+  edge found;
+  char *attr_list_packed = (char *)malloc(1000 * sizeof(char));
+  cursor->get_value(cursor, &found.src_id, &found.dst_id, attr_list_packed);
+
+  found.attr = CommonUtil::unpack_int_vector(attr_list_packed, session);
+
+  free(attr_list_packed);
+
+  return found;
+}
+
+
+
 
 int main() { printf("Trying this out\n"); }

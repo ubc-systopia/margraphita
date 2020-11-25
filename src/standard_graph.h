@@ -71,14 +71,18 @@ private:
   int get_in_degree(int node_id); 
   int get_out_degree(int node_id);
   std::vector<node> get_nodes();
-
-
+  node __record_to_node(WT_CURSOR *cursor);
+  edge __record_to_edge(WT_CURSOR *cursor);
   void add_edge(edge to_insert);
+
+
+
+
+
   void delete_edge(int src_id, int dst_id);
   void update_node_degree(int node_id, int in_degree, int out_degree);
   edge get_edge(int src_id, int dst_id);
   void update_edge(int src_id, int dst_id, char *new_attrs);
-  
   std::vector<edge> get_edges();
   std::vector<edge> get_out_edges(int node_id);
   std::vector<node> get_out_nodes(int node_id);
@@ -86,8 +90,7 @@ private:
   std::vector<node> get_in_nodes(int node_id);
   void set_node_data(int node_id, int idx, string data);
   void get_node_data(int node_id, int idx);
-  node __record_to_node(WT_CURSOR *cursor);
-  edge __record_to_edge();
+
 
   void get_node_iter();
   void get_edge_iter();
