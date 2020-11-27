@@ -915,11 +915,9 @@ edge StandardGraph::__record_to_edge(WT_CURSOR *cursor) {
   return found;
 }
 
-int StandardGraph::__get_edgeid_from_edge_idx(WT_CURSOR *cursor, int &node_id) {
+void StandardGraph::__read_from_edge_idx(WT_CURSOR *cursor, edge_index *e_idx) {
 
-  int edge_id, src_id, dst_id;
-  cursor->get_value(cursor, &edge_id, &src_id, &dst_id);
-  return edge_id;
+  cursor->get_value(cursor, e_idx->edge_id, e_idx->src_id, e_idx->dst_id);
 }
 
 void StandardGraph::add_edge(edge to_insert) {
@@ -1114,9 +1112,9 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id) {
   vector<int> edge_ids;
   if (ret == 0) {
     while ((ret = cursor->next(cursor) == 0)) {
-      int node_from_idx;
-      int edge_id = __get_edgeid_from_edge_idx(cursor, &node_from_idx);
-      if (node_from_idx == node_id) {
+      edge_index e_idx;
+      __read_from_edge_idx(cursor, &e_idx);
+      if (e_idx.src_id == node_id) {
         edge_ids.push_back(edge_id);
       }
     }
@@ -1140,4 +1138,46 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id) {
   }
   return edges;
 }
+
+vector<node> StandardGraph::get_out_nodes(int node_id) {
+  int ret = has_node(node_id);
+  vector<int> dst_ids;
+  vector<node> nodes;
+  CommonUtil::check_return(ret,
+                           "Could not find node with id" + to_string(node_id));
+
+  WT_CURSOR *cursor;
+  ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
+                          "(" + ID + "," + SRC + "," + DST + ")", cursor);
+  cursor->reset(cursor);
+  cursor->set_key(cursor, node_id);
+  cursor->search(cursor);
+  if (ret == 0) {
+    while ((ret = cursor->next(cursor) == 0)) {
+      edge_index e_idx;
+      __read_from_edge_idx(cursor, &e_idx);
+      if (e_idx.src_id == node_id) {
+        dst_ids.push_back(e_idx.dst_id);
+      }
+    }
+  }
+  cursor->close(cursor);
+  // Now get all adjacent nodes using dst_ids
+  if (dst_ids.size() > 0) {
+    ret = _get_table_cursor(NODE_TABLE, cursor, false);
+    CommonUtil::check_return(ret, "Could not get a cursor to the node table");
+
+    for (int dst_id : dst_ids) {
+      cursor->set_key(cursor, dst_id);
+      ret = cursor->search(cursor);
+      if (ret == 0) {
+        node found_dst = __record_to_node(cursor);
+        nodes.push_back(found_dst);
+      }
+    }
+  }
+  cursor->close(cursor);
+  return nodes;
+}
+
 int main() { printf("Trying this out\n"); }

@@ -65,6 +65,12 @@ typedef struct edge {
   std::vector<int> attr; // Should this be something else?
 } edge;
 
+typedef struct edge_index {
+  int edge_id;
+  int src_id;
+  int dst_id;
+} edge_index;
+
 class CommonUtil {
 public:
   static void set_table(WT_SESSION *session, std::string prefix,
