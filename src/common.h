@@ -113,6 +113,8 @@ public:
   static int close_connection(WT_CONNECTION *conn);
   static int open_connection(char *db_name, WT_CONNECTION **conn);
   static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
+  static void check_return(int retval, std::string mesg);
+
 };
 
 #endif

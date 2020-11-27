@@ -490,11 +490,17 @@ int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session) {
   return 0;
 }
 
-int open_cursor(WT_SESSION *session, WT_CURSOR **cursor, std::string uri,
+int CommonUtil::open_cursor(WT_SESSION *session, WT_CURSOR **cursor, std::string uri,
                 WT_CURSOR *to_dup, std::string config) {
   if (session->open_cursor(session, uri.c_str(), to_dup, config.c_str(),
                            cursor) != 0) {
     fprintf(stderr, "Failed to open the cursor on URI %s", uri.c_str());
   }
   return 0;
+}
+
+void check_return(int retval, std::string mesg){
+  if(retval > 0){
+      throw GraphException(mesg);
+  }
 }
