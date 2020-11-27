@@ -82,14 +82,14 @@ private:
   // skip.
   std::vector<edge> get_edges();
   void StandardGraph::__read_from_edge_idx(WT_CURSOR *cursor,
-                                              edge_index *e_idx);
+                                           edge_index *e_idx);
   std::vector<edge> get_out_edges(int node_id);
   std::vector<node> get_out_nodes(int node_id);
   std::vector<edge> get_in_edges(int node_id);
-
-  
-  
   std::vector<node> get_in_nodes(int node_id);
+
+
+
   void set_node_data(int node_id, int idx, string data);
   void get_node_data(int node_id, int idx);
 
