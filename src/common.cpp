@@ -356,7 +356,7 @@ std::string CommonUtil::unpack_string(const char *to_unpack,
       (char *)malloc(50 * sizeof(char)); // ! Fix this Again, random guess of buffer size
 
   WT_PACK_STREAM *ps;
-  size_t size;
+  size_t size =0;
   int ret = wiredtiger_unpack_start(session, fmt, to_unpack, size, &ps);
 
   ret = wiredtiger_unpack_str(ps, &buffer);

@@ -8,12 +8,13 @@
 using namespace std;
 const std::string GRAPH_PREFIX = "std";
 
+StandardGraph::StandardGraph(){};
+
 StandardGraph::StandardGraph(bool create_new, bool read_optimize,
                              bool is_directed, std::string db_name,
                              opt_args opt_params)
 
 {
-  int ret; // general purpose hardy error int
   this->create_new = create_new;
   this->read_optimize = read_optimize;
   this->is_directed = is_directed;
@@ -197,7 +198,6 @@ void StandardGraph::create_new_graph() {
 
   // NODE_ATTR_FORMAT
   string node_attr_format_fmt;
-  size_t node_attr_format_size;
   char *node_attr_packed =
       CommonUtil::pack_string(node_attr_format, session, &node_attr_format_fmt);
   insert_metadata(NODE_ATTR_FORMAT, node_attr_format_fmt, node_attr_packed);
@@ -211,48 +211,41 @@ void StandardGraph::create_new_graph() {
 
   // EDGE_ATTR_FORMAT
   string edge_attr_format_fmt;
-  size_t edge_attr_format_size;
   char *edge_attr_packed =
       CommonUtil::pack_string(edge_attr_format, session, &edge_attr_format_fmt);
   insert_metadata(EDGE_ATTR_FORMAT, edge_attr_format_fmt, edge_attr_packed);
 
   // HAS_NODE_ATTR
   string has_node_attr_fmt;
-  size_t has_node_attr_size;
   char *has_node_attr_packed =
       CommonUtil::pack_bool(has_node_attrs, session, &has_node_attr_fmt);
   insert_metadata(HAS_NODE_ATTR, has_node_attr_fmt, has_node_attr_packed);
 
   // HAS_EDGE_ATTR
   string has_edge_attr_fmt;
-  size_t has_edge_attr_size;
   char *has_edge_attrs_packed =
       CommonUtil::pack_bool(has_edge_attrs, session, &has_edge_attr_fmt);
   insert_metadata(HAS_EDGE_ATTR, has_edge_attr_fmt, has_edge_attrs_packed);
 
   // DB_NAME
   string db_name_fmt;
-  size_t db_name_packed_size;
   char *db_name_packed =
       CommonUtil::pack_string(db_name, session, &db_name_fmt);
   insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
 
   // READ_OPTIMIZE
   string is_read_optimized_fmt;
-  size_t is_read_optimized_size;
   char *is_read_optimized_packed =
       CommonUtil::pack_bool(read_optimize, session, &is_read_optimized_fmt);
   insert_metadata(READ_OPTIMIZE, is_read_optimized_fmt,
                   is_read_optimized_packed);
   // EDGE_ID
   string edge_id_fmt;
-  size_t edge_id_packed_size;
   char *edge_id_packed = CommonUtil::pack_int(edge_id, session);
   insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
 
   // IS_DIRECTED
   string is_directed_fmt;
-  size_t is_directed_size;
   char *is_directed_packed =
       CommonUtil::pack_bool(is_directed, session, &is_directed_fmt);
   insert_metadata(IS_DIRECTED, is_directed_fmt, is_directed_packed);
@@ -374,7 +367,7 @@ int StandardGraph::_get_index_cursor(std::string table_name,
 void StandardGraph::__restore_from_db(std::string db_name) {
 
   int ret = CommonUtil::open_connection(strdup(db_name.c_str()), &conn);
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
 
   ret = CommonUtil::open_session(conn, &session);
   const char *key, *value;
@@ -482,7 +475,6 @@ void StandardGraph::drop_indices() {
 
 void StandardGraph::_close() {
   string edge_id_fmt;
-  size_t edge_id_packed_size;
   char *edge_id_packed = CommonUtil::pack_int(edge_id, session);
   insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
   CommonUtil::close_connection(conn);
@@ -507,7 +499,7 @@ void StandardGraph::add_node(node to_insert) {
 
   size_t pack_size = 0; // size for the attr vector
 
-  if ((to_insert.attr.size() == 0) & this->has_node_attrs == true) {
+  if ((to_insert.attr.size() == 0) & (this->has_node_attrs == true)) {
 
     // using this because I know attrs are represented as strings.
     to_insert.attr =
@@ -537,8 +529,6 @@ void StandardGraph::add_node(node to_insert) {
                          std::to_string(to_insert.id));
   }
 }
-
-void StandardGraph::add_edge(edge to_insert) {}
 
 /**
  * @brief This function is used to check if a node identified by node_id exists
@@ -609,7 +599,7 @@ bool StandardGraph::has_edge(int src_id, int dst_id) {
 
 int StandardGraph::get_num_nodes() {
   int ret = 0;
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   ret = _get_table_cursor(NODE_TABLE, cursor, false);
 
   int count = 0;
@@ -622,7 +612,7 @@ int StandardGraph::get_num_nodes() {
 
 int StandardGraph::get_num_edges() {
   int ret = 0;
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   ret = _get_table_cursor(EDGE_TABLE, cursor, false);
 
   int count = 0;
@@ -637,7 +627,7 @@ node StandardGraph::get_node(int node_id) {
   node found;
   int ret = 0;
 
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
 
   ret = _get_table_cursor(NODE_TABLE, cursor, false);
   cursor->set_key(cursor, node_id);
@@ -690,7 +680,7 @@ void StandardGraph::delete_node(int node_id) {
   ret = node_cursor->remove(node_cursor);
 
   if (ret != 0) {
-    throw GraphException("Could not delete node with ID " + node_id);
+    throw GraphException("Could not delete node with ID " + to_string(node_id));
   }
 
   // Delete outgoing edges from the victim node
@@ -720,7 +710,7 @@ void StandardGraph::delete_node(int node_id) {
 
 void StandardGraph::delete_related_edges(WT_CURSOR *index_cursor, int node_id) {
   string table_name = "table:" + EDGE_TABLE;
-  WT_CURSOR *edge_cursor;
+  WT_CURSOR *edge_cursor = nullptr;
   int ret = 0;
 
   ret = _get_table_cursor(table_name, edge_cursor, false);
@@ -766,12 +756,11 @@ void StandardGraph::__node_to_record(WT_CURSOR *cursor, node to_insert) {
 
   if (search_ret != 0) {
     throw GraphException("Failed to find a node with node_id = " +
-                         to_insert.id);
+                         to_string(to_insert.id));
   }
 
   // first pack the attr vector
   char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
-  int in_degree, out_degree = 0;
 
   // Pack the new attrs;
   size_t pack_size;
@@ -781,22 +770,24 @@ void StandardGraph::__node_to_record(WT_CURSOR *cursor, node to_insert) {
 
   // Now get the cursor value and update the attr
   if (this->has_node_attrs && this->read_optimize) {
-    // cursor->get_value(cursor, attr_list_packed, data0, data1, &in_degree,
-    //                   &out_degree); <- WT overrides so not needed
-    cursor->set_value(cursor, new_attr_list_packed, to_insert.data[0],
-                      to_insert.data[1], to_insert.in_degree,
+    string data0 = to_insert.data.at(0);
+    string data1 = to_insert.data.at(1);
+    cursor->set_value(cursor, new_attr_list_packed,
+                      to_insert.data.at(0).c_str(),
+                      to_insert.data.at(1).c_str(), to_insert.in_degree,
                       to_insert.out_degree);
 
   } else {
     // cursor->get_value(cursor, attr_list_packed, to_insert.data[0],
     // to_insert.data[1]); <-- Not needed as override.
-    cursor->set_value(cursor, attr_list_packed, to_insert.data[0],
-                      to_insert.data[1]);
+    cursor->set_value(cursor, attr_list_packed, to_insert.data.at(0).c_str(),
+                      to_insert.data.at(1).c_str());
   }
 
   int ret = cursor->update(cursor);
   if (ret != 0) {
-    throw GraphException("Failed to update node_id = " + to_insert.id);
+    throw GraphException("Failed to update node_id = " +
+                         to_string(to_insert.id));
   }
 
   free(attr_list_packed);
@@ -811,10 +802,12 @@ int StandardGraph::get_in_degree(int node_id) {
       throw GraphException("The node with ID " + std::to_string(node_id) +
                            " does not exist.");
     }
-    WT_CURSOR *cursor;
+    WT_CURSOR *cursor = nullptr;
 
     int ret = _get_index_cursor(EDGE_TABLE, DST_INDEX,
                                 "(" + ID + "," + SRC + "," + DST + ")", cursor);
+    CommonUtil::check_return(
+        ret, "Failed to get DST_INDEX cursor on the edge table");
     cursor->reset(cursor);
     cursor->set_key(cursor, node_id);
     int count = 0;
@@ -842,10 +835,11 @@ int StandardGraph::get_out_degree(int node_id) {
       throw GraphException("The node with ID " + std::to_string(node_id) +
                            " does not exist");
     }
-    WT_CURSOR *cursor;
+    WT_CURSOR *cursor = nullptr;
 
     int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
                                 "(" + ID + "," + SRC + "," + DST + ")", cursor);
+    CommonUtil::check_return(ret, "Failed to get SRC_INDEX on the Edge table");
     cursor->reset(cursor);
     cursor->set_key(cursor, node_id);
     int count = 0;
@@ -865,7 +859,7 @@ int StandardGraph::get_out_degree(int node_id) {
 std::vector<node> StandardGraph::get_nodes() {
   vector<node> nodes;
 
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   int ret = _get_table_cursor(NODE_TABLE, cursor, false);
   while ((ret = cursor->next(cursor) == 0)) {
     node item = __record_to_node(cursor);
@@ -933,7 +927,7 @@ void StandardGraph::add_edge(edge to_insert) {
     add_node(dst);
   }
 
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   int ret = _get_table_cursor(EDGE_TABLE, cursor, false);
 
   // check if the edge exists already, if so, get edge_id
@@ -1000,7 +994,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id) {
   if (edge_id <= 0) {
     return;
   }
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   int ret = _get_table_cursor(EDGE_TABLE, cursor, false);
   CommonUtil::check_return(ret, "Could not get a cursor to the edge table");
 
@@ -1073,7 +1067,7 @@ edge StandardGraph::get_edge(int src_id, int dst_id) {
     return found;
   }
 
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   int ret = _get_table_cursor(EDGE_TABLE, cursor, false);
   cursor->set_key(cursor, edge_id);
   ret = cursor->search(cursor);
@@ -1085,7 +1079,7 @@ edge StandardGraph::get_edge(int src_id, int dst_id) {
 }
 
 std::vector<edge> StandardGraph::get_edges() {
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   vector<edge> edges;
   int ret = _get_table_cursor(EDGE_TABLE, cursor, false);
   CommonUtil::check_return(ret, "Failed to get a cursor to the edge table");
@@ -1103,7 +1097,7 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id) {
     throw GraphException("Could not find node with id" + to_string(node_id));
   }
 
-  WT_CURSOR *cursor, *edge_cursor;
+  WT_CURSOR *cursor = nullptr, *edge_cursor = nullptr;
   int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
                               "(" + ID + "," + SRC + "," + DST + ")", cursor);
   cursor->reset(cursor);
@@ -1144,7 +1138,7 @@ vector<node> StandardGraph::get_out_nodes(int node_id) {
   if (!has_node(node_id)) {
     throw GraphException("Could not find node with id" + to_string(node_id));
   }
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
                               "(" + ID + "," + SRC + "," + DST + ")", cursor);
   cursor->reset(cursor);
@@ -1185,7 +1179,7 @@ vector<edge> StandardGraph::get_in_edges(int node_id) {
   }
 
   // Get all edge_ids for edges with src = node_id
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   int ret = _get_index_cursor(EDGE_TABLE, DST_INDEX,
                               "(" + ID + "," + SRC + "," + DST + ")", cursor);
   cursor->reset(cursor);
@@ -1223,7 +1217,7 @@ vector<node> StandardGraph::get_in_nodes(int node_id) {
   }
 
   // Get all node ids for nodes adjacent to node_id
-  WT_CURSOR *cursor;
+  WT_CURSOR *cursor = nullptr;
   int ret = _get_index_cursor(EDGE_TABLE, DST_INDEX,
                               "(" + ID + "," + SRC + "," + DST + ")", cursor);
   cursor->reset(cursor);
@@ -1249,6 +1243,60 @@ vector<node> StandardGraph::get_in_nodes(int node_id) {
   }
   cursor->close(cursor);
   return in_nodes;
+}
+/**
+ * @brief Set the node's data field specified by the index. The data can either
+ * be an int or a float converted to a string. The API does not make any
+ * assumptions about the converted-to-string datatype being sent to it; we
+ * assume the caller handles this.
+ *
+ * @param node_id
+ * @param idx
+ * @param data
+ */
+void StandardGraph::set_node_data(int node_id, int idx, string data) {
+  if (idx < 0 || idx > 1) {
+    throw GraphException("Index out of bounds when setting node data");
+  }
+
+  WT_CURSOR *cursor = nullptr;
+  int ret = _get_table_cursor(NODE_TABLE, cursor, false);
+  CommonUtil::check_return(ret, "Could not get cursor for the Node table");
+
+  cursor->set_key(cursor, node_id);
+  ret = cursor->search(cursor);
+  CommonUtil::check_return(ret, "Failed to find a node with ID = " +
+                                    to_string(node_id));
+  node found = __record_to_node(cursor);
+  found.data[idx] = data;
+
+  __node_to_record(cursor, found);
+  cursor->close(cursor);
+}
+
+/**
+ * @brief Get node data for the node identified by node_id at the given index.
+ * Returns the string form of the data
+ *
+ * @param node_id
+ * @param idx
+ * @return string
+ */
+string StandardGraph::get_node_data(int node_id, int idx) {
+  if (idx < 0 || idx > 1) {
+    throw GraphException("Index out of bounds when setting node data");
+  }
+
+  WT_CURSOR *cursor = nullptr;
+  int ret = _get_table_cursor(NODE_TABLE, cursor, false);
+  CommonUtil::check_return(ret, "Could not get cursor for the Node table");
+
+  cursor->set_key(cursor, node_id);
+  ret = cursor->search(cursor);
+  CommonUtil::check_return(ret,
+                           "Failed to find node with ID " + to_string(node_id));
+  node found = __record_to_node(cursor);
+  return found.data[idx];
 }
 
 int main() { printf("Trying this out\n"); }

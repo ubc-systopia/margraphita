@@ -52,9 +52,10 @@ struct opt_args {
 };
 
 typedef struct node {
-  int id;                // node ID
+  int id;                        // node ID
   std::vector<std::string> attr; // Should this be something else?
-  std::vector<std::string> data; //! I think this is just begging to be a generic. type. What would Galois do?
+  std::vector<std::string> data; //! I think this is just begging to be a
+                                 //! generic. type. What would Galois do?
   int64_t in_degree = 0;
   int64_t out_degree = 0;
 } node;
@@ -77,11 +78,9 @@ public:
                         std::vector<std::string> columns, std::string key_fmt,
                         std::string val_fmt);
 
-  static std::vector<int>
-  CommonUtil::get_default_nonstring_attrs(std::string fmt);
+  static std::vector<int> get_default_nonstring_attrs(std::string fmt);
 
-  static std::vector<std::string>
-  CommonUtil::get_default_string_attrs(std::string fmt);
+  static std::vector<std::string> get_default_string_attrs(std::string fmt);
 
   static std::string get_db_name(std::string prefix, std::string name);
 
@@ -120,7 +119,6 @@ public:
   static int open_connection(char *db_name, WT_CONNECTION **conn);
   static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
   static void check_return(int retval, std::string mesg);
-
 };
 
 #endif
