@@ -1,3 +1,5 @@
+#ifndef GRAPH_EXCEPTION
+#define GRAPH_EXCEPTION
 #include <iostream>
 #include <exception>
 
@@ -43,3 +45,4 @@ protected:
      */
     std::string msg_;
 };
+#endif

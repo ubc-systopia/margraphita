@@ -297,7 +297,7 @@ char *CommonUtil::pack_int_vector(std::vector<int> to_pack, WT_SESSION *session,
  * @param session WT_SESSION object
  * @return std::vector<int> unpacked buffer
  */
-std::vector<int> unpack_int_vector(const char *to_unpack, WT_SESSION *session) {
+std::vector<int> CommonUtil::unpack_int_vector(const char *to_unpack, WT_SESSION *session) {
   std::vector<int> unpacked_vector;
   WT_PACK_STREAM *psp;
   const char *fmt = "S";
@@ -499,7 +499,7 @@ int CommonUtil::open_cursor(WT_SESSION *session, WT_CURSOR **cursor, std::string
   return 0;
 }
 
-void check_return(int retval, std::string mesg){
+void CommonUtil::check_return(int retval, std::string mesg){
   if(retval > 0){
       throw GraphException(mesg);
   }
