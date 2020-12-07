@@ -1,7 +1,7 @@
 include ../common.mk
 INCLUDES = -I. -I../$(WT_HOME) -I../$(WT_HOME)/src/include
 LD_FLAGS= ../$(WT_HOME)/.libs/libwiredtiger.a
-#LIBS = -lrt -ldl -lpthread
+LIBS = -lrt -ldl -lpthread
 # OBJECTS =  common.o standard_graph.o graph_main.o
 # SRCS := $(patsubst %.o,%.cpp,$(OBJECTS))
 

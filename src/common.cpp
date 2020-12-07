@@ -2,6 +2,7 @@
 #include "graph_exception.h"
 #include <iostream>
 #include <string>
+#include <cstring>
 #include <variant>
 #include <wiredtiger.h>
 

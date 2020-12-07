@@ -1,6 +1,8 @@
 #include "standard_graph.h"
 #include "common.h"
 #include <filesystem>
+#include <cstring>
+#include <cassert>
 #include <iostream>
 #include <string>
 #include <unordered_map>
