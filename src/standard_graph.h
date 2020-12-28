@@ -56,6 +56,8 @@ public:
   // Metadata operations:
   void insert_metadata(string key, string value_format, char *value);
   string get_metadata(string key);
+    void close();
+
 
   // WT privates
 private:
@@ -89,13 +91,12 @@ private:
   void __read_from_edge_idx(WT_CURSOR *cursor, edge_index *e_idx);
 
   // Internal cursor methods
-  int _get_table_cursor(string table, WT_CURSOR *cursor, bool is_random);
+  int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random);
   int _get_index_cursor(std::string table_name, std::string idx_name,
-                        std::string projection, WT_CURSOR *cursor);
+                        std::string projection, WT_CURSOR **cursor);
   void __restore_from_db(string db_name);
   void create_indices();
   void drop_indices();
-  void _close();
 };
 
 #endif

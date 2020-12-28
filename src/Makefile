@@ -18,5 +18,6 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $^ $(LD_FLAGS) $(LIBS)
 
+.PHONY : clean
 clean:
-	rm -rf *.o test
+	rm -rf *.o graph_api
