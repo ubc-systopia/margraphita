@@ -235,9 +235,10 @@ void StandardGraph::create_new_graph()
 
   // NODE_ATTR_FORMAT
   string node_attr_format_fmt;
-  char *node_attr_packed =
-      CommonUtil::pack_string(node_attr_format, session, &node_attr_format_fmt);
-  insert_metadata(NODE_ATTR_FORMAT, node_attr_format_fmt, node_attr_packed);
+  // char *node_attr_packed =
+  //     CommonUtil::pack_string(node_attr_format, session, &node_attr_format_fmt);
+  // insert_metadata(NODE_ATTR_FORMAT, node_attr_format_fmt, node_attr_packed);
+  insert_metadata(NODE_ATTR_FORMAT, "S", const_cast<char *>(node_attr_format.c_str()));
 
   // EDGE_COLUMNS
   string edge_columns_fmt;
@@ -248,9 +249,10 @@ void StandardGraph::create_new_graph()
 
   // EDGE_ATTR_FORMAT
   string edge_attr_format_fmt;
-  char *edge_attr_packed =
-      CommonUtil::pack_string(edge_attr_format, session, &edge_attr_format_fmt);
-  insert_metadata(EDGE_ATTR_FORMAT, edge_attr_format_fmt, edge_attr_packed);
+  // char *edge_attr_packed =
+  //     CommonUtil::pack_string(edge_attr_format, session, &edge_attr_format_fmt);
+  // insert_metadata(EDGE_ATTR_FORMAT, edge_attr_format_fmt, edge_attr_packed);
+  insert_metadata(EDGE_ATTR_FORMAT, "S", const_cast<char*> (edge_attr_format.c_str()));
 
   // HAS_NODE_ATTR
   string has_node_attr_fmt;
@@ -266,9 +268,10 @@ void StandardGraph::create_new_graph()
 
   // DB_NAME
   string db_name_fmt;
-  char *db_name_packed =
-      CommonUtil::pack_string(db_name, session, &db_name_fmt);
-  insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
+  // char *db_name_packed =
+  //     CommonUtil::pack_string(db_name, session, &db_name_fmt);
+  // insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
+  insert_metadata(DB_NAME, "S", const_cast<char*> (db_name.c_str()));
 
   // READ_OPTIMIZE
   string is_read_optimized_fmt;
@@ -294,9 +297,6 @@ void StandardGraph::create_new_graph()
   string cols = "columns=(" + SRC + "," + DST + ")";
   session->create(session, table_name.c_str(), cols.c_str());
 }
-
-
-
 
 /**
  * @brief This private function inserts metadata values into the metadata
@@ -437,7 +437,7 @@ void StandardGraph::__restore_from_db(std::string db_name)
     else if (strcmp(key, NODE_ATTR_FORMAT.c_str()) == 0)
     {
 
-      this->node_attr_format = CommonUtil::unpack_string(value, this->session);
+      this->node_attr_format = value; //CommonUtil::unpack_string(value, this->session);
     }
     else if (strcmp(key, EDGE_COLUMNS.c_str()) == 0)
     {
@@ -448,7 +448,7 @@ void StandardGraph::__restore_from_db(std::string db_name)
     else if (strcmp(key, EDGE_ATTR_FORMAT.c_str()) == 0)
     {
 
-      this->edge_attr_format = CommonUtil::unpack_string(value, this->session);
+      this->edge_attr_format = value;//CommonUtil::unpack_string(value, this->session);
     }
     else if (strcmp(key, HAS_NODE_ATTR.c_str()) == 0)
     {
@@ -463,7 +463,7 @@ void StandardGraph::__restore_from_db(std::string db_name)
     else if (strcmp(key, DB_NAME.c_str()) == 0)
     {
 
-      this->db_name = CommonUtil::unpack_string(value, this->session);
+      this->db_name = value;//CommonUtil::unpack_string(value, this->session);
     }
     else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
     {
@@ -508,7 +508,7 @@ void StandardGraph::create_indices()
   {
     CommonUtil::close_cursor(this->src_index_cursor);
   }
-  if (this->dst_index_cursor!= nullptr)
+  if (this->dst_index_cursor != nullptr)
   {
     CommonUtil::close_cursor(this->dst_index_cursor);
   }
@@ -570,41 +570,41 @@ void StandardGraph::close()
 void StandardGraph::add_node(node to_insert)
 {
   int ret = 0;
-  if (this->node_cursor == NULL)
+  if (node_cursor == NULL)
   {
-    ret = _get_table_cursor(NODE_TABLE, &(this->node_cursor), false);
+    ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
   }
-  this->node_cursor->set_key(this->node_cursor, to_insert.id);
+  node_cursor->set_key(node_cursor, to_insert.id);
 
   size_t pack_size = 0; // size for the attr vector
 
-  if ((to_insert.attr.size() == 0) & (this->has_node_attrs == true))
+  if ((to_insert.attr.size() == 0) & (has_node_attrs == true))
   {
 
     // using this because I know attrs are represented as strings.
     to_insert.attr =
-        CommonUtil::get_default_string_attrs(this->node_attr_format);
+        CommonUtil::get_default_string_attrs(node_attr_format);
   }
 
   string packed_node_attr_fmt; // This should be equal to node_attr_format after
                                // packing.
   char *attr_list_packed = CommonUtil::pack_string_vector(
       to_insert.attr, session, &pack_size, &packed_node_attr_fmt);
-  assert(packed_node_attr_fmt.compare(this->node_attr_format) ==
-         0); // This is my understanding of this whole mess.
+  // assert(packed_node_attr_fmt.compare(node_attr_format) ==
+  //        0); // This is my understanding of this whole mess.
 
-  if (this->has_node_attrs && this->read_optimize)
+  if (has_node_attrs && read_optimize)
   {
-    this->node_cursor->set_value(this->node_cursor, attr_list_packed, "0.0",
-                                 "0.0", 0, 0);
+    node_cursor->set_value(node_cursor, attr_list_packed, "0.0",
+                           "0.0", 0, 0);
   }
-  else if (this->read_optimize)
+  else if (read_optimize)
   {
-    this->node_cursor->set_value(this->node_cursor, "0.0", "0.0", 0, 0);
+    node_cursor->set_value(node_cursor, "0.0", "0.0", 0, 0);
   }
   else
   {
-    this->node_cursor->set_value(this->node_cursor, "0.0", "0.0");
+    node_cursor->set_value(node_cursor, "0.0", "0.0");
   }
 
   ret = node_cursor->insert(node_cursor);
@@ -729,7 +729,7 @@ int StandardGraph::get_num_edges()
 
 node StandardGraph::get_node(int node_id)
 {
-  node found;
+  node found = {};
   int ret = 0;
 
   WT_CURSOR *cursor = nullptr;
@@ -1013,10 +1013,13 @@ std::vector<node> StandardGraph::get_nodes()
 
 node StandardGraph::__record_to_node(WT_CURSOR *cursor)
 {
-  node found;
-  char *data0 = (char *)malloc(50 * sizeof(char));
-  char *data1 = (char *)malloc(50 * sizeof(char));
-  char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
+  node found = {};
+
+  found.in_degree = -1;
+  found.out_degree = -1;
+  char *data0 = (char *)calloc(50, sizeof(char));
+  char *data1 = (char *)calloc(50, sizeof(char));
+  char *attr_list_packed = (char *)calloc(1000, sizeof(char)); // arbitrary :(
 
   if (this->has_node_attrs && this->read_optimize)
   {

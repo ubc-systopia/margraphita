@@ -377,13 +377,17 @@ char *CommonUtil::pack_string(std::string to_pack, WT_SESSION *session,
   // std::string format = std::to_string(to_pack.length()) + "s";
   // ? Fix this if things go wrong. Does packing a string require the length? I
   // //? don't think so.
-  std::string format = "s";
-  char *buffer = (char *)malloc(to_pack.length() * sizeof(char));
+  std::string format = "S";
+  size_t size;
+  wiredtiger_struct_size(session, &size, "S", to_pack.c_str());
+  std::cout << "\n size needed is : "<<size<<std::endl;
+  
+  char *buffer = (char *)malloc(size);
 
   WT_PACK_STREAM *psp;
 
   int ret = wiredtiger_pack_start(session, format.c_str(), buffer,
-                                  to_pack.length() * sizeof(char), &psp);
+                                  size, &psp);
 
   ret = wiredtiger_pack_str(psp, to_pack.c_str());
 
@@ -407,7 +411,7 @@ std::string CommonUtil::unpack_string(const char *to_unpack,
 
   WT_PACK_STREAM *ps;
   size_t size = 0;
-  int ret = wiredtiger_unpack_start(session, fmt, to_unpack, size, &ps);
+  int ret = wiredtiger_unpack_start(session, fmt, to_unpack, 50, &ps);
 
   ret = wiredtiger_unpack_str(ps, &buffer);
 

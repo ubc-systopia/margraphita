@@ -11,7 +11,8 @@
 
 using namespace std;
 
-class StandardGraph {
+class StandardGraph
+{
 public:
   bool create_new = true;
   bool read_optimize = true;
@@ -56,8 +57,7 @@ public:
   // Metadata operations:
   void insert_metadata(string key, string value_format, char *value);
   string get_metadata(string key);
-    void close();
-
+  void close();
 
   // WT privates
 private:

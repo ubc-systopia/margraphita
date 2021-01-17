@@ -62,9 +62,17 @@ void test_intvec_packing()
 void test_node_add(StandardGraph graph){
   node new_node = {
     .id = 11,
-    .attr = {"22"}
+    .attr = {"22"},
+    .data = {},
+    .in_degree = 0,
+    .out_degree = 0
   };
-
+  graph.add_node(new_node);
+  node found = graph.get_node(new_node.id);
+  //assert(new_node.id == found.id);
+  // assert(new_node.attr == found.attr);
+  // assert(found.in_degree == 0);
+  // assert(found.out_degree == 0);
 }
 
 int main()
@@ -81,32 +89,34 @@ int main()
   //Test std_graph setup
   StandardGraph graph = setup(opts, true, true);
 
-  //Test std_graph teardown
-  tearDown(graph);
 
   //Test adding a node
   test_node_add(graph);
+
+  //Test std_graph teardown
+  tearDown(graph);
+  
   //Test deleting a node
-  test_node_delete();
-  //Test delete node without edges <-- WHY?
-  test_delete_node_without_edges();
-  //Test get_node
-  test_get_node()
-  //Test get_node for node that doesn't exist
-  test_get_node() // node_id 9
-  //Test update node
-  test_update_node()
+  // test_node_delete();
+  // //Test delete node without edges <-- WHY?
+  // test_delete_node_without_edges();
+  // //Test get_node
+  // test_get_node()
+  // //Test get_node for node that doesn't exist
+  // test_get_node() // node_id 9
+  // //Test update node
+  // test_update_node()
 
-  test_det_node_data_int_index0();
-  test_set_node_data_float_index0();
-  test_set_node_data_int_index1();
-  test_set_node_data_float_index1();
+  // test_det_node_data_int_index0();
+  // test_set_node_data_float_index0();
+  // test_set_node_data_int_index1();
+  // test_set_node_data_float_index1();
 
 
-  check_node_data();
+  // check_node_data();
   //test common util packing and unpacking features.
-  test_stringvec_packing();
-  test_intvec_packing();
+  // test_stringvec_packing();
+  // test_intvec_packing();
 
   return 0;
 }
