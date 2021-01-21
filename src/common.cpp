@@ -177,11 +177,11 @@ std::string CommonUtil::create_string_format(std::vector<std::string> to_pack,
                                              size_t *total_size)
 {
   std::string fmt = "Si"; // The first element of the packed string contains the format string. Second element contains the buffer size needed to unpack this vector
-
+  
   for (std::string item : to_pack)
   {
 
-    fmt = fmt + 'S';                    //std::to_string(item.length()) + 'S';
+  fmt = fmt + 'S';                    //std::to_string(item.length()) + 'S';
     *total_size += (item.length() + 1); //for \0
   }
   *total_size += (fmt.length() + 1 + sizeof(int) + 1); //Add the size of the first element + \0 + size of int + another \0
@@ -235,7 +235,7 @@ char *CommonUtil::pack_string_vector(std::vector<std::string> to_pack,
 {
 
   size_t _size = 0;
-  std::string format = CommonUtil::create_string_format(to_pack, &_size);
+  std::string format = CommonUtil::create_string_format(to_pack, &_size);  
   char *buffer = (char *)malloc((_size) * sizeof(char));
 
   WT_PACK_STREAM *psp;
@@ -380,8 +380,8 @@ char *CommonUtil::pack_string(std::string to_pack, WT_SESSION *session,
   std::string format = "S";
   size_t size;
   wiredtiger_struct_size(session, &size, "S", to_pack.c_str());
-  std::cout << "\n size needed is : "<<size<<std::endl;
-  
+  std::cout << "\n size needed is : " << size << std::endl;
+
   char *buffer = (char *)malloc(size);
 
   WT_PACK_STREAM *psp;
@@ -479,10 +479,12 @@ char *CommonUtil::pack_bool(bool to_pack, WT_SESSION *session,
   if (to_pack)
   {
     ret = wiredtiger_pack_uint(psp, 1);
-  }else{
-      ret = wiredtiger_pack_uint(psp, 0);
   }
-  
+  else
+  {
+    ret = wiredtiger_pack_uint(psp, 0);
+  }
+
   *fmt = "i";
   return buffer;
 }

@@ -729,7 +729,7 @@ int StandardGraph::get_num_edges()
 
 node StandardGraph::get_node(int node_id)
 {
-  node found = {};
+  node found = {0};
   int ret = 0;
 
   WT_CURSOR *cursor = nullptr;
@@ -1017,9 +1017,9 @@ node StandardGraph::__record_to_node(WT_CURSOR *cursor)
 
   found.in_degree = -1;
   found.out_degree = -1;
-  char *data0 = (char *)calloc(50, sizeof(char));
-  char *data1 = (char *)calloc(50, sizeof(char));
-  char *attr_list_packed = (char *)calloc(1000, sizeof(char)); // arbitrary :(
+  char *data0;// = (char *)calloc(50, sizeof(char)); //Don't need to malloc here. 
+  char *data1;// = (char *)calloc(50, sizeof(char));
+  char *attr_list_packed;// = (char *)calloc(1000, sizeof(char)); // arbitrary :(
 
   if (this->has_node_attrs && this->read_optimize)
   {
