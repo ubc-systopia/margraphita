@@ -5,6 +5,7 @@
 #include <cstring>
 #include <variant>
 #include <cstring>
+#include <stdlib.h>
 #include <wiredtiger.h>
 
 const std::string METADATA = "metadata";
@@ -177,11 +178,11 @@ std::string CommonUtil::create_string_format(std::vector<std::string> to_pack,
                                              size_t *total_size)
 {
   std::string fmt = "Si"; // The first element of the packed string contains the format string. Second element contains the buffer size needed to unpack this vector
-  
+
   for (std::string item : to_pack)
   {
 
-  fmt = fmt + 'S';                    //std::to_string(item.length()) + 'S';
+    fmt = fmt + 'S';                    //std::to_string(item.length()) + 'S';
     *total_size += (item.length() + 1); //for \0
   }
   *total_size += (fmt.length() + 1 + sizeof(int) + 1); //Add the size of the first element + \0 + size of int + another \0
@@ -229,13 +230,13 @@ std::string CommonUtil::create_intvec_format(std::vector<int> to_pack,
  * The first char in this string is S to indicate that the first string being
  * saved to the packing stream is the format string itself.
  */
-char *CommonUtil::pack_string_vector(std::vector<std::string> to_pack,
-                                     WT_SESSION *session, size_t *size,
-                                     std::string *fmt)
+char *CommonUtil::pack_string_vector_wt(std::vector<std::string> to_pack,
+                                        WT_SESSION *session, size_t *size,
+                                        std::string *fmt)
 {
 
   size_t _size = 0;
-  std::string format = CommonUtil::create_string_format(to_pack, &_size);  
+  std::string format = CommonUtil::create_string_format(to_pack, &_size);
   char *buffer = (char *)malloc((_size) * sizeof(char));
 
   WT_PACK_STREAM *psp;
@@ -253,6 +254,49 @@ char *CommonUtil::pack_string_vector(std::vector<std::string> to_pack,
 
   return buffer;
 }
+
+/**
+ * @brief This function is the alternative way to pack a string vector.
+ * Basically, construct one giant string out of all elements that is delimited
+ * by "__". This might be potentially faster than WT. <-- timing tests needed
+ * 
+ */
+std::string CommonUtil::pack_string_vector_std(std::vector<std::string> to_pack,
+                                               size_t *size)
+{
+
+  size_t _size = 0;
+  std::string buffer;
+  int pos = 0;
+  while (pos < to_pack.size() - 1)
+  {
+    buffer = buffer + to_pack.at(pos) + "__";
+    _size = _size + to_pack.at(pos).size() + 2;
+    pos++;
+  }
+  buffer = buffer + to_pack.at(pos);
+  _size = _size + to_pack.at(pos).size();
+  *size = _size;
+
+  return buffer;
+}
+
+std::vector<std::string> CommonUtil::unpack_string_vector_std(std::string packed_str)
+{
+  std::vector<std::string> res;
+  int pos = 0;
+  std::string delimiter = "__";
+  std::string token;
+  while ((pos = packed_str.find(delimiter)) != std::string::npos)
+  {
+    token = packed_str.substr(0, pos);
+
+    res.push_back(token);
+    packed_str.erase(0, pos + delimiter.length());
+  }
+  res.push_back(packed_str);
+  return res;
+}
 /**
  * @brief This function unpacks the buffer to_unpack into a vector<string>
  * This function is *very* brittle and I fully expect this to fail.
@@ -261,8 +305,8 @@ char *CommonUtil::pack_string_vector(std::vector<std::string> to_pack,
  * @param session The WT_SESSION object
  * @return std::vector<std::string> The unpacked vector of strings.
  */
-std::vector<std::string> CommonUtil::unpack_string_vector(const char *to_unpack,
-                                                          WT_SESSION *session)
+std::vector<std::string> CommonUtil::unpack_string_vector_wt(const char *to_unpack,
+                                                             WT_SESSION *session)
 {
   std::vector<std::string> unpacked_vector;
   WT_PACK_STREAM *psp;
@@ -286,10 +330,12 @@ std::vector<std::string> CommonUtil::unpack_string_vector(const char *to_unpack,
     {
       int64_t temp;
       ret = wiredtiger_unpack_int(psp, &temp);
+      //std::cout<< "unpacking strvec . got " <<temp <<std::endl;
     }
     else
     {
       ret = wiredtiger_unpack_str(psp, &res);
+      //std::cout<<"unpacked strvec, got: " << res << std::endl;
     }
     if (i > 1)
     {
@@ -311,8 +357,8 @@ std::vector<std::string> CommonUtil::unpack_string_vector(const char *to_unpack,
  * The first char in this string is S to indicate that the first string being
  * saved to the packing stream is the format string itself.
  */
-char *CommonUtil::pack_int_vector(std::vector<int> to_pack, WT_SESSION *session,
-                                  size_t *size, std::string *fmt)
+char *CommonUtil::pack_int_vector_wt(std::vector<int> to_pack, WT_SESSION *session,
+                                     size_t *size, std::string *fmt)
 {
 
   size_t _size = 0;
@@ -333,6 +379,56 @@ char *CommonUtil::pack_int_vector(std::vector<int> to_pack, WT_SESSION *session,
   *size = _size;
   return buffer;
 }
+
+/**
+ * @brief This function is used to pack all integers in the integer vector by
+ * concatenating their string representation that is delimited with "__"
+ *
+ * @param to_unpack The vector of ints to pack.
+ * @return buffer the packed string.
+ */
+std::string CommonUtil::pack_int_vector_std(std::vector<int> to_pack, size_t 
+*size)
+{
+  size_t _size = 0;
+  std::string buffer;
+  int pos = 0;
+  while (pos < to_pack.size() - 1)
+  {
+    buffer = buffer + std::to_string(to_pack.at(pos)) + "__";
+    _size = 2; // add the 2 * number of "__" added
+    pos++;
+  }
+  buffer = buffer + std::to_string(to_pack.at(pos));
+  _size = _size + sizeof(int)*to_pack.size();
+  *size = _size;
+
+  return buffer;
+}
+
+/**
+ * @brief This function unpacks the buffer into a vector<int>. This assumes the
+ * buffer was packed using pack_int_vector_std()
+ * @param to_unpack string that contains the packed vector
+ * @return std::vector<int> unpacked buffer
+ */
+std::vector<int> CommonUtil::unpack_int_vector_std(std::string packed_str)
+{
+  std::vector<int> res;
+  int pos = 0;
+  std::string delimiter = "__";
+  int number;
+  while((pos = packed_str.find(delimiter)) != std::string::npos)
+  {
+    number = stoi(packed_str.substr(0, pos));
+
+    res.push_back(number);
+    packed_str.erase(0, pos + delimiter.length());
+  }
+  res.push_back(stoi(packed_str));
+  return res;
+}
+
 /**
  * @brief This function unpacks the buffer into a vector<int>. This is a very
  * brittle implementation, and the sizes of the buffers are random and will
@@ -342,7 +438,7 @@ char *CommonUtil::pack_int_vector(std::vector<int> to_pack, WT_SESSION *session,
  * @param session WT_SESSION object
  * @return std::vector<int> unpacked buffer
  */
-std::vector<int> CommonUtil::unpack_int_vector(const char *to_unpack, WT_SESSION *session)
+std::vector<int> CommonUtil::unpack_int_vector_wt(const char *to_unpack, WT_SESSION *session)
 {
   std::vector<int> unpacked_vector;
   WT_PACK_STREAM *psp;
@@ -371,8 +467,8 @@ std::vector<int> CommonUtil::unpack_int_vector(const char *to_unpack, WT_SESSION
   return unpacked_vector;
 }
 
-char *CommonUtil::pack_string(std::string to_pack, WT_SESSION *session,
-                              std::string *fmt)
+char *CommonUtil::pack_string_wt(std::string to_pack, WT_SESSION *session,
+                                 std::string *fmt)
 {
   // std::string format = std::to_string(to_pack.length()) + "s";
   // ? Fix this if things go wrong. Does packing a string require the length? I
@@ -380,7 +476,7 @@ char *CommonUtil::pack_string(std::string to_pack, WT_SESSION *session,
   std::string format = "S";
   size_t size;
   wiredtiger_struct_size(session, &size, "S", to_pack.c_str());
-  std::cout << "\n size needed is : " << size << std::endl;
+  //std::cout << "\n size needed is : " << size << std::endl;
 
   char *buffer = (char *)malloc(size);
 
@@ -402,8 +498,8 @@ char *CommonUtil::pack_string(std::string to_pack, WT_SESSION *session,
  * @param session WT_SESSION object
  * @return std::string the std::string object containing the unpacked string.
  */
-std::string CommonUtil::unpack_string(const char *to_unpack,
-                                      WT_SESSION *session)
+std::string CommonUtil::unpack_string_wt(const char *to_unpack,
+                                         WT_SESSION *session)
 {
   const char *fmt = "S";
   const char *buffer =
@@ -425,7 +521,7 @@ std::string CommonUtil::unpack_string(const char *to_unpack,
  * @param session the WT_SESSION object
  * @return char* packed buffer
  */
-char *CommonUtil::pack_int(int to_pack, WT_SESSION *session)
+char *CommonUtil::pack_int_wt(int to_pack, WT_SESSION *session)
 {
   std::string format = "i";
 
@@ -447,7 +543,7 @@ char *CommonUtil::pack_int(int to_pack, WT_SESSION *session)
  * @param session WT_SESSION object
  * @return int the unpacked integer
  */
-int CommonUtil::unpack_int(const char *to_unpack, WT_SESSION *session)
+int CommonUtil::unpack_int_wt(const char *to_unpack, WT_SESSION *session)
 {
   int64_t ret_val;
   WT_PACK_STREAM *ps;
@@ -466,8 +562,8 @@ int CommonUtil::unpack_int(const char *to_unpack, WT_SESSION *session)
  * @param fmt format string
  * @return char* packed buffer.
  */
-char *CommonUtil::pack_bool(bool to_pack, WT_SESSION *session,
-                            std::string *fmt)
+char *CommonUtil::pack_bool_wt(bool to_pack, WT_SESSION *session,
+                               std::string *fmt)
 {
   size_t size = sizeof(uint8_t);
   char *buffer = (char *)malloc(size);
@@ -496,7 +592,7 @@ char *CommonUtil::pack_bool(bool to_pack, WT_SESSION *session,
  * @param session WT_SESSION object
  * @return bool the boolean value unpacked from the buffer.
  */
-bool CommonUtil::unpack_bool(const char *to_unpack, WT_SESSION *session)
+bool CommonUtil::unpack_bool_wt(const char *to_unpack, WT_SESSION *session)
 {
 
   uint64_t bool_val;

@@ -1,18 +1,34 @@
 #include "common.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
+#include "sample_graph.h"
 #include <cassert>
+#include "test_standard_graph.h"
 
-WT_CONNECTION *conn;
-WT_CURSOR *cursor;
-WT_SESSION *session;
-const char *home;
+void create_init_nodes(StandardGraph graph)
+{
+  for (node x : SampleGraph::test_nodes){
+    graph.add_node(x);
+  }
+
+  if(graph.is_directed){
+    SampleGraph::create_directed_edges();
+    assert(SampleGraph::test_edges.size() == 6); //checking if directed edges got created and stored in test_edges
+    
+  }
+
+  for (edge x : SampleGraph::test_edges){
+    graph.add_edge(x);
+  }
+
+}
 
 StandardGraph setup(opt_args opts, bool read_optimize, bool is_directed)
 {
 
   StandardGraph graph = StandardGraph(opts.create_new, read_optimize,
                                       is_directed, "test_std", opts);
+  create_init_nodes(graph);
   return graph;
 }
 
@@ -21,42 +37,25 @@ void tearDown(StandardGraph graph)
   graph.close();
 }
 
-void test_stringvec_packing()
-{
-  string testname = "String Vector Packing";
-  int ret = 0;
-  wiredtiger_open(home, NULL, "create", &conn);
-  conn->open_session(conn, NULL, NULL, &session);
 
-  vector<string> test = {"hello", "world", "this", "is", "test", "string", "packing"};
 
-  size_t size;
-  string format;
-  char *buffer = CommonUtil::pack_string_vector(test, session, &size, &format);
+void dump_node(node to_print){
+  cout <<"Node ID is: \t"<< to_print.id<<endl;
+  cout <<"Node attributes are:\t"<<endl;
+  cout <<"{"<<endl;
+  for(string x : to_print.attr){
+    cout << "\t\t\t"<<x<<endl;
+  }
+  cout << "}"<<endl;
 
-  vector<string> result = CommonUtil::unpack_string_vector(buffer, session);
-  assert(result == test);
-  cout << "TEST:\t" << testname << ":\tpass" << endl;
-  conn->close(conn, NULL);
-}
-
-void test_intvec_packing()
-{
-  string testname = "Integer Vector Packing";
-  int ret = 0;
-  wiredtiger_open(home, NULL, "create", &conn);
-  conn->open_session(conn, NULL, NULL, &session);
-
-  vector<int> test = {1, 2, 3, 4, 55, 66, 77, 888, 999};
-  size_t size;
-  string format;
-  char *buffer = CommonUtil::pack_int_vector(test, session, &size, &format);
-  vector<int> result = CommonUtil::unpack_int_vector(buffer, session);
-
-  assert(result == test);
-  cout << "TEST:\t" << testname << ":\tpass" << endl;
-  ;
-  conn->close(conn, NULL);
+  cout<<"Node data is:\t"<<endl;
+  cout<<"{"<<endl;
+  for(string x : to_print.data){
+    cout << "\t\t\t"<<x<<endl;
+  }
+  cout << "}"<<endl;
+  cout<<"Node in_degree is:\t"<<to_print.in_degree<<endl;
+  cout<<"Node out_degree is:\t"<<to_print.out_degree<<endl;
 }
 
 void test_node_add(StandardGraph graph){
@@ -69,10 +68,10 @@ void test_node_add(StandardGraph graph){
   };
   graph.add_node(new_node);
   node found = graph.get_node(new_node.id);
-  //assert(new_node.id == found.id);
-  // assert(new_node.attr == found.attr);
-  // assert(found.in_degree == 0);
-  // assert(found.out_degree == 0);
+  assert(new_node.id == found.id);
+  assert(new_node.attr == found.attr);
+  assert(found.in_degree == 0);
+  assert(found.out_degree == 0);
 }
 
 int main()
@@ -93,12 +92,13 @@ int main()
   //Test adding a node
   test_node_add(graph);
 
+  //Test deleting a node
+ //test_node_delete();
+  
   //Test std_graph teardown
   tearDown(graph);
   
-  //Test deleting a node
-  // test_node_delete();
-  // //Test delete node without edges <-- WHY?
+ // //Test delete node without edges <-- WHY?
   // test_delete_node_without_edges();
   // //Test get_node
   // test_get_node()
@@ -107,7 +107,7 @@ int main()
   // //Test update node
   // test_update_node()
 
-  // test_det_node_data_int_index0();
+  // test_set_node_data_int_index0();
   // test_set_node_data_float_index0();
   // test_set_node_data_int_index1();
   // test_set_node_data_float_index1();

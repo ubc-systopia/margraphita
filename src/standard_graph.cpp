@@ -153,6 +153,7 @@ void StandardGraph::create_new_graph()
   CommonUtil::set_table(session, NODE_TABLE, node_columns, node_key_format,
                         node_value_format);
 
+
   // ******** Now set up the Edge Table     **************
   // Edge Column Format : <src><dst><attrs>
 
@@ -192,6 +193,7 @@ void StandardGraph::create_new_graph()
   string edge_table_index_str, edge_table_index_conf_str;
   edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_DST_INDEX;
   edge_table_index_conf_str = "columns=(" + SRC + "," + DST + ")";
+  //THere is likely a util fucntion for this
   if ((ret = session->create(session, edge_table_index_str.c_str(),
                              edge_table_index_conf_str.c_str())) > 0)
   {
@@ -228,7 +230,7 @@ void StandardGraph::create_new_graph()
   // NODE_COLUMNS
   string node_columns_fmt;
   size_t node_columns_packed_buf_size;
-  char *node_columns_packed = CommonUtil::pack_string_vector(
+  char *node_columns_packed = CommonUtil::pack_string_vector_wt(
       node_columns, session, &node_columns_packed_buf_size, &node_columns_fmt);
 
   insert_metadata(NODE_COLUMNS, node_columns_fmt, node_columns_packed);
@@ -236,58 +238,58 @@ void StandardGraph::create_new_graph()
   // NODE_ATTR_FORMAT
   string node_attr_format_fmt;
   // char *node_attr_packed =
-  //     CommonUtil::pack_string(node_attr_format, session, &node_attr_format_fmt);
+  //     CommonUtil::pack_string_wt(node_attr_format, session, &node_attr_format_fmt);
   // insert_metadata(NODE_ATTR_FORMAT, node_attr_format_fmt, node_attr_packed);
   insert_metadata(NODE_ATTR_FORMAT, "S", const_cast<char *>(node_attr_format.c_str()));
 
   // EDGE_COLUMNS
   string edge_columns_fmt;
   size_t edge_columns_packed_buf_size;
-  char *edge_columns_packed = CommonUtil::pack_string_vector(
+  char *edge_columns_packed = CommonUtil::pack_string_vector_wt(
       edge_columns, session, &edge_columns_packed_buf_size, &edge_columns_fmt);
   insert_metadata(EDGE_COLUMNS, edge_columns_fmt, edge_columns_packed);
 
   // EDGE_ATTR_FORMAT
   string edge_attr_format_fmt;
   // char *edge_attr_packed =
-  //     CommonUtil::pack_string(edge_attr_format, session, &edge_attr_format_fmt);
+  //     CommonUtil::pack_string_wt(edge_attr_format, session, &edge_attr_format_fmt);
   // insert_metadata(EDGE_ATTR_FORMAT, edge_attr_format_fmt, edge_attr_packed);
-  insert_metadata(EDGE_ATTR_FORMAT, "S", const_cast<char*> (edge_attr_format.c_str()));
+  insert_metadata(EDGE_ATTR_FORMAT, "S", const_cast<char *>(edge_attr_format.c_str()));
 
   // HAS_NODE_ATTR
   string has_node_attr_fmt;
   char *has_node_attr_packed =
-      CommonUtil::pack_bool(has_node_attrs, session, &has_node_attr_fmt);
+      CommonUtil::pack_bool_wt(has_node_attrs, session, &has_node_attr_fmt);
   insert_metadata(HAS_NODE_ATTR, has_node_attr_fmt, has_node_attr_packed);
 
   // HAS_EDGE_ATTR
   string has_edge_attr_fmt;
   char *has_edge_attrs_packed =
-      CommonUtil::pack_bool(has_edge_attrs, session, &has_edge_attr_fmt);
+      CommonUtil::pack_bool_wt(has_edge_attrs, session, &has_edge_attr_fmt);
   insert_metadata(HAS_EDGE_ATTR, has_edge_attr_fmt, has_edge_attrs_packed);
 
   // DB_NAME
   string db_name_fmt;
   // char *db_name_packed =
-  //     CommonUtil::pack_string(db_name, session, &db_name_fmt);
+  //     CommonUtil::pack_string_wt(db_name, session, &db_name_fmt);
   // insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
-  insert_metadata(DB_NAME, "S", const_cast<char*> (db_name.c_str()));
+  insert_metadata(DB_NAME, "S", const_cast<char *>(db_name.c_str()));
 
   // READ_OPTIMIZE
   string is_read_optimized_fmt;
   char *is_read_optimized_packed =
-      CommonUtil::pack_bool(read_optimize, session, &is_read_optimized_fmt);
+      CommonUtil::pack_bool_wt(read_optimize, session, &is_read_optimized_fmt);
   insert_metadata(READ_OPTIMIZE, is_read_optimized_fmt,
                   is_read_optimized_packed);
   // EDGE_ID
   string edge_id_fmt;
-  char *edge_id_packed = CommonUtil::pack_int(edge_id, session);
+  char *edge_id_packed = CommonUtil::pack_int_wt(edge_id, session);
   insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
 
   // IS_DIRECTED
   string is_directed_fmt;
   char *is_directed_packed =
-      CommonUtil::pack_bool(is_directed, session, &is_directed_fmt);
+      CommonUtil::pack_bool_wt(is_directed, session, &is_directed_fmt);
   insert_metadata(IS_DIRECTED, is_directed_fmt, is_directed_packed);
 
   /**
@@ -301,6 +303,7 @@ void StandardGraph::create_new_graph()
 /**
  * @brief This private function inserts metadata values into the metadata
  * table. The fields are self explanatory.
+ * 
  */
 void StandardGraph::insert_metadata(string key, string value_format,
                                     char *value)
@@ -432,53 +435,53 @@ void StandardGraph::__restore_from_db(std::string db_name)
     if (strcmp(key, NODE_COLUMNS.c_str()) == 0)
     {
       this->node_columns =
-          CommonUtil::unpack_string_vector(value, this->session);
+          CommonUtil::unpack_string_vector_wt(value, this->session);
     }
     else if (strcmp(key, NODE_ATTR_FORMAT.c_str()) == 0)
     {
 
-      this->node_attr_format = value; //CommonUtil::unpack_string(value, this->session);
+      this->node_attr_format = value; //CommonUtil::unpack_string_wt(value, this->session);
     }
     else if (strcmp(key, EDGE_COLUMNS.c_str()) == 0)
     {
 
       this->edge_columns =
-          CommonUtil::unpack_string_vector(value, this->session);
+          CommonUtil::unpack_string_vector_wt(value, this->session);
     }
     else if (strcmp(key, EDGE_ATTR_FORMAT.c_str()) == 0)
     {
 
-      this->edge_attr_format = value;//CommonUtil::unpack_string(value, this->session);
+      this->edge_attr_format = value; //CommonUtil::unpack_string_wt(value, this->session);
     }
     else if (strcmp(key, HAS_NODE_ATTR.c_str()) == 0)
     {
 
-      this->has_node_attrs = CommonUtil::unpack_bool(value, this->session);
+      this->has_node_attrs = CommonUtil::unpack_bool_wt(value, this->session);
     }
     else if (strcmp(key, HAS_EDGE_ATTR.c_str()) == 0)
     {
 
-      this->has_edge_attrs = CommonUtil::unpack_bool(value, this->session);
+      this->has_edge_attrs = CommonUtil::unpack_bool_wt(value, this->session);
     }
     else if (strcmp(key, DB_NAME.c_str()) == 0)
     {
 
-      this->db_name = value;//CommonUtil::unpack_string(value, this->session);
+      this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);
     }
     else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
     {
 
-      this->read_optimize = CommonUtil::unpack_bool(value, this->session);
+      this->read_optimize = CommonUtil::unpack_bool_wt(value, this->session);
     }
     else if (strcmp(key, EDGE_ID.c_str()) == 0)
     {
 
-      this->edge_id = CommonUtil::unpack_int(value, this->session);
+      this->edge_id = CommonUtil::unpack_int_wt(value, this->session);
     }
     else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
     {
 
-      this->is_directed = CommonUtil::unpack_bool(value, this->session);
+      this->is_directed = CommonUtil::unpack_bool_wt(value, this->session);
     }
   }
   cursor->close(cursor);
@@ -549,10 +552,15 @@ void StandardGraph::drop_indices()
   this->session->drop(this->session, uri.c_str(), NULL);
 }
 
+/**
+ * @brief This function is used to close the graph. It persists the last used
+ * edge_id in the metadata table, and then closes the graph connection. 
+ * 
+ */
 void StandardGraph::close()
 {
   string edge_id_fmt;
-  char *edge_id_packed = CommonUtil::pack_int(edge_id, session);
+  char *edge_id_packed = CommonUtil::pack_int_wt(edge_id, session);
   insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
   CommonUtil::close_connection(conn);
 }
@@ -588,15 +596,22 @@ void StandardGraph::add_node(node to_insert)
 
   string packed_node_attr_fmt; // This should be equal to node_attr_format after
                                // packing.
-  char *attr_list_packed = CommonUtil::pack_string_vector(
-      to_insert.attr, session, &pack_size, &packed_node_attr_fmt);
-  // assert(packed_node_attr_fmt.compare(node_attr_format) ==
-  //        0); // This is my understanding of this whole mess.
+  // char *attr_list_packed = CommonUtil::pack_string_vector_wt(
+  //     to_insert.attr, session, &pack_size, &packed_node_attr_fmt);
+  // // assert(packed_node_attr_fmt.compare(node_attr_format) ==
+  // //        0); // This is my understanding of this whole mess.
+
+  string packed_str = CommonUtil::pack_string_vector_std(to_insert.attr,&pack_size);
+  
+  char *attr_list_packed = new char[packed_str.length() + 1];
+  strcpy(attr_list_packed, packed_str.c_str());
+
 
   if (has_node_attrs && read_optimize)
   {
     node_cursor->set_value(node_cursor, attr_list_packed, "0.0",
                            "0.0", 0, 0);
+    cout <<"attr list_packed " << attr_list_packed<<endl;
   }
   else if (read_optimize)
   {
@@ -744,6 +759,22 @@ node StandardGraph::get_node(int node_id)
                          std::to_string(node_id));
   }
   found = __record_to_node(cursor);
+
+//   found.in_degree = -1;
+//   found.out_degree = -1;
+//   char *data0 ;//= (char *)calloc(50, sizeof(char)); //Don't need to malloc here.
+//   char *data1;// = (char *)calloc(50, sizeof(char));
+//   char *attr_list_packed;// = (char *)calloc(1000, sizeof(char)); // arbitrary :(
+
+//   if (this->has_node_attrs && this->read_optimize)
+//   {
+//     cursor->get_value(cursor, &attr_list_packed, &data0, &data1, &found.in_degree,
+//                       &found.out_degree);
+//     found.attr = CommonUtil::unpack_string_vector(attr_list_packed, session);
+//     found.data.push_back(data0);
+//     found.data.push_back(data1);
+//   }
+  found.id = node_id;
   cursor->close(cursor);
   return found;
 }
@@ -889,7 +920,7 @@ void StandardGraph::__node_to_record(WT_CURSOR *cursor, node to_insert)
   // Pack the new attrs;
   size_t pack_size;
   string packed_node_attr_fmt;
-  char *new_attr_list_packed = CommonUtil::pack_string_vector(
+  char *new_attr_list_packed = CommonUtil::pack_string_vector_wt(
       to_insert.attr, session, &pack_size, &packed_node_attr_fmt);
 
   // Now get the cursor value and update the attr
@@ -1011,40 +1042,41 @@ std::vector<node> StandardGraph::get_nodes()
   return nodes;
 }
 
-node StandardGraph::__record_to_node(WT_CURSOR *cursor)
+node StandardGraph:: __record_to_node(WT_CURSOR *cursor)
 {
   node found = {};
 
   found.in_degree = -1;
   found.out_degree = -1;
-  char *data0;// = (char *)calloc(50, sizeof(char)); //Don't need to malloc here. 
+  char *data0 ;//= (char *)calloc(50, sizeof(char)); //Don't need to malloc here.
   char *data1;// = (char *)calloc(50, sizeof(char));
   char *attr_list_packed;// = (char *)calloc(1000, sizeof(char)); // arbitrary :(
 
   if (this->has_node_attrs && this->read_optimize)
   {
-    cursor->get_value(cursor, attr_list_packed, data0, data1, &found.in_degree,
+    cursor->get_value(cursor, &attr_list_packed, &data0, &data1, &found.in_degree,
                       &found.out_degree);
-    found.attr = CommonUtil::unpack_string_vector(attr_list_packed, session);
+
+    cout <<"attr list is " << attr_list_packed+5<<endl;
+    //found.attr = CommonUtil::unpack_string_vector_wt(attr_list_packed, session);
+    found.attr = CommonUtil::unpack_string_vector_std(std::string(attr_list_packed));
     found.data.push_back(data0);
     found.data.push_back(data1);
   }
   else if (this->read_optimize)
   {
-    cursor->get_value(cursor, data0, data1, &found.in_degree,
+    cursor->get_value(cursor, &data0, &data1, &found.in_degree,
                       &found.out_degree);
     found.data.push_back(data0);
     found.data.push_back(data1);
   }
   else
   {
-    cursor->get_value(cursor, data0, data1);
+    cursor->get_value(cursor, &data0, &data1);
     found.data.push_back(data0);
     found.data.push_back(data1);
   }
-  free(data0);
-  free(data1);
-  free(attr_list_packed);
+
   return found;
 }
 
@@ -1054,7 +1086,7 @@ edge StandardGraph::__record_to_edge(WT_CURSOR *cursor)
   char *attr_list_packed = (char *)malloc(1000 * sizeof(char));
   cursor->get_value(cursor, &found.src_id, &found.dst_id, attr_list_packed);
 
-  found.attr = CommonUtil::unpack_int_vector(attr_list_packed, session);
+  found.attr = CommonUtil::unpack_int_vector_wt(attr_list_packed, session);
 
   free(attr_list_packed);
 
@@ -1096,7 +1128,7 @@ void StandardGraph::add_edge(edge to_insert)
   else
   {
     // The edge does not exist, use the global edge-id and update it by 1
-    cursor->set_key(cursor, this->edge_id);
+    cursor->set_key(cursor, this->edge_id); //! I think this is broken. this->edge_id is different from edge_id ?
     this->edge_id++;
   }
   // If has_edge_attr is true, but none are provided
@@ -1108,8 +1140,15 @@ void StandardGraph::add_edge(edge to_insert)
     }
     size_t packed_attr_buf_size;
     string fmt;
-    char *packed = CommonUtil::pack_int_vector(to_insert.attr, session,
-                                               &packed_attr_buf_size, &fmt);
+    // char *packed = CommonUtil::pack_int_vector_wt(to_insert.attr, session,
+    //                                            &packed_attr_buf_size, &fmt);
+    //! fix this --> use the std string packing method. Also, use the strcpy
+    //! ways in add_node
+    string packed_str = CommonUtil::pack_int_vector_std(to_insert.attr, &packed_attr_buf_size);
+    
+    char *packed = new char[packed_str.length() + 1];
+    strcpy(packed, packed_str.c_str());
+
     cursor->set_value(cursor, to_insert.src_id, to_insert.dst_id, packed);
   }
   else
@@ -1123,8 +1162,9 @@ void StandardGraph::add_edge(edge to_insert)
                          to_string(to_insert.src_id) + "," +
                          to_string(to_insert.dst_id));
   }
-  cursor->close(cursor);
+  cursor->close(cursor); //! why?
   // If read_optimized is true, we update in/out degreees in the node table.
+  return;
   if (this->read_optimize)
   {
     // update in/out degrees for src node in NODE_TABLE
@@ -1368,6 +1408,12 @@ vector<node> StandardGraph::get_out_nodes(int node_id)
   return nodes;
 }
 
+/**
+ * @brief This is used to ge
+ * 
+ * @param node_id 
+ * @return vector<edge> 
+ */
 vector<edge> StandardGraph::get_in_edges(int node_id)
 {
   vector<int> edge_ids;
@@ -1413,6 +1459,13 @@ vector<edge> StandardGraph::get_in_edges(int node_id)
   return in_edges;
 }
 
+/**
+ * @brief This function is used to get the list of nodes that have edges to
+ * node_id
+ * 
+ * @param node_id for identifying the node to search
+ * @return vector<node> set of nodes that have edges to node_id
+ */
 vector<node> StandardGraph::get_in_nodes(int node_id)
 {
   vector<int> src_ids;
@@ -1514,5 +1567,3 @@ string StandardGraph::get_node_data(int node_id, int idx)
   node found = __record_to_node(cursor);
   return found.data[idx];
 }
-
-//int main() { printf("Trying this out\n"); }
