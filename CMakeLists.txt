@@ -30,6 +30,29 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
                  ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
                  EXCLUDE_FROM_ALL)
+#############################################################################
+# Initialize the wiredtiger library (submodule)                             #
+# This recipe taken and modified from                                       #
+# https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html  #
+#############################################################################
+find_package(Git QUIET)
+if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+  #update the submodules as needed
+  option(GIT_SUBMODULE "check submodules during build" ON)
+  if(GIT_SUBMODULE)
+    message(STATUS "submodule updated")
+    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+      message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+    endif()
+  endif()
+endif()
+
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/libs/wiredtiger/.git")
+  message(FATAL_ERROR "The submodule was not downloaded. Init the git submodule manually")
+endif()
 
 #######################################################
 # Define paths and targets for GraphAPI lib and tests #
