@@ -54,6 +54,27 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/libs/wiredtiger/.git")
   message(FATAL_ERROR "The submodule was not downloaded. Init the git submodule manually")
 endif()
 
+execute_process(COMMAND ./autogen.sh
+		RESULT_VARIABLE result
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger )
+if(result)
+  message(FATAL_ERROR "Running autogen failed for Wiredtiger submodule with error: ${result}")
+endif()
+
+execute_process(COMMAND ./configure
+		RESULT_VARIABLE result
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger)
+if(result)
+  message(FATAL_ERROR "Running autoconf failed for Wiredtiger submodule with error: ${result}")
+endif()
+
+execute_process(COMMAND make -j16
+		RESULT_VARIABLE result
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger)
+if(result)
+  message(FATAL_ERROR "Running make failed for Wiredtiger submodule with error: ${result}")
+endif()
+
 #######################################################
 # Define paths and targets for GraphAPI lib and tests #
 #######################################################
