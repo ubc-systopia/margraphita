@@ -36,45 +36,46 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
 # https://cliutils.gitlab.io/modern-cmake/chapters/projects/submodule.html  #
 #############################################################################
 find_package(Git QUIET)
-if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-  #update the submodules as needed
-  option(GIT_SUBMODULE "check submodules during build" ON)
-  if(GIT_SUBMODULE)
-    message(STATUS "submodule updated")
-    execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
-    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-      message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/libs/wiredtiger/wt")
+  if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
+    #update the submodules as needed
+    option(GIT_SUBMODULE "check submodules during build" ON)
+    if(GIT_SUBMODULE)
+      message(STATUS "submodule updated")
+      execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                      RESULT_VARIABLE GIT_SUBMOD_RESULT)
+      if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+        message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
+      endif()
     endif()
   endif()
-endif()
 
-if(NOT EXISTS "${PROJECT_SOURCE_DIR}/libs/wiredtiger/.git")
-  message(FATAL_ERROR "The submodule was not downloaded. Init the git submodule manually")
-endif()
+  if(NOT EXISTS "${PROJECT_SOURCE_DIR}/libs/wiredtiger/.git")
+    message(FATAL_ERROR "The submodule was not downloaded. Init the git submodule manually")
+  endif()
 
-execute_process(COMMAND ./autogen.sh
-		RESULT_VARIABLE result
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger )
-if(result)
-  message(FATAL_ERROR "Running autogen failed for Wiredtiger submodule with error: ${result}")
-endif()
+  execute_process(COMMAND ./autogen.sh
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger )
+  if(result)
+    message(FATAL_ERROR "Running autogen failed for Wiredtiger submodule with error: ${result}")
+  endif()
 
-execute_process(COMMAND ./configure
-		RESULT_VARIABLE result
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger)
-if(result)
-  message(FATAL_ERROR "Running autoconf failed for Wiredtiger submodule with error: ${result}")
-endif()
+  execute_process(COMMAND ./configure
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger)
+  if(result)
+    message(FATAL_ERROR "Running autoconf failed for Wiredtiger submodule with error: ${result}")
+  endif()
 
-execute_process(COMMAND make -j16
-		RESULT_VARIABLE result
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger)
-if(result)
-  message(FATAL_ERROR "Running make failed for Wiredtiger submodule with error: ${result}")
+  execute_process(COMMAND make -j16
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/libs/wiredtiger)
+  if(result)
+    message(FATAL_ERROR "Running make failed for Wiredtiger submodule with error: ${result}")
+  endif()
 endif()
-
 #######################################################
 # Define paths and targets for GraphAPI lib and tests #
 #######################################################
