@@ -11,6 +11,8 @@
 
 using namespace std;
 
+extern const std::int EDGE_ID;
+
 class StandardGraph
 {
 public:

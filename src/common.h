@@ -11,25 +11,14 @@
 
 extern const std::string METADATA;
 extern const std::string DB_NAME;
-extern const std::string NODE_COLUMNS;
-extern const std::string EDGE_COLUMNS;
-extern const std::string NODE_ATTR_FORMAT;
-extern const std::string EDGE_ATTR_FORMAT;
-extern const std::string HAS_NODE_ATTR;
-extern const std::string HAS_EDGE_ATTR;
-extern const std::string NODE_VALUE_COLUMNS;
-extern const std::string EDGE_VALUE_COLUMNS;
-extern const std::string NODE_VALUE_FORMAT;
-extern const std::string EDGE_VALUE_FORMAT;
-extern const std::string READ_OPTIMIZE;
-extern const std::string EDGE_ID;
-extern const std::string NODE_DATA;
-extern const std::string IS_DIRECTED;
-extern const std::string CREATE_NEW;
+extern const bool        IS_WEIGHTED;
+extern const bool        READ_OPTIMIZE;
+extern const bool        IS_DIRECTED;
+extern const bool        CREATE_NEW;
 
 // Read Optimize columns
-extern const std::string IN_DEGREE;
-extern const std::string OUT_DEGREE;
+extern const int IN_DEGREE;
+extern const int OUT_DEGREE;
 
 // Shared column names
 extern const std::string SRC;
@@ -43,22 +32,15 @@ extern const std::string SRC_DST_INDEX;
 
 struct opt_args
 {
-  std::vector<std::string> node_value_columns;
-  std::string node_value_format;
-  std::string edge_value_format;
-  std::vector<std::string> edge_value_columns;
-
   bool create_new;
-  bool optimize_create;
-
+  bool optimize_create; // directs when the index should be created
+  bool is_directed; // If graph is a directed graph or undirected graph
+  bool is_weighted; // if the edge is weighted
 };
 
 typedef struct node
 {
-  int id;                        // node ID
-  std::vector<std::string> attr; // Should this be something else?
-  std::vector<std::string> data; //! I think this is just begging to be a
-                                 //! generic. type. What would Galois do?
+  int id;                       // node ID
   int in_degree = 0;
   int out_degree = 0;
 } node;
@@ -67,7 +49,7 @@ typedef struct edge
 {
   int src_id;
   int dst_id;
-  std::vector<int> attr; // Should this be something else?
+  int edge_weight;
 } edge;
 
 typedef struct edge_index
