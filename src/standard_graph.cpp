@@ -15,13 +15,15 @@ const std::string GRAPH_PREFIX = "std";
 StandardGraph::StandardGraph(){};
 
 StandardGraph::StandardGraph(bool create_new, bool read_optimize,
-                             bool is_directed, std::string db_name,
+                             bool is_directed, bool is_weighted,
+                             std::string db_name,
                              opt_args opt_params)
 
 {
   this->create_new = create_new;
   this->read_optimize = read_optimize;
   this->is_directed = is_directed;
+  this->is_weighted = is_weighted;
   this->db_name = db_name;
 
   // Check which params are missing.
@@ -32,40 +34,6 @@ StandardGraph::StandardGraph(bool create_new, bool read_optimize,
   catch (GraphException G)
   {
     std::cout << G.what() << std::endl;
-  }
-
-  // Find NODE_VALUE_COLUMNS in params
-  if (!opt_params.node_value_columns.empty())
-  {
-    this->node_value_cols = opt_params.node_value_columns;
-  }
-  // Find NODE_VALUE_FORMAT in params
-  if (!opt_params.node_value_format.empty())
-  {
-    this->node_value_format = opt_params.node_value_format;
-  }
-
-  // Find NODE_ATTR_FORMAT in params
-  if (!opt_params.node_value_format.empty())
-  {
-    this->node_attr_format = opt_params.node_value_format;
-  }
-
-  // Find EDGE_VALUE_COLUMNS in params
-  if (!opt_params.edge_value_columns.empty())
-  {
-    this->edge_value_cols = opt_params.edge_value_columns;
-  }
-  // Find EGDE_VALUE_FORMAT in params
-  if (!opt_params.edge_value_format.empty())
-  {
-    this->edge_value_format = opt_params.edge_value_format;
-  }
-
-  // Find EGDE_ATTR_FORMAT in params
-  if (!opt_params.edge_value_format.empty())
-  {
-    this->edge_attr_format = opt_params.edge_value_format;
   }
 
   if (opt_params.create_new == false)
@@ -122,11 +90,8 @@ void StandardGraph::create_new_graph()
   // Set up the node table
   node_columns = {ID};
   node_key_format = 'I';
-  if (!node_value_cols.empty())
-  {
-    this->has_node_attrs = true;
-  }
-  // Node Column Format: <attributes><data0><data1><in_degree><out_degree>
+
+  // Node Column Format: <attributes><in_degree><out_degree>
   // Add the attributes to the column vector and the format string for that.
   if (!node_value_cols.empty())
   {

@@ -34,8 +34,6 @@ struct opt_args
 {
   bool create_new;
   bool optimize_create; // directs when the index should be created
-  bool is_directed; // If graph is a directed graph or undirected graph
-  bool is_weighted; // if the edge is weighted
 };
 
 typedef struct node
