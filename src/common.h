@@ -9,21 +9,24 @@
 #include <vector>
 #include <wiredtiger.h>
 
+//These are the string constants
 extern const std::string METADATA;
 extern const std::string DB_NAME;
-extern const bool        IS_WEIGHTED;
-extern const bool        READ_OPTIMIZE;
-extern const bool        IS_DIRECTED;
-extern const bool        CREATE_NEW;
+extern const std::string IS_WEIGHTED;
+extern const std::string READ_OPTIMIZE;
+extern const std::string IS_DIRECTED;
+extern const std::string CREATE_NEW;
+extern const std::string EDGE_ID;
 
 // Read Optimize columns
-extern const int IN_DEGREE;
-extern const int OUT_DEGREE;
+extern const std::string IN_DEGREE;
+extern const std::string OUT_DEGREE;
 
 // Shared column names
 extern const std::string SRC;
 extern const std::string DST;
 extern const std::string ID;
+extern const std::string WEIGHT;
 extern const std::string NODE_TABLE;
 extern const std::string EDGE_TABLE;
 extern const std::string SRC_INDEX;
@@ -32,19 +35,24 @@ extern const std::string SRC_DST_INDEX;
 
 struct opt_args
 {
-  bool create_new;
+  bool create_new = true;
+  bool read_optimize = true;
+  bool is_directed = true;
+  bool is_weighted = false;
+  std::string db_name;
   bool optimize_create; // directs when the index should be created
 };
 
 typedef struct node
 {
-  int id;                       // node ID
-  int in_degree = 0;
-  int out_degree = 0;
+  uint32_t id;                       // node ID
+  uint32_t in_degree = 0;
+  uint32_t out_degree = 0;
 } node;
 
 typedef struct edge
 {
+  int id;
   int src_id;
   int dst_id;
   int edge_weight;

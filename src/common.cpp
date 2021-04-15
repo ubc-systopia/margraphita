@@ -24,6 +24,7 @@ const std::string READ_OPTIMIZE = "read_optimize";
 const std::string EDGE_ID = "edge_id";
 const std::string NODE_DATA = "data";
 const std::string IS_DIRECTED = "is_directed";
+const std::string IS_WEIGHTED = "is_weighted";
 const std::string CREATE_NEW = "create_new";
 
 // Read Optimize columns
@@ -34,6 +35,7 @@ const std::string OUT_DEGREE = "out_degree";
 const std::string SRC = "src";
 const std::string DST = "dst";
 const std::string ID = "id";
+const std::string WEIGHT = "weight";
 const std::string NODE_TABLE = "node";
 const std::string EDGE_TABLE = "edge";
 const std::string SRC_INDEX = "IX_edge_" + SRC;
@@ -129,27 +131,7 @@ void CommonUtil::check_graph_params(opt_args params)
 {
   std::vector<std::string> missing_params;
 
-  // Find NODE_VALUE_COLUMNS in params
-  if (params.node_value_columns.empty())
-  {
-    missing_params.push_back(NODE_VALUE_COLUMNS);
-  }
-  // Find NODE_VALUE_FORMAT in params
-  if (params.node_value_format.empty())
-  {
-    missing_params.push_back(NODE_VALUE_FORMAT);
-  }
-
-  // Find EDGE_VALUE_COLUMNS in params
-  if (params.edge_value_columns.empty())
-  {
-    missing_params.push_back(EDGE_VALUE_COLUMNS);
-  }
-  // Find EGDE_VALUE_FORMAT in params
-  if (params.edge_value_format.empty())
-  {
-    missing_params.push_back(EDGE_VALUE_FORMAT);
-  }
+  //TODO: this needs to be updated
   if (missing_params.size() > 0)
   {
     std::vector<std::string>::iterator missing_param_ptr;

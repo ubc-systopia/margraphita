@@ -11,19 +11,11 @@
 
 using namespace std;
 
-extern const std::int EDGE_ID;
-
 class StandardGraph
 {
 public:
-  bool create_new = true;
-  bool read_optimize = true;
-  bool is_directed = true;
 
-  string db_name;
-
-  StandardGraph(bool create_new, bool read_optimize, bool is_directed,
-                std::string db_name, opt_args opt_params);
+  StandardGraph(opt_args opt_params);
   StandardGraph();
 
   void create_new_graph();
@@ -65,20 +57,26 @@ public:
 private:
   WT_CONNECTION *conn;
   WT_SESSION *session;
+  //create params`
+  bool create_new = true;
+  bool read_optimize = true;
+  bool is_directed = true;
+  bool is_weighted = true; //needed to understand when to interpret the weight field in struct edge
+  std::string db_name;
+  
+  //structure of the graph
   int edge_id;
   int node_attr_size = 0; // set on checking the list len
+  
+
+ 
+  vector<string> node_columns = {ID}; //Always there :)
+  vector<string> edge_columns = {ID,SRC, DST};
   string node_value_format;
-  string node_attr_format;
-  string edge_value_format;
-  string edge_attr_format;
-  vector<string> edge_table_columns;
-  vector<string> edge_columns;
-  vector<string> edge_value_cols;
-  vector<string> node_columns;
-  vector<string> node_value_cols;
-  bool has_edge_attrs;
-  bool has_node_attrs;
-  string node_key_format;
+  string node_key_format = "I";
+  string edge_key_format = "I";
+  string edge_value_format = "II";
+
   WT_CURSOR *node_cursor = NULL;
   WT_CURSOR *random_node_cursor = NULL;
   WT_CURSOR *edge_cursor = NULL;

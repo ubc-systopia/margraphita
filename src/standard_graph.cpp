@@ -14,17 +14,14 @@ const std::string GRAPH_PREFIX = "std";
 
 StandardGraph::StandardGraph(){};
 
-StandardGraph::StandardGraph(bool create_new, bool read_optimize,
-                             bool is_directed, bool is_weighted,
-                             std::string db_name,
-                             opt_args opt_params)
+StandardGraph::StandardGraph(opt_args opt_params)
 
 {
-  this->create_new = create_new;
-  this->read_optimize = read_optimize;
-  this->is_directed = is_directed;
-  this->is_weighted = is_weighted;
-  this->db_name = db_name;
+  this->create_new = opt_params.create_new;
+  this->read_optimize = opt_params.read_optimize;
+  this->is_directed = opt_params.is_directed;
+  this->is_weighted = opt_params.is_weighted;
+  this->db_name = opt_params.db_name;
 
   // Check which params are missing.
   try
@@ -88,98 +85,39 @@ void StandardGraph::create_new_graph()
   edge_id = 1;
 
   // Set up the node table
-  node_columns = {ID};
-  node_key_format = 'I';
-
-  // Node Column Format: <attributes><in_degree><out_degree>
-  // Add the attributes to the column vector and the format string for that.
-  if (!node_value_cols.empty())
-  {
-    node_columns.insert(node_columns.end(), node_value_cols.begin(),
-                        node_value_cols.end());
-  }
-
-  // Add Data Column (packign fmt='I', int)
-  node_columns.push_back(NODE_DATA + string("0"));
-  node_columns.push_back(NODE_DATA + string("1"));
-  node_value_format += "SS";
-
+  // The node entry is of the form: <id>,<in_degree><out_degree>
   // If the graph is read_optimized, add columns and format for in/out degrees
   if (read_optimize)
   {
-    // vector<string> READ_OPTIMIZE_COLS = {IN_DEGREE, OUT_DEGREE};
-    // node_columns.insert(node_columns.end(), READ_OPTIMIZE_COLS.begin(),
-    //                     node_value_cols.end());
+
     node_columns.push_back(IN_DEGREE);
     node_columns.push_back(OUT_DEGREE);
-    node_value_format += "II";
+    node_value_format = "II";
+  }else{
+    node_columns.push_back("na"); //have to do this because the column count must match. 
+    node_value_format = "s"; //1 byte fixed length char[] to hold ""
   }
   // Now Create the Node Table
+  //!What happens when the table is not read-optimized? I store "" <-ok?
+  
   CommonUtil::set_table(session, NODE_TABLE, node_columns, node_key_format,
                         node_value_format);
 
 
   // ******** Now set up the Edge Table     **************
-  // Edge Column Format : <src><dst><attrs>
-
-  edge_columns = {SRC, DST};
-  string edge_key_format = "I";
-  //Now prepare the edge value format. starts with II for src,dst
-  edge_value_format = "II";
-  if (edge_value_cols.size() == 0)
-  {
-    // Add n/a because there are no columns. WT does not allow
-    // empty value, so add integer placeholder when no column
-    // is provided.
-    edge_value_cols.push_back("n/a");
-    edge_value_format += "S";
-    has_edge_attrs = false;
-  }
-  else
-  {
-    edge_columns.insert(edge_columns.end(), edge_value_cols.begin(),
-                        edge_value_cols.end());
-    for (int i = 0; i < edge_value_cols.size(); i++)
-    {
-      edge_value_format += "S"; //Append format string for <attr> vec
-    }
-    has_edge_attrs = true;
-  }
-
-  edge_table_columns = {ID};
-  edge_table_columns.insert(edge_table_columns.end(), edge_columns.begin(),
-                            edge_columns.end());
-
+  // Edge Column Format : <id><src><dst><weight>
+  //Now prepare the edge value format. starts with II for src,dst. Add another I if weighted
+  if(is_weighted){
+      edge_columns.push_back(WEIGHT);
+      edge_value_format += "I";
+  } 
+ 
   // Create edge table
-  CommonUtil::set_table(session, EDGE_TABLE, edge_table_columns,
+  CommonUtil::set_table(session, EDGE_TABLE, edge_columns,
                         edge_key_format, edge_value_format);
 
-  // Create table index on src, dst
-  string edge_table_index_str, edge_table_index_conf_str;
-  edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_DST_INDEX;
-  edge_table_index_conf_str = "columns=(" + SRC + "," + DST + ")";
-  //THere is likely a util fucntion for this
-  if ((ret = session->create(session, edge_table_index_str.c_str(),
-                             edge_table_index_conf_str.c_str())) > 0)
-  {
-    fprintf(stderr, "Failed to create index SRC_DST_INDEX in the edge table");
-  }
-  // Create index on SRC column
-  edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
-  edge_table_index_conf_str = "columns=(" + SRC + ")";
-  if ((ret = session->create(session, edge_table_index_str.c_str(),
-                             edge_table_index_conf_str.c_str())) > 0)
-  {
-    fprintf(stderr, "Failed to create index SRC_INDEX in the edge table");
-  }
-  // Create index on DST column
-  edge_table_index_str = "index:" + EDGE_TABLE + ":" + DST_INDEX;
-  edge_table_index_conf_str = "columns=(" + DST + ")";
-  if ((ret = session->create(session, edge_table_index_str.c_str(),
-                             edge_table_index_conf_str.c_str())) > 0)
-  {
-    fprintf(stderr, "Failed to create index DST_INDEX in the edge table");
-  }
+
+
 
   /* Now doing the metadata table creation. //TODO:
      function This table stores the graph metadata
@@ -192,47 +130,7 @@ void StandardGraph::create_new_graph()
   {
     fprintf(stderr, "Failed to create the metadata table ");
   }
-  // NODE_COLUMNS
-  string node_columns_fmt;
-  size_t node_columns_packed_buf_size;
-  char *node_columns_packed = CommonUtil::pack_string_vector_wt(
-      node_columns, session, &node_columns_packed_buf_size, &node_columns_fmt);
-
-  insert_metadata(NODE_COLUMNS, node_columns_fmt, node_columns_packed);
-
-  // NODE_ATTR_FORMAT
-  string node_attr_format_fmt;
-  // char *node_attr_packed =
-  //     CommonUtil::pack_string_wt(node_attr_format, session, &node_attr_format_fmt);
-  // insert_metadata(NODE_ATTR_FORMAT, node_attr_format_fmt, node_attr_packed);
-  insert_metadata(NODE_ATTR_FORMAT, "S", const_cast<char *>(node_attr_format.c_str()));
-
-  // EDGE_COLUMNS
-  string edge_columns_fmt;
-  size_t edge_columns_packed_buf_size;
-  char *edge_columns_packed = CommonUtil::pack_string_vector_wt(
-      edge_columns, session, &edge_columns_packed_buf_size, &edge_columns_fmt);
-  insert_metadata(EDGE_COLUMNS, edge_columns_fmt, edge_columns_packed);
-
-  // EDGE_ATTR_FORMAT
-  string edge_attr_format_fmt;
-  // char *edge_attr_packed =
-  //     CommonUtil::pack_string_wt(edge_attr_format, session, &edge_attr_format_fmt);
-  // insert_metadata(EDGE_ATTR_FORMAT, edge_attr_format_fmt, edge_attr_packed);
-  insert_metadata(EDGE_ATTR_FORMAT, "S", const_cast<char *>(edge_attr_format.c_str()));
-
-  // HAS_NODE_ATTR
-  string has_node_attr_fmt;
-  char *has_node_attr_packed =
-      CommonUtil::pack_bool_wt(has_node_attrs, session, &has_node_attr_fmt);
-  insert_metadata(HAS_NODE_ATTR, has_node_attr_fmt, has_node_attr_packed);
-
-  // HAS_EDGE_ATTR
-  string has_edge_attr_fmt;
-  char *has_edge_attrs_packed =
-      CommonUtil::pack_bool_wt(has_edge_attrs, session, &has_edge_attr_fmt);
-  insert_metadata(HAS_EDGE_ATTR, has_edge_attr_fmt, has_edge_attrs_packed);
-
+  
   // DB_NAME
   string db_name_fmt;
   // char *db_name_packed =
@@ -246,23 +144,27 @@ void StandardGraph::create_new_graph()
       CommonUtil::pack_bool_wt(read_optimize, session, &is_read_optimized_fmt);
   insert_metadata(READ_OPTIMIZE, is_read_optimized_fmt,
                   is_read_optimized_packed);
-  // EDGE_ID
+  
+  // EDGE_ID <- this is the last edge_id that was used to add an edge
+  //! THIS WILL CAUSE A RACE CONDITION
   string edge_id_fmt;
   char *edge_id_packed = CommonUtil::pack_int_wt(edge_id, session);
   insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
 
   // IS_DIRECTED
-  string is_directed_fmt;
-  char *is_directed_packed =
-      CommonUtil::pack_bool_wt(is_directed, session, &is_directed_fmt);
-  insert_metadata(IS_DIRECTED, is_directed_fmt, is_directed_packed);
+  if(is_directed){
+    insert_metadata(IS_DIRECTED, "S", "true");
+  }else{
+    insert_metadata(IS_DIRECTED, "S", "false");
+  }
 
-  /**
-   * Create the <SRC,DST> index on the table
-   */
-  string table_name = "index:" + EDGE_TABLE + ":" + SRC_DST_INDEX;
-  string cols = "columns=(" + SRC + "," + DST + ")";
-  session->create(session, table_name.c_str(), cols.c_str());
+  //IS_WEIGHTED
+   if(is_weighted){
+    insert_metadata(IS_WEIGHTED, "S", "true");
+  }else{
+    insert_metadata(IS_WEIGHTED, "S", "false");
+  }
+
 }
 
 /**
@@ -397,46 +299,18 @@ void StandardGraph::__restore_from_db(std::string db_name)
     ret = cursor->get_key(cursor, &key);
     ret = cursor->get_value(cursor, &value);
 
-    if (strcmp(key, NODE_COLUMNS.c_str()) == 0)
-    {
-      this->node_columns =
-          CommonUtil::unpack_string_vector_wt(value, this->session);
-    }
-    else if (strcmp(key, NODE_ATTR_FORMAT.c_str()) == 0)
-    {
-
-      this->node_attr_format = value; //CommonUtil::unpack_string_wt(value, this->session);
-    }
-    else if (strcmp(key, EDGE_COLUMNS.c_str()) == 0)
-    {
-
-      this->edge_columns =
-          CommonUtil::unpack_string_vector_wt(value, this->session);
-    }
-    else if (strcmp(key, EDGE_ATTR_FORMAT.c_str()) == 0)
-    {
-
-      this->edge_attr_format = value; //CommonUtil::unpack_string_wt(value, this->session);
-    }
-    else if (strcmp(key, HAS_NODE_ATTR.c_str()) == 0)
-    {
-
-      this->has_node_attrs = CommonUtil::unpack_bool_wt(value, this->session);
-    }
-    else if (strcmp(key, HAS_EDGE_ATTR.c_str()) == 0)
-    {
-
-      this->has_edge_attrs = CommonUtil::unpack_bool_wt(value, this->session);
-    }
-    else if (strcmp(key, DB_NAME.c_str()) == 0)
+    if (strcmp(key, DB_NAME.c_str()) == 0)
     {
 
       this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);
     }
     else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
     {
-
-      this->read_optimize = CommonUtil::unpack_bool_wt(value, this->session);
+      if(strcmp(value,"true")==0){
+          this-> read_optimize = true;
+      }else{
+          this->read_optimize = false;
+      }
     }
     else if (strcmp(key, EDGE_ID.c_str()) == 0)
     {
@@ -445,8 +319,18 @@ void StandardGraph::__restore_from_db(std::string db_name)
     }
     else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
     {
-
-      this->is_directed = CommonUtil::unpack_bool_wt(value, this->session);
+      if(strcmp(value, "true")==0){
+          this->is_directed = true;
+      }else{
+          this->is_directed = false;
+      }
+    }else if (strcmp(key, IS_WEIGHTED.c_str()) == 0)
+    {
+      if(strcmp(value, "true")==0){
+          this->is_weighted = true;
+      }else{
+          this->is_weighted = false;
+      }
     }
   }
   cursor->close(cursor);
@@ -481,15 +365,33 @@ void StandardGraph::create_indices()
     CommonUtil::close_cursor(this->dst_index_cursor);
   }
 
-  // Create index for (src) on the edge table
-  string uri = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
-  string config = "columns=(" + SRC + ")";
-  this->session->create(this->session, uri.c_str(), config.c_str());
-
-  // Create index on(dst) on Edge Table
-  uri = "index:" + EDGE_TABLE + ":" + DST_INDEX;
-  config = "columns=(" + DST + ")";
-  this->session->create(this->session, uri.c_str(), config.c_str());
+  // Create table index on src, dst
+  int ret = 0;
+  string edge_table_index_str, edge_table_index_conf_str;
+  edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_DST_INDEX;
+  edge_table_index_conf_str = "columns=(" + SRC + "," + DST + ")";
+  //THere is likely a util fucntion for this
+  if ((ret = session->create(session, edge_table_index_str.c_str(),
+                             edge_table_index_conf_str.c_str())) > 0)
+  {
+    fprintf(stderr, "Failed to create index SRC_DST_INDEX in the edge table");
+  }
+  // Create index on SRC column
+  edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
+  edge_table_index_conf_str = "columns=(" + SRC + ")";
+  if ((ret = session->create(session, edge_table_index_str.c_str(),
+                             edge_table_index_conf_str.c_str())) > 0)
+  {
+    fprintf(stderr, "Failed to create index SRC_INDEX in the edge table");
+  }
+  // Create index on DST column
+  edge_table_index_str = "index:" + EDGE_TABLE + ":" + DST_INDEX;
+  edge_table_index_conf_str = "columns=(" + DST + ")";
+  if ((ret = session->create(session, edge_table_index_str.c_str(),
+                             edge_table_index_conf_str.c_str())) > 0)
+  {
+    fprintf(stderr, "Failed to create index DST_INDEX in the edge table");
+  }
 }
 /**
  * @brief Drops the indices not required for adding nodes/edges.
@@ -549,44 +451,13 @@ void StandardGraph::add_node(node to_insert)
   }
   node_cursor->set_key(node_cursor, to_insert.id);
 
-  size_t pack_size = 0; // size for the attr vector
-
-  if ((to_insert.attr.size() == 0) & (has_node_attrs == true))
+  if (read_optimize)
   {
-
-    // using this because I know attrs are represented as strings.
-    to_insert.attr =
-        CommonUtil::get_default_string_attrs(node_attr_format);
+    node_cursor->set_value(node_cursor, 0, 0);
+  }else{
+    node_cursor->set_value(node_cursor, "");
   }
-
-  string packed_node_attr_fmt; // This should be equal to node_attr_format after
-                               // packing.
-  // char *attr_list_packed = CommonUtil::pack_string_vector_wt(
-  //     to_insert.attr, session, &pack_size, &packed_node_attr_fmt);
-  // // assert(packed_node_attr_fmt.compare(node_attr_format) ==
-  // //        0); // This is my understanding of this whole mess.
-
-  string packed_str = CommonUtil::pack_string_vector_std(to_insert.attr,&pack_size);
-  
-  char *attr_list_packed = new char[packed_str.length() + 1];
-  strcpy(attr_list_packed, packed_str.c_str());
-
-
-  if (has_node_attrs && read_optimize)
-  {
-    node_cursor->set_value(node_cursor, attr_list_packed, "0.0",
-                           "0.0", 0, 0);
-    cout <<"attr list_packed " << attr_list_packed<<endl;
-  }
-  else if (read_optimize)
-  {
-    node_cursor->set_value(node_cursor, "0.0", "0.0", 0, 0);
-  }
-  else
-  {
-    node_cursor->set_value(node_cursor, "0.0", "0.0");
-  }
-
+ 
   ret = node_cursor->insert(node_cursor);
 
   if (ret != 0)
@@ -724,21 +595,6 @@ node StandardGraph::get_node(int node_id)
                          std::to_string(node_id));
   }
   found = __record_to_node(cursor);
-
-//   found.in_degree = -1;
-//   found.out_degree = -1;
-//   char *data0 ;//= (char *)calloc(50, sizeof(char)); //Don't need to malloc here.
-//   char *data1;// = (char *)calloc(50, sizeof(char));
-//   char *attr_list_packed;// = (char *)calloc(1000, sizeof(char)); // arbitrary :(
-
-//   if (this->has_node_attrs && this->read_optimize)
-//   {
-//     cursor->get_value(cursor, &attr_list_packed, &data0, &data1, &found.in_degree,
-//                       &found.out_degree);
-//     found.attr = CommonUtil::unpack_string_vector(attr_list_packed, session);
-//     found.data.push_back(data0);
-//     found.data.push_back(data1);
-//   }
   found.id = node_id;
   cursor->close(cursor);
   return found;
@@ -771,6 +627,8 @@ node StandardGraph::get_random_node()
  *
  * @param node_id
  */
+//!read again
+//TODO:
 void StandardGraph::delete_node(int node_id)
 {
   int ret = 0;
@@ -820,7 +678,8 @@ void StandardGraph::delete_node(int node_id)
   }
   delete_related_edges(dst_index_cursor, node_id);
 }
-
+//! read this again
+//TODO: 
 void StandardGraph::delete_related_edges(WT_CURSOR *index_cursor, int node_id)
 {
   WT_CURSOR *edge_cursor = nullptr;
@@ -879,41 +738,22 @@ void StandardGraph::__node_to_record(WT_CURSOR *cursor, node to_insert)
                          to_string(to_insert.id));
   }
 
-  // first pack the attr vector
-  char *attr_list_packed = (char *)malloc(1000 * sizeof(char)); // arbitrary :(
-
-  // Pack the new attrs;
-  size_t pack_size;
-  string packed_node_attr_fmt;
-  char *new_attr_list_packed = CommonUtil::pack_string_vector_wt(
-      to_insert.attr, session, &pack_size, &packed_node_attr_fmt);
-
-  // Now get the cursor value and update the attr
-  if (this->has_node_attrs && this->read_optimize)
+  // Now get the cursor value
+  if (read_optimize)
   {
-    string data0 = to_insert.data.at(0);
-    string data1 = to_insert.data.at(1);
-    cursor->set_value(cursor, new_attr_list_packed,
-                      to_insert.data.at(0).c_str(),
-                      to_insert.data.at(1).c_str(), to_insert.in_degree,
+    cursor->set_value(cursor, to_insert.in_degree,
                       to_insert.out_degree);
+  }else{
+    cursor->set_value(cursor, "");
   }
-  else
-  {
-    // cursor->get_value(cursor, attr_list_packed, to_insert.data[0],
-    // to_insert.data[1]); <-- Not needed as override.
-    cursor->set_value(cursor, attr_list_packed, to_insert.data.at(0).c_str(),
-                      to_insert.data.at(1).c_str());
-  }
-
   int ret = cursor->update(cursor);
+
+  
   if (ret != 0)
   {
     throw GraphException("Failed to update node_id = " +
                          to_string(to_insert.id));
   }
-
-  free(attr_list_packed);
 }
 
 int StandardGraph::get_in_degree(int node_id)
@@ -1013,33 +853,11 @@ node StandardGraph:: __record_to_node(WT_CURSOR *cursor)
 
   found.in_degree = -1;
   found.out_degree = -1;
-  char *data0 ;//= (char *)calloc(50, sizeof(char)); //Don't need to malloc here.
-  char *data1;// = (char *)calloc(50, sizeof(char));
-  char *attr_list_packed;// = (char *)calloc(1000, sizeof(char)); // arbitrary :(
-
-  if (this->has_node_attrs && this->read_optimize)
+ 
+  if (this->read_optimize)
   {
-    cursor->get_value(cursor, &attr_list_packed, &data0, &data1, &found.in_degree,
+    cursor->get_value(cursor,&found.in_degree,
                       &found.out_degree);
-
-    cout <<"attr list is " << attr_list_packed+5<<endl;
-    //found.attr = CommonUtil::unpack_string_vector_wt(attr_list_packed, session);
-    found.attr = CommonUtil::unpack_string_vector_std(std::string(attr_list_packed));
-    found.data.push_back(data0);
-    found.data.push_back(data1);
-  }
-  else if (this->read_optimize)
-  {
-    cursor->get_value(cursor, &data0, &data1, &found.in_degree,
-                      &found.out_degree);
-    found.data.push_back(data0);
-    found.data.push_back(data1);
-  }
-  else
-  {
-    cursor->get_value(cursor, &data0, &data1);
-    found.data.push_back(data0);
-    found.data.push_back(data1);
   }
 
   return found;
@@ -1048,13 +866,8 @@ node StandardGraph:: __record_to_node(WT_CURSOR *cursor)
 edge StandardGraph::__record_to_edge(WT_CURSOR *cursor)
 {
   edge found;
-  char *attr_list_packed = (char *)malloc(1000 * sizeof(char));
-  cursor->get_value(cursor, &found.src_id, &found.dst_id, attr_list_packed);
-
-  found.attr = CommonUtil::unpack_int_vector_wt(attr_list_packed, session);
-
-  free(attr_list_packed);
-
+  found.id = cursor->get_key(cursor);
+  cursor->get_value(cursor, &found.src_id, &found.dst_id, &found.edge_weight);
   return found;
 }
 
@@ -1094,30 +907,15 @@ void StandardGraph::add_edge(edge to_insert)
   {
     // The edge does not exist, use the global edge-id and update it by 1
     cursor->set_key(cursor, this->edge_id); //! I think this is broken. this->edge_id is different from edge_id ?
+    
+    //TODO: this is 100% going to lead to a race condition. 
     this->edge_id++;
   }
-  // If has_edge_attr is true, but none are provided
-  if (this->has_edge_attrs)
+  
+  if(is_weighted)
   {
-    if (to_insert.attr.size() == 0)
-    {
-      to_insert.attr = CommonUtil::get_default_nonstring_attrs("I");
-    }
-    size_t packed_attr_buf_size;
-    string fmt;
-    // char *packed = CommonUtil::pack_int_vector_wt(to_insert.attr, session,
-    //                                            &packed_attr_buf_size, &fmt);
-    //! fix this --> use the std string packing method. Also, use the strcpy
-    //! ways in add_node
-    string packed_str = CommonUtil::pack_int_vector_std(to_insert.attr, &packed_attr_buf_size);
-    
-    char *packed = new char[packed_str.length() + 1];
-    strcpy(packed, packed_str.c_str());
-
-    cursor->set_value(cursor, to_insert.src_id, to_insert.dst_id, packed);
-  }
-  else
-  {
+    cursor->set_value(cursor, to_insert.src_id, to_insert.dst_id, to_insert.edge_weight);
+  }else{
     cursor->set_value(cursor, to_insert.src_id, to_insert.dst_id, 0);
   }
   ret = cursor->insert(cursor);
@@ -1473,62 +1271,4 @@ vector<node> StandardGraph::get_in_nodes(int node_id)
   }
   cursor->close(cursor);
   return in_nodes;
-}
-/**
- * @brief Set the node's data field specified by the index. The data can either
- * be an int or a float converted to a string. The API does not make any
- * assumptions about the converted-to-string datatype being sent to it; we
- * assume the caller handles this.
- *
- * @param node_id
- * @param idx
- * @param data
- */
-void StandardGraph::set_node_data(int node_id, int idx, string data)
-{
-  if (idx < 0 || idx > 1)
-  {
-    throw GraphException("Index out of bounds when setting node data");
-  }
-
-  WT_CURSOR *cursor = nullptr;
-  int ret = _get_table_cursor(NODE_TABLE, &cursor, false);
-  CommonUtil::check_return(ret, "Could not get cursor for the Node table");
-
-  cursor->set_key(cursor, node_id);
-  ret = cursor->search(cursor);
-  CommonUtil::check_return(ret, "Failed to find a node with ID = " +
-                                    to_string(node_id));
-  node found = __record_to_node(cursor);
-  found.data[idx] = data;
-
-  __node_to_record(cursor, found);
-  cursor->close(cursor);
-}
-
-/**
- * @brief Get node data for the node identified by node_id at the given index.
- * Returns the string form of the data
- *
- * @param node_id
- * @param idx
- * @return string
- */
-string StandardGraph::get_node_data(int node_id, int idx)
-{
-  if (idx < 0 || idx > 1)
-  {
-    throw GraphException("Index out of bounds when setting node data");
-  }
-
-  WT_CURSOR *cursor = nullptr;
-  int ret = _get_table_cursor(NODE_TABLE, &cursor, false);
-  CommonUtil::check_return(ret, "Could not get cursor for the Node table");
-
-  cursor->set_key(cursor, node_id);
-  ret = cursor->search(cursor);
-  CommonUtil::check_return(ret,
-                           "Failed to find node with ID " + to_string(node_id));
-  node found = __record_to_node(cursor);
-  return found.data[idx];
 }
