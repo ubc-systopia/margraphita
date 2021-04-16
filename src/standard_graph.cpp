@@ -937,7 +937,7 @@ void StandardGraph::add_edge(edge to_insert)
     cursor->search(cursor);
     node found = __record_to_node(cursor);
     found.out_degree = found.out_degree + 1;
-    if !(is_directed)
+    if (!is_directed)
     {
       found.in_degree = found.in_degree + 1;
     }
@@ -949,7 +949,7 @@ void StandardGraph::add_edge(edge to_insert)
     cursor->search(cursor);
     found = __record_to_node(cursor);
     found.in_degree = found.in_degree + 1;
-    if !(is_directed)
+    if (!is_directed)
     {
       found.out_degree = found.out_degree + 1;
     }
@@ -973,7 +973,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
   ret = cursor->remove(cursor);
   CommonUtil::check_return(ret, "Failed to delete edge (" + to_string(src_id) +
                                     "," + to_string(dst_id));
-  // Delete reverse edge if the graph is undiected.
+  // Delete reverse edge if the graph is undirected.
   if (!is_directed)
   {
     edge_id = get_edge_id(dst_id, src_id);
@@ -996,6 +996,21 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
   cursor->set_key(cursor, src_id);
   cursor->search(cursor);
   node found = __record_to_node(cursor);
+  
+  // Assert that the out degree and later on in degree are > 0.
+  // If not then raise an exceptiion, because we shouldn't have deleted an edge where src/dst have
+  // degree 0.
+  if (is_directed and found.out_degree == 0) or 
+     ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0))
+  {
+    throw GraphException("Deleted an edge with edgeid " + 
+                         to_string(edge_id) + 
+                         "between src nodeid: " +
+                         to_string(src_id) + "," +
+                         " dst node id:" + 
+                         to_string(dst_id));
+  }
+
   found.out_degree = found.out_degree - 1;
   if (!is_directed)
   {
@@ -1007,6 +1022,17 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
   cursor->set_key(cursor, dst_id);
   cursor->search(cursor);
   found = __record_to_node(cursor);
+  
+  if (is_directed and found.out_degree == 0) or 
+    ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0))
+  {
+    throw GraphException("Deleted an edge with edgeid " + 
+                         to_string(edge_id) + 
+                         "between src nodeid: " +
+                         to_string(src_id) + "," +
+                         " dst node id:" + 
+                         to_string(dst_id));
+  }
   found.in_degree = found.in_degree - 1;
   if (!is_directed)
   {
@@ -1028,14 +1054,11 @@ void StandardGraph::update_node_degree(WT_CURSOR *cursor, int node_id,
   }
   node found = __record_to_node(cursor);
 
-  if (found.in_degree != 0)
-  {
-    found.in_degree = in_degree;
-  }
-  if (found.out_degree != 0)
-  {
-    found.out_degree = out_degree;
-  }
+  found.in_degree = in_degree;
+  found.out_degree = out_degree;
+
+  assert(found.in_degree >= 0);
+  assert(found.ouut_degree >= 0);
   __node_to_record(cursor, found);
 }
 
@@ -1052,14 +1075,12 @@ edge StandardGraph::get_edge(int src_id, int dst_id)
   int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
   cursor->set_key(cursor, edge_id);
   ret = cursor->search(cursor);
-  if (ret != 0)
+  if (ret == 0)
   {
-    return found;
+    found = __record_to_edge(cursor);
+    cursor->close(cursor);
   }
-  else
-  {
-    return __record_to_edge(cursor);
-  }
+  return found;
 }
 
 std::vector<edge> StandardGraph::get_edges()
@@ -1071,9 +1092,10 @@ std::vector<edge> StandardGraph::get_edges()
 
   while ((ret = cursor->next(cursor) == 0))
   {
-    edge item = __record_to_edge(cursor);
-    edges.push_back(item);
+    edges.push_back(__record_to_edge(cursor));
   }
+  
+  cursor->close(cursor);
   return edges;
 }
 
@@ -1091,16 +1113,20 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id)
   cursor->reset(cursor);
   cursor->set_key(cursor, node_id);
   ret = cursor->search(cursor);
-  vector<int> edge_ids;
-  if (ret == 0)
+  vector<edge> edges;
+  if (ret == 0) 
   {
-    edge_index e_idx;
-
+    edge e_idx;
     do
     {
       __read_from_edge_idx(cursor, &e_idx);
-      edge_ids.push_back(edge_id);
-    } while ((ret = cursor->next(cursor) == 0) && (e_idx.src_id == node_id));
+      if (e_idx.src_id == node_id)
+      {
+        // Pausing here
+        // !
+        edges.push_back(e_idx);
+      }
+    } while ((ret = cursor->next(cursor) == 0));
   }
   cursor->close(cursor);
   // Now get edges from the edge_ids
