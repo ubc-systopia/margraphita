@@ -146,7 +146,7 @@ void StandardGraph::create_new_graph()
                   is_read_optimized_packed);
   
   // EDGE_ID <- this is the last edge_id that was used to add an edge
-  //! THIS WILL CAUSE A RACE CONDITION
+  //! THIS WILL CAUSE A RACE CONDITION ... use locks (get, set)
   string edge_id_fmt;
   char *edge_id_packed = CommonUtil::pack_int_wt(edge_id, session);
   insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
@@ -925,9 +925,8 @@ void StandardGraph::add_edge(edge to_insert)
                          to_string(to_insert.src_id) + "," +
                          to_string(to_insert.dst_id));
   }
-  cursor->close(cursor); //! why?
+  cursor->close(cursor); //! why? It's a local cursor so close it
   // If read_optimized is true, we update in/out degreees in the node table.
-  return;
   if (this->read_optimize)
   {
     // update in/out degrees for src node in NODE_TABLE
@@ -938,7 +937,7 @@ void StandardGraph::add_edge(edge to_insert)
     cursor->search(cursor);
     node found = __record_to_node(cursor);
     found.out_degree = found.out_degree + 1;
-    if (is_directed)
+    if !(is_directed)
     {
       found.in_degree = found.in_degree + 1;
     }
@@ -950,7 +949,7 @@ void StandardGraph::add_edge(edge to_insert)
     cursor->search(cursor);
     found = __record_to_node(cursor);
     found.in_degree = found.in_degree + 1;
-    if (is_directed)
+    if !(is_directed)
     {
       found.out_degree = found.out_degree + 1;
     }
