@@ -64,7 +64,8 @@ int main()
 
   //Test std_graph setup
   StandardGraph graph = StandardGraph(opts);
-
+  
+  create_init_nodes(graph, true);
 
   //Test adding a node
   test_node_add(graph);
