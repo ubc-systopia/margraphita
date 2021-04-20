@@ -1115,72 +1115,31 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id)
     edge e_idx;
     do
     {
-      __read_from_edge_idx(cursor, &e_idx);
+      __read_from_edge_idx(cursor, &e_idx); // Check that __read_from_edge_idx and __edge have the same functionality
       if (e_idx.src_id == node_id)
       {
-        // Pausing here
-        // !
         edges.push_back(e_idx);
       }
     } while ((ret = cursor->next(cursor) == 0));
   }
   cursor->close(cursor);
-  //TODO:FIX FROM HERE
-  // Now get edges from the edge_ids
-
-  // if (edge_ids.size() > 0)
-  // {
-  //   ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
-  //   CommonUtil::check_return(ret, "Could not get a cursor to the edge table");
-
-  //   for (int found_edge : edge_ids)
-  //   {
-  //     edge_cursor->set_key(edge_cursor, found_edge);
-  //     ret = edge_cursor->search(edge_cursor);
-  //     if (ret == 0)
-  //     {
-  //       edge from_edge_table = __record_to_edge(edge_cursor);
-  //       edges.push_back(from_edge_table);
-  //     }
-  //   }
-  //   edge_cursor->close(edge_cursor);
-  // }
   return edges;
 }
 
 vector<node> StandardGraph::get_out_nodes(int node_id)
 {
-  vector<int> dst_ids;
+  vector<edge> out_edges;
   vector<node> nodes;
-  if (!has_node(node_id))
-  {
-    throw GraphException("Could not find node with id" + to_string(node_id));
-  }
-  WT_CURSOR *cursor = nullptr;
-  int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
-                              "(" + ID + "," + SRC + "," + DST + ")", &cursor);
-  cursor->reset(cursor);
-  cursor->set_key(cursor, node_id);
-  cursor->search(cursor);
-  if (ret == 0)
-  {
-    edge e_idx;
-    do
-    {
-      __read_from_edge_idx(cursor, &e_idx);
-      dst_ids.push_back(e_idx.dst_id);
-    } while ((ret = cursor->next(cursor) == 0) && (e_idx.src_id == node_id));
-  }
-  cursor->close(cursor);
-  // Now get all adjacent nodes using dst_ids
-  if (dst_ids.size() > 0)
+  
+  out_edges=get_out_edges(node_id);
+  if (out_edges.size() > 0)
   {
     ret = _get_table_cursor(NODE_TABLE, &cursor, false);
     CommonUtil::check_return(ret, "Could not get a cursor to the node table");
 
-    for (int dst_id : dst_ids)
+    for (edge out_edge : out_edges)
     {
-      cursor->set_key(cursor, dst_id);
+      cursor->set_key(cursor, out_edge.dst_id);
       ret = cursor->search(cursor);
       if (ret == 0)
       {
