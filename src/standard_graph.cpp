@@ -23,7 +23,6 @@ StandardGraph::StandardGraph(opt_args opt_params)
   this->is_weighted = opt_params.is_weighted;
   this->db_name = opt_params.db_name;
 
-  // Check which params are missing.
   try
   {
     CommonUtil::check_graph_params(opt_params);
@@ -115,9 +114,6 @@ void StandardGraph::create_new_graph()
   // Create edge table
   CommonUtil::set_table(session, EDGE_TABLE, edge_columns,
                         edge_key_format, edge_value_format);
-
-
-
 
   /* Now doing the metadata table creation. //TODO:
      function This table stores the graph metadata
