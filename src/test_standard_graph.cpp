@@ -11,11 +11,11 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
     graph.add_node(x);
   }
 
-  if(is_directed){
-    SampleGraph::create_directed_edges();
-    assert(SampleGraph::test_edges.size() == 6); //checking if directed edges got created and stored in test_edges
+//   if(is_directed){
+//     SampleGraph::create_directed_edges();
+//     assert(SampleGraph::test_edges.size() == 6); //checking if directed edges got created and stored in test_edges
     
-  }
+//   }
 
   for (edge x : SampleGraph::test_edges){
     graph.add_edge(x);
@@ -71,7 +71,7 @@ int main()
   test_node_add(graph);
 
   //Test deleting a node
- //test_node_delete();
+  //test_node_delete();
   
   //Test std_graph teardown
   tearDown(graph);

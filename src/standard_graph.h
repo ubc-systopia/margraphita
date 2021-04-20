@@ -88,7 +88,7 @@ private:
   void __node_to_record(WT_CURSOR *cursor, node to_insert);
   node __record_to_node(WT_CURSOR *cursor);
   edge __record_to_edge(WT_CURSOR *cursor);
-  void __read_from_edge_idx(WT_CURSOR *cursor, edge_index *e_idx);
+  void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx);
 
   // Internal cursor methods
   int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random);
