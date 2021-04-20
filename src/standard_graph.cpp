@@ -1160,47 +1160,32 @@ vector<node> StandardGraph::get_out_nodes(int node_id)
  */
 vector<edge> StandardGraph::get_in_edges(int node_id)
 {
-  vector<int> edge_ids;
-  vector<edge> in_edges;
-
+  vector<edge> edges;
   if (!has_node(node_id))
   {
-    throw GraphException("Could not find node with ID " + to_string(node_id));
+    throw GraphException("Could not find node with id" + to_string(node_id));
   }
 
-  // Get all edge_ids for edges with src = node_id
-  WT_CURSOR *cursor = nullptr;
-  int ret = _get_index_cursor(EDGE_TABLE, DST_INDEX,
+  WT_CURSOR *cursor = nullptr, *edge_cursor = nullptr;
+  int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
                               "(" + ID + "," + SRC + "," + DST + ")", &cursor);
   cursor->reset(cursor);
   cursor->set_key(cursor, node_id);
   ret = cursor->search(cursor);
-  if (ret == 0)
+  if (ret == 0) 
   {
     edge e_idx;
     do
     {
-      __read_from_edge_idx(cursor, &e_idx);
-      edge_ids.push_back(e_idx.id);
-    } while ((ret = cursor->next(cursor) == 0) && (e_idx.dst_id == node_id));
-  }
-  cursor->close(cursor);
-  if (edge_ids.size() > 0)
-  {
-    _get_table_cursor(EDGE_TABLE, &cursor, false);
-    for (int edge_id : edge_ids)
-    {
-      cursor->set_key(cursor, edge_id);
-      ret = cursor->search(cursor);
-      if (ret == 0)
+      __read_from_edge_idx(cursor, &e_idx); // Check that __read_from_edge_idx and __edge have the same functionality
+      if (e_idx.dst_id == node_id)
       {
-        edge found = __record_to_edge(cursor);
-        in_edges.push_back(found);
+        edges.push_back(e_idx);
       }
-    }
+    } while ((ret = cursor->next(cursor) == 0));
   }
   cursor->close(cursor);
-  return in_edges;
+  return edges;
 }
 
 /**
@@ -1212,44 +1197,26 @@ vector<edge> StandardGraph::get_in_edges(int node_id)
  */
 vector<node> StandardGraph::get_in_nodes(int node_id)
 {
-  vector<int> src_ids;
-  vector<node> in_nodes;
-
-  if (!has_node(node_id))
-  {
-    throw GraphException("Could not find node with ID " + to_string(node_id));
-  }
-
-  // Get all node ids for nodes adjacent to node_id
-  WT_CURSOR *cursor = nullptr;
-  int ret = _get_index_cursor(EDGE_TABLE, DST_INDEX,
-                              "(" + ID + "," + SRC + "," + DST + ")", &cursor);
-  cursor->reset(cursor);
-  cursor->set_key(cursor, node_id);
-  ret = cursor->search(cursor);
-  if (ret == 0)
-  {
-    edge e_idx;
-    do
-    {
-      __read_from_edge_idx(cursor, &e_idx);
-      src_ids.push_back(e_idx.src_id);
-    } while ((ret = cursor->next(cursor) == 0) && (e_idx.dst_id == node_id));
-  }
-  cursor->close(cursor);
-  if (src_ids.size() > 0)
+  vector<edge> in_edges;
+  vector<node> nodes;
+  
+  in_edges=get_in_edges(node_id);
+  if (in_edges.size() > 0)
   {
     ret = _get_table_cursor(NODE_TABLE, &cursor, false);
-    for (int src_id : src_ids)
+    CommonUtil::check_return(ret, "Could not get a cursor to the node table");
+
+    for (edge in_edge : in_edges)
     {
-      cursor->set_key(cursor, src_id);
-      if (cursor->search(cursor) == 0)
+      cursor->set_key(cursor, in_edge.src_id);
+      ret = cursor->search(cursor);
+      if (ret == 0)
       {
-        node found = __record_to_node(cursor);
-        in_nodes.push_back(found);
+        node found_src = __record_to_node(cursor);
+        nodes.push_back(found_src);
       }
     }
   }
   cursor->close(cursor);
-  return in_nodes;
+  return nodes;
 }
