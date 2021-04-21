@@ -944,10 +944,6 @@ void StandardGraph::add_edge(edge to_insert)
         node found = __record_to_node(cursor);
         found.id = to_insert.src_id;
         found.out_degree = found.out_degree + 1;
-        if (!is_directed)
-        {
-            found.in_degree = found.in_degree + 1;
-        }
         update_node_degree(cursor, found.id, found.in_degree,
                            found.out_degree); //! pass the cursor to this function
 
@@ -958,10 +954,6 @@ void StandardGraph::add_edge(edge to_insert)
         found = __record_to_node(cursor);
         found.id = to_insert.dst_id;
         found.in_degree = found.in_degree + 1;
-        if (!is_directed)
-        {
-            found.out_degree = found.out_degree + 1;
-        }
         update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
     }
     cursor->close(cursor);
