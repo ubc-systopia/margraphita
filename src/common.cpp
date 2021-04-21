@@ -46,26 +46,26 @@ void CommonUtil::set_table(WT_SESSION *session, std::string prefix,
                            std::vector<std::string> columns,
                            std::string key_fmt, std::string val_fmt)
 {
-  if (columns.size() != 0)
-  {
-    std::vector<std::string>::iterator ptr;
-    std::string concat = columns.at(0);
-    for (ptr = columns.begin() + 1; ptr < columns.end(); ptr++)
+    if (columns.size() != 0)
     {
-      concat += "," + *ptr;
+        std::vector<std::string>::iterator ptr;
+        std::string concat = columns.at(0);
+        for (ptr = columns.begin() + 1; ptr < columns.end(); ptr++)
+        {
+            concat += "," + *ptr;
+        }
+        // Now insert in WT
+        std::string table_name = "table:" + prefix;
+        std::string wt_format_string = "key_format=" + key_fmt +
+                                       ",value_format=" + val_fmt + ",columns=(" +
+                                       concat + ")";
+        session->create(session, table_name.c_str(), wt_format_string.c_str());
     }
-    // Now insert in WT
-    std::string table_name = "table:" + prefix;
-    std::string wt_format_string = "key_format=" + key_fmt +
-                                   ",value_format=" + val_fmt + ",columns=(" +
-                                   concat + ")";
-    session->create(session, table_name.c_str(), wt_format_string.c_str());
-  }
-  else
-  {
-    std::string table_name = "table:" + prefix;
-    session->create(session, table_name.c_str(), "key_format=I,value_format=I");
-  }
+    else
+    {
+        std::string table_name = "table:" + prefix;
+        session->create(session, table_name.c_str(), "key_format=I,value_format=I");
+    }
 }
 
 /**
@@ -78,21 +78,21 @@ void CommonUtil::set_table(WT_SESSION *session, std::string prefix,
 std::vector<int>
 CommonUtil::get_default_nonstring_attrs(std::string fmt)
 {
-  std::vector<int> ret;
-  std::string zero_attr = "iIlLqQsShHt";
+    std::vector<int> ret;
+    std::string zero_attr = "iIlLqQsShHt";
 
-  for (const char &x : fmt)
-  {
-    if (zero_attr.find(x) != std::string::npos)
+    for (const char &x : fmt)
     {
-      ret.push_back(0);
+        if (zero_attr.find(x) != std::string::npos)
+        {
+            ret.push_back(0);
+        }
+        else
+        {
+            throw GraphException("Found a non-int type in format string. Abort!");
+        }
     }
-    else
-    {
-      throw GraphException("Found a non-int type in format string. Abort!");
-    }
-  }
-  return ret;
+    return ret;
 }
 
 /**
@@ -105,44 +105,44 @@ CommonUtil::get_default_nonstring_attrs(std::string fmt)
 std::vector<std::string>
 CommonUtil::get_default_string_attrs(std::string fmt)
 {
-  std::vector<std::string> ret;
-  std::string zero_attr = "iIlLqQsShHt";
+    std::vector<std::string> ret;
+    std::string zero_attr = "iIlLqQsShHt";
 
-  for (const char &x : fmt)
-  {
-    if (zero_attr.find(x) != std::string::npos)
+    for (const char &x : fmt)
     {
-      throw GraphException("Found a non-int type in format string. Abort!");
+        if (zero_attr.find(x) != std::string::npos)
+        {
+            throw GraphException("Found a non-int type in format string. Abort!");
+        }
+        else
+        {
+            ret.push_back("");
+        }
     }
-    else
-    {
-      ret.push_back("");
-    }
-  }
-  return ret;
+    return ret;
 }
 
 std::string CommonUtil::get_db_name(std::string prefix, std::string name)
 {
-  return (prefix + "-" + name);
+    return (prefix + "-" + name);
 }
 
 void CommonUtil::check_graph_params(opt_args params)
 {
-  std::vector<std::string> missing_params;
+    std::vector<std::string> missing_params;
 
-  //TODO: this needs to be updated
-  if (missing_params.size() > 0)
-  {
-    std::vector<std::string>::iterator missing_param_ptr;
-    std::string to_return = missing_params.at(0);
-    for (missing_param_ptr = missing_params.begin() + 1;
-         missing_param_ptr < missing_params.end(); missing_param_ptr++)
+    //TODO: this needs to be updated
+    if (missing_params.size() > 0)
     {
-      to_return += "," + *missing_param_ptr;
+        std::vector<std::string>::iterator missing_param_ptr;
+        std::string to_return = missing_params.at(0);
+        for (missing_param_ptr = missing_params.begin() + 1;
+             missing_param_ptr < missing_params.end(); missing_param_ptr++)
+        {
+            to_return += "," + *missing_param_ptr;
+        }
+        throw GraphException(to_return);
     }
-    throw GraphException(to_return);
-  }
 }
 /**
  * @brief This function is used to compute the format string that are expected
@@ -159,16 +159,16 @@ void CommonUtil::check_graph_params(opt_args params)
 std::string CommonUtil::create_string_format(std::vector<std::string> to_pack,
                                              size_t *total_size)
 {
-  std::string fmt = "Si"; // The first element of the packed string contains the format string. Second element contains the buffer size needed to unpack this vector
+    std::string fmt = "Si"; // The first element of the packed string contains the format string. Second element contains the buffer size needed to unpack this vector
 
-  for (std::string item : to_pack)
-  {
+    for (std::string item : to_pack)
+    {
 
-    fmt = fmt + 'S';                    //std::to_string(item.length()) + 'S';
-    *total_size += (item.length() + 1); //for \0
-  }
-  *total_size += (fmt.length() + 1 + sizeof(int) + 1); //Add the size of the first element + \0 + size of int + another \0
-  return fmt;
+        fmt = fmt + 'S';                    //std::to_string(item.length()) + 'S';
+        *total_size += (item.length() + 1); //for \0
+    }
+    *total_size += (fmt.length() + 1 + sizeof(int) + 1); //Add the size of the first element + \0 + size of int + another \0
+    return fmt;
 }
 
 // todo: What I don't understand is that given the size of the strings/ints that
@@ -190,15 +190,15 @@ std::string CommonUtil::create_string_format(std::vector<std::string> to_pack,
 std::string CommonUtil::create_intvec_format(std::vector<int> to_pack,
                                              size_t *total_size)
 {
-  std::string fmt = "S";
+    std::string fmt = "S";
 
-  for (std::vector<int>::iterator iter = to_pack.begin(); iter != to_pack.end();
-       ++iter)
-  {
-    fmt = fmt + 'i';
-    *total_size = *total_size + 1;
-  }
-  return fmt;
+    for (std::vector<int>::iterator iter = to_pack.begin(); iter != to_pack.end();
+         ++iter)
+    {
+        fmt = fmt + 'i';
+        *total_size = *total_size + 1;
+    }
+    return fmt;
 }
 /**
  * @brief This function is used to pack the vector<string> into the WT
@@ -217,24 +217,23 @@ char *CommonUtil::pack_string_vector_wt(std::vector<std::string> to_pack,
                                         std::string *fmt)
 {
 
-  size_t _size = 0;
-  std::string format = CommonUtil::create_string_format(to_pack, &_size);
-  char *buffer = (char *)malloc((_size) * sizeof(char));
+    size_t _size = 0;
+    std::string format = CommonUtil::create_string_format(to_pack, &_size);
+    char *buffer = (char *)malloc((_size) * sizeof(char));
 
-  WT_PACK_STREAM *psp;
+    WT_PACK_STREAM *psp;
+    wiredtiger_pack_start(session, format.c_str(), buffer, _size, &psp);
+    wiredtiger_pack_str(
+        psp, format.c_str()); // save the format string. Used in unpacking.
+    wiredtiger_pack_int(psp, _size);
+    for (std::string x : to_pack)
+    {
+        wiredtiger_pack_str(psp, x.c_str());
+    }
+    *fmt = format;
+    *size = _size; //_size;
 
-  int ret = wiredtiger_pack_start(session, format.c_str(), buffer, _size, &psp);
-  wiredtiger_pack_str(
-      psp, format.c_str()); // save the format string. Used in unpacking.
-  wiredtiger_pack_int(psp, _size);
-  for (std::string x : to_pack)
-  {
-    ret = wiredtiger_pack_str(psp, x.c_str());
-  }
-  *fmt = format;
-  *size = _size; //_size;
-
-  return buffer;
+    return buffer;
 }
 
 /**
@@ -247,37 +246,37 @@ std::string CommonUtil::pack_string_vector_std(std::vector<std::string> to_pack,
                                                size_t *size)
 {
 
-  size_t _size = 0;
-  std::string buffer;
-  int pos = 0;
-  while (pos < to_pack.size() - 1)
-  {
-    buffer = buffer + to_pack.at(pos) + "__";
-    _size = _size + to_pack.at(pos).size() + 2;
-    pos++;
-  }
-  buffer = buffer + to_pack.at(pos);
-  _size = _size + to_pack.at(pos).size();
-  *size = _size;
+    size_t _size = 0;
+    std::string buffer;
+    size_t pos = 0;
+    while (pos < to_pack.size() - 1)
+    {
+        buffer = buffer + to_pack.at(pos) + "__";
+        _size = _size + to_pack.at(pos).size() + 2;
+        pos++;
+    }
+    buffer = buffer + to_pack.at(pos);
+    _size = _size + to_pack.at(pos).size();
+    *size = _size;
 
-  return buffer;
+    return buffer;
 }
 
 std::vector<std::string> CommonUtil::unpack_string_vector_std(std::string packed_str)
 {
-  std::vector<std::string> res;
-  int pos = 0;
-  std::string delimiter = "__";
-  std::string token;
-  while ((pos = packed_str.find(delimiter)) != std::string::npos)
-  {
-    token = packed_str.substr(0, pos);
+    std::vector<std::string> res;
+    uint pos = 0;
+    std::string delimiter = "__";
+    std::string token;
+    while ((pos = packed_str.find(delimiter)) != std::string::npos)
+    {
+        token = packed_str.substr(0, pos);
 
-    res.push_back(token);
-    packed_str.erase(0, pos + delimiter.length());
-  }
-  res.push_back(packed_str);
-  return res;
+        res.push_back(token);
+        packed_str.erase(0, pos + delimiter.length());
+    }
+    res.push_back(packed_str);
+    return res;
 }
 /**
  * @brief This function unpacks the buffer to_unpack into a vector<string>
@@ -290,41 +289,39 @@ std::vector<std::string> CommonUtil::unpack_string_vector_std(std::string packed
 std::vector<std::string> CommonUtil::unpack_string_vector_wt(const char *to_unpack,
                                                              WT_SESSION *session)
 {
-  std::vector<std::string> unpacked_vector;
-  WT_PACK_STREAM *psp;
-  const char *fmt = "Si";
-  const char *fmt_new = (char *)malloc(100 * sizeof(char));
-  size_t size = 1000; // for lack of something clever
-  int64_t _size;
-  int ret = wiredtiger_unpack_start(session, fmt, to_unpack, size, &psp);
-  ret = wiredtiger_unpack_str(psp, &fmt_new);
-  ret = wiredtiger_unpack_int(psp, &_size);
-  wiredtiger_pack_close(psp, &size); // To reset the unpacking stream.
+    std::vector<std::string> unpacked_vector;
+    WT_PACK_STREAM *psp;
+    const char *fmt = "Si";
+    const char *fmt_new = (char *)malloc(100 * sizeof(char));
+    size_t size = 1000; // for lack of something clever
+    int64_t _size;
+    (void)wiredtiger_unpack_start(session, fmt, to_unpack, size, &psp);
+    (void)wiredtiger_unpack_str(psp, &fmt_new);
+    (void)wiredtiger_unpack_int(psp, &_size);
+    wiredtiger_pack_close(psp, &size); // To reset the unpacking stream.
 
-  ret = wiredtiger_unpack_start(session, fmt_new, to_unpack, _size, &psp);
-  size_t fmt_len = strlen(fmt_new);
-  for (int i = 0; i < fmt_len; i++)
-  {
-    const char *res = (char *)malloc(
-        50 * sizeof(char)); //! I don't know a good size to use here and don't
-                            //! know how to estimate this either.
-    if (i == 1)
+    (void)wiredtiger_unpack_start(session, fmt_new, to_unpack, _size, &psp);
+    size_t fmt_len = strlen(fmt_new);
+    for (uint i = 0; i < fmt_len; i++)
     {
-      int64_t temp;
-      ret = wiredtiger_unpack_int(psp, &temp);
-      //std::cout<< "unpacking strvec . got " <<temp <<std::endl;
+        const char *res = (char *)malloc(
+            50 * sizeof(char)); //! I don't know a good size to use here and don't
+                                //! know how to estimate this either.
+        if (i == 1)
+        {
+            int64_t temp;
+            (void)wiredtiger_unpack_int(psp, &temp);
+        }
+        else
+        {
+            (void)wiredtiger_unpack_str(psp, &res);
+        }
+        if (i > 1)
+        {
+            unpacked_vector.push_back(res);
+        }
     }
-    else
-    {
-      ret = wiredtiger_unpack_str(psp, &res);
-      //std::cout<<"unpacked strvec, got: " << res << std::endl;
-    }
-    if (i > 1)
-    {
-      unpacked_vector.push_back(res);
-    }
-  }
-  return unpacked_vector;
+    return unpacked_vector;
 }
 
 /**
@@ -343,23 +340,23 @@ char *CommonUtil::pack_int_vector_wt(std::vector<int> to_pack, WT_SESSION *sessi
                                      size_t *size, std::string *fmt)
 {
 
-  size_t _size = 0;
-  std::string format = CommonUtil::create_intvec_format(to_pack, &_size);
+    size_t _size = 0;
+    std::string format = CommonUtil::create_intvec_format(to_pack, &_size);
 
-  char *buffer = (char *)malloc((_size) * sizeof(int));
-  // TODO ^ this is a potential problem. Ask Keith.
-  WT_PACK_STREAM *psp;
+    char *buffer = (char *)malloc((_size) * sizeof(int));
+    // TODO ^ this is a potential problem. Ask Keith.
+    WT_PACK_STREAM *psp;
 
-  int ret = wiredtiger_pack_start(session, format.c_str(), buffer, *size, &psp);
-  wiredtiger_pack_str(
-      psp, format.c_str()); // save the format string. Used in unpacking.
-  for (int x : to_pack)
-  {
-    ret = wiredtiger_pack_int(psp, x);
-  }
-  *fmt = format;
-  *size = _size;
-  return buffer;
+    (void)wiredtiger_pack_start(session, format.c_str(), buffer, *size, &psp);
+    wiredtiger_pack_str(
+        psp, format.c_str()); // save the format string. Used in unpacking.
+    for (int x : to_pack)
+    {
+        (void)wiredtiger_pack_int(psp, x);
+    }
+    *fmt = format;
+    *size = _size;
+    return buffer;
 }
 
 /**
@@ -369,23 +366,23 @@ char *CommonUtil::pack_int_vector_wt(std::vector<int> to_pack, WT_SESSION *sessi
  * @param to_unpack The vector of ints to pack.
  * @return buffer the packed string.
  */
-std::string CommonUtil::pack_int_vector_std(std::vector<int> to_pack, size_t 
-*size)
+std::string CommonUtil::pack_int_vector_std(std::vector<int> to_pack, size_t
+                                                                          *size)
 {
-  size_t _size = 0;
-  std::string buffer;
-  int pos = 0;
-  while (pos < to_pack.size() - 1)
-  {
-    buffer = buffer + std::to_string(to_pack.at(pos)) + "__";
-    _size = 2; // add the 2 * number of "__" added
-    pos++;
-  }
-  buffer = buffer + std::to_string(to_pack.at(pos));
-  _size = _size + sizeof(int)*to_pack.size();
-  *size = _size;
+    size_t _size = 0;
+    std::string buffer;
+    uint pos = 0;
+    while (pos < to_pack.size() - 1)
+    {
+        buffer = buffer + std::to_string(to_pack.at(pos)) + "__";
+        _size = 2; // add the 2 * number of "__" added
+        pos++;
+    }
+    buffer = buffer + std::to_string(to_pack.at(pos));
+    _size = _size + sizeof(int) * to_pack.size();
+    *size = _size;
 
-  return buffer;
+    return buffer;
 }
 
 /**
@@ -396,19 +393,19 @@ std::string CommonUtil::pack_int_vector_std(std::vector<int> to_pack, size_t
  */
 std::vector<int> CommonUtil::unpack_int_vector_std(std::string packed_str)
 {
-  std::vector<int> res;
-  int pos = 0;
-  std::string delimiter = "__";
-  int number;
-  while((pos = packed_str.find(delimiter)) != std::string::npos)
-  {
-    number = stoi(packed_str.substr(0, pos));
+    std::vector<int> res;
+    uint pos = 0;
+    std::string delimiter = "__";
+    int number;
+    while ((pos = packed_str.find(delimiter)) != std::string::npos)
+    {
+        number = stoi(packed_str.substr(0, pos));
 
-    res.push_back(number);
-    packed_str.erase(0, pos + delimiter.length());
-  }
-  res.push_back(stoi(packed_str));
-  return res;
+        res.push_back(number);
+        packed_str.erase(0, pos + delimiter.length());
+    }
+    res.push_back(stoi(packed_str));
+    return res;
 }
 
 /**
@@ -422,55 +419,55 @@ std::vector<int> CommonUtil::unpack_int_vector_std(std::string packed_str)
  */
 std::vector<int> CommonUtil::unpack_int_vector_wt(const char *to_unpack, WT_SESSION *session)
 {
-  std::vector<int> unpacked_vector;
-  WT_PACK_STREAM *psp;
-  const char *fmt = "S";
-  size_t size = 1000; // for lack of something clever
-  int ret = wiredtiger_unpack_start(session, fmt, to_unpack, size, &psp);
-  const char *format_str = (char *)malloc(4 * sizeof(char));
-  ret = wiredtiger_unpack_str(psp, &format_str);
-  wiredtiger_pack_close(psp, &size); // To reset the unpacking stream.
+    std::vector<int> unpacked_vector;
+    WT_PACK_STREAM *psp;
+    const char *fmt = "S";
+    size_t size = 1000; // for lack of something clever
+    (void)wiredtiger_unpack_start(session, fmt, to_unpack, size, &psp);
+    const char *format_str = (char *)malloc(4 * sizeof(char));
+    (void)wiredtiger_unpack_str(psp, &format_str);
+    wiredtiger_pack_close(psp, &size); // To reset the unpacking stream.
 
-  size = 1000;
-  ret = wiredtiger_unpack_start(session, format_str, to_unpack, size, &psp);
-  size_t fmt_len = strlen(format_str);
-  for (int i = 0; i < fmt_len; i++)
-  {
-    if (i == 0)
+    size = 1000;
+    (void)wiredtiger_unpack_start(session, format_str, to_unpack, size, &psp);
+    size_t fmt_len = strlen(format_str);
+    for (uint i = 0; i < fmt_len; i++)
     {
-      const char *ret_fmt = (char *)malloc(fmt_len * sizeof(fmt_len));
-      ret = wiredtiger_unpack_str(psp, &ret_fmt);
-      continue;
+        if (i == 0)
+        {
+            const char *ret_fmt = (char *)malloc(fmt_len * sizeof(fmt_len));
+            (void)wiredtiger_unpack_str(psp, &ret_fmt);
+            continue;
+        }
+        int64_t res;
+        (void)wiredtiger_unpack_int(psp, &res);
+        unpacked_vector.push_back(res);
     }
-    int64_t res;
-    ret = wiredtiger_unpack_int(psp, &res);
-    unpacked_vector.push_back(res);
-  }
-  return unpacked_vector;
+    return unpacked_vector;
 }
 
 char *CommonUtil::pack_string_wt(std::string to_pack, WT_SESSION *session,
                                  std::string *fmt)
 {
-  // std::string format = std::to_string(to_pack.length()) + "s";
-  // ? Fix this if things go wrong. Does packing a string require the length? I
-  // //? don't think so.
-  std::string format = "S";
-  size_t size;
-  wiredtiger_struct_size(session, &size, "S", to_pack.c_str());
-  //std::cout << "\n size needed is : " << size << std::endl;
+    // std::string format = std::to_string(to_pack.length()) + "s";
+    // ? Fix this if things go wrong. Does packing a string require the length? I
+    // //? don't think so.
+    std::string format = "S";
+    size_t size;
+    wiredtiger_struct_size(session, &size, "S", to_pack.c_str());
+    //std::cout << "\n size needed is : " << size << std::endl;
 
-  char *buffer = (char *)malloc(size);
+    char *buffer = (char *)malloc(size);
 
-  WT_PACK_STREAM *psp;
+    WT_PACK_STREAM *psp;
 
-  int ret = wiredtiger_pack_start(session, format.c_str(), buffer,
-                                  size, &psp);
+    (void)wiredtiger_pack_start(session, format.c_str(), buffer,
+                                size, &psp);
 
-  ret = wiredtiger_pack_str(psp, to_pack.c_str());
+    (void)wiredtiger_pack_str(psp, to_pack.c_str());
 
-  *fmt = format;
-  return buffer;
+    *fmt = format;
+    return buffer;
 }
 /**
  * @brief This function unpacks the string stored in the buffer and returns a
@@ -483,17 +480,17 @@ char *CommonUtil::pack_string_wt(std::string to_pack, WT_SESSION *session,
 std::string CommonUtil::unpack_string_wt(const char *to_unpack,
                                          WT_SESSION *session)
 {
-  const char *fmt = "S";
-  const char *buffer =
-      (char *)malloc(50 * sizeof(char)); // ! Fix this Again, random guess of buffer size
+    const char *fmt = "S";
+    const char *buffer =
+        (char *)malloc(50 * sizeof(char)); // ! Fix this Again, random guess of buffer size
 
-  WT_PACK_STREAM *ps;
-  size_t size = 0;
-  int ret = wiredtiger_unpack_start(session, fmt, to_unpack, 50, &ps);
+    WT_PACK_STREAM *ps;
 
-  ret = wiredtiger_unpack_str(ps, &buffer);
+    (void)wiredtiger_unpack_start(session, fmt, to_unpack, 50, &ps);
 
-  return std::string(buffer);
+    (void)wiredtiger_unpack_str(ps, &buffer);
+
+    return std::string(buffer);
 }
 
 /**
@@ -505,17 +502,16 @@ std::string CommonUtil::unpack_string_wt(const char *to_unpack,
  */
 char *CommonUtil::pack_int_wt(int to_pack, WT_SESSION *session)
 {
-  std::string format = "i";
+    std::string format = "i";
 
-  char *buffer = (char *)malloc(sizeof(int));
+    char *buffer = (char *)malloc(sizeof(int));
 
-  WT_PACK_STREAM *psp;
+    WT_PACK_STREAM *psp;
 
-  int ret =
-      wiredtiger_pack_start(session, format.c_str(), buffer, sizeof(int), &psp);
+    (void)wiredtiger_pack_start(session, format.c_str(), buffer, sizeof(int), &psp);
 
-  ret = wiredtiger_pack_int(psp, to_pack);
-  return buffer;
+    (void)wiredtiger_pack_int(psp, to_pack);
+    return buffer;
 }
 
 /**
@@ -527,12 +523,12 @@ char *CommonUtil::pack_int_wt(int to_pack, WT_SESSION *session)
  */
 int CommonUtil::unpack_int_wt(const char *to_unpack, WT_SESSION *session)
 {
-  int64_t ret_val;
-  WT_PACK_STREAM *ps;
+    int64_t ret_val;
+    WT_PACK_STREAM *ps;
 
-  int ret = wiredtiger_unpack_start(session, "i", to_unpack, sizeof(int), &ps);
-  ret = wiredtiger_unpack_int(ps, &ret_val);
-  return ret_val;
+    (void)wiredtiger_unpack_start(session, "i", to_unpack, sizeof(int), &ps);
+    (void)wiredtiger_unpack_int(ps, &ret_val);
+    return ret_val;
 }
 
 /**
@@ -547,24 +543,23 @@ int CommonUtil::unpack_int_wt(const char *to_unpack, WT_SESSION *session)
 char *CommonUtil::pack_bool_wt(bool to_pack, WT_SESSION *session,
                                std::string *fmt)
 {
-  size_t size = sizeof(uint8_t);
-  char *buffer = (char *)malloc(size);
-  WT_PACK_STREAM *psp;
+    size_t size = sizeof(uint8_t);
+    char *buffer = (char *)malloc(size);
+    WT_PACK_STREAM *psp;
 
-  int ret =
-      wiredtiger_pack_start(session, "B", buffer, size, &psp);
+    (void)wiredtiger_pack_start(session, "B", buffer, size, &psp);
 
-  if (to_pack)
-  {
-    ret = wiredtiger_pack_uint(psp, 1);
-  }
-  else
-  {
-    ret = wiredtiger_pack_uint(psp, 0);
-  }
+    if (to_pack)
+    {
+        (void)wiredtiger_pack_uint(psp, 1);
+    }
+    else
+    {
+        (void)wiredtiger_pack_uint(psp, 0);
+    }
 
-  *fmt = "i";
-  return buffer;
+    *fmt = "i";
+    return buffer;
 }
 
 /**
@@ -577,93 +572,92 @@ char *CommonUtil::pack_bool_wt(bool to_pack, WT_SESSION *session,
 bool CommonUtil::unpack_bool_wt(const char *to_unpack, WT_SESSION *session)
 {
 
-  uint64_t bool_val;
-  WT_PACK_STREAM *ps;
+    uint64_t bool_val;
+    WT_PACK_STREAM *ps;
 
-  int ret =
-      wiredtiger_unpack_start(session, "i", to_unpack, sizeof(uint64_t), &ps);
-  ret = wiredtiger_unpack_uint(ps, &bool_val);
+    (void)wiredtiger_unpack_start(session, "i", to_unpack, sizeof(uint64_t), &ps);
+    (void)wiredtiger_unpack_uint(ps, &bool_val);
 
-  if (bool_val == 0)
-  {
-    return false;
-  }
-  else if (bool_val == 1)
-  {
-    return true;
-  }
-  else
-  {
-    fprintf(stderr, "failed to unpack bool");
-    exit(-1);
-  }
+    if (bool_val == 0)
+    {
+        return false;
+    }
+    else if (bool_val == 1)
+    {
+        return true;
+    }
+    else
+    {
+        fprintf(stderr, "failed to unpack bool");
+        exit(-1);
+    }
 }
 
 int CommonUtil::close_cursor(WT_CURSOR *cursor)
 {
-  if (int ret = cursor->close(cursor) != 0)
-  {
-    fprintf(stderr, "Failed to close the cursor\n ");
-    return ret;
-  }
-  return 0;
+    if (int ret = cursor->close(cursor) != 0)
+    {
+        fprintf(stderr, "Failed to close the cursor\n ");
+        return ret;
+    }
+    return 0;
 }
 
 int CommonUtil::close_session(WT_SESSION *session)
 {
-  if (session->close(session, NULL) != 0)
-  {
-    fprintf(stderr, "Failed to close session\n");
-    return (-1);
-  }
-  return 0;
+    if (session->close(session, NULL) != 0)
+    {
+        fprintf(stderr, "Failed to close session\n");
+        return (-1);
+    }
+    return 0;
 }
 
 int CommonUtil::close_connection(WT_CONNECTION *conn)
 {
-  if (conn->close(conn, NULL) != 0)
-  {
-    fprintf(stderr, "Failed to close connection\n");
-    return (-1);
-  }
-  return 0;
+    if (conn->close(conn, NULL) != 0)
+    {
+        fprintf(stderr, "Failed to close connection\n");
+        return (-1);
+    }
+    return 0;
 }
 
 int CommonUtil::open_connection(char *db_name, WT_CONNECTION **conn)
 {
-  if (wiredtiger_open(db_name, NULL, "create", conn) != 0)
-  {
-    fprintf(stderr, "Failed to open connection\n");
-    return (-1);
-  }
-  return 0;
+    if (wiredtiger_open(db_name, NULL, "create", conn) != 0)
+    {
+        fprintf(stderr, "Failed to open connection\n");
+        return (-1);
+    }
+    return 0;
 }
 
 int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
 {
-  if (conn->open_session(conn, NULL, NULL, session) != 0)
-  {
-    fprintf(stderr, "Failed to open session\n");
-    return (-1);
-  }
-  return 0;
+    if (conn->open_session(conn, NULL, NULL, session) != 0)
+    {
+        fprintf(stderr, "Failed to open session\n");
+        return (-1);
+    }
+    return 0;
 }
 
 int CommonUtil::open_cursor(WT_SESSION *session, WT_CURSOR **cursor, std::string uri,
                             WT_CURSOR *to_dup, std::string config)
 {
-  if (session->open_cursor(session, uri.c_str(), to_dup, config.c_str(),
-                           cursor) != 0)
-  {
-    fprintf(stderr, "Failed to open the cursor on URI %s", uri.c_str());
-  }
-  return 0;
+    if (session->open_cursor(session, uri.c_str(), to_dup, config.c_str(),
+                             cursor) != 0)
+    {
+        fprintf(stderr, "Failed to open the cursor on URI %s", uri.c_str());
+    }
+    return 0;
 }
 
 void CommonUtil::check_return(int retval, std::string mesg)
 {
-  if (retval > 0)
-  {
-    throw GraphException(mesg);
-  }
+    if (retval > 0)
+    {
+        throw GraphException(mesg);
+    }
 }
