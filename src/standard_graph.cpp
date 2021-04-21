@@ -12,7 +12,7 @@
 using namespace std;
 const std::string GRAPH_PREFIX = "std";
 
-StandardGraph::StandardGraph(){};
+StandardGraph::StandardGraph() {}
 
 StandardGraph::StandardGraph(opt_args opt_params)
 
@@ -69,7 +69,7 @@ void StandardGraph::create_new_graph()
     std::filesystem::create_directories(dirname);
 
     // open connection to WT
-    if (CommonUtil::open_connection((char *)dirname.c_str(), &conn) < 0)
+    if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), &conn) < 0)
     {
         exit(-1);
     };
@@ -150,24 +150,12 @@ void StandardGraph::create_new_graph()
     insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
 
     // IS_DIRECTED
-    if (is_directed)
-    {
-        insert_metadata(IS_DIRECTED, "S", "true");
-    }
-    else
-    {
-        insert_metadata(IS_DIRECTED, "S", "false");
-    }
+    string is_directed_str = is_directed ? "true" : "false";
+    insert_metadata(IS_DIRECTED, "S", const_cast<char *>(is_directed_str.c_str()));
 
     //IS_WEIGHTED
-    if (is_weighted)
-    {
-        insert_metadata(IS_WEIGHTED, "S", "true");
-    }
-    else
-    {
-        insert_metadata(IS_WEIGHTED, "S", "false");
-    }
+    string is_weighted_str = is_weighted ? "true" : "false";
+    insert_metadata(IS_WEIGHTED, "S", const_cast<char *>(is_weighted_str.c_str()));
 }
 
 /**
@@ -192,7 +180,7 @@ void StandardGraph::insert_metadata(string key, string value_format,
     if ((ret = this->metadata_cursor->insert(metadata_cursor)) != 0)
     {
         fprintf(stderr, "failed to insert metadata for key %s", key.c_str());
-        // TODO: Maybe create a GraphException?
+        // TODO(puneet): Maybe create a GraphException?
     }
     this->metadata_cursor->close(metadata_cursor); //? Should I close this?
 }
@@ -643,7 +631,7 @@ node StandardGraph::get_random_node()
  * @param node_id
  */
 //!read again
-//TODO:
+// TODO(puneet):
 void StandardGraph::delete_node(int node_id)
 {
     int ret = 0;
@@ -694,7 +682,7 @@ void StandardGraph::delete_node(int node_id)
     delete_related_edges(dst_index_cursor, node_id);
 }
 //! read this again
-//TODO:
+// TODO(puneet):
 void StandardGraph::delete_related_edges(WT_CURSOR *index_cursor, int node_id)
 {
     WT_CURSOR *edge_cursor = nullptr;
@@ -924,7 +912,7 @@ void StandardGraph::add_edge(edge to_insert)
         // The edge does not exist, use the global edge-id and update it by 1
         cursor->set_key(cursor, this->edge_id); //! I think this is broken. this->edge_id is different from edge_id ?
 
-        //TODO: this is 100% going to lead to a race condition.
+        // TODO(puneet): this is 100% going to lead to a race condition.
         this->edge_id++;
     }
 
@@ -975,7 +963,6 @@ void StandardGraph::add_edge(edge to_insert)
             found.out_degree = found.out_degree + 1;
         }
         update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
-        
     }
     cursor->close(cursor);
 }
@@ -1130,7 +1117,7 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id)
         throw GraphException("Could not find node with id" + to_string(node_id));
     }
 
-    WT_CURSOR *cursor = nullptr, *edge_cursor = nullptr;
+    WT_CURSOR *cursor = nullptr;
     int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
                                 "(" + ID + "," + SRC + "," + DST + ")", &cursor);
     cursor->reset(cursor);
@@ -1193,7 +1180,7 @@ vector<edge> StandardGraph::get_in_edges(int node_id)
         throw GraphException("Could not find node with id" + to_string(node_id));
     }
 
-    WT_CURSOR *cursor = nullptr, *edge_cursor = nullptr;
+    WT_CURSOR *cursor = nullptr;
     int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX,
                                 "(" + ID + "," + SRC + "," + DST + ")", &cursor);
     cursor->reset(cursor);
