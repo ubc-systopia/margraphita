@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(graphapi    VERSION 1.0 
                     DESCRIPTION "C++ GraphAPI for WiredTiger"
                     LANGUAGES CXX)
-SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g -O0 -std=gnu++17")
+SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g -O0 -std=gnu++2a")
 find_package (Threads) #To include pthreads
 ####################################################
 # Download and unpack googletest at configure time #
