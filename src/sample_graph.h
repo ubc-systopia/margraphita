@@ -28,7 +28,7 @@ namespace SampleGraph
     std::vector<edge> test_edges = {edge1, edge2, edge3};
     std::vector<node> test_nodes = {node1, node2, node3};
 
-    void create_directed_edges()
+    void create_undirected_edges()
     {
         int size = test_edges.size();
         for (int i = 0; i < size; i++)
