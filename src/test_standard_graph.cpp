@@ -17,10 +17,12 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
         SampleGraph::create_undirected_edges();
         assert(SampleGraph::test_edges.size() == 6); //checking if directed edges got created and stored in test_edges
     }
-
+    int edge_cnt = 1;
     for (edge x : SampleGraph::test_edges)
     {
+        cout << "Inserting edge_id " << edge_cnt << endl;
         graph.add_edge(x);
+        edge_cnt++;
     }
 }
 
@@ -36,7 +38,7 @@ void dump_node(node to_print)
     cout << "Node out_degree is:\t" << to_print.out_degree << endl;
 }
 
-void test_node_add(StandardGraph graph)
+void test_node_add(StandardGraph graph, bool read_optimize)
 {
     node new_node = {
         .id = 11,
@@ -45,11 +47,14 @@ void test_node_add(StandardGraph graph)
     graph.add_node(new_node);
     node found = graph.get_node(new_node.id);
     assert(new_node.id == found.id);
-    assert(found.in_degree == 0);
-    assert(found.out_degree == 0);
+    if (read_optimize)
+    {
+        assert(found.in_degree == 0);
+        assert(found.out_degree == 0);
+    }
 }
 
-void test_node_delete(StandardGraph graph)
+void test_node_delete(StandardGraph graph, bool is_directed)
 {
     node to_delete = SampleGraph::node2;
     graph.delete_node(to_delete.id);
@@ -58,7 +63,28 @@ void test_node_delete(StandardGraph graph)
     assert(graph.has_node(to_delete.id) == false);
 
     //check if the edges have been deleted
-    //if ()
+    if (is_directed)
+    {
+        assert(graph.has_edge(SampleGraph::edge1.src_id,
+                              SampleGraph::edge1.dst_id) == false);
+        assert(graph.has_edge(SampleGraph::edge3.src_id,
+                              SampleGraph::edge3.dst_id) == false);
+    }
+    else
+    {
+        //edge from 1->2
+        assert(graph.has_edge(SampleGraph::edge1.src_id,
+                              SampleGraph::edge1.dst_id) == false);
+        //edge from 2->1
+        assert(graph.has_edge(SampleGraph::edge1.dst_id,
+                              SampleGraph::edge1.src_id) == false);
+        //edge from 2->3
+        assert(graph.has_edge(SampleGraph::edge3.src_id,
+                              SampleGraph::edge3.dst_id) == false);
+        //edge from 3->2
+        assert(graph.has_edge(SampleGraph::edge3.dst_id,
+                              SampleGraph::edge3.src_id) == false);
+    }
 }
 
 int main()
@@ -68,7 +94,8 @@ int main()
     opts.create_new = true;
     opts.optimize_create = false;
     opts.is_directed = false;
-    opts.read_optimize = true;
+    opts.read_optimize = false;
+    //opts.read_optimize = true;
     opts.is_weighted = false;
     opts.db_name = "test_std";
 
@@ -76,12 +103,11 @@ int main()
     StandardGraph graph = StandardGraph(opts);
 
     create_init_nodes(graph, true);
-
     //Test adding a node
-    test_node_add(graph);
+    test_node_add(graph, opts.read_optimize);
 
     //Test deleting a node
-    //test_node_delete();
+    //test_node_delete(graph, opts.is_directed);
 
     //Test std_graph teardown
     tearDown(graph);

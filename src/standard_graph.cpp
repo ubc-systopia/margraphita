@@ -9,6 +9,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <wiredtiger.h>
+
 using namespace std;
 const std::string GRAPH_PREFIX = "std";
 
@@ -370,7 +371,7 @@ void StandardGraph::create_indices()
     int ret = 0;
     string edge_table_index_str, edge_table_index_conf_str;
     edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_DST_INDEX;
-    edge_table_index_conf_str = "columns=(" + SRC + "," + DST + ")";
+    edge_table_index_conf_str = "columns=(" + ID + "," + SRC + "," + DST + ")";
     //THere is likely a util fucntion for this
     if ((ret = session->create(session, edge_table_index_str.c_str(),
                                edge_table_index_conf_str.c_str())) > 0)
@@ -507,7 +508,7 @@ bool StandardGraph::has_node(int node_id)
 int StandardGraph::get_edge_id(int src_id, int dst_id)
 {
     int ret = 0;
-    int edge_id;
+    edge found;
     string projection = "(" + ID + "," + SRC + "," + DST + ")";
     if (this->src_dst_index_cursor == NULL)
     {
@@ -525,8 +526,8 @@ int StandardGraph::get_edge_id(int src_id, int dst_id)
     {
 
         ret = this->src_dst_index_cursor->get_value(this->src_dst_index_cursor,
-                                                    &edge_id);
-        return edge_id;
+                                                    &found.id, &found.src_id, &found.dst_id);
+        return found.id;
     }
 }
 
@@ -901,19 +902,19 @@ void StandardGraph::add_edge(edge to_insert)
     int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
 
     // check if the edge exists already, if so, get edge_id
-    int edge_id = get_edge_id(to_insert.src_id, to_insert.dst_id);
-    if (edge_id > 0)
+    int found_edge_id = get_edge_id(to_insert.src_id, to_insert.dst_id);
+    if (found_edge_id > 0)
     {
         // The edge exists, set the cursor to point to that edge_id
-        cursor->set_key(cursor, edge_id);
+        cursor->set_key(cursor, found_edge_id);
     }
     else
     {
         // The edge does not exist, use the global edge-id and update it by 1
-        cursor->set_key(cursor, this->edge_id); //! I think this is broken. this->edge_id is different from edge_id ?
-
-        // TODO(puneet): this is 100% going to lead to a race condition.
+        to_insert.id = this->edge_id;
+        cursor->set_key(cursor, to_insert.id);
         this->edge_id++;
+        cout << "New Edge ID is " << this->edge_id << endl;
     }
 
     if (is_weighted)
@@ -955,8 +956,8 @@ void StandardGraph::add_edge(edge to_insert)
         found.id = to_insert.dst_id;
         found.in_degree = found.in_degree + 1;
         update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
+        cursor->close(cursor);
     }
-    cursor->close(cursor);
 }
 
 void StandardGraph::delete_edge(int src_id, int dst_id)
