@@ -12,7 +12,7 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
         graph.add_node(x);
     }
 
-    if (is_directed)
+    if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
         assert(SampleGraph::test_edges.size() == 6); //checking if directed edges got created and stored in test_edges
@@ -94,20 +94,20 @@ int main()
     opts.create_new = true;
     opts.optimize_create = false;
     opts.is_directed = false;
-    opts.read_optimize = false;
-    //opts.read_optimize = true;
+    //opts.read_optimize = false;
+    opts.read_optimize = true;
     opts.is_weighted = false;
     opts.db_name = "test_std";
 
     //Test std_graph setup
     StandardGraph graph = StandardGraph(opts);
 
-    create_init_nodes(graph, true);
+    create_init_nodes(graph, opts.is_directed);
     //Test adding a node
-    test_node_add(graph, opts.read_optimize);
+    //test_node_add(graph, opts.read_optimize);
 
     //Test deleting a node
-    //test_node_delete(graph, opts.is_directed);
+    test_node_delete(graph, opts.is_directed);
 
     //Test std_graph teardown
     tearDown(graph);

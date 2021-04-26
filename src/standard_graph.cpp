@@ -527,7 +527,14 @@ int StandardGraph::get_edge_id(int src_id, int dst_id)
 
         ret = this->src_dst_index_cursor->get_value(this->src_dst_index_cursor,
                                                     &found.id, &found.src_id, &found.dst_id);
-        return found.id;
+        if (found.src_id == src_id & found.dst_id == dst_id)
+        {
+            return found.id;
+        }
+        else
+        {
+            return -1;
+        }
     }
 }
 
@@ -941,7 +948,7 @@ void StandardGraph::add_edge(edge to_insert)
         CommonUtil::check_return(ret, "Failed to open a cursor to the node table");
 
         cursor->set_key(cursor, to_insert.src_id);
-        cursor->search(cursor);
+        cursor->search(cursor); //TODO: do a check
         node found = __record_to_node(cursor);
         found.id = to_insert.src_id;
         found.out_degree = found.out_degree + 1;
