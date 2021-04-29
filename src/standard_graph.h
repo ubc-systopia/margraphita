@@ -36,6 +36,7 @@ public:
     void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
                             int out_degree);
     edge get_edge(int src_id, int dst_id);
+    void update_edge_weight(int src_id, int dst_id, int edge_weight);
     // void update_edge(int src_id, int dst_id, char *new_attrs); <-not needed.
     // skip.
     std::vector<edge> get_edges();

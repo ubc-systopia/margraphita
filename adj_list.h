@@ -1,7 +1,7 @@
 #ifndef STD_GRAPH
 #define STD_GRAPH
 
-#include "adj_common.h"
+#include "common.h"
 #include "graph_exception.h"
 #include <filesystem>
 #include <iostream>
@@ -26,6 +26,7 @@ public:
     node get_random_node();
     int get_in_degree(int node_id);
     int get_out_degree(int node_id);
+    std::vector<node> get_nodes();
 
     int get_num_nodes();
     int get_num_edges();
@@ -34,17 +35,23 @@ public:
     bool has_edge(int src_id, int dst_id);
     int get_edge_weight(int src_id, int dst_id);
     void delete_edge(int src_id, int dst_id);
+    void update_edge_weight(int src_id, int dst_id, int edge_weight);
+
+    void add_adjlist(WT_CURSOR *cursor, int node_id);
+    void delete_adjlist(WT_CURSOR *cursor, int node_id);
+    void delete_node_from_adjlists(int node_id);
+    std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id);
+    void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert);
+    void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete);
 
     void delete_related_edges(WT_CURSOR *index_cursor, int node_id);
-
-    std::vector<node> get_nodes();
 
     void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
                             int out_degree);
     edge get_edge(int src_id, int dst_id);
     // void update_edge(int src_id, int dst_id, char *new_attrs); <-not needed.
     // skip.
-    //! std::vector<edge> get_edges();
+    std::vector<edge> get_edges();
     std::vector<edge> get_out_edges(int node_id);
     std::vector<node> get_out_nodes(int node_id);
     std::vector<edge> get_in_edges(int node_id);
