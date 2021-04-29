@@ -93,7 +93,7 @@ int main()
     opt_args opts;
     opts.create_new = true;
     opts.optimize_create = false;
-    opts.is_directed = false;
+    opts.is_directed = true;
     //opts.read_optimize = false;
     opts.read_optimize = true;
     opts.is_weighted = false;

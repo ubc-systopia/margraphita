@@ -367,11 +367,11 @@ void StandardGraph::create_indices()
         CommonUtil::close_cursor(this->dst_index_cursor);
     }
 
-    // Create table index on src, dst
+    // Create table index on (src, dst)
     int ret = 0;
     string edge_table_index_str, edge_table_index_conf_str;
     edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_DST_INDEX;
-    edge_table_index_conf_str = "columns=(" + ID + "," + SRC + "," + DST + ")";
+    edge_table_index_conf_str = "columns=(" + SRC + "," + DST + ")";
     //THere is likely a util fucntion for this
     if ((ret = session->create(session, edge_table_index_str.c_str(),
                                edge_table_index_conf_str.c_str())) > 0)
@@ -527,7 +527,7 @@ int StandardGraph::get_edge_id(int src_id, int dst_id)
 
         ret = this->src_dst_index_cursor->get_value(this->src_dst_index_cursor,
                                                     &found.id, &found.src_id, &found.dst_id);
-        if (found.src_id == src_id & found.dst_id == dst_id)
+        if ((found.src_id == src_id) & (found.dst_id == dst_id))
         {
             return found.id;
         }
@@ -663,22 +663,22 @@ void StandardGraph::delete_node(int node_id)
 
     // Delete outgoing edges from the victim node
     // This check is probably not necessary
-    if (this->src_dst_index_cursor == NULL)
+    if (this->src_index_cursor == NULL)
     {
         string projection = "(" + ID + "," + SRC + "," + DST + ")";
-        ret = _get_index_cursor(EDGE_TABLE, SRC_DST_INDEX, projection,
-                                &(this->src_dst_index_cursor));
+        ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX, projection,
+                                &(this->src_index_cursor));
         if (ret != 0)
         {
             throw GraphException("Could not open a SRC_DST index on the edge table.");
         }
     }
-    delete_related_edges(src_dst_index_cursor, node_id);
+    delete_related_edges(src_index_cursor, node_id);
 
     // Delete incoming edges to the victim node
     if (this->dst_index_cursor == NULL)
     {
-        string projection = "(" + DST + ")";
+        string projection = "(" + ID + "," + SRC + "," + DST + ")";
         ret = _get_index_cursor(EDGE_TABLE, DST_INDEX, projection,
                                 &(this->dst_index_cursor));
         if (ret != 0)
@@ -702,30 +702,42 @@ void StandardGraph::delete_related_edges(WT_CURSOR *index_cursor, int node_id)
         throw GraphException("Unable to get a cursor to the edge table.");
     }
 
-    int edge_id, src, dst = {-1};
+    int edge_id, src = -1, dst = -1;
     index_cursor->set_key(index_cursor, node_id);
     if (index_cursor->search(index_cursor) == 0)
     {
         index_cursor->get_value(index_cursor, &edge_id, &src, &dst); //! check
         edge_cursor->set_key(edge_cursor, edge_id);
+        cout << "removing edge_id" << edge_id << "< " << src << dst << ">" << endl;
         ret = edge_cursor->remove(edge_cursor);
         if (ret != 0)
         {
             throw GraphException("Failed to delete edge (" + SRC + "," + DST + ")");
         }
+
         int tmp_key;
         index_cursor->get_key(index_cursor, &tmp_key);
         while (index_cursor->next(index_cursor) == 0 && tmp_key == node_id)
         {
             ret = index_cursor->get_value(index_cursor, &edge_id, &src, &dst);
-            edge_cursor->set_key(edge_cursor, edge_id);
-            ret = edge_cursor->remove(edge_cursor);
 
-            if (ret != 0)
+            if (src == node_id || dst == node_id) //! I still don't know why this works
+            //TODO:FIX THIS
             {
-                throw GraphException("Failed to delete edge (" + SRC + "," + DST + ")");
+                edge_cursor->set_key(edge_cursor, edge_id);
+                cout << "edge_id being removed is:" << edge_id << "< " << src << dst << ">" << endl;
+                ret = edge_cursor->remove(edge_cursor);
+
+                if (ret != 0)
+                {
+                    throw GraphException("Failed to delete edge (" + SRC + "," + DST + ")");
+                }
             }
         }
+    }
+    else
+    {
+        throw GraphException("Could not find node " + to_string(node_id) + " in the index cursor");
     }
 }
 
