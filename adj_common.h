@@ -28,11 +28,11 @@ extern const std::string ID;
 extern const std::string WEIGHT;
 extern const std::string NODE_TABLE;
 extern const std::string EDGE_TABLE;
-extern const std::string ADJ_INLIST_TABLE;
-extern const std::string ADJ_OUTLIST_TABLE;
-extern const std::string SRC_INDEX;     //!APT CHECK
-extern const std::string DST_INDEX;     //!APT CHECK
-extern const std::string SRC_DST_INDEX; //!APT CHECK
+extern const std::string ADJ_INLIST_TABLE;  // New
+extern const std::string ADJ_OUTLIST_TABLE; // New
+extern const std::string SRC_INDEX;         //!APT CHECK
+extern const std::string DST_INDEX;         //!APT CHECK
+extern const std::string SRC_DST_INDEX;     //!APT CHECK
 
 struct opt_args
 {

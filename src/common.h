@@ -65,6 +65,20 @@ typedef struct edge_index
     int dst_id;
 } edge_index;
 
+typedef struct adjlist_out_edges
+{
+    int node_id;
+    int degree;
+    vector<int> out_edges;
+} adj_inlist;
+
+typedef struct adjlist_in_edges
+{
+    int node_id;
+    int degree;
+    vector<int> in_edges;
+} adj_outlist;
+
 class CommonUtil
 {
 public:
