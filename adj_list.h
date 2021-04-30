@@ -84,9 +84,9 @@ private:
     vector<string> node_columns = {ID}; //Always there :)
     vector<string> edge_columns = {SRC, DST};
     string node_value_format;
-    string node_key_format = "I";    //! APT Check
-    string edge_key_format = "I";    //! APT Check
-    string edge_value_format = "II"; //! APT Check
+    string node_key_format = "I";
+    string edge_key_format = "II";  // SRC DST in the edge table
+    string edge_value_format = "I"; // Edge Weight in the edge table
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
