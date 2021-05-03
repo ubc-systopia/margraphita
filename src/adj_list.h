@@ -68,6 +68,9 @@ public:
 
     // WT privates
 private:
+    std::string IN_ADJLIST = "IN_ADJLIST";
+    std::string OUT_ADJLIST = "OUT_ADJLIST";
+
     WT_CONNECTION *conn;
     WT_SESSION *session;
     //create params`
@@ -83,10 +86,14 @@ private:
 
     vector<string> node_columns = {ID}; //Always there :)
     vector<string> edge_columns = {SRC, DST};
+    vector<string> adjlist_columns = {ID, DEGREE, ADJLIST};
+
     string node_value_format;
     string node_key_format = "I";
     string edge_key_format = "II";  // SRC DST in the edge table
     string edge_value_format = "I"; // Edge Weight in the edge table
+    string adjlist_key_format = "I";
+    string adjlist_value_format = "Iu";
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
