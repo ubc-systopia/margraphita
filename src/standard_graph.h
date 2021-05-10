@@ -33,6 +33,7 @@ public:
     std::vector<node> get_nodes();
     void add_edge(edge to_insert);
     void delete_edge(int src_id, int dst_id);
+    void decrement_degrees(int src_id, int dst_id);
     void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
                             int out_degree);
     edge get_edge(int src_id, int dst_id);
@@ -52,6 +53,7 @@ public:
     void insert_metadata(string key, string value_format, char *value);
     string get_metadata(string key);
     void close();
+    std::vector<edge> test_cursor_iter(int node_id);
 
     // WT privates
 private:

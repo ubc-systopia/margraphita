@@ -206,11 +206,12 @@ void AdjList::insert_metadata(string key, char *value)
 {
     this->metadata_cursor->set_key(metadata_cursor, key.c_str());
     this->metadata_cursor->set_value(metadata_cursor, value);
-    if (this->metadata_cursor->insert(metadata_cursor) != 0)
+    if ((ret = this->metadata_cursor->insert(metadata_cursor)) != 0)
     {
         fprintf(stderr, "failed to insert metadata for key %s", key.c_str());
         // TODO(puneet): Maybe create a GraphException?
     }
+
 }
 
 /**
@@ -328,3 +329,4 @@ void AdjList::add_edge(edge to_insert)
         cursor->close(cursor);
     }
 }
+

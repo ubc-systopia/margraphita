@@ -62,7 +62,7 @@ public:
     void get_node_iter(); //! APT Check
     void get_edge_iter(); //! APT Check
     // Metadata operations:
-    void insert_metadata(string key, char *value);
+    void insert_metadata(string key, string value_format, char *value);
     string get_metadata(string key);
     void close();
 
