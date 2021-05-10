@@ -98,9 +98,8 @@ private:
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
     WT_CURSOR *edge_cursor = NULL;
-    WT_CURSOR *src_dst_index_cursor = NULL; //! APT Check
-    WT_CURSOR *src_index_cursor = NULL;
-    WT_CURSOR *dst_index_cursor = NULL;
+    WT_CURSOR *in_adjlist_cursor = NULL;
+    WT_CURSOR *out_adjlist_cursor = NULL;
     WT_CURSOR *metadata_cursor = NULL;
 
     void __node_to_record(WT_CURSOR *cursor, node to_insert);  //! APT Check
@@ -109,12 +108,8 @@ private:
     void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx); //! APT Check
 
     // Internal cursor methods
-    int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random); //! APT Check
-    int _get_index_cursor(std::string table_name, std::string idx_name,
-                          std::string projection, WT_CURSOR **cursor); //! APT Check
+    int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random);
     void __restore_from_db(string db_name);
-    void create_indices();
-    void drop_indices();
 };
 
 #endif
