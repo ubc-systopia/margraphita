@@ -1,3 +1,3 @@
 [submodule "libs/wiredtiger"]
 	path = libs/wiredtiger
-	url = git@github.com:artorhem/wiredtiger.git
+	url = https://github.com/artorhem/wiredtiger.git

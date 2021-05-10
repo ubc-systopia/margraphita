@@ -68,6 +68,9 @@ public:
 
     // WT privates
 private:
+    std::string IN_ADJLIST = "IN_ADJLIST";
+    std::string OUT_ADJLIST = "OUT_ADJLIST";
+
     WT_CONNECTION *conn;
     WT_SESSION *session;
     //create params`
@@ -83,17 +86,20 @@ private:
 
     vector<string> node_columns = {ID}; //Always there :)
     vector<string> edge_columns = {SRC, DST};
+    vector<string> adjlist_columns = {ID, DEGREE, ADJLIST};
+
     string node_value_format;
     string node_key_format = "I";
     string edge_key_format = "II";  // SRC DST in the edge table
     string edge_value_format = "I"; // Edge Weight in the edge table
+    string adjlist_key_format = "I";
+    string adjlist_value_format = "Iu";
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
     WT_CURSOR *edge_cursor = NULL;
-    WT_CURSOR *src_dst_index_cursor = NULL; //! APT Check
-    WT_CURSOR *src_index_cursor = NULL;
-    WT_CURSOR *dst_index_cursor = NULL;
+    WT_CURSOR *in_adjlist_cursor = NULL;
+    WT_CURSOR *out_adjlist_cursor = NULL;
     WT_CURSOR *metadata_cursor = NULL;
 
     void __node_to_record(WT_CURSOR *cursor, node to_insert);  //! APT Check
@@ -102,12 +108,8 @@ private:
     void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx); //! APT Check
 
     // Internal cursor methods
-    int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random); //! APT Check
-    int _get_index_cursor(std::string table_name, std::string idx_name,
-                          std::string projection, WT_CURSOR **cursor); //! APT Check
+    int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random);
     void __restore_from_db(string db_name);
-    void create_indices();
-    void drop_indices();
 };
 
 #endif
