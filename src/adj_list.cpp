@@ -149,6 +149,14 @@ void AdjList::create_new_graph()
     CommonUtil::set_table(session, EDGE_TABLE, edge_columns,
                           edge_key_format, edge_value_format);
 
+    // Create adjlist_in_edges table
+    CommonUtil::set_table(session, IN_ADJLIST, adjlist_columns,
+                          adjlist_key_format, adjlist_value_format);
+
+    // Create adjlist_out_edges table
+    CommonUtil::set_table(session, OUT_ADJLIST, adjlist_columns,
+                          adjlist_key_format, adjlist_value_format);
+
     /* Now doing the metadata table creation.
      function This table stores the graph metadata
      value_format:raw byte string (Su)
@@ -202,5 +210,121 @@ void AdjList::insert_metadata(string key, char *value)
     {
         fprintf(stderr, "failed to insert metadata for key %s", key.c_str());
         // TODO(puneet): Maybe create a GraphException?
+    }
+}
+
+/**
+ * @brief The information that gets persisted to WT is of the form:
+ * <node_id>,in_degree,out_degree.
+ * in_degree and out_degree are persisted if read_optimize is true. ints
+ *
+ *
+ * @param to_insert
+ */
+void AdjList::add_node(node to_insert)
+{
+    int ret = 0;
+    if (node_cursor == NULL)
+    {
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+    }
+    node_cursor->set_key(node_cursor, to_insert.id);
+
+    if (read_optimize)
+    {
+        node_cursor->set_value(node_cursor, 0, 0);
+    }
+    else
+    {
+        node_cursor->set_value(node_cursor, "");
+    }
+
+    ret = node_cursor->insert(node_cursor);
+
+    if (ret != 0)
+    {
+        throw GraphException("Failed to add node_id" +
+                             std::to_string(to_insert.id));
+    }
+}
+
+void AdjList::add_edge(edge to_insert)
+{
+    // Add dst and src nodes if they don't exist.
+    if (!has_node(to_insert.src_id))
+    {
+        node src = {0};
+        src.id = to_insert.src_id;
+        add_node(src);
+    }
+    if (!has_node(to_insert.dst_id))
+    {
+        node dst = {0};
+        dst.id = to_insert.dst_id;
+        add_node(dst);
+    }
+
+    WT_CURSOR *cursor = nullptr;
+    int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
+
+    // check if the edge exists already, if so, get edge_id
+    int found_edge_id = get_edge_id(to_insert.src_id, to_insert.dst_id);
+    if (found_edge_id > 0)
+    {
+        // The edge exists, set the cursor to point to that edge_id
+        cursor->set_key(cursor, found_edge_id);
+    }
+    else
+    {
+        // The edge does not exist, use edge-id = -1, since there is no edge id value in adj list implementation.
+        to_insert.id = -1;
+        cursor->set_key(cursor, to_insert.src_id, to_insert.dst_id);
+        cout << "New Edge ID inserted" << endl;
+    }
+
+    if (is_weighted)
+    {
+        cursor->set_value(cursor, to_insert.edge_weight);
+    }
+    else
+    {
+        cursor->set_value(cursor, 0);
+    }
+    ret = cursor->insert(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Failed to insert edge (" +
+                             to_string(to_insert.src_id) + "," +
+                             to_string(to_insert.dst_id));
+    }
+    cursor->close(cursor);
+
+    // Update the adj_list table both in and out
+    // !APT : Write helper functions before updating adj_lists
+
+    // If read_optimized is true, we update in/out degreees in the node table.
+    if (this->read_optimize)
+    {
+        // update in/out degrees for src node in NODE_TABLE
+        ret = _get_table_cursor(NODE_TABLE, &cursor, false);
+        CommonUtil::check_return(ret, "Failed to open a cursor to the node table");
+
+        cursor->set_key(cursor, to_insert.src_id);
+        cursor->search(cursor); //TODO: do a check
+        node found = __record_to_node(cursor);
+        found.id = to_insert.src_id;
+        found.out_degree = found.out_degree + 1;
+        update_node_degree(cursor, found.id, found.in_degree,
+                           found.out_degree); //! pass the cursor to this function
+
+        // update in/out degrees for the dst node in the NODE_TABLE
+        cursor->reset(cursor);
+        cursor->set_key(cursor, to_insert.dst_id);
+        cursor->search(cursor);
+        found = __record_to_node(cursor);
+        found.id = to_insert.dst_id;
+        found.in_degree = found.in_degree + 1;
+        update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
+        cursor->close(cursor);
     }
 }
