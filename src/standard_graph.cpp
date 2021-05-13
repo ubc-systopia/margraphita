@@ -652,7 +652,7 @@ void StandardGraph::delete_node(int node_id)
             throw GraphException("Could not get a cursor to the node table");
         }
     }
-    //Delete incoming edges
+    //Delete incoming and outgoing edges
     vector<edge> incoming_edges = get_in_edges(node_id);
     vector<edge> outgoing_edges = get_out_edges(node_id);
 
