@@ -86,7 +86,8 @@ private:
 
     vector<string> node_columns = {ID}; //Always there :)
     vector<string> edge_columns = {SRC, DST};
-    vector<string> adjlist_columns = {ID, DEGREE, ADJLIST};
+    vector<string> in_adjlist_columns = {ID, IN_DEGREE, IN_ADJLIST};
+    vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
 
     string node_value_format;
     string node_key_format = "I";

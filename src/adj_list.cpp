@@ -150,11 +150,11 @@ void AdjList::create_new_graph()
                           edge_key_format, edge_value_format);
 
     // Create adjlist_in_edges table
-    CommonUtil::set_table(session, IN_ADJLIST, adjlist_columns,
+    CommonUtil::set_table(session, IN_ADJLIST, in_adjlist_columns,
                           adjlist_key_format, adjlist_value_format);
 
     // Create adjlist_out_edges table
-    CommonUtil::set_table(session, OUT_ADJLIST, adjlist_columns,
+    CommonUtil::set_table(session, OUT_ADJLIST, out_adjlist_columns,
                           adjlist_key_format, adjlist_value_format);
 
     /* Now doing the metadata table creation.
@@ -175,6 +175,7 @@ void AdjList::create_new_graph()
         exit(-1);
     }
 
+    # if 0
     // DB_NAME
     string db_name_fmt;
     // char *db_name_packed =
@@ -193,10 +194,12 @@ void AdjList::create_new_graph()
     //IS_WEIGHTED
     string is_weighted_str = is_weighted ? "true" : "false";
     insert_metadata(IS_WEIGHTED, const_cast<char *>(is_weighted_str.c_str()));
+    #endif
 
     this->metadata_cursor->close(this->metadata_cursor);
 }
 
+#if 0
 /**
  * @brief This private function inserts metadata values into the metadata
  * table. The fields are self explanatory.
@@ -213,6 +216,67 @@ void AdjList::insert_metadata(string key, char *value)
     }
 
 }
+#endif
+
+/**
+ * @brief This is the generic function to get a cursor on the table
+ *
+ * @param table This is the table name for which the cursor is needed.
+ * @param cursor This is the pointer that will hold the set cursor.
+ * @param is_random This is a bool value to indicate if the cursor must be
+ * random.
+ * @return 0 if the cursor could be set
+ */
+int AdjList::_get_table_cursor(string table, WT_CURSOR **cursor,
+                                     bool is_random)
+{
+    std::string table_name = "table:" + table;
+    const char *config = NULL;
+    if (is_random)
+    {
+        config = "next_random=true";
+    }
+    if (int ret = session->open_cursor(session, table_name.c_str(), NULL, config,
+                                       cursor) != 0) //!APT: Check for cursor close.
+    {
+        fprintf(stderr, "Failed to get table cursor to %s\n", table_name.c_str());
+        return ret;
+    }
+    return 0;
+}
+
+#if 0
+/**
+ * @brief Returns the metadata associated with the key param from the METADATA
+ * table.
+ */
+string AdjList::get_metadata(string key)
+{
+
+    int ret = 0;
+    if (this->metadata_cursor == NULL)
+    {
+        if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
+        {
+            fprintf(stderr, "Failed to create cursor to the metadata table.");
+            exit(-1);
+        }
+    }
+    metadata_cursor->set_key(metadata_cursor, key.c_str());
+    ret = metadata_cursor->search(metadata_cursor);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Failed to retrieve metadata for the key %s", key.c_str());
+        exit(-1);
+    }
+
+    const char *value;
+    ret = metadata_cursor->get_value(metadata_cursor, &value);
+    metadata_cursor->close(metadata_cursor); //? Should I close this?
+
+    return string(value);
+}
+#endif
 
 /**
  * @brief The information that gets persisted to WT is of the form:
@@ -249,6 +313,7 @@ void AdjList::add_node(node to_insert)
     }
 }
 
+# if 0
 void AdjList::add_edge(edge to_insert)
 {
     // Add dst and src nodes if they don't exist.
@@ -329,4 +394,4 @@ void AdjList::add_edge(edge to_insert)
         cursor->close(cursor);
     }
 }
-
+#endif
