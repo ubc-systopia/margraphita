@@ -84,7 +84,7 @@ string AdjList::get_metadata(string key)
 
     const char *value;
     ret = metadata_cursor->get_value(metadata_cursor, &value);
-    metadata_cursor->close(metadata_cursor); //? Should I close this?
+    metadata_cursor->close(metadata_cursor);
 
     return string(value);
 }
@@ -244,39 +244,6 @@ int AdjList::_get_table_cursor(string table, WT_CURSOR **cursor,
     }
     return 0;
 }
-
-#if 0
-/**
- * @brief Returns the metadata associated with the key param from the METADATA
- * table.
- */
-string AdjList::get_metadata(string key)
-{
-
-    int ret = 0;
-    if (this->metadata_cursor == NULL)
-    {
-        if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
-        {
-            fprintf(stderr, "Failed to create cursor to the metadata table.");
-            exit(-1);
-        }
-    }
-    metadata_cursor->set_key(metadata_cursor, key.c_str());
-    ret = metadata_cursor->search(metadata_cursor);
-    if (ret != 0)
-    {
-        fprintf(stderr, "Failed to retrieve metadata for the key %s", key.c_str());
-        exit(-1);
-    }
-
-    const char *value;
-    ret = metadata_cursor->get_value(metadata_cursor, &value);
-    metadata_cursor->close(metadata_cursor); //? Should I close this?
-
-    return string(value);
-}
-#endif
 
 /**
  * @brief The information that gets persisted to WT is of the form:
