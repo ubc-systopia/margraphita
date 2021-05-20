@@ -145,6 +145,33 @@ int AdjList::get_num_edges()
     return count;
 }
 
+//#if 0
+/**
+ * @brief This private function inserts metadata values into the metadata
+ * table. The fields are self explanatory.
+ * Same from standard_graph implementation.
+ */
+void AdjList::insert_metadata(string key,  char *value)
+{
+    int ret = 0;
+
+    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
+    {
+        fprintf(stderr, "Failed to create cursor to the metadata table.");
+        exit(-1);
+    }
+
+    this->metadata_cursor->set_key(metadata_cursor, key.c_str());
+    this->metadata_cursor->set_value(metadata_cursor, value);
+    if ((ret = this->metadata_cursor->insert(metadata_cursor)) != 0)
+    {
+        fprintf(stderr, "failed to insert metadata for key %s", key.c_str());
+        // TODO(puneet): Maybe create a GraphException?
+    }
+    this->metadata_cursor->close(metadata_cursor);
+
+}
+//#endif
 
 void AdjList::create_new_graph()
 {
@@ -232,7 +259,7 @@ void AdjList::create_new_graph()
         exit(-1);
     }
 
-    # if 0
+    //# if 0
     // DB_NAME
     string db_name_fmt;
     // char *db_name_packed =
@@ -251,29 +278,10 @@ void AdjList::create_new_graph()
     //IS_WEIGHTED
     string is_weighted_str = is_weighted ? "true" : "false";
     insert_metadata(IS_WEIGHTED, const_cast<char *>(is_weighted_str.c_str()));
-    #endif
+    //#endif
 
     this->metadata_cursor->close(this->metadata_cursor);
 }
-
-#if 0
-/**
- * @brief This private function inserts metadata values into the metadata
- * table. The fields are self explanatory.
- * Same from standard_graph implementation.
- */
-void AdjList::insert_metadata(string key, char *value)
-{
-    this->metadata_cursor->set_key(metadata_cursor, key.c_str());
-    this->metadata_cursor->set_value(metadata_cursor, value);
-    if ((ret = this->metadata_cursor->insert(metadata_cursor)) != 0)
-    {
-        fprintf(stderr, "failed to insert metadata for key %s", key.c_str());
-        // TODO(puneet): Maybe create a GraphException?
-    }
-
-}
-#endif
 
 /**
  * @brief This is the generic function to get a cursor on the table
