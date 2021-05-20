@@ -89,6 +89,47 @@ string AdjList::get_metadata(string key)
     return string(value);
 }
 
+/**
+ * @brief This function is used to check if a node identified by node_id exists
+ * in the node table.
+ *
+ * @param node_id the node_id to be searched.
+ * @return true if the node is found; false otherwise.
+ */
+bool AdjList::has_node(int node_id)
+{
+    int ret = 0;
+    if (this->node_cursor == NULL)
+    {
+        ret = _get_table_cursor(NODE_TABLE, &(this->node_cursor), false);
+    }
+    this->node_cursor->set_key(this->node_cursor, node_id);
+    ret = this->node_cursor->search(this->node_cursor);
+    if (ret == 0)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+int AdjList::get_num_nodes()
+{
+    int ret = 0;
+    WT_CURSOR *cursor = nullptr;
+    ret = _get_table_cursor(NODE_TABLE, &cursor, false);
+
+    int count = 0;
+    while ((ret = cursor->next(cursor)) == 0)
+    {
+        count += 1;
+    }
+    cursor->close(cursor);
+    return count;
+}
+
 void AdjList::create_new_graph()
 {
     int ret;
