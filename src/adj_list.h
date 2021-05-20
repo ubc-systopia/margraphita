@@ -73,7 +73,7 @@ private:
 
     WT_CONNECTION *conn;
     WT_SESSION *session;
-    //create params`
+    //create params
     bool create_new = true;
     bool read_optimize = true;
     bool is_directed = true;

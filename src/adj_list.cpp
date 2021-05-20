@@ -121,6 +121,21 @@ int AdjList::get_num_nodes()
     WT_CURSOR *cursor = nullptr;
     ret = _get_table_cursor(NODE_TABLE, &cursor, false);
 
+    int count = 0;  
+    while ((ret = cursor->next(cursor)) == 0)
+    {
+        count += 1;
+    }
+    cursor->close(cursor);
+    return count;
+}
+
+int AdjList::get_num_edges()
+{
+    int ret = 0;
+    WT_CURSOR *cursor = nullptr;
+    ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
+
     int count = 0;
     while ((ret = cursor->next(cursor)) == 0)
     {
@@ -129,6 +144,7 @@ int AdjList::get_num_nodes()
     cursor->close(cursor);
     return count;
 }
+
 
 void AdjList::create_new_graph()
 {
