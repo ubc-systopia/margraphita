@@ -63,6 +63,7 @@ private:
     bool read_optimize = true;
     bool is_directed = true;
     bool is_weighted = true; //needed to understand when to interpret the weight field in struct edge
+    bool optimize_create = false;
     std::string db_name;
 
     //structure of the graph

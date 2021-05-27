@@ -22,6 +22,7 @@ StandardGraph::StandardGraph(graph_opts opt_params)
     this->read_optimize = opt_params.read_optimize;
     this->is_directed = opt_params.is_directed;
     this->is_weighted = opt_params.is_weighted;
+    this->optimize_create = opt_params.optimize_create;
     this->db_name = opt_params.db_name;
 
     try
@@ -943,12 +944,16 @@ void StandardGraph::add_edge(edge to_insert)
     int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
 
     // check if the edge exists already, if so, get edge_id
-    int found_edge_id = get_edge_id(to_insert.src_id, to_insert.dst_id);
-    if (found_edge_id > 0)
+    if (optimize_create)
     {
-        // The edge exists, set the cursor to point to that edge_id
-        cursor->set_key(cursor, found_edge_id);
+        int found_edge_id = get_edge_id(to_insert.src_id, to_insert.dst_id);
+        if (found_edge_id > 0)
+        {
+            // The edge exists, set the cursor to point to that edge_id
+            cursor->set_key(cursor, found_edge_id);
+        }
     }
+
     else
     {
         // The edge does not exist, use the global edge-id and update it by 1
