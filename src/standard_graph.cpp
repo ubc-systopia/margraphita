@@ -944,7 +944,7 @@ void StandardGraph::add_edge(edge to_insert)
     int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
 
     // check if the edge exists already, if so, get edge_id
-    if (optimize_create)
+    if (!optimize_create)
     {
         int found_edge_id = get_edge_id(to_insert.src_id, to_insert.dst_id);
         if (found_edge_id > 0)
