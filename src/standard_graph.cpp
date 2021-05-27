@@ -15,7 +15,7 @@ const std::string GRAPH_PREFIX = "std";
 
 StandardGraph::StandardGraph() {}
 
-StandardGraph::StandardGraph(opt_args opt_params)
+StandardGraph::StandardGraph(graph_opts opt_params)
 
 {
     this->create_new = opt_params.create_new;
@@ -33,10 +33,6 @@ StandardGraph::StandardGraph(opt_args opt_params)
         std::cout << G.what() << std::endl;
     }
 
-    if (opt_params.create_new == false)
-    {
-        throw GraphException("Missing param " + CREATE_NEW);
-    }
     if (opt_params.create_new)
     {
         create_new_graph();
@@ -54,7 +50,16 @@ StandardGraph::StandardGraph(opt_args opt_params)
     }
     else
     {
-        __restore_from_db(db_name);
+        // Check that the DB directory exists
+        std::filesystem::path dirname = "./db/" + db_name;
+        if (std::filesystem::exists(dirname))
+        {
+            __restore_from_db("./db/" + db_name);
+        }
+        else
+        {
+            throw GraphException("Could not find the expected WT DB directory - .db/" + db_name);
+        }
     }
 }
 
@@ -138,11 +143,9 @@ void StandardGraph::create_new_graph()
     insert_metadata(DB_NAME, "S", const_cast<char *>(db_name.c_str()));
 
     // READ_OPTIMIZE
-    string is_read_optimized_fmt;
-    char *is_read_optimized_packed =
-        CommonUtil::pack_bool_wt(read_optimize, session, &is_read_optimized_fmt);
-    insert_metadata(READ_OPTIMIZE, is_read_optimized_fmt,
-                    is_read_optimized_packed);
+    string is_read_optimized_str = read_optimize ? "true" : "false";
+    insert_metadata(READ_OPTIMIZE, "S",
+                    const_cast<char *>(is_read_optimized_str.c_str()));
 
     // EDGE_ID <- this is the last edge_id that was used to add an edge
     //! THIS WILL CAUSE A RACE CONDITION ... use locks (get, set)

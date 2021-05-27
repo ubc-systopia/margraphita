@@ -14,7 +14,7 @@ using namespace std;
 class StandardGraph
 {
 public:
-    StandardGraph(opt_args opt_params);
+    StandardGraph(graph_opts opt_params);
     StandardGraph();
 
     void create_new_graph();

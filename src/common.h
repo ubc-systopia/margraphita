@@ -33,7 +33,7 @@ extern const std::string SRC_INDEX;
 extern const std::string DST_INDEX;
 extern const std::string SRC_DST_INDEX;
 
-struct opt_args
+struct graph_opts
 {
     bool create_new = true;
     bool read_optimize = true;
@@ -92,7 +92,7 @@ public:
 
     static std::string get_db_name(std::string prefix, std::string name);
 
-    static void check_graph_params(opt_args params);
+    static void check_graph_params(graph_opts params);
 
     static std::string create_string_format(std::vector<std::string> to_pack,
                                             size_t *size);

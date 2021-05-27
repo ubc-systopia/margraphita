@@ -130,7 +130,7 @@ std::string CommonUtil::get_db_name(std::string prefix, std::string name)
     return (prefix + "-" + name);
 }
 
-void CommonUtil::check_graph_params(opt_args params)
+void CommonUtil::check_graph_params(graph_opts params)
 {
     std::vector<std::string> missing_params;
 

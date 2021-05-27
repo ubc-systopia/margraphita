@@ -322,8 +322,8 @@ void print_delim()
 int main()
 {
 
-    opt_args opts;
-    opts.create_new = true;
+    graph_opts opts;
+    opts.create_new = false;
     opts.optimize_create = false;
     //opts.is_directed = true;
     opts.is_directed = false;
@@ -334,12 +334,14 @@ int main()
 
     //Test std_graph setup
     StandardGraph graph = StandardGraph(opts);
-
-    // test_int_pack();
-    // exit(0);
+    //create_init_nodes(graph, opts.is_directed);
+    test_get_nodes(graph);
+    tearDown(graph);
+    exit(0);
 
     create_init_nodes(graph, opts.is_directed);
     print_delim();
+
     //Test num_get_nodes and num_get_edges
 
     test_get_num_nodes_and_edges(graph, opts.is_directed);

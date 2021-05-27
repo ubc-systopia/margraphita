@@ -88,9 +88,17 @@ SET(PATH_INCLUDE "${PROJECT_SOURCE_DIR}/libs/wiredtiger"
                  "${PROJECT_SOURCE_DIR}/libs/wiredtiger/src/include" )
 SET(PATH_SRC    "${PROJECT_SOURCE_DIR}/src")
 SET(PATH_TEST   "${PROJECT_SOURCE_DIR}/test")
+SET(BENCHMARK   "${PROJECT_SOURCE_DIR}/benchmark")
+SET(UTILS       "${PROJECT_SOURCE_DIR}/utils")
 
 #Create GraphAPI static library
 add_subdirectory(src)
 
 #Create Test executables
 add_subdirectory(test)
+
+#Compile utilities
+add_subdirectory(utils)
+
+#Compile all benchmarks
+add_subdirectory(benchmark)
