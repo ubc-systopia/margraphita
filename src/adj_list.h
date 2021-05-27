@@ -62,7 +62,7 @@ public:
     void get_node_iter(); //! APT Check
     void get_edge_iter(); //! APT Check
     // Metadata operations:
-    void insert_metadata(string key, string value_format, char *value);
+    void insert_metadata(string key, char *value);
     string get_metadata(string key);
     void close();
 
@@ -73,7 +73,7 @@ private:
 
     WT_CONNECTION *conn;
     WT_SESSION *session;
-    //create params`
+    //create params
     bool create_new = true;
     bool read_optimize = true;
     bool is_directed = true;
@@ -86,7 +86,8 @@ private:
 
     vector<string> node_columns = {ID}; //Always there :)
     vector<string> edge_columns = {SRC, DST};
-    vector<string> adjlist_columns = {ID, DEGREE, ADJLIST};
+    vector<string> in_adjlist_columns = {ID, IN_DEGREE, IN_ADJLIST};
+    vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
 
     string node_value_format;
     string node_key_format = "I";
