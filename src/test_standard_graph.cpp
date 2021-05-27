@@ -327,8 +327,8 @@ int main()
     opts.optimize_create = false;
     //opts.is_directed = true;
     opts.is_directed = false;
-    opts.read_optimize = false;
-    //opts.read_optimize = true;
+    //opts.read_optimize = false;
+    opts.read_optimize = true;
     opts.is_weighted = false;
     opts.db_name = "test_std";
 

@@ -33,7 +33,6 @@ public:
     std::vector<node> get_nodes();
     void add_edge(edge to_insert);
     void delete_edge(int src_id, int dst_id);
-    void decrement_degrees(int src_id, int dst_id);
     void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
                             int out_degree);
     edge get_edge(int src_id, int dst_id);
