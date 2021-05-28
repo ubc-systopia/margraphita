@@ -301,6 +301,7 @@ int AdjList::_get_table_cursor(string table, WT_CURSOR **cursor,
     {
         config = "next_random=true";
     }
+
     if (int ret = session->open_cursor(session, table_name.c_str(), NULL, config,
                                        cursor) != 0) //!APT: Check for cursor close.
     {
@@ -308,6 +309,7 @@ int AdjList::_get_table_cursor(string table, WT_CURSOR **cursor,
         return ret;
     }
     return 0;
+
 }
 
 /**
@@ -426,4 +428,4 @@ void AdjList::add_edge(edge to_insert)
         cursor->close(cursor);
     }
 }
-#endif
+

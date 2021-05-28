@@ -652,6 +652,18 @@ void StandardGraph::delete_node(int node_id)
             throw GraphException("Could not get a cursor to the node table");
         }
     }
+    //Delete incoming and outgoing edges
+    vector<edge> incoming_edges = get_in_edges(node_id);
+    vector<edge> outgoing_edges = get_out_edges(node_id);
+
+    for (edge e : incoming_edges)
+    {
+        delete_edge(e.src_id, e.dst_id);
+    }
+    for (edge e : outgoing_edges)
+    {
+        delete_edge(e.src_id, e.dst_id);
+    }
 
     // Delete the node with the matching node_id
     node_cursor->set_key(node_cursor, node_id);
@@ -661,87 +673,8 @@ void StandardGraph::delete_node(int node_id)
     {
         throw GraphException("Could not delete node with ID " + to_string(node_id));
     }
-
-    // Delete outgoing edges from the victim node
-    // This check is probably not necessary
-    if (this->src_index_cursor == NULL)
-    {
-        string projection = "(" + ID + "," + SRC + "," + DST + ")";
-        ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX, projection,
-                                &(this->src_index_cursor));
-        if (ret != 0)
-        {
-            throw GraphException("Could not open a SRC_DST index on the edge table.");
-        }
-    }
-
-    delete_related_edges(src_index_cursor, node_id);
-
-    // Delete incoming edges to the victim node
-    if (this->dst_index_cursor == NULL)
-    {
-        string projection = "(" + ID + "," + SRC + "," + DST + ")";
-        ret = _get_index_cursor(EDGE_TABLE, DST_INDEX, projection,
-                                &(this->dst_index_cursor));
-        if (ret != 0)
-        {
-            throw GraphException(
-                "Could not get a DST index cursor on the edge table");
-        }
-    }
-
-    delete_related_edges(dst_index_cursor, node_id);
 }
-//! read this again
-// TODO(puneet):
-/**
- * @brief This function accepts the src and dst id for an edge that has been
- * deleted. For the src node, reduce the out_def
- *
- * @param out_node_list Nodes that have an incoming edge from the node being deleted
- * @param in_node_list Nodes that have an outgoing edge to the node being
- * deleted. 
- * @return void
- */
-void StandardGraph::decrement_degrees(int src_id, int dst_id)
-{
-    WT_CURSOR *cursor;
-    int ret = _get_table_cursor(NODE_TABLE, &cursor, false);
-    CommonUtil::check_return(ret, "Could not get a cursor to the node table");
 
-    // Update src node's out degrees
-    cursor->set_key(cursor, src_id);
-    cursor->search(cursor);
-    node found = __record_to_node(cursor);
-    if ((is_directed and found.out_degree == 0) or
-        ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0)))
-    {
-        throw GraphException("Deleted an edge with edgeid " +
-                             to_string(edge_id) +
-                             "between src nodeid: " +
-                             to_string(src_id) + "," +
-                             " dst node id:" +
-                             to_string(dst_id));
-    }
-    update_node_degree(cursor, src_id, found.in_degree, found.out_degree - 1);
-
-    cursor->set_key(cursor, dst_id);
-    cursor->search(cursor);
-    found = __record_to_node(cursor);
-    if ((is_directed and found.out_degree == 0) or
-        ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0)))
-    {
-        throw GraphException("Deleted an edge with edgeid " +
-                             to_string(edge_id) +
-                             "between src nodeid: " +
-                             to_string(src_id) + "," +
-                             " dst node id:" +
-                             to_string(dst_id));
-    }
-    update_node_degree(cursor, dst_id, found.in_degree - 1, found.out_degree);
-
-    cursor->close(cursor);
-}
 void StandardGraph::delete_related_edges(WT_CURSOR *index_cursor, int node_id)
 {
     WT_CURSOR *edge_cursor = nullptr;
@@ -765,7 +698,6 @@ void StandardGraph::delete_related_edges(WT_CURSOR *index_cursor, int node_id)
         {
             throw GraphException("Failed to delete edge (" + SRC + "," + DST + ")");
         }
-        decrement_degrees(src, dst);
         int tmp_key;
         index_cursor->get_key(index_cursor, &tmp_key);
         while (index_cursor->next(index_cursor) == 0 && tmp_key == node_id)
@@ -777,7 +709,6 @@ void StandardGraph::delete_related_edges(WT_CURSOR *index_cursor, int node_id)
             {
                 edge_cursor->set_key(edge_cursor, edge_id);
                 ret = edge_cursor->remove(edge_cursor);
-                decrement_degrees(src, dst);
                 if (ret != 0)
                 {
                     throw GraphException("Failed to delete edge (" + SRC + "," + DST + ")");
@@ -1104,6 +1035,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     cursor->set_key(cursor, src_id);
     cursor->search(cursor);
     node found = __record_to_node(cursor);
+    found.id = src_id;
 
     // Assert that the out degree and later on in degree are > 0.
     // If not then raise an exceptiion, because we shouldn't have deleted an edge where src/dst have
@@ -1130,6 +1062,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     cursor->set_key(cursor, dst_id);
     cursor->search(cursor);
     found = __record_to_node(cursor);
+    found.id = dst_id;
 
     if ((is_directed and found.out_degree == 0) or
         ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0)))
