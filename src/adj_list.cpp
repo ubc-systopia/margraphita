@@ -1,5 +1,5 @@
 #include "adj_list.h"
-#include "adj_common.h"
+#include "common.h"
 #include <filesystem>
 #include <cstring>
 #include <cassert>
@@ -234,11 +234,11 @@ void AdjList::create_new_graph()
                           edge_key_format, edge_value_format);
 
     // Create adjlist_in_edges table
-    CommonUtil::set_table(session, IN_ADJLIST, in_adjlist_columns,
+    CommonUtil::set_table(session, ADJLIST_IN_TABLE, in_adjlist_columns,
                           adjlist_key_format, adjlist_value_format);
 
     // Create adjlist_out_edges table
-    CommonUtil::set_table(session, OUT_ADJLIST, out_adjlist_columns,
+    CommonUtil::set_table(session, ADJLIST_OUT_TABLE, out_adjlist_columns,
                           adjlist_key_format, adjlist_value_format);
 
     /* Now doing the metadata table creation.

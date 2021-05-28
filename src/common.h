@@ -29,6 +29,8 @@ extern const std::string ID;
 extern const std::string WEIGHT;
 extern const std::string NODE_TABLE;
 extern const std::string EDGE_TABLE;
+extern const std::string ADJLIST_IN_TABLE;
+extern const std::string ADJLIST_OUT_TABLE;
 extern const std::string SRC_INDEX;
 extern const std::string DST_INDEX;
 extern const std::string SRC_DST_INDEX;
