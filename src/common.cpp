@@ -38,7 +38,6 @@ const std::string ID = "id";
 const std::string WEIGHT = "weight";
 const std::string NODE_TABLE = "node";
 const std::string EDGE_TABLE = "edge";
-const std::string DEGREE = "degree";
 const std::string ADJLIST_IN_TABLE = "adjlistin";
 const std::string ADJLIST_OUT_TABLE = "adjlistout";
 const std::string SRC_INDEX = "IX_edge_" + SRC;
