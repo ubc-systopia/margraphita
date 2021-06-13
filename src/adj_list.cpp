@@ -348,7 +348,8 @@ void AdjList::add_node(node to_insert)
 }
 
 /**
- * @brief Add a record for the node_id in the in and out adjlist,
+ * @brief Add a record for the node_id in the in or out adjlist,
+ * as pointed by the cursor.
  * if the node_id record already exists then reset it with an empty list.
 **/
 void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
@@ -364,13 +365,35 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
 
     // Now, initialize the in/out degree to 0 and adjlist to empty list
     cursor->set_value(cursor, node_id, 0, ""); // serialize the vector and send ""
-    
+
     ret = cursor->insert(cursor);
 
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" +
                              std::to_string(node_id));
+    }
+}
+
+/**
+ * @brief Delete the record of the node_id in the in or out 
+ * adjlist as pointed by the cursor.
+**/
+void AdjList::delete_adjlist(WT_CURSOR *cursor, int node_id)
+{
+    int ret = 0;
+    // Check if the cursor is not NULL, else throw exception
+    if (cursor == NULL)
+    {
+        throw GraphException("Uninitiated Cursor passed to delete_adjlist");
+    }
+
+    cursor->set_key(cursor, node_id);
+    ret = node_cursor->remove(node_cursor);
+
+    if (ret != 0)
+    {
+        throw GraphException("Could not delete node with ID " + to_string(node_id));
     }
 }
 
