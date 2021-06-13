@@ -353,6 +353,7 @@ void AdjList::add_node(node to_insert)
 **/
 void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
 {
+    int ret = 0;
     // Check if the cursor is not NULL, else throw exception
     if (cursor == NULL)
     {
@@ -360,16 +361,10 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
     }
 
     cursor->set_key(cursor, node_id);
-    int ret = cursor->search(cursor);
-    if (ret != 0)
-    {
-        // Node doesn't exist; add it
-        // Does the cursor halt at match or go to end of records? Currently
-    }
 
     // Now, initialize the in/out degree to 0 and adjlist to empty list
-    cursor->set_value(cursor, node_id, 0, vector<int> {});
-
+    cursor->set_value(cursor, node_id, 0, ""); // serialize the vector and send ""
+    
     ret = cursor->insert(cursor);
 
     if (ret != 0)
