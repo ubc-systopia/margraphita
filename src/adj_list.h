@@ -1,5 +1,5 @@
-#ifndef STD_GRAPH
-#define STD_GRAPH
+#ifndef ADJ_LIST
+#define ADJ_LIST
 
 #include "common.h"
 #include "graph_exception.h"
@@ -63,7 +63,7 @@ public:
     void get_edge_iter(); //! APT Check
     // Metadata operations:
     void insert_metadata(string key, char *value);
-    string get_metadata(string key);
+    string get_metadata(string key); //
     void close();
 
     // WT privates

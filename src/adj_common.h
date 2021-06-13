@@ -1,6 +1,7 @@
-#ifndef BASE_COMMON
-#define BASE_COMMON
+#ifndef ADJ_COMMON
+#define ADJ_COMMON
 
+#include "common.h"
 #include <iostream>
 #include <map>
 #include <string>

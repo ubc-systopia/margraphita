@@ -121,7 +121,7 @@ int AdjList::get_num_nodes()
     WT_CURSOR *cursor = nullptr;
     ret = _get_table_cursor(NODE_TABLE, &cursor, false);
 
-    int count = 0;  
+    int count = 0;
     while ((ret = cursor->next(cursor)) == 0)
     {
         count += 1;
@@ -151,7 +151,7 @@ int AdjList::get_num_edges()
  * table. The fields are self explanatory.
  * Same from standard_graph implementation.
  */
-void AdjList::insert_metadata(string key,  char *value)
+void AdjList::insert_metadata(string key, char *value)
 {
     int ret = 0;
 
@@ -169,7 +169,6 @@ void AdjList::insert_metadata(string key,  char *value)
         // TODO(puneet): Maybe create a GraphException?
     }
     this->metadata_cursor->close(metadata_cursor);
-
 }
 //#endif
 
@@ -293,7 +292,7 @@ void AdjList::create_new_graph()
  * @return 0 if the cursor could be set
  */
 int AdjList::_get_table_cursor(string table, WT_CURSOR **cursor,
-                                     bool is_random)
+                               bool is_random)
 {
     std::string table_name = "table:" + table;
     const char *config = NULL;
@@ -309,7 +308,6 @@ int AdjList::_get_table_cursor(string table, WT_CURSOR **cursor,
         return ret;
     }
     return 0;
-
 }
 
 /**
@@ -347,62 +345,6 @@ void AdjList::add_node(node to_insert)
     }
 }
 
-/**
- * @brief Add a record for the node_id in the in or out adjlist,
- * as pointed by the cursor.
- * if the node_id record already exists then reset it with an empty list.
-**/
-void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
-{
-    int ret = 0;
-    // Check if the cursor is not NULL, else throw exception
-    if (cursor == NULL)
-    {
-        throw GraphException("Uninitiated Cursor passed to add_adjlist call");
-    }
-
-    cursor->set_key(cursor, node_id);
-
-    // Now, initialize the in/out degree to 0 and adjlist to empty list
-    cursor->set_value(cursor, node_id, 0, ""); // serialize the vector and send ""
-
-    ret = cursor->insert(cursor);
-
-    if (ret != 0)
-    {
-        throw GraphException("Failed to add node_id" +
-                             std::to_string(node_id));
-    }
-}
-
-/**
- * @brief Delete the record of the node_id in the in or out 
- * adjlist as pointed by the cursor.
-**/
-void AdjList::delete_adjlist(WT_CURSOR *cursor, int node_id)
-{
-    int ret = 0;
-    // Check if the cursor is not NULL, else throw exception
-    if (cursor == NULL)
-    {
-        throw GraphException("Uninitiated Cursor passed to delete_adjlist");
-    }
-
-    cursor->set_key(cursor, node_id);
-    ret = node_cursor->remove(node_cursor);
-
-    if (ret != 0)
-    {
-        throw GraphException("Could not delete node with ID " + to_string(node_id));
-    }
-
-    //!APT still pending... tag to continue from here... change the above code too!!!
-    // Delete node from the adjlist node table
-    // Delete the node record from adjlist in/out degree table
-    // Delete node from the adjlist list for any other nodes and reduce the degree..
-}
-
-#if 0
 void AdjList::add_edge(edge to_insert)
 {
     // Add dst and src nodes if they don't exist.
@@ -484,4 +426,63 @@ void AdjList::add_edge(edge to_insert)
     }
 }
 
-#endif
+node AdjList::__record_to_node(WT_CURSOR *cursor)
+{
+    node found = {0};
+    found.id = cursor->get_key(cursor);
+    if (this->read_optimize)
+    {
+        cursor->get_value(cursor, &found.in_degree, &found.out_degree);
+    }
+    return found;
+}
+
+node AdjList::get_random_node()
+{
+    node found;
+    WT_CURSOR *cursor;
+    int ret = _get_table_cursor(NODE_TABLE, &cursor, true);
+    if (ret != 0)
+    {
+        throw GraphException("could not get a random cursor to the node table");
+    }
+    ret = cursor->next(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not seek a random node in the table");
+    }
+    found = AdjList::__record_to_node(cursor);
+    cursor->close(cursor);
+    return found;
+}
+
+void AdjList::close()
+{
+    //TODO:check if there is any state that needs to be saved in the metadata
+    //table.
+    CommonUtil::close_connection(conn);
+}
+
+void delete_node(int node_id)
+{
+    WT_CURSOR *cursor;
+    int ret = _get_table_cursor(NODE_TABLE, &cursor, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a cursor to the NODE table");
+    }
+    cursor->set_key(cursor, node_id);
+    ret = cursor->remove(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("failed to delete node with ID " + std::to_string(node_id));
+    }
+    //Delete Edges
+    delete_related_edges(cursor, node_id);
+
+    //delete ADJ_INLIST_TABLE entries
+    delete_adjlist(cursor, node_id);
+
+    //delete ADJ_OUTLIST_TABLE entrties
+    delete_adjlist(cursor, node_id);
+}
