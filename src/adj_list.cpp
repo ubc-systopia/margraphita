@@ -395,6 +395,11 @@ void AdjList::delete_adjlist(WT_CURSOR *cursor, int node_id)
     {
         throw GraphException("Could not delete node with ID " + to_string(node_id));
     }
+
+    //!APT still pending... tag to continue from here... change the above code too!!!
+    // Delete node from the adjlist node table
+    // Delete the node record from adjlist in/out degree table
+    // Delete node from the adjlist list for any other nodes and reduce the degree..
 }
 
 #if 0
