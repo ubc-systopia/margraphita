@@ -163,6 +163,11 @@ void StandardGraph::create_new_graph()
     insert_metadata(IS_WEIGHTED, "S", const_cast<char *>(is_weighted_str.c_str()));
 }
 
+WT_CONNECTION *StandardGraph::get_conn()
+{
+    return this->conn;
+}
+
 /**
  * @brief This private function inserts metadata values into the metadata
  * table. The fields are self explanatory.

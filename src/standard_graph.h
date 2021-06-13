@@ -97,6 +97,9 @@ private:
     void __restore_from_db(string db_name);
     void create_indices();
     void drop_indices();
+
+    //For Bulk loading
+    WT_CONNECTION *get_conn();
 };
 
 #endif

@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         auto start = chrono::steady_clock::now();
 
         StandardGraph graph(opts);
-
+        exit(0);
         auto end = chrono::steady_clock::now();
         // logger->out("Graph loaded in " + chrono::duration_cast<chrono::microseconds>(end - start).count());
         cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
