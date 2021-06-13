@@ -347,7 +347,39 @@ void AdjList::add_node(node to_insert)
     }
 }
 
-# if 0
+/**
+ * @brief Add a record for the node_id in the in and out adjlist,
+ * if the node_id record already exists then reset it with an empty list.
+**/
+void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
+{
+    // Check if the cursor is not NULL, else throw exception
+    if (cursor == NULL)
+    {
+        throw GraphException("Uninitiated Cursor passed to add_adjlist call");
+    }
+
+    cursor->set_key(cursor, node_id);
+    int ret = cursor->search(cursor);
+    if (ret != 0)
+    {
+        // Node doesn't exist; add it
+        // Does the cursor halt at match or go to end of records? Currently
+    }
+
+    // Now, initialize the in/out degree to 0 and adjlist to empty list
+    cursor->set_value(cursor, node_id, 0, vector<int> {});
+
+    ret = cursor->insert(cursor);
+
+    if (ret != 0)
+    {
+        throw GraphException("Failed to add node_id" +
+                             std::to_string(node_id));
+    }
+}
+
+#if 0
 void AdjList::add_edge(edge to_insert)
 {
     // Add dst and src nodes if they don't exist.
@@ -429,3 +461,4 @@ void AdjList::add_edge(edge to_insert)
     }
 }
 
+#endif
