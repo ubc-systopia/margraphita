@@ -258,12 +258,8 @@ void AdjList::create_new_graph()
         exit(-1);
     }
 
-    //# if 0
     // DB_NAME
     string db_name_fmt;
-    // char *db_name_packed =
-    //     CommonUtil::pack_string_wt(db_name, session, &db_name_fmt);
-    // insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
     insert_metadata(DB_NAME, const_cast<char *>(db_name.c_str()));
 
     // READ_OPTIMIZE
@@ -282,6 +278,61 @@ void AdjList::create_new_graph()
     this->metadata_cursor->close(this->metadata_cursor);
 }
 
+void AdjList::__restore_from_db(string dbname)
+{
+    int ret = CommonUtil::open_connection(const_cast<char *>(dbname.c_str()), &conn);
+    WT_CURSOR *cursor = nullptr;
+
+    ret = CommonUtil::open_session(conn, &session);
+    const char *key, *value;
+    ret = _get_table_cursor(METADATA, &cursor, false);
+
+    while ((ret = cursor->next(cursor)) == 0)
+    {
+        ret = cursor->get_key(cursor, &key);
+        ret = cursor->get_value(cursor, &value);
+
+        if (strcmp(key, DB_NAME.c_str()) == 0)
+        {
+
+            this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);
+        }
+        else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
+        {
+            if (strcmp(value, "true") == 0)
+            {
+                this->read_optimize = true;
+            }
+            else
+            {
+                this->read_optimize = false;
+            }
+        }
+        else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
+        {
+            if (strcmp(value, "true") == 0)
+            {
+                this->is_directed = true;
+            }
+            else
+            {
+                this->is_directed = false;
+            }
+        }
+        else if (strcmp(key, IS_WEIGHTED.c_str()) == 0)
+        {
+            if (strcmp(value, "true") == 0)
+            {
+                this->is_weighted = true;
+            }
+            else
+            {
+                this->is_weighted = false;
+            }
+        }
+    }
+    cursor->close(cursor);
+}
 /**
  * @brief This is the generic function to get a cursor on the table
  *
