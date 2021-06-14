@@ -2,6 +2,7 @@
 #define ADJ_LIST
 
 #include "common.h"
+#include "adj_common.h"
 #include "graph_exception.h"
 #include <filesystem>
 #include <iostream>
@@ -103,9 +104,10 @@ private:
     WT_CURSOR *out_adjlist_cursor = NULL;
     WT_CURSOR *metadata_cursor = NULL;
 
-    void __node_to_record(WT_CURSOR *cursor, node to_insert);  //! APT Check
-    node __record_to_node(WT_CURSOR *cursor);                  //! APT Check
-    edge __record_to_edge(WT_CURSOR *cursor);                  //! APT Check
+    void __node_to_record(WT_CURSOR *cursor, node to_insert); //! APT Check
+    node __record_to_node(WT_CURSOR *cursor);                 //! APT Check
+    edge __record_to_edge(WT_CURSOR *cursor);                 //! APT Check
+    adjlist __record_to_adjlist(WT_CURSOR *cursor);
     void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx); //! APT Check
 
     // Internal cursor methods

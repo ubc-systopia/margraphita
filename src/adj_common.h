@@ -59,19 +59,19 @@ typedef struct edge
     int edge_weight;
 } edge;
 
-typedef struct adjlist_out_edges
+typedef struct adjlist
 {
     int node_id;
     int degree;
-    vector<int> out_edges;
-} adj_inlist;
+    vector<int> edgelist;
+} adjlist;
 
-typedef struct adjlist_in_edges
-{
-    int node_id;
-    int degree;
-    vector<int> in_edges;
-} adj_outlist;
+// typedef struct adjlist_in_edges
+// {
+//     int node_id;
+//     int degree;
+//     vector<int> in_edges;
+// } adj_outlist;
 
 typedef struct edge_index
 {

@@ -67,20 +67,6 @@ typedef struct edge_index
     int dst_id;
 } edge_index;
 
-typedef struct adjlist_out_edges
-{
-    int node_id;
-    int degree;
-    std::vector<int> out_edges;
-} adjlist_out_edges;
-
-typedef struct adjlist_in_edges
-{
-    int node_id;
-    int degree;
-    std::vector<int> in_edges;
-} adjlist_in_edges;
-
 class CommonUtil
 {
 public:

@@ -463,7 +463,7 @@ void AdjList::close()
     CommonUtil::close_connection(conn);
 }
 
-void delete_node(int node_id)
+void AdjList::delete_node(int node_id)
 {
     WT_CURSOR *cursor;
     int ret = _get_table_cursor(NODE_TABLE, &cursor, false);
@@ -485,4 +485,64 @@ void delete_node(int node_id)
 
     //delete ADJ_OUTLIST_TABLE entrties
     delete_adjlist(cursor, node_id);
+}
+
+/**
+ * @brief Get the in degree for the node provided  
+ * 
+ * @param node_id ID for which in_degree is required
+ * @return int in degree of the node node_id
+ */
+int AdjList::get_in_degree(int node_id)
+{
+    int ret = 0;
+    if (read_optimize)
+    {
+        if (this->node_cursor == nullptr)
+        {
+            ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        }
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a cursor to the Node table");
+        }
+        this->node_cursor->set_key(this->node_cursor, node_id);
+        ret = this->node_cursor->search(this->node_cursor);
+        if (ret != 0)
+        {
+            throw GraphException("Could not find a node with ID " + std::to_string(node_id));
+        }
+        node found = __record_to_node(this->node_cursor);
+        return found.in_degree;
+    }
+    else
+    {
+        if (this->in_adjlist_cursor == nullptr)
+        {
+            ret = _get_table_cursor(ADJ_INLIST_TABLE, &this->in_adjlist_cursor, false);
+        }
+        this->in_adjlist_cursor->set_key(this->in_adjlist_cursor, node_id);
+        ret = this->in_adjlist_cursor->search(this->in_adjlist_cursor);
+        if (ret != 0)
+        {
+            throw GraphException("Could not find node with ID" + std::to_string(node_id) + " in the adjlist");
+        }
+        adjlist in_edges = __record_to_adjlist(this->in_adjlist_cursor);
+
+        return in_edges.degree;
+    }
+}
+
+//TODO:Verify that this works. get value should handle the buffer size.
+adjlist AdjList::__record_to_adjlist(WT_CURSOR *cursor)
+{
+    adjlist found;
+    char *packed_vec;
+
+    cursor->get_value(cursor, &found.degree, packed_vec);
+    std::string str(packed_vec);
+    found.edgelist = CommonUtil::unpack_int_vector_std(str);
+    found.degree = found.edgelist.size();
+
+    return found;
 }
