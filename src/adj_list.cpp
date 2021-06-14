@@ -825,3 +825,40 @@ bool AdjList::has_edge(int src_id, int dst_id)
     ret = edge_cursor->search(edge_cursor);
     return (ret == 0); //true if found :)
 }
+
+/**
+ * @brief Get the weight associated with an edge between src_id and dst_id
+ * 
+ * @param src_id source node ID
+ * @param dst_id Destination node ID
+ * @return int the weigght associated with the edge
+ * @throws GraphExpection If the graph is not weighted or if an edge is not found
+ */
+int AdjList::get_edge_weight(int src_id, int dst_id){
+    if(!this->is_weighted){
+        throw GraphException("Aborting. Trying to get weight for an unweighted graph");
+    }
+    edge found = {0};
+    int ret = 0;
+
+    if (edge_cursor == nullptr)
+    {
+        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not oppen a cursor to the edge table");
+        }
+    }
+    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    ret = edge_cursor->search(edge_cursor);
+    if (ret != 0)
+    {
+        throw GraphException("There is no edge between " + std::to_string(src_id) + " and " + std::to_string(dst_id));
+    }
+    else
+    {
+        edge found = record_to_edge(edge_cursor);
+        return found.edge_weight;
+    }
+
+}
