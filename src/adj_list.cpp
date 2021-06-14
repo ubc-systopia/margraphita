@@ -430,7 +430,7 @@ node AdjList::__record_to_node(WT_CURSOR *cursor)
 {
     node found = {0};
     found.id = cursor->get_key(cursor);
-    if (this->read_optimize)
+    if (read_optimize)
     {
         cursor->get_value(cursor, &found.in_degree, &found.out_degree);
     }
@@ -498,7 +498,7 @@ int AdjList::get_in_degree(int node_id)
     int ret = 0;
     if (read_optimize)
     {
-        if (this->node_cursor == nullptr)
+        if (node_cursor == nullptr)
         {
             ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
         }
@@ -506,34 +506,86 @@ int AdjList::get_in_degree(int node_id)
         {
             throw GraphException("Could not get a cursor to the Node table");
         }
-        this->node_cursor->set_key(this->node_cursor, node_id);
-        ret = this->node_cursor->search(this->node_cursor);
+        node_cursor->set_key(node_cursor, node_id);
+        ret = node_cursor->search(node_cursor);
         if (ret != 0)
         {
             throw GraphException("Could not find a node with ID " + std::to_string(node_id));
         }
-        node found = __record_to_node(this->node_cursor);
+        node found = __record_to_node(node_cursor);
         return found.in_degree;
     }
     else
     {
-        if (this->in_adjlist_cursor == nullptr)
+        if (in_adjlist_cursor == nullptr)
         {
-            ret = _get_table_cursor(ADJ_INLIST_TABLE, &this->in_adjlist_cursor, false);
+            ret = _get_table_cursor(ADJ_INLIST_TABLE, &in_adjlist_cursor, false);
         }
-        this->in_adjlist_cursor->set_key(this->in_adjlist_cursor, node_id);
-        ret = this->in_adjlist_cursor->search(this->in_adjlist_cursor);
+        in_adjlist_cursor->set_key(in_adjlist_cursor, node_id);
+        ret = in_adjlist_cursor->search(in_adjlist_cursor);
         if (ret != 0)
         {
             throw GraphException("Could not find node with ID" + std::to_string(node_id) + " in the adjlist");
         }
-        adjlist in_edges = __record_to_adjlist(this->in_adjlist_cursor);
+        adjlist in_edges = __record_to_adjlist(in_adjlist_cursor);
 
         return in_edges.degree;
     }
 }
 
+/**
+ * @brief Get the out degree for the node requested
+ * 
+ * @param node_id The ID of the node for which the degree is sought
+ * @return int the node degree for the node with ID node_id. 
+ */
+int AdjList::get_out_degree(int node_id)
+{
+    int ret = 0;
+    if (read_optimize)
+    {
+        if (node_cursor == nullptr)
+        {
+            ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        }
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a node cursor");
+        }
+        node_cursor->set_key(node_cursor, node_id);
+        ret = node_cursor->search(node_cursor);
+        if (ret != 0)
+        {
+            throw GraphException("Could not find a node with ID " + std::to_string(node_id));
+        }
+        node found = __record_to_node(node_cursor);
+        return found.out_degree;
+    }
+    else
+    {
+        if (out_adjlist_cursor == nullptr)
+        {
+            ret = _get_table_cursor(ADJ_OUTLIST_TABLE, &out_adjlist_cursor, false);
+        }
+        out_adjlist_cursor->set_key(out_adjlist_cursor, node_id);
+        ret = out_adjlist_cursor->search(out_adjlist_cursor);
+        if (ret != 0)
+        {
+            throw GraphException("Could not find a node with ID " + std::to_string(node_id) + " in the adjlist");
+        }
+        adjlist out_edges = __record_to_adjlist(out_adjlist_cursor);
+        return out_edges.degree;
+    }
+}
+
 //TODO:Verify that this works. get value should handle the buffer size.
+/**
+ * @brief This function converts the record the cursor passed points to into a
+ * adjlist struct
+ * 
+ * @param cursor the cursor set to the record which needs to be read
+ * @return adjlist the found adjlist struct.
+ */
 adjlist AdjList::__record_to_adjlist(WT_CURSOR *cursor)
 {
     adjlist found;
