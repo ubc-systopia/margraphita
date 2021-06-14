@@ -7,3 +7,6 @@ WiredTiger.wt
 WiredTigerLAS.wt
 graph_api
 *.o
+src/db/
+cscope.out
+tags

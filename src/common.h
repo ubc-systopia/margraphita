@@ -1,45 +1,128 @@
 #ifndef BASE_COMMON
 #define BASE_COMMON
 
-#include <wiredtiger.h>
+#include <iostream>
+#include <map>
+#include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
-#define METADATA "metadata"
-#define DB_NAME "db_name"
-#define NODE_COLUMNS  "node_columns"
-#define EDGE_COLUMNS  "edge_columns"
-#define HAS_NODE_ATTR  "has_node_attr"
-#define HAS_EDGE_ATTR  "has_edge_attr"
-#define NODE_VALUE_COLUMNS  "node_value_columns"
-#define EDGE_VALUE_COLUMNS  "edge_value_columns"
-#define NODE_VALUE_FORMAT  "node_value_format"
-#define EDGE_VALUE_FORMAT  "edge_value_format"
-#define READ_OPTIMIZE  "read_optimize"
-#define EDGE_ID  "edge_id"
-#define NODE_DATA  "data"
-#define IS_DIRECTED  "is_directed"
-#define CREATE_NEW  "create_new"
+#include <wiredtiger.h>
 
-//Read Optimize columns
-#define IN_DEGREE  "in_degree"
-#define OUT_DEGREE  "out_degree"
+//These are the string constants
+extern const std::string METADATA;
+extern const std::string DB_NAME;
+extern const std::string IS_WEIGHTED;
+extern const std::string READ_OPTIMIZE;
+extern const std::string IS_DIRECTED;
+extern const std::string CREATE_NEW;
+extern const std::string EDGE_ID;
 
-//Shared column names
-const std::string SRC =  "src";
-const std::string DST =  "dst";
-const std::string ID  = "id";
-const std::string NODE_TABLE = "node";
-const std::string EDGE_TABLE = "edge";
-const std::string SRC_INDEX = "IX_edge_" + SRC;
-const std::string DST_INDEX = "IX_edge_" + DST;
-const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
+// Read Optimize columns
+extern const std::string IN_DEGREE;
+extern const std::string OUT_DEGREE;
 
-class CommonUtil{
-    public:
-            static void set_table(WT_SESSION *session, std::string prefix, std::vector<std::string> columns, std::string key_fmt, std::string val_fmt);
-            std::string get_db_name(std::string prefix, std::string name);
-            static void check_graph_params(std::unordered_map<std::string, std::vector<std::string>> params);
+// Shared column names
+extern const std::string SRC;
+extern const std::string DST;
+extern const std::string ID;
+extern const std::string WEIGHT;
+extern const std::string NODE_TABLE;
+extern const std::string EDGE_TABLE;
+extern const std::string ADJLIST_IN_TABLE;
+extern const std::string ADJLIST_OUT_TABLE;
+extern const std::string SRC_INDEX;
+extern const std::string DST_INDEX;
+extern const std::string SRC_DST_INDEX;
+
+struct graph_opts
+{
+    bool create_new = true;
+    bool read_optimize = true;
+    bool is_directed = true;
+    bool is_weighted = false;
+    std::string db_name;
+    bool optimize_create; // directs when the index should be created
 };
 
+typedef struct node
+{
+    uint32_t id; // node ID
+    uint32_t in_degree = 0;
+    uint32_t out_degree = 0;
+} node;
+
+typedef struct edge
+{
+    int id;
+    int src_id;
+    int dst_id;
+    int edge_weight;
+} edge;
+
+typedef struct edge_index
+{
+    int edge_id;
+    int src_id;
+    int dst_id;
+} edge_index;
+
+class CommonUtil
+{
+public:
+    static void set_table(WT_SESSION *session, std::string prefix,
+                          std::vector<std::string> columns, std::string key_fmt,
+                          std::string val_fmt);
+
+    static std::vector<int> get_default_nonstring_attrs(std::string fmt);
+
+    static std::vector<std::string> get_default_string_attrs(std::string fmt);
+
+    static std::string get_db_name(std::string prefix, std::string name);
+
+    static void check_graph_params(graph_opts params);
+
+    static std::string create_string_format(std::vector<std::string> to_pack,
+                                            size_t *size);
+    static std::string create_intvec_format(std::vector<int> to_pack,
+                                            size_t *total_size);
+    static char *pack_string_vector_wt(std::vector<std::string>, WT_SESSION *session,
+                                       size_t *total_size, std::string *fmt);
+
+    static std::vector<std::string> unpack_string_vector_wt(const char *to_unpack,
+                                                            WT_SESSION *session);
+
+    static char *pack_int_vector_wt(std::vector<int>, WT_SESSION *session,
+                                    size_t *total_size, std::string *fmt);
+    static std::vector<int> unpack_int_vector_wt(const char *to_unpack,
+                                                 WT_SESSION *session);
+
+    static char *pack_string_wt(std::string, WT_SESSION *session, std::string *fmt);
+    static std::string unpack_string_wt(const char *to_unpack, WT_SESSION *session);
+
+    static char *pack_int_wt(int to_pack, WT_SESSION *session);
+    static int unpack_int_wt(const char *to_unpack, WT_SESSION *session);
+
+    static char *pack_bool_wt(bool, WT_SESSION *session, std::string *fmt);
+    static bool unpack_bool_wt(const char *to_unpack, WT_SESSION *session);
+
+    static std::string pack_string_vector_std(std::vector<std::string> to_pack,
+                                              size_t *size);
+    static std::vector<std::string> unpack_string_vector_std(std::string to_unpack);
+
+    static std::string pack_int_vector_std(std::vector<int> to_pack, size_t *size);
+    static std::vector<int> unpack_int_vector_std(std::string packed_str);
+
+    // WT Session and Cursor wrangling operations
+    static int open_cursor(WT_SESSION *session, WT_CURSOR **cursor,
+                           std::string uri, WT_CURSOR *to_dup,
+                           std::string config);
+    static int close_cursor(WT_CURSOR *cursor);
+    static int close_session(WT_SESSION *session);
+    static int close_connection(WT_CONNECTION *conn);
+    static int open_connection(char *db_name, WT_CONNECTION **conn);
+    static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
+    static void check_return(int retval, std::string mesg);
+};
 
 #endif
