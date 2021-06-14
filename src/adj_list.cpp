@@ -741,6 +741,30 @@ std::vector<node> AdjList::get_nodes()
 }
 
 /**
+ * @brief Get the node identified by node ID
+ * 
+ * @param node_id the Node ID 
+ * @return node the node struct containing the node
+ */
+node get_node(int node_id){
+    if (node_cursor == nullptr)
+    {
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not open a cursor to the node table");
+        }
+    }
+    node_cursor->set_key(node_cursor, node_id);
+    int ret = node_cursor->search(node_cursor);
+    node found = {0};
+    if(ret == 0){
+        found = __record_to_node(node_cursor);
+    }
+    return found;
+}
+
+/**
  * @brief Get a list of all the edges in the graph
  * 
  * @return std::vector<edge> Vector containing all the edges in the graph
@@ -952,10 +976,7 @@ void AdjList::add_edge( edge to_insert)
            found.out_degree++;
        }
        update_node_degree(node_cursor, found.id, found.in_degree, found.out_degree);
-
     }
-
-
 }
 
 /**
