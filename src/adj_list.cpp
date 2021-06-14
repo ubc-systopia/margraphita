@@ -609,6 +609,11 @@ adjlist AdjList::__record_to_adjlist(WT_CURSOR *cursor)
     return found;
 }
 
+/**
+ * @brief Get all nodes in the graph
+ * 
+ * @return std::vector<node> vector of all nodes
+ */
 std::vector<node> AdjList::get_nodes()
 {
     std::vector<node> nodelist;
@@ -627,4 +632,30 @@ std::vector<node> AdjList::get_nodes()
         nodelist.push_back(found);
     }
     return nodelist;
+}
+
+/**
+ * @brief Get a list of all the edges in the graph
+ * 
+ * @return std::vector<edge> Vector containing all the edges in the graph
+ */
+std::vector<edge> AdjList::get_edges()
+{
+    std::vector<edge> edgelist;
+
+    int ret = 0;
+    if (edge_cursor == nullptr)
+    {
+        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not oppen a cursor to the edge table");
+        }
+    }
+    while ((ret = edge_cursor->next(edge_cursor) == 0))
+    {
+        edge found = __record_to_edge(edge_cursor);
+        edgelist.push_back(found);
+    }
+    return edgelist;
 }
