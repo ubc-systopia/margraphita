@@ -692,3 +692,30 @@ edge AdjList::get_edge(int src_id, int dst_id)
         return __record_to_edge(edge_cursor);
     }
 }
+
+/**
+ * @brief Check if an edge (srd_id, dst_id) exists in the graph
+ *  
+ * @param src_id source id
+ * @param dst_id destination id
+ * @return true if the edge exists
+ * @return false if the edge does not exist
+ */
+bool AdjList::has_edge(int src_id, int dst_id)
+{
+    edge found = {0};
+    int ret = 0;
+    bool val;
+
+    if (edge_cursor == nullptr)
+    {
+        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not oppen a cursor to the edge table");
+        }
+    }
+    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    ret = edge_cursor->search(edge_cursor);
+    return (ret == 0); //true if found :)
+}
