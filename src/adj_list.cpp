@@ -501,11 +501,12 @@ int AdjList::get_in_degree(int node_id)
         if (node_cursor == nullptr)
         {
             ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+            if (ret != 0)
+            {
+                throw GraphException("Could not get a cursor to the Node table");
+            }
         }
-        if (ret != 0)
-        {
-            throw GraphException("Could not get a cursor to the Node table");
-        }
+
         node_cursor->set_key(node_cursor, node_id);
         ret = node_cursor->search(node_cursor);
         if (ret != 0)
@@ -520,6 +521,10 @@ int AdjList::get_in_degree(int node_id)
         if (in_adjlist_cursor == nullptr)
         {
             ret = _get_table_cursor(ADJ_INLIST_TABLE, &in_adjlist_cursor, false);
+            if (ret != 0)
+            {
+                throw GraphException("Could not get a cursor to the in_adjlist table");
+            }
         }
         in_adjlist_cursor->set_key(in_adjlist_cursor, node_id);
         ret = in_adjlist_cursor->search(in_adjlist_cursor);
@@ -547,11 +552,12 @@ int AdjList::get_out_degree(int node_id)
         if (node_cursor == nullptr)
         {
             ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+            if (ret != 0)
+            {
+                throw GraphException("Could not get a node table cursor");
+            }
         }
-        if (ret != 0)
-        {
-            throw GraphException("Could not get a node cursor");
-        }
+
         node_cursor->set_key(node_cursor, node_id);
         ret = node_cursor->search(node_cursor);
         if (ret != 0)
@@ -566,6 +572,10 @@ int AdjList::get_out_degree(int node_id)
         if (out_adjlist_cursor == nullptr)
         {
             ret = _get_table_cursor(ADJ_OUTLIST_TABLE, &out_adjlist_cursor, false);
+            if (ret != 0)
+            {
+                throw GraphException("Could not find a cursor to the out adjlist table");
+            }
         }
         out_adjlist_cursor->set_key(out_adjlist_cursor, node_id);
         ret = out_adjlist_cursor->search(out_adjlist_cursor);
@@ -597,4 +607,24 @@ adjlist AdjList::__record_to_adjlist(WT_CURSOR *cursor)
     found.degree = found.edgelist.size();
 
     return found;
+}
+
+std::vector<node> AdjList::get_nodes()
+{
+    std::vector<node> nodelist;
+    int ret = 0;
+    if (node_cursor == nullptr)
+    {
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not open a cursor to the node table");
+        }
+    }
+    while ((ret = node_cursor->next(node_cursor) == 0))
+    {
+        node found = __record_to_node(node_cursor);
+        nodelist.push_back(found);
+    }
+    return nodelist;
 }
