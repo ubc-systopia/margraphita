@@ -659,3 +659,36 @@ std::vector<edge> AdjList::get_edges()
     }
     return edgelist;
 }
+
+/**
+ * @brief Get the edge identified by (src_id, dst_id)
+ * 
+ * @param src_id source id
+ * @param dst_id destination id
+ * @return edge edge identified by (src,dst) pair
+ */
+edge AdjList::get_edge(int src_id, int dst_id)
+{
+
+    edge found = {0};
+    int ret = 0;
+
+    if (edge_cursor == nullptr)
+    {
+        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not oppen a cursor to the edge table");
+        }
+    }
+    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    ret = edge_cursor->search(edge_cursor);
+    if (ret != 0)
+    {
+        return found;
+    }
+    else
+    {
+        return __record_to_edge(edge_cursor);
+    }
+}
