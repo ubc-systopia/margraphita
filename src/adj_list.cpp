@@ -1,5 +1,6 @@
 #include "adj_list.h"
 #include "common.h"
+#include "adj_common.h"
 #include <filesystem>
 #include <cstring>
 #include <cassert>
@@ -15,7 +16,7 @@ const std::string GRAPH_PREFIX = "adj";
 
 AdjList::AdjList() {}
 
-AdjList::AdjList(opt_args opt_params)
+AdjList::AdjList(graph_opts opt_params)
 
 {
     this->create_new = opt_params.create_new;
@@ -449,7 +450,7 @@ void AdjList::delete_adjlist(WT_CURSOR *cursor, int node_id)
     // Delete node from the adjlist list for any other nodes and reduce the degree..
 }
 
-#if 0
+//#if 0
 
 void AdjList::add_edge(edge to_insert)
 {
@@ -471,11 +472,12 @@ void AdjList::add_edge(edge to_insert)
     int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
 
     // check if the edge exists already, if so, get edge_id
-    int found_edge_id = get_edge_id(to_insert.src_id, to_insert.dst_id);
-    if (found_edge_id > 0)
+    edge temp = get_edge(to_insert.src_id, to_insert.dst_id);
+
+    if (temp.id > 0)
     {
         // The edge exists, set the cursor to point to that edge_id
-        cursor->set_key(cursor, found_edge_id);
+        cursor->set_key(cursor, temp.id);
     }
     else
     {
@@ -746,7 +748,9 @@ std::vector<node> AdjList::get_nodes()
  * @param node_id the Node ID 
  * @return node the node struct containing the node
  */
-node get_node(int node_id){
+node AdjList::get_node(int node_id)
+{
+    int ret = 0;
     if (node_cursor == nullptr)
     {
         ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
@@ -756,9 +760,10 @@ node get_node(int node_id){
         }
     }
     node_cursor->set_key(node_cursor, node_id);
-    int ret = node_cursor->search(node_cursor);
+    ret = node_cursor->search(node_cursor);
     node found = {0};
-    if(ret == 0){
+    if (ret == 0)
+    {
         found = __record_to_node(node_cursor);
     }
     return found;
@@ -858,8 +863,10 @@ bool AdjList::has_edge(int src_id, int dst_id)
  * @return int the weigght associated with the edge
  * @throws GraphExpection If the graph is not weighted or if an edge is not found
  */
-int AdjList::get_edge_weight(int src_id, int dst_id){
-    if(!this->is_weighted){
+int AdjList::get_edge_weight(int src_id, int dst_id)
+{
+    if (!this->is_weighted)
+    {
         throw GraphException("Aborting. Trying to get weight for an unweighted graph");
     }
     edge found = {0};
@@ -881,103 +888,114 @@ int AdjList::get_edge_weight(int src_id, int dst_id){
     }
     else
     {
-        edge found = record_to_edge(edge_cursor);
+        edge found = __record_to_edge(edge_cursor);
         return found.edge_weight;
     }
-
 }
 
-/**
- * @brief Add the edge held in the to_insert edge struct
- * 
- * @param to_insert The edge struct containing the edge to be inserted.
- * @returns void
- * @throws GraphException If the edge could not be inserted or cursors to the
- * edge table could not be opened.
- */
-void AdjList::add_edge( edge to_insert)
-{
-    //Add src and dst nodes if they don't exist
-    if(!has_node(src_id)){
-        node src = {.id = src_id, .in_degree = 0, .out_degree = 0};
-        add_node(src);
-    }
-    if(!has_node(dst_id)){
-        node dst = {.id = dst_id, .in_degree = 0, .out_degree = 0};
-        add_node(src);
-    }
+// /**
+//  * @brief Add the edge held in the to_insert edge struct
+//  *
+//  * @param to_insert The edge struct containing the edge to be inserted.
+//  * @returns void
+//  * @throws GraphException If the edge could not be inserted or cursors to the
+//  * edge table could not be opened.
+//  */
+// void AdjList::add_edge(edge to_insert)
+// {
+//     //Add src and dst nodes if they don't exist
+//     if (!has_node(src_id))
+//     {
+//         node src = {.id = src_id, .in_degree = 0, .out_degree = 0};
+//         add_node(src);
+//     }
+//     if (!has_node(dst_id))
+//     {
+//         node dst = {.id = dst_id, .in_degree = 0, .out_degree = 0};
+//         add_node(src);
+//     }
 
-    //Add edge to the edge table
-    if(edge_cursor == nullptr){
-        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
-        if (ret != 0)
-        {
-            throw GraphException("Could not oppen a cursor to the edge table");
-        }
-    }
-    edge_cursor -> set_key(edge_cursor, src_id, dst_id);
-    
-    bool new_edge = true; // Only if this is true do we need to update the adj lists
-    
-    if (edge_cursor->search(edge_cursor) == 0){
-        new_edge = false; //The edge already exists
-    }
-    edge_cursor->set_value(edge_cursor, 0); // Value is the edge weight
-    int ret = edge_cursor->insert(edge_cursor);
-    if(ret != 0){
-        throw GraphException("Failed to insert edge between " + std::to_string(src_id) + " and " + std::to_string(dst_id));
-    }
+//     //Add edge to the edge table
+//     if (edge_cursor == nullptr)
+//     {
+//         ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+//         if (ret != 0)
+//         {
+//             throw GraphException("Could not oppen a cursor to the edge table");
+//         }
+//     }
+//     edge_cursor->set_key(edge_cursor, src_id, dst_id);
 
-    //Add reverse edge if the graph is undirected
-    if(!is_directed){
-        edge_cursor ->set_key(edge_cursor,dst_id, src_id);
-        edge_cursor->set_value(edge_cursor,0);
+//     bool new_edge = true; // Only if this is true do we need to update the adj lists
 
-        ret = edge_cursor -> insert(edge_cursor);
-        if(ret != 0){
-            throw GraphException("Failed to insert the rev edge between "+std::to_string(dst_id) + " and " +std::to_string(src_id) );
-        }
-    }
+//     if (edge_cursor->search(edge_cursor) == 0)
+//     {
+//         new_edge = false; //The edge already exists
+//     }
+//     edge_cursor->set_value(edge_cursor, 0); // Value is the edge weight
+//     int ret = edge_cursor->insert(edge_cursor);
+//     if (ret != 0)
+//     {
+//         throw GraphException("Failed to insert edge between " + std::to_string(src_id) + " and " + std::to_string(dst_id));
+//     }
 
-    if(! new_edge){
-        return;
-    }
+//     //Add reverse edge if the graph is undirected
+//     if (!is_directed)
+//     {
+//         edge_cursor->set_key(edge_cursor, dst_id, src_id);
+//         edge_cursor->set_value(edge_cursor, 0);
 
-    //Add edge to outdoing adjlist table
-    add_to_adjlist(out_adjlist_cursor, src_id, dst_id);
-    //Add edge to incoming adjlist table
-    add_to_adjlist(in_adjlist_cursor, dst_id, src_id);
+//         ret = edge_cursor->insert(edge_cursor);
+//         if (ret != 0)
+//         {
+//             throw GraphException("Failed to insert the rev edge between " + std::to_string(dst_id) + " and " + std::to_string(src_id));
+//         }
+//     }
 
-    //update reverse adjlists if the graph is undirected
-    if(!is_directed){
-        add_to_adjlist(out_adjlist_cursor,dst_id, src_id);
-        add_to_adjlist(in_adjlist_cursor, src_id, dst_id);
-    }
+//     if (!new_edge)
+//     {
+//         return;
+//     }
 
-    //if the graph is read_optimized, update the in and out degrees in the node
-    //tables
-    if(read_optimize){
-        //Do the src node first
-        node_cursor -> set_key(node_cursor, src_id);
-        node_cursor -> search(node_cursor); // don't need to check; we create node if it did not exist
-        node found = __record_to_node(node_cursor);
-        found.out_degree++;
-        if(!is_directed){
-            found.in_degree++;
-        }
-        update_node_degree(node_cursor, found.id, found.in_degree, found.out_degree);
-        
-        //Do the dst node
-        node_cursor->set_key(node_cursor, dst_id);
-       node_cursor->search(node_cursor);// don't need to check; we create node if it did not exist
-       node found = __record_to_node(node_cursor);
-       found.in_degree++;
-       if(!is_directed){
-           found.out_degree++;
-       }
-       update_node_degree(node_cursor, found.id, found.in_degree, found.out_degree);
-    }
-}
+//     //Add edge to outdoing adjlist table
+//     add_to_adjlist(out_adjlist_cursor, src_id, dst_id);
+//     //Add edge to incoming adjlist table
+//     add_to_adjlist(in_adjlist_cursor, dst_id, src_id);
+
+//     //update reverse adjlists if the graph is undirected
+//     if (!is_directed)
+//     {
+//         add_to_adjlist(out_adjlist_cursor, dst_id, src_id);
+//         add_to_adjlist(in_adjlist_cursor, src_id, dst_id);
+//     }
+
+//     //if the graph is read_optimized, update the in and out degrees in the node
+//     //tables
+//     if (read_optimize)
+//     {
+//         //Do the src node first
+//         node_cursor->set_key(node_cursor, src_id);
+//         node_cursor->search(node_cursor); // don't need to check; we create node if it did not exist
+//         node found = __record_to_node(node_cursor);
+//         found.out_degree++;
+//         if (!is_directed)
+//         {
+//             found.in_degree++;
+//         }
+//         update_node_degree(node_cursor, found.id, found.in_degree, found.out_degree);
+
+//         //Do the dst node
+//         node_cursor->set_key(node_cursor, dst_id);
+//         node_cursor->search(node_cursor); // don't need to check; we create node if it did not exist
+//         node found = __record_to_node(node_cursor);
+//         found.in_degree++;
+//         if (!is_directed)
+//         {
+//             found.out_degree++;
+//         }
+//         update_node_degree(node_cursor, found.id, found.in_degree, found.out_degree);
+//     }
+// }
 
 /**
  * @brief update the in/out degree for the node identified by node_id
@@ -989,11 +1007,108 @@ void AdjList::add_edge( edge to_insert)
  * @throws GraphException if the node degree could not be updated
  * 
  */
-void AdjList::update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree, int out_degree){
-    cursorr->set_key(cursor, node_id);
+void AdjList::update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree, int out_degree)
+{
+    cursor->set_key(cursor, node_id);
     cursor->set_value(cursor, in_degree, out_degree);
     int ret = cursor->insert(cursor);
-    if (ret != 0){
+    if (ret != 0)
+    {
         throw GraphException("Could not update degrees for node with ID " + std::to_string(node_id));
-    } 
+    }
+}
+
+/**
+ * @brief Get a list of nodes that have an incoming edge from node_id (Are an
+ * out node for node_id)
+ * 
+ * @param node_id The node which is being queried. 
+ * @return std::vector<node> The vector of out nodes
+ * @throws GraphException if could not acquire cursors to node table or the
+ * out_adjlist tables; if a dst node was found in the adj_list for node_id but
+ * does not exist in the node table
+ */
+std::vector<node> AdjList::get_out_nodes(int node_id)
+{
+    int ret = 0;
+    std::vector<node> out_nodes;
+    if (out_adjlist_cursor == nullptr)
+    {
+        ret = _get_table_cursor(ADJ_OUTLIST_TABLE, &out_adjlist_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a cursor to " + ADJ_OUTLIST_TABLE);
+        }
+    }
+    if (node_cursor == nullptr)
+    {
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a cursor to " + NODE_TABLE);
+        }
+    }
+    std::vector<int> adjlist = get_adjlist(out_adjlist_cursor, node_id);
+
+    for (int dst_id : adjlist)
+    {
+        node_cursor->set_key(node_cursor, dst_id);
+        if (node_cursor->search(node_cursor) == 0)
+        {
+            out_nodes.push_back(__record_to_node(node_cursor));
+        }
+        else
+        {
+            throw GraphException("node with ID " + std::to_string(dst_id) + "found in adjlist for " + std::to_string(node_id) + " but not in node table");
+        }
+    }
+    return out_nodes;
+}
+
+/**
+ * @brief Get a list of nodes that have an outgoing edge to node_id (are an in
+ * node for node_id)
+ * 
+ * @param node_id The node which is being queried.
+ * @return std::vector<node> the vector of in nodes
+ * @throws GraphException if could not acquire cursors to node table or the
+ * in_adjlist tables; if a src node was found in the in_adj_list for node_id but
+ * does not exist in the node table
+ */
+std::vector<node> AdjList::get_in_nodes(int node_id)
+{
+    std::vector<node> in_nodes;
+    int ret = 0;
+    if (in_adjlist_cursor == nullptr)
+    {
+        ret = _get_table_cursor(ADJ_INLIST_TABLE, &in_adjlist_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a cursor to " + ADJ_INLIST_TABLE);
+        }
+    }
+    if (node_cursor == nullptr)
+    {
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a cursor to " + NODE_TABLE);
+        }
+    }
+
+    std::vector<int> adjlist = get_adjlist(in_adjlist_cursor, node_id);
+
+    for (int src_id : adjlist)
+    {
+        node_cursor->set_key(node_cursor, src_id);
+        if (node_cursor->search(node_cursor) == 0)
+        {
+            in_nodes.push_back(__record_to_node(node_cursor));
+        }
+        else
+        {
+            throw GraphException("node with ID " + std::to_string(src_id) + "found in adjlist for " + std::to_string(node_id) + " but not in node table");
+        }
+    }
+    return in_nodes;
 }

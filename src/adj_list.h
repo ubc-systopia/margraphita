@@ -15,7 +15,7 @@ using namespace std;
 class AdjList
 {
 public:
-    AdjList(opt_args opt_params);
+    AdjList(graph_opts opt_params);
     AdjList();
 
     void create_new_graph();

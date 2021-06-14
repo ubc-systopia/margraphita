@@ -45,25 +45,11 @@ struct opt_args
     bool optimize_create; // directs when the index should be created //!APT CHECK
 };
 
-typedef struct node
-{
-    uint32_t id; // node ID
-    uint32_t in_degree = 0;
-    uint32_t out_degree = 0;
-} node;
-
-typedef struct edge
-{
-    int src_id;
-    int dst_id;
-    int edge_weight;
-} edge;
-
 typedef struct adjlist
 {
     int node_id;
     int degree;
-    vector<int> edgelist;
+    std::vector<int> edgelist;
 } adjlist;
 
 // typedef struct adjlist_in_edges
@@ -73,10 +59,10 @@ typedef struct adjlist
 //     vector<int> in_edges;
 // } adj_outlist;
 
-typedef struct edge_index
-{
-    int src_id;
-    int dst_id;
-} edge_index;
+// typedef struct edge_index
+// {
+//     int src_id;
+//     int dst_id;
+// } edge_index;
 
 #endif
