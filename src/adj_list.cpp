@@ -1234,3 +1234,23 @@ void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
         throw GraphException("Could not update edge weight for edge (" + std::to_string(src_id) + ", " + std::to_string(dst_id) + ")");
     }
 }
+
+std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id)
+{
+    int ret;
+    std::vector<edge> adjlist;
+
+    cursor->set_key(cursor, node_id);
+    ret = cursor->search(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not find " + std::to_string(node_id) + "in the AdjList");
+    }
+
+    // !APT: Check with puneet
+    // We have the entire node we only need the list how to assign it without knowing which table is it in or out?
+
+    //adjlist = __record_to_adjlist(cursor);
+    //return adjlist;
+    // !APT: Check with puneet ends here.
+}
