@@ -1235,10 +1235,13 @@ void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
     }
 }
 
-std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id)
+std::vector<int> AdjList::get_adjlist(WT_CURSOR *cursor, int node_id)
 {
     int ret;
+<<<<<<< HEAD
     adjlist adjlist;
+=======
+>>>>>>> a315f5bd3d321008de83e638a633fc5a8ef5a75e
 
     cursor->set_key(cursor, node_id);
     ret = cursor->search(cursor);
@@ -1247,6 +1250,7 @@ std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id)
         throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
     }
 
+<<<<<<< HEAD
     // !APT: Check with puneet
     // We have the entire node we only need the list how to assign it without knowing which table is it in or out?
 
@@ -1307,3 +1311,8 @@ void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete)
 //adjlist __record_to_adjlist(WT_CURSOR *cursor)
 //{
 //}
+=======
+    adjlist found = __record_to_adjlist(cursor);
+    return found.edgelist;
+}
+>>>>>>> a315f5bd3d321008de83e638a633fc5a8ef5a75e
