@@ -1244,7 +1244,7 @@ std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id)
     ret = cursor->search(cursor);
     if (ret != 0)
     {
-        throw GraphException("Could not find " + std::to_string(node_id) + "in the AdjList");
+        throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
     }
 
     // !APT: Check with puneet
@@ -1254,3 +1254,34 @@ std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id)
     //return adjlist;
     // !APT: Check with puneet ends here.
 }
+
+/* !APT : Check with Puneet
+void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
+{
+    // Not checking for directional or undirectional that would be taken care by the callee.
+
+    int ret;
+
+    cursor->set_key(cursor, node_id);
+    ret = cursor->search(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
+    }
+
+    // ! APT: Check below lines with Puneet and we need __adjlist_to_record, correct? Verify with Puneet!
+    adjlist found = __record_to_adjlist(cursor);
+    found.edgelist.push_back(to_insert);
+    found.degree += 1;
+
+    __adjlist_to_record(cursor, found);
+}
+*/
+
+//void __adjlist_to_record(WT_CURSOR *cursor, adjlist to_insert)
+//{
+//}
+
+//adjlist __record_to_adjlist(WT_CURSOR *cursor)
+//{
+//}

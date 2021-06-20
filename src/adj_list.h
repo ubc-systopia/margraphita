@@ -108,6 +108,7 @@ private:
     node __record_to_node(WT_CURSOR *cursor);                 //! APT Check
     edge __record_to_edge(WT_CURSOR *cursor);                 //! APT Check
     adjlist __record_to_adjlist(WT_CURSOR *cursor);
+    void __adjlist_to_record(WT_CURSOR *cursor, adjlist to_insert);
     void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx); //! APT Check
 
     // Internal cursor methods
