@@ -1201,3 +1201,36 @@ void AdjList::delete_edge(int src_id, int dst_id)
         add_node(found);
     }
 }
+
+/**
+ * @brief For the edge identified with (src_id, dst_id) update the edge weight
+ * 
+ * @param src_id source id
+ * @param dst_id dst ID
+ * @param edge_weight new edge weight
+ * @throws GraphException if trying to update weight for an unweighted graph, if
+ * the edge cursor could not be found, or if the update operation fails. 
+ */
+void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
+{
+    if (!is_weighted)
+    {
+        throw GraphException("Trying to insert weight for an unweighted graph");
+    }
+    int ret = 0;
+    if (edge_cursor == nullptr)
+    {
+        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a cursor to the edge table");
+        }
+    }
+    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    edge_cursor->set_value(edge_cursor, edge_weight);
+    ret = edge_cursor->insert(edge_cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not update edge weight for edge (" + std::to_string(src_id) + ", " + std::to_string(dst_id) + ")");
+    }
+}
