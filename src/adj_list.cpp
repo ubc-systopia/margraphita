@@ -1112,3 +1112,92 @@ std::vector<node> AdjList::get_in_nodes(int node_id)
     }
     return in_nodes;
 }
+
+/**
+ * @brief Delete an edge identified by (src_id, dst_id)
+ * 
+ * @param src_id source node ID
+ * @param dst_id Destination node ID
+ * @returns void
+ * @throw GraphException if could not delete the edge or if the node degree
+ * could not be updated.
+ */
+void AdjList::delete_edge(int src_id, int dst_id)
+{
+    //Delete (src_id, dst_id) from edge table
+    int ret = 0;
+    if (edge_cursor == nullptr)
+    {
+        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a cursor to the edge table");
+        }
+    }
+    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    if ((edge_cursor->remove(edge_cursor)) != 0)
+    {
+        throw GraphException("Could not delete edge (" + std::to_string(src_id) + ", " + std::to_string(dst_id) + ")");
+    }
+
+    //delete (dst_id, src_id) from edge table if undirected
+    if (!is_directed)
+    {
+        edge_cursor->set_key(edge_cursor, dst_id, src_id);
+        if ((edge_cursor->remove(edge_cursor)) != 0)
+        {
+            throw GraphException("Could not delete edge (" + std::to_string(dst_id) + ", " + std::to_string(src_id) + ")");
+        }
+    }
+
+    //remove from adjacency lists
+    delete_from_adjlists(out_adjlist_cursor, src_id, dst_id);
+    delete_from_adjlists(in_adjlist_cursor, dst_id, src_id);
+
+    //remove reverse from adj lists if undirected
+    if (!is_directed)
+    {
+        delete_from_adjlists(in_adjlist_cursor, src_id, dst_id);
+        delete_from_adjlists(out_adjlist_cursor, dst_id, src_id);
+    }
+
+    //if read_optimized -- update in/out degrees in the node table
+    if (read_optimize)
+    {
+        if (node_cursor == nullptr)
+        {
+            ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+            if (ret != 0)
+            {
+                throw GraphException("Could not get a cursor to the node table");
+            }
+        }
+        node_cursor->set_key(node_cursor, src_id);
+        ret = node_cursor->search(node_cursor);
+        if (ret != 0)
+        {
+            throw GraphException("Could not find " + std::to_string(src_id) + " in the node table");
+        }
+        node found = __record_to_node(node_cursor);
+        found.out_degree--;
+        if (!is_directed)
+        {
+            found.in_degree--;
+        }
+        add_node(found); //overwrite :)
+
+        node_cursor->set_key(node_cursor, dst_id);
+        ret = node_cursor->search(node_cursor);
+        if (ret != 0)
+        {
+            throw GraphException("Could not find " + std::to_string(dst_id) + " in the node table");
+        }
+        found = __record_to_node(node_cursor);
+        found.out_degree--;
+        if (!is_directed)
+        {
+            found.in_degree--;
+        }
+        add_node(found);
+    }
+}
