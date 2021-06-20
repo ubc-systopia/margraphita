@@ -1238,7 +1238,7 @@ void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
 std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id)
 {
     int ret;
-    std::vector<edge> adjlist;
+    adjlist adjlist;
 
     cursor->set_key(cursor, node_id);
     ret = cursor->search(cursor);
@@ -1251,7 +1251,7 @@ std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id)
     // We have the entire node we only need the list how to assign it without knowing which table is it in or out?
 
     //adjlist = __record_to_adjlist(cursor);
-    //return adjlist;
+    //return adjlist.edgelist;
     // !APT: Check with puneet ends here.
 }
 
@@ -1273,6 +1273,28 @@ void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
     adjlist found = __record_to_adjlist(cursor);
     found.edgelist.push_back(to_insert);
     found.degree += 1;
+
+    __adjlist_to_record(cursor, found);
+}
+
+void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete)
+{
+    // Not checking for directional or undirectional that would be taken care by the caller.
+
+    int ret;
+
+    cursor->set_key(cursor, node_id);
+    ret = cursor->search(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
+    }
+
+    // ! APT: Check below lines with Puneet and we need __adjlist_to_record, correct? Verify with Puneet!
+    adjlist found = __record_to_adjlist(cursor);
+    found.edgelist.erase(std::remove(found.edgelist.begin(), found.edgelist.end(), to_delete), found.edgelist.end());
+
+    found.degree -= 1;
 
     __adjlist_to_record(cursor, found);
 }
