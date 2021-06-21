@@ -45,7 +45,7 @@ public:
     void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert);
     void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete);
 
-    void delete_related_edges(WT_CURSOR *index_cursor, int node_id);
+    void delete_related_edges_and_adjlists(int node_id);
 
     void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
                             int out_degree);
