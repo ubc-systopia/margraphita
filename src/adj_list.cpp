@@ -1327,20 +1327,57 @@ void delete_node_from_adjlists(int node_id)
     std::vector<int> in_edgelist;
     std::vector<int> out_edgelist;
 
-    WT_CURSOR *cursor = nullptr;
-    int ret = _get_table_cursor(ADJ_INLIST_TABLE, &cursor, false);
-    cursor->set_key(cursor, node_id);
-    ret = cursor->search(cursor);
+    WT_CURSOR *in_cursor = nullptr;
+    int ret = _get_table_cursor(ADJ_INLIST_TABLE, &in_cursor, false);
+    in_cursor->set_key(in_cursor, node_id);
+    ret = in_cursor->search(in_cursor);
     if (ret != 0)
     {
         throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList Table");
     }
     
-    in_edgelist = get_adjlist()
-
-
-    // cursor remove from both tables
+    in_edgelist = get_adjlist(in_cursor, node_id);
+    // Iterate through the in_edgelist in the ADJ_OUTLIST_TABLE and delete the node_id from its neighbors
     
+    WT_CURSOR *out_cursor = nullptr;
+    int ret = _get_table_cursor(ADJ_OUTLIST_TABLE, &out_cursor, false);
+
+    for (int neighbor = in_edgelist)
+    {
+        delete_from_adjlists(out_cursor, neighbor, node_id)
+    }
+
+    // Now, get the out_edgelist from the OUTLIST Table to delete from the IN_Table
+
+    out_cursor->set_key(out_cursor, node_id);
+    ret = out_cursor->search(out_cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList Table");
+    }
+
+    out_edgelist = get_adjlist(out_cursor, node_id);
+
+    // Now, go to IN_TABLE and delete node_id from its tables in edgelist
+    for (int neighbor = out_edgelist)
+    {
+        delete_from_adjlists(in_cursor, neighbor, node_id)
+    }
+
+    // Now, remove the node from both the tables
+    ret = out_cursor->remove(out_cursor);
+
+    if (ret != 0)
+    {
+        throw GraphException("Could not delete node with ID " + to_string(node_id) + " from the ADJ_OUTLIST_TABLE");
+    }
+
+    ret = in_cursor->remove(in_cursor);
+
+    if (ret != 0)
+    {
+        throw GraphException("Could not delete node with ID " + to_string(node_id) + " from the ADJ_INLIST_TABLE");
+    }
 }
 */
 
