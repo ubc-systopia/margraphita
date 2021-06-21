@@ -1235,13 +1235,10 @@ void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
     }
 }
 
-std::vector<int> AdjList::get_adjlist(WT_CURSOR *cursor, int node_id)
+std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id)
 {
     int ret;
-<<<<<<< HEAD
     adjlist adjlist;
-=======
->>>>>>> a315f5bd3d321008de83e638a633fc5a8ef5a75e
 
     cursor->set_key(cursor, node_id);
     ret = cursor->search(cursor);
@@ -1250,7 +1247,6 @@ std::vector<int> AdjList::get_adjlist(WT_CURSOR *cursor, int node_id)
         throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
     }
 
-<<<<<<< HEAD
     // !APT: Check with puneet
     // We have the entire node we only need the list how to assign it without knowing which table is it in or out?
 
@@ -1294,13 +1290,57 @@ void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete)
         throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
     }
 
-    // ! APT: Check below lines with Puneet and we need __adjlist_to_record, correct? Verify with Puneet!
     adjlist found = __record_to_adjlist(cursor);
     found.edgelist.erase(std::remove(found.edgelist.begin(), found.edgelist.end(), to_delete), found.edgelist.end());
 
     found.degree -= 1;
 
     __adjlist_to_record(cursor, found);
+}
+
+void delete_adjlist(WT_CURSOR *cursor, int node_id)
+{
+    int ret;
+
+    cursor->set_key(cursor, node_id);
+    // APT: Overwrite the current cursor position with ""
+
+    ret = cursor->search(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
+    }
+
+    adjlist found = __record_to_adjlist(cursor);
+    found.edgelist.clear());
+
+    found.degree = 0;
+
+    __adjlist_to_record(cursor, found);
+
+}
+
+void delete_node_from_adjlists(int node_id)
+{
+    // We need to delete the node from both tables
+    // and go through all the adjlist values, iterate over its edgelist and correspondingly delete the node_id from the edgelist of its neighbors.
+    std::vector<int> in_edgelist;
+    std::vector<int> out_edgelist;
+
+    WT_CURSOR *cursor = nullptr;
+    int ret = _get_table_cursor(ADJ_INLIST_TABLE, &cursor, false);
+    cursor->set_key(cursor, node_id);
+    ret = cursor->search(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList Table");
+    }
+    
+    in_edgelist = get_adjlist()
+
+
+    // cursor remove from both tables
+    
 }
 */
 
@@ -1311,8 +1351,3 @@ void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete)
 //adjlist __record_to_adjlist(WT_CURSOR *cursor)
 //{
 //}
-=======
-    adjlist found = __record_to_adjlist(cursor);
-    return found.edgelist;
-}
->>>>>>> a315f5bd3d321008de83e638a633fc5a8ef5a75e
