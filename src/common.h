@@ -29,11 +29,12 @@ extern const std::string ID;
 extern const std::string WEIGHT;
 extern const std::string NODE_TABLE;
 extern const std::string EDGE_TABLE;
-extern const std::string ADJLIST_IN_TABLE;
-extern const std::string ADJLIST_OUT_TABLE;
 extern const std::string SRC_INDEX;
 extern const std::string DST_INDEX;
 extern const std::string SRC_DST_INDEX;
+//specific to AdjList implementation
+extern const std::string ADJ_INLIST_TABLE;  // New
+extern const std::string ADJ_OUTLIST_TABLE; // New
 
 struct graph_opts
 {
@@ -66,6 +67,13 @@ typedef struct edge_index
     int src_id;
     int dst_id;
 } edge_index;
+
+typedef struct adjlist
+{
+    int node_id;
+    int degree;
+    std::vector<int> edgelist;
+} adjlist;
 
 class CommonUtil
 {
@@ -123,6 +131,9 @@ public:
     static int open_connection(char *db_name, WT_CONNECTION **conn);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
     static void check_return(int retval, std::string mesg);
+    static void dump_node(node to_print);
+    static void dump_edge(edge to_print);
+    static void dump_adjlist(adjlist to_print);
 };
 
 #endif

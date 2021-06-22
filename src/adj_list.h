@@ -2,7 +2,6 @@
 #define ADJ_LIST
 
 #include "common.h"
-#include "adj_common.h"
 #include "graph_exception.h"
 #include <filesystem>
 #include <iostream>
@@ -66,6 +65,11 @@ public:
     void insert_metadata(string key, char *value);
     string get_metadata(string key); //
     void close();
+
+    WT_CURSOR *get_test_node_cursor();
+    WT_CURSOR *get_test_edge_cursor();
+    WT_CURSOR *get_test_in_adjlist_cursor();
+    WT_CURSOR *get_test_out_adjlist_cursor();
 
     // WT privates
 private:

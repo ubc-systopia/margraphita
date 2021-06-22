@@ -1,24 +1,35 @@
-SET(NAME_STD_GRAPH_TEST  "test_standard_graph")
-SET(NAME_COMMON_TEST "test_common")
+SET(NAME_STD_GRAPH_GTEST  "gtest_standard_graph") #test suite that uses gtest
+SET(NAME_COMMON_GTEST "gtest_common")
+SET(NAME_STD_GRAPH_TEST "test_standard_graph") #normal test suite that does not use gtest
+SET(NAME_ADJLIST_TEST "test_adj_list")
 
-FILE (GLOB SOURCES_TEST_STD_GRAPH  "${PATH_TEST}/test_standard_graph.cpp")
-FILE (GLOB SOURCES_TEST_COMMON  "${PATH_TEST}/test_common.cpp")
+FILE (GLOB SOURCES_TEST_STD_GRAPH "${PATH_TEST}/test_standard_graph.cpp")
+FILE (GLOB SOURCES_TEST_ADJLIST "${PATH_TEST}/test_adj_list.cpp")
+FILE (GLOB SOURCES_GTEST_STD_GRAPH  "${PATH_TEST}/gtest_standard_graph.cpp")
+FILE (GLOB SOURCES_TEST_COMMON  "${PATH_TEST}/gtest_common.cpp")
 
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 include_directories($PATH_SRC)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}")
 
 #Create Test executables
+ADD_EXECUTABLE( ${NAME_STD_GRAPH_GTEST} "${SOURCES_GTEST_STD_GRAPH}")
+TARGET_INCLUDE_DIRECTORIES (${NAME_STD_GRAPH_GTEST} PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES( ${NAME_STD_GRAPH_GTEST} PUBLIC ${NAME_LIB}
+                                            gtest
+                                            gtest_main)
+
+
+ADD_EXECUTABLE( ${NAME_COMMON_GTEST} "${SOURCES_TEST_COMMON}")
+TARGET_INCLUDE_DIRECTORIES (${NAME_COMMON_GTEST} PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES( ${NAME_COMMON_GTEST} ${NAME_LIB}
+                                            gtest
+                                            gtest_main)
+
 ADD_EXECUTABLE( ${NAME_STD_GRAPH_TEST} "${SOURCES_TEST_STD_GRAPH}")
-TARGET_INCLUDE_DIRECTORIES (${NAME_STD_GRAPH_TEST} PRIVATE ${PATH_SRC})
-TARGET_LINK_LIBRARIES( ${NAME_STD_GRAPH_TEST} PUBLIC ${NAME_LIB}
-                                            gtest
-                                            gtest_main)
+TARGET_INCLUDE_DIRECTORIES( ${NAME_STD_GRAPH_TEST} PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES (${NAME_STD_GRAPH_TEST} PUBLIC ${NAME_LIB})
 
-
-ADD_EXECUTABLE( ${NAME_COMMON_TEST} "${SOURCES_TEST_COMMON}")
-TARGET_INCLUDE_DIRECTORIES (${NAME_COMMON_TEST} PRIVATE ${PATH_SRC})
-TARGET_LINK_LIBRARIES( ${NAME_COMMON_TEST} ${NAME_LIB}
-                                            gtest
-                                            gtest_main)
-
+ADD_EXECUTABLE( ${NAME_ADJLIST_TEST} "${SOURCES_TEST_ADJLIST}")
+TARGET_INCLUDE_DIRECTORIES( ${NAME_ADJLIST_TEST} PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES (${NAME_ADJLIST_TEST} PUBLIC ${NAME_LIB})

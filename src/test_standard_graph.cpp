@@ -34,21 +34,6 @@ void tearDown(StandardGraph graph)
     graph.close();
 }
 
-void dump_node(node to_print)
-{
-    cout << "ID is: \t" << to_print.id << endl;
-    cout << "in_degree is:\t" << to_print.in_degree << endl;
-    cout << "out_degree is:\t" << to_print.out_degree << endl;
-}
-
-void dump_edge(edge to_print)
-{
-    cout << "Edge ID is: \t" << to_print.id << endl;
-    cout << "SRC id is:\t" << to_print.src_id << endl;
-    cout << "DST id is:\t" << to_print.dst_id << endl;
-    cout << "Weight is:\t" << to_print.edge_weight << endl;
-}
-
 void test_node_add(StandardGraph graph, bool read_optimize)
 {
     INFO();
@@ -175,7 +160,7 @@ void test_get_nodes(StandardGraph graph)
     INFO();
     for (node x : graph.get_nodes())
     {
-        dump_node(x);
+        CommonUtil::dump_node(x);
     }
 }
 
@@ -214,12 +199,12 @@ void test_get_out_nodes_and_edges(StandardGraph graph, bool is_directed)
 
     for (edge x : got_e)
     {
-        dump_edge(x);
+        CommonUtil::dump_edge(x);
     }
 
     for (node x : got_n)
     {
-        dump_node(x);
+        CommonUtil::dump_node(x);
     }
 }
 
@@ -228,7 +213,7 @@ void test_cursor(StandardGraph graph)
     INFO();
     for (edge x : graph.test_cursor_iter(2))
     {
-        dump_edge(x);
+        CommonUtil::dump_edge(x);
     }
 }
 
@@ -236,7 +221,7 @@ void test_get_edges(StandardGraph graph, bool is_directed)
 {
 
     INFO();
-    dump_edge(graph.get_edge(1, 2));
+    CommonUtil::dump_edge(graph.get_edge(1, 2));
 
     vector<edge> edges = graph.get_edges();
 

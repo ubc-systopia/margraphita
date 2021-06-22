@@ -38,8 +38,8 @@ const std::string ID = "id";
 const std::string WEIGHT = "weight";
 const std::string NODE_TABLE = "node";
 const std::string EDGE_TABLE = "edge";
-const std::string ADJLIST_IN_TABLE = "adjlistin";
-const std::string ADJLIST_OUT_TABLE = "adjlistout";
+const std::string ADJ_INLIST_TABLE = "adjlistin";
+const std::string ADJ_OUTLIST_TABLE = "adjlistout";
 const std::string SRC_INDEX = "IX_edge_" + SRC;
 const std::string DST_INDEX = "IX_edge_" + DST;
 const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
@@ -662,4 +662,31 @@ void CommonUtil::check_return(int retval, std::string mesg)
     {
         throw GraphException(mesg);
     }
+}
+
+void CommonUtil::dump_node(node to_print)
+{
+    std::cout << "ID is: \t" << to_print.id << std::endl;
+    std::cout << "in_degree is:\t" << to_print.in_degree << std::endl;
+    std::cout << "out_degree is:\t" << to_print.out_degree << std::endl;
+}
+
+void CommonUtil::dump_edge(edge to_print)
+{
+    std::cout << "Edge ID is: \t" << to_print.id << std::endl;
+    std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
+    std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
+    std::cout << "Weight is:\t" << to_print.edge_weight << std::endl;
+}
+
+void CommonUtil::dump_adjlist(adjlist to_print)
+{
+    std::cout << "Node ID is: \t" << to_print.node_id << std::endl;
+    std::cout << "degree is:\t" << to_print.degree << std::endl;
+    std::cout << "Adjacency List is:\t {";
+    for (int n : to_print.edgelist)
+    {
+        std::cout << n << " ";
+    }
+    std::cout << std::endl;
 }

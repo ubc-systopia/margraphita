@@ -1,7 +1,7 @@
 #include "adj_list.h"
 #include "common.h"
-#include "adj_common.h"
 #include <filesystem>
+#include <algorithm>
 #include <cstring>
 #include <cassert>
 #include <iostream>
@@ -234,11 +234,11 @@ void AdjList::create_new_graph()
                           edge_key_format, edge_value_format);
 
     // Create adjlist_in_edges table
-    CommonUtil::set_table(session, ADJLIST_IN_TABLE, in_adjlist_columns,
+    CommonUtil::set_table(session, ADJ_INLIST_TABLE, in_adjlist_columns,
                           adjlist_key_format, adjlist_value_format);
 
     // Create adjlist_out_edges table
-    CommonUtil::set_table(session, ADJLIST_OUT_TABLE, out_adjlist_columns,
+    CommonUtil::set_table(session, ADJ_OUTLIST_TABLE, out_adjlist_columns,
                           adjlist_key_format, adjlist_value_format);
 
     /* Now doing the metadata table creation.
@@ -714,6 +714,16 @@ adjlist AdjList::__record_to_adjlist(WT_CURSOR *cursor)
     found.edgelist = CommonUtil::unpack_int_vector_std(str);
     found.degree = found.edgelist.size();
 
+    return found;
+}
+
+edge AdjList::__record_to_edge(WT_CURSOR *cursor)
+{
+    edge found = {0};
+    if (cursor->get_value(cursor, &found.src_id, &found.dst_id, &found.edge_weight) != 0)
+    {
+        throw GraphException("Could not get the value from the edge table");
+    }
     return found;
 }
 
@@ -1270,7 +1280,7 @@ void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
 std::vector<int> AdjList::get_adjlist(WT_CURSOR *cursor, int node_id)
 {
     int ret;
-    adjlist adjlist;
+    adjlist adj_list;
 
     cursor->set_key(cursor, node_id);
     ret = cursor->search(cursor);
@@ -1282,13 +1292,13 @@ std::vector<int> AdjList::get_adjlist(WT_CURSOR *cursor, int node_id)
     // !APT: Check with puneet
     // We have the entire node we only need the list how to assign it without knowing which table is it in or out?
 
-    //adjlist = __record_to_adjlist(cursor);
-    //return adjlist.edgelist;
+    adj_list = __record_to_adjlist(cursor);
+    return adj_list.edgelist;
     // !APT: Check with puneet ends here.
 }
 
-/* !APT : Check with Puneet
-void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
+//!APT : Check with Puneet
+void AdjList::add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
 {
     // Not checking for directional or undirectional that would be taken care by the callee.
 
@@ -1308,8 +1318,8 @@ void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
 
     __adjlist_to_record(cursor, found);
 }
-
-void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete)
+//!APT: Check with Puneet
+void AdjList::delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete)
 {
     // Not checking for directional or undirectional that would be taken care by the caller.
 
@@ -1323,37 +1333,16 @@ void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete)
     }
 
     adjlist found = __record_to_adjlist(cursor);
-    found.edgelist.erase(std::remove(found.edgelist.begin(), found.edgelist.end(), to_delete), found.edgelist.end());
+    std::vector<int>::iterator adjlist_new_end;
+    adjlist_new_end = std::remove(found.edgelist.begin(), found.edgelist.end(), to_delete);
 
     found.degree -= 1;
 
     __adjlist_to_record(cursor, found);
 }
 
-void delete_adjlist(WT_CURSOR *cursor, int node_id)
-{
-    int ret;
-
-    cursor->set_key(cursor, node_id);
-    // APT: Overwrite the current cursor position with ""
-
-    ret = cursor->search(cursor);
-    if (ret != 0)
-    {
-        throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
-    }
-
-    adjlist found = __record_to_adjlist(cursor);
-
-    found.edgelist.clear());
-
-    found.degree = 0;
-
-    __adjlist_to_record(cursor, found);
-
-}
-
-void delete_node_from_adjlists(int node_id)
+//!APT: Check with Puneet
+void AdjList::delete_node_from_adjlists(int node_id)
 {
     // We need to delete the node from both tables
     // and go through all the adjlist values, iterate over its edgelist and correspondingly delete the node_id from the edgelist of its neighbors.
@@ -1368,16 +1357,16 @@ void delete_node_from_adjlists(int node_id)
     {
         throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList Table");
     }
-    
+
     in_edgelist = get_adjlist(in_cursor, node_id);
     // Iterate through the in_edgelist in the ADJ_OUTLIST_TABLE and delete the node_id from its neighbors
-    
-    WT_CURSOR *out_cursor = nullptr;
-    int ret = _get_table_cursor(ADJ_OUTLIST_TABLE, &out_cursor, false);
 
-    for (int neighbor = in_edgelist)
+    WT_CURSOR *out_cursor = nullptr;
+    ret = _get_table_cursor(ADJ_OUTLIST_TABLE, &out_cursor, false);
+
+    for (int neighbor : in_edgelist)
     {
-        delete_from_adjlists(out_cursor, neighbor, node_id)
+        delete_from_adjlists(out_cursor, neighbor, node_id);
     }
 
     // Now, get the out_edgelist from the OUTLIST Table to delete from the IN_Table
@@ -1392,9 +1381,9 @@ void delete_node_from_adjlists(int node_id)
     out_edgelist = get_adjlist(out_cursor, node_id);
 
     // Now, go to IN_TABLE and delete node_id from its tables in edgelist
-    for (int neighbor = out_edgelist)
+    for (int neighbor : out_edgelist)
     {
-        delete_from_adjlists(in_cursor, neighbor, node_id)
+        delete_from_adjlists(in_cursor, neighbor, node_id);
     }
 
     // Now, remove the node from both the tables
@@ -1412,7 +1401,6 @@ void delete_node_from_adjlists(int node_id)
         throw GraphException("Could not delete node with ID " + to_string(node_id) + " from the ADJ_INLIST_TABLE");
     }
 }
-*/
 
 //adjlist __record_to_adjlist(WT_CURSOR *cursor)
 //{
@@ -1487,4 +1475,55 @@ void AdjList::delete_related_edges_and_adjlists(int node_id)
             delete_from_adjlists(out_adjlist_cursor, src, node_id);
         }
     }
+}
+
+/*
+Get test cursors
+*/
+WT_CURSOR *AdjList::get_test_node_cursor()
+{
+    WT_CURSOR *cursor;
+
+    int ret = _get_table_cursor(NODE_TABLE, &cursor, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test node cursor");
+    }
+    return cursor;
+}
+
+WT_CURSOR *AdjList::get_test_edge_cursor()
+{
+    WT_CURSOR *cursor;
+
+    int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test edge cursor");
+    }
+    return cursor;
+}
+
+WT_CURSOR *AdjList::get_test_in_adjlist_cursor()
+{
+    WT_CURSOR *cursor;
+
+    int ret = _get_table_cursor(IN_ADJLIST, &cursor, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test in_adjlist cursor");
+    }
+    return cursor;
+}
+
+WT_CURSOR *AdjList::get_test_out_adjlist_cursor()
+{
+    WT_CURSOR *cursor;
+
+    int ret = _get_table_cursor(OUT_ADJLIST, &cursor, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test out_adjlist cursor");
+    }
+    return cursor;
 }
