@@ -444,10 +444,6 @@ void AdjList::delete_adjlist(WT_CURSOR *cursor, int node_id)
     {
         throw GraphException("Could not delete node with ID " + to_string(node_id));
     }
-    //!APT still pending... tag to continue from here... change the above code too!!!
-    // Delete node from the adjlist node table
-    // Delete the node record from adjlist in/out degree table
-    // Delete node from the adjlist list for any other nodes and reduce the degree..
 }
 
 //#if 0
@@ -589,10 +585,10 @@ void AdjList::delete_node(int node_id)
     delete_related_edges_and_adjlists(node_id);
 
     //delete ADJ_INLIST_TABLE entries
-    delete_adjlist(cursor, node_id);
+    delete_adjlist(in_adjlist_cursor, node_id);
 
     //delete ADJ_OUTLIST_TABLE entrties
-    delete_adjlist(cursor, node_id);
+    delete_adjlist(out_adjlist_cursor, node_id);
 }
 
 /**
@@ -1289,18 +1285,13 @@ std::vector<int> AdjList::get_adjlist(WT_CURSOR *cursor, int node_id)
         throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
     }
 
-    // !APT: Check with puneet
-    // We have the entire node we only need the list how to assign it without knowing which table is it in or out?
-
     adj_list = __record_to_adjlist(cursor);
     return adj_list.edgelist;
-    // !APT: Check with puneet ends here.
 }
 
-//!APT : Check with Puneet
 void AdjList::add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
 {
-    // Not checking for directional or undirectional that would be taken care by the callee.
+    // Not checking for directional or undirectional that would be taken care by the caller.
 
     int ret;
 
@@ -1311,14 +1302,13 @@ void AdjList::add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
         throw GraphException("Could not find " + std::to_string(node_id) + " in the AdjList");
     }
 
-    // ! APT: Check below lines with Puneet and we need __adjlist_to_record, correct? Verify with Puneet!
     adjlist found = __record_to_adjlist(cursor);
     found.edgelist.push_back(to_insert);
     found.degree += 1;
 
     __adjlist_to_record(cursor, found);
 }
-//!APT: Check with Puneet
+
 void AdjList::delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete)
 {
     // Not checking for directional or undirectional that would be taken care by the caller.
@@ -1341,7 +1331,6 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete
     __adjlist_to_record(cursor, found);
 }
 
-//!APT: Check with Puneet
 void AdjList::delete_node_from_adjlists(int node_id)
 {
     // We need to delete the node from both tables
@@ -1387,6 +1376,7 @@ void AdjList::delete_node_from_adjlists(int node_id)
     }
 
     // Now, remove the node from both the tables
+    out_cursor->set_key(out_cursor, node_id);
     ret = out_cursor->remove(out_cursor);
 
     if (ret != 0)
@@ -1394,6 +1384,7 @@ void AdjList::delete_node_from_adjlists(int node_id)
         throw GraphException("Could not delete node with ID " + to_string(node_id) + " from the ADJ_OUTLIST_TABLE");
     }
 
+    in_cursor->set_key(in_cursor, node_id);
     ret = in_cursor->remove(in_cursor);
 
     if (ret != 0)
