@@ -86,9 +86,7 @@ TEST(CommonTest, TestPackStringVectorStd)
   string testname = "String Vector Packing";
   int ret = 0;
 
-  vector<string> test = {"hello", "world", "this", "is", "test", "string", "packing"
-                                                                           "0.00",
-                         "0.00", "last"};
+  vector<string> test = {"hello", "world", "this", "is", "test", "string", "packing", "0.00", "0.00", "last"};
 
   size_t size;
   string format;

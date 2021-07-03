@@ -33,8 +33,8 @@ extern const std::string SRC_INDEX;
 extern const std::string DST_INDEX;
 extern const std::string SRC_DST_INDEX;
 //specific to AdjList implementation
-extern const std::string ADJ_INLIST_TABLE;  // New
-extern const std::string ADJ_OUTLIST_TABLE; // New
+extern const std::string IN_ADJLIST;  // New
+extern const std::string OUT_ADJLIST; // New
 
 struct graph_opts
 {
@@ -58,7 +58,7 @@ typedef struct edge
     int id;
     int src_id;
     int dst_id;
-    int edge_weight;
+    int edge_weight; // uint8_t should get transparently cast to int (unweighted)
 } edge;
 
 typedef struct edge_index

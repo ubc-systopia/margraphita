@@ -18,6 +18,7 @@ public:
     AdjList();
 
     void create_new_graph();
+    void init_cursors();
 
     void add_node(node to_insert);
     bool has_node(int node_id);
@@ -66,16 +67,13 @@ public:
     string get_metadata(string key); //
     void close();
 
-    WT_CURSOR *get_test_node_cursor();
-    WT_CURSOR *get_test_edge_cursor();
-    WT_CURSOR *get_test_in_adjlist_cursor();
-    WT_CURSOR *get_test_out_adjlist_cursor();
+    WT_CURSOR *get_node_cursor();
+    WT_CURSOR *get_edge_cursor();
+    WT_CURSOR *get_in_adjlist_cursor();
+    WT_CURSOR *get_out_adjlist_cursor();
 
     // WT privates
 private:
-    std::string IN_ADJLIST = "IN_ADJLIST";
-    std::string OUT_ADJLIST = "OUT_ADJLIST";
-
     WT_CONNECTION *conn;
     WT_SESSION *session;
     //create params
@@ -96,10 +94,10 @@ private:
 
     string node_value_format;
     string node_key_format = "I";
-    string edge_key_format = "II";  // SRC DST in the edge table
-    string edge_value_format = "I"; // Edge Weight in the edge table
+    string edge_key_format = "II"; // SRC DST in the edge table
+    string edge_value_format = ""; // Make I if weighted , x otherwise
     string adjlist_key_format = "I";
-    string adjlist_value_format = "Iu";
+    string adjlist_value_format = "IS";
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
@@ -109,9 +107,9 @@ private:
     WT_CURSOR *metadata_cursor = NULL;
 
     void __node_to_record(WT_CURSOR *cursor, node to_insert); //! APT Check
-    node __record_to_node(WT_CURSOR *cursor);                 //! APT Check
-    edge __record_to_edge(WT_CURSOR *cursor);                 //! APT Check
-    adjlist __record_to_adjlist(WT_CURSOR *cursor);
+    node __record_to_node(WT_CURSOR *cursor, int key);        //! APT Check
+    void __record_to_edge(WT_CURSOR *cursor, edge *found);    //! APT Check
+    void __record_to_adjlist(WT_CURSOR *cursor, adjlist *found);
     void __adjlist_to_record(WT_CURSOR *cursor, adjlist to_insert);
     void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx); //! APT Check
 

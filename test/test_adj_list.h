@@ -14,7 +14,6 @@ const char *home;
 
 void tearDown(AdjList graph);
 void create_init_nodes(AdjList graph);
-void dump_adjlist(adjlist to_print);
 void test_node_add(adjlist graph);
 
 #endif

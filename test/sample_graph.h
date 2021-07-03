@@ -25,8 +25,11 @@ namespace SampleGraph
     node node3 = {
         .id = 3};
 
+    node node4 = {
+        .id = 4};
+
     std::vector<edge> test_edges = {edge1, edge2, edge3};
-    std::vector<node> test_nodes = {node1, node2, node3};
+    std::vector<node> test_nodes = {node1, node2, node3, node4};
 
     void create_undirected_edges()
     {
@@ -41,7 +44,6 @@ namespace SampleGraph
             test_edges.push_back(temp);
         }
     }
-
 }
 
 #endif

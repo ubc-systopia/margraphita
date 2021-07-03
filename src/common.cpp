@@ -38,8 +38,8 @@ const std::string ID = "id";
 const std::string WEIGHT = "weight";
 const std::string NODE_TABLE = "node";
 const std::string EDGE_TABLE = "edge";
-const std::string ADJ_INLIST_TABLE = "adjlistin";
-const std::string ADJ_OUTLIST_TABLE = "adjlistout";
+const std::string OUT_ADJLIST = "adjlistout";
+const std::string IN_ADJLIST = "adjlistin";
 const std::string SRC_INDEX = "IX_edge_" + SRC;
 const std::string DST_INDEX = "IX_edge_" + DST;
 const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
@@ -270,14 +270,18 @@ std::vector<std::string> CommonUtil::unpack_string_vector_std(std::string packed
     uint pos = 0;
     std::string delimiter = "__";
     std::string token;
-    while ((pos = packed_str.find(delimiter)) != std::string::npos)
+    while ((packed_str != "") && ((pos = packed_str.find(delimiter)) != std::string::npos))
     {
         token = packed_str.substr(0, pos);
 
         res.push_back(token);
         packed_str.erase(0, pos + delimiter.length());
     }
-    res.push_back(packed_str);
+    if ((packed_str != ""))
+    {
+        res.push_back(packed_str);
+    }
+
     return res;
 }
 /**
@@ -374,6 +378,11 @@ std::string CommonUtil::pack_int_vector_std(std::vector<int> to_pack, size_t
     size_t _size = 0;
     std::string buffer;
     uint pos = 0;
+    if (to_pack.size() == 0)
+    {
+        *size = _size;
+        return buffer;
+    }
     while (pos < to_pack.size() - 1)
     {
         buffer = buffer + std::to_string(to_pack.at(pos)) + "__";
@@ -399,14 +408,22 @@ std::vector<int> CommonUtil::unpack_int_vector_std(std::string packed_str)
     uint pos = 0;
     std::string delimiter = "__";
     int number;
-    while ((pos = packed_str.find(delimiter)) != std::string::npos)
+    if (packed_str == " ")
+    {
+        return res;
+    }
+    while ((packed_str != "") && (pos = packed_str.find(delimiter)) != std::string::npos)
     {
         number = stoi(packed_str.substr(0, pos));
 
         res.push_back(number);
         packed_str.erase(0, pos + delimiter.length());
     }
-    res.push_back(stoi(packed_str));
+    if (packed_str != "")
+    {
+        res.push_back(stoi(packed_str));
+    }
+
     return res;
 }
 
