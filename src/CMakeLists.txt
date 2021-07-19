@@ -6,7 +6,10 @@ FILE ( GLOB SOURCES_LIB   "${PATH_SRC}/common.cpp"
                     "${PATH_SRC}/adj_list.cpp"
 
                     "${PATH_SRC}/adj_list.h"
-                    "${PATH_SRC}/adj_common.h")
+                    "${PATH_SRC}/adj_common.h"
+
+                    "${PATH_SRC}/edgekey.cpp"
+                    "${PATH_SRC}/edgekey.h")
 
 
 

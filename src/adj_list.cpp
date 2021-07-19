@@ -34,23 +34,9 @@ AdjList::AdjList(graph_opts opt_params)
         std::cout << G.what() << std::endl;
     }
 
-    if (opt_params.create_new == false)
-    {
-        throw GraphException("Missing param " + CREATE_NEW);
-    }
     if (opt_params.create_new)
     {
         create_new_graph();
-        if (opt_params.optimize_create == false)
-        {
-            /**
-       *  Create indices with graph.
-       * NOTE: If user opts to optimize graph creation, then they're
-       * responsible for calling create_indices() AFTER all the
-       * nodes/edges have been added to graph.
-       * This is done to improve performance of bulk-loading.
-       */
-        }
     }
     else
     {
@@ -198,7 +184,7 @@ void AdjList::create_new_graph()
 
     // Initialize edge ID for the edge table
     // AdjList has no edge id in the edge table but we are using the same structure as used by Standardgraph. So, the edge_id value will be -999 for all edges in the AdjList implementation.
-    edge_id = -999;
+    edge_id = -999; //edge_id is uninterpreted
 
     // Set up the node table
     // The node entry is of the form: <id>,<in_degree>,<out_degree>
@@ -252,7 +238,7 @@ void AdjList::create_new_graph()
 
     /* Now doing the metadata table creation.
      function This table stores the graph metadata
-     value_format:raw byte string (Su)
+     value_format:string (S)
      key_format: string (S)
   */
     string metadata_table_name = "table:" + string(METADATA);

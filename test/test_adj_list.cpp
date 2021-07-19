@@ -1,6 +1,5 @@
 #include "common.h"
 #include "graph_exception.h"
-#include "standard_graph.h"
 #include "sample_graph.h"
 #include <cassert>
 #include "test_adj_list.h"

@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <variant>
 #include <vector>
+#include <stdarg.h>
+#include <stdio.h>
 #include <wiredtiger.h>
 
 //These are the string constants
@@ -26,6 +28,7 @@ extern const std::string OUT_DEGREE;
 extern const std::string SRC;
 extern const std::string DST;
 extern const std::string ID;
+extern const std::string ATTR; // Used in EdgeKey as the packed binary.
 extern const std::string WEIGHT;
 extern const std::string NODE_TABLE;
 extern const std::string EDGE_TABLE;
@@ -58,7 +61,7 @@ typedef struct edge
     int id;
     int src_id;
     int dst_id;
-    int edge_weight; // uint8_t should get transparently cast to int (unweighted)
+    int edge_weight; // uint8_t should get transparently cast to int (unweighted). We need two fields for weights if the graph is undirected.
 } edge;
 
 typedef struct edge_index
@@ -134,6 +137,16 @@ public:
     static void dump_node(node to_print);
     static void dump_edge(edge to_print);
     static void dump_adjlist(adjlist to_print);
+
+    //Experimental WT_ITEM packing interface
+    static WT_ITEM pack_vector_string(WT_SESSION *session, std::vector<std::string> to_pack, std::string *fmt);
+    static std::vector<std::string> unpack_vector_string(WT_SESSION *session, WT_ITEM packed, std::string format);
+
+    static WT_ITEM pack_vector_int(WT_SESSION *session, std::vector<int> to_pack, std::string *fmt);
+    static std::vector<int> unpack_vector_int(WT_SESSION *, WT_ITEM packed, std::string format);
+
+    static WT_ITEM pack_items(WT_SESSION *session, std::string fmt, ...);
+    static std::variant<int, std::string> unpack_items(WT_SESSION *session, std::string fmt, WT_ITEM packed);
 };
 
 #endif

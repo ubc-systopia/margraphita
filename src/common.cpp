@@ -6,6 +6,7 @@
 #include <variant>
 #include <cstring>
 #include <stdlib.h>
+#include <variant>
 #include <wiredtiger.h>
 
 const std::string METADATA = "metadata";
@@ -35,6 +36,7 @@ const std::string OUT_DEGREE = "out_degree";
 const std::string SRC = "src";
 const std::string DST = "dst";
 const std::string ID = "id";
+const std::string ATTR = "attr"; // Used in EdgeKey as the packed binary.
 const std::string WEIGHT = "weight";
 const std::string NODE_TABLE = "node";
 const std::string EDGE_TABLE = "edge";
@@ -443,7 +445,7 @@ std::vector<int> CommonUtil::unpack_int_vector_wt(const char *to_unpack, WT_SESS
     const char *fmt = "S";
     size_t size = 1000; // for lack of something clever
     (void)wiredtiger_unpack_start(session, fmt, to_unpack, size, &psp);
-    const char *format_str = (char *)malloc(4 * sizeof(char));
+    const char *format_str = (char *)malloc(size * sizeof(char));
     (void)wiredtiger_unpack_str(psp, &format_str);
     wiredtiger_pack_close(psp, &size); // To reset the unpacking stream.
 
@@ -706,4 +708,126 @@ void CommonUtil::dump_adjlist(adjlist to_print)
         std::cout << n << " ";
     }
     std::cout << std::endl;
+}
+
+/*
+ * The following functions are used to pack values using the packing stream
+ * interface and returns a WT_ITEM.
+ * Do not use before testing it a LOT
+ */
+
+/**
+ * @brief This function is used to pack a vector of strings into a buffer held
+ * by in WT_ITEM buffer. 
+ * 
+ * @param session session to WT DB
+ * @param to_pack the vector to pack
+ * @param fmt this is a string* pointer that is set in this function to hold the
+ * format descriptor of the vector.
+ * @return WT_ITEM 
+ */
+WT_ITEM CommonUtil::pack_vector_string(WT_SESSION *session, std::vector<std::string> to_pack, std::string *fmt)
+{
+    size_t size;
+    *fmt = CommonUtil::create_string_format(to_pack, &size);
+    WT_ITEM packed;
+    char *data_buf = (char *)malloc(size * sizeof(char));
+
+    WT_PACK_STREAM *pack_stream;
+    wiredtiger_pack_start(session, fmt->c_str(), data_buf, size, &pack_stream);
+    for (std::string str : to_pack)
+    {
+        wiredtiger_pack_str(pack_stream, str.c_str());
+    }
+    wiredtiger_pack_close(pack_stream, &size); // get the bytes used.
+
+    packed.data = data_buf;
+    packed.size = size;
+    return packed;
+}
+
+/**
+ * @brief Pack a vector of integers into a buffer held in WT_ITEM
+ * 
+ * @param session session to the WT DB
+ * @param to_pack the vector to pack
+ * @param fmt format string will hold the vector description. This is set from this function.
+ * @return WT_ITEM 
+ */
+WT_ITEM CommonUtil::pack_vector_int(WT_SESSION *session, std::vector<int> to_pack, std::string *fmt)
+{
+    size_t size = 0;
+    std::string format = CommonUtil::create_intvec_format(to_pack, &size);
+    format.erase(0, 1);
+    WT_ITEM packed;
+    char *data_buf = (char *)calloc(size, 2 * sizeof(int));
+
+    WT_PACK_STREAM *pack_stream;
+    wiredtiger_pack_start(session, format.c_str(), data_buf, size, &pack_stream);
+    for (int item : to_pack)
+    {
+        wiredtiger_pack_int(pack_stream, item);
+    }
+    size_t used = 0;
+    wiredtiger_pack_close(pack_stream, &used);
+    packed.data = data_buf;
+    packed.size = size;
+    std::cout << "size of the packed buffer is " << packed.size << std::endl;
+    *fmt = format;
+    return packed;
+}
+
+/**
+ * @brief This function accepts a variadic input to wrap into a WT_ITEM buffer. 
+ * 
+ * @param session session to the WT DB
+ * @param fmt the format string that describes the variadic input
+ * @param ... All the items that need to be packed. Strings should be passed as char*
+ * @return WT_ITEM The struct containing the packed buffer. 
+ */
+WT_ITEM CommonUtil::pack_items(WT_SESSION *session, std::string fmt, ...)
+{
+    size_t size = 0; //!This will cause error in malloc for databuf
+    WT_ITEM packed;
+    char *data_buf = (char *)malloc(size * sizeof(char));
+    const char *format = fmt.c_str();
+
+    WT_PACK_STREAM *pack_stream;
+    wiredtiger_pack_start(session, format, data_buf, size, &pack_stream);
+
+    va_list args;
+    va_start(args, format);
+    while (*format != '\0')
+    {
+        if (*format == 'i' || *format == 'I')
+        {
+            int val = va_arg(args, int);
+            wiredtiger_pack_int(pack_stream, val);
+        }
+        else if (*format == 'S' || *format == 's')
+        {
+            char *val = va_arg(args, char *);
+            wiredtiger_pack_str(pack_stream, val);
+        }
+    }
+    wiredtiger_pack_close(pack_stream, &size); // get the bytes used.
+
+    packed.data = data_buf;
+    packed.size = size;
+    return packed;
+}
+
+std::vector<int> CommonUtil::unpack_vector_int(WT_SESSION *session, WT_ITEM packed, std::string format)
+{
+    std::vector<int> unpacked;
+    WT_PACK_STREAM *pack_stream;
+
+    (void)wiredtiger_unpack_start(session, format.c_str(), packed.data, packed.size, &pack_stream);
+    for (int i = 0; i < format.length(); i++)
+    {
+        int64_t found;
+        wiredtiger_unpack_int(pack_stream, &found);
+        unpacked.push_back(found);
+    }
+    return unpacked;
 }
