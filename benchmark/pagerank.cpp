@@ -6,6 +6,8 @@
 #include "common.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
+#include "adj_list.h"
+#include "edgekey.h"
 #include "command_line.h"
 #include "logger.h"
 #include "reader.h"
@@ -90,7 +92,11 @@ int main(int argc, char *argv[])
         auto start = chrono::steady_clock::now();
 
         StandardGraph graph(opts);
-        exit(0);
+        if (pr_cli.is_exit_on_create()) // Exit after creating the db
+        {
+            exit(0);
+        }
+
         auto end = chrono::steady_clock::now();
         // logger->out("Graph loaded in " + chrono::duration_cast<chrono::microseconds>(end - start).count());
         cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
@@ -124,9 +130,28 @@ int main(int argc, char *argv[])
         // chrono::duration_cast<chrono::microseconds>(end - start).count());
         graph.close();
     }
+    else if (pr_cli.get_graph_type() == "adjlist")
+    {
+        Logger *logger = new Logger("pr_run", opts.db_name, "pagerank", pr_cli.get_dataset());
+
+        AdjList graph(opts);
+        if (pr_cli.is_exit_on_create()) // Exit after creating the db
+        {
+            exit(0);
+        }
+    }
+    else if (pr_cli.get_graph_type() == "edgekey")
+    {
+        Logger *logger = new Logger("pr_run", opts.db_name, "pagerank", pr_cli.get_dataset());
+
+        EdgeKey graph(opts);
+        if (pr_cli.is_exit_on_create()) // Exit after creating the db
+        {
+            exit(0);
+        }
+    }
     else
     {
-        cout << "unimplemented.";
-        return -1;
+        std::cout << "Unrecognized graph representation";
     }
 }

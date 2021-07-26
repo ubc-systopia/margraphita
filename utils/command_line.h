@@ -11,7 +11,7 @@ class CmdLineBase
 protected:
     int argc_;
     char **argv_;
-    std::string argstr_ = "m:a:nrdhwl:ob:s:"; //! Construct this after you finish the rest of this thing
+    std::string argstr_ = "m:a:nrdhwl:ob:s:e"; //! Construct this after you finish the rest of this thing
     std::vector<std::string> help_strings_;
 
     std::string db_name;
@@ -23,6 +23,7 @@ protected:
     bool directed = true;
     bool weighted = false;
     bool optimized_create = false;
+    bool exit_on_create = false;
 
     std::string filename; //This contains the path to the filename being parsed and inserted into the DB. It is used only when create_new is true
 
@@ -46,6 +47,7 @@ public:
         add_help_message('d', "directed", "Is the graph directed. Default true.");
         add_help_message('w', "weighted", "is the graph weighted. default false");
         add_help_message('l', "representation type", "The representation of the graph. Can be one of adjlist, std, edgekey");
+        add_help_message('e', "exit_on_create", "Use falg to create the DB and exit");
         add_help_message('h', "h", "Print this help message");
     }
 
@@ -91,6 +93,9 @@ public:
         case 'w':
             weighted = true;
             break;
+        case 'e':
+            exit_on_create = true;
+            break;
         case 'r':
             read_optimize = true;
             break;
@@ -126,6 +131,7 @@ public:
     bool is_directed() const { return directed; }
     bool is_weighted() const { return weighted; }
     bool is_create_optimized() const { return optimized_create; }
+    bool is_exit_on_create() const { return exit_on_create; }
 };
 
 class CmdLineApp : public CmdLineBase

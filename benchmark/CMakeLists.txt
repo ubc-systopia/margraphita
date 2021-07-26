@@ -1,3 +1,7 @@
+#file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/preprocess.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/preprocess.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
 add_executable(pagerank pagerank.cpp)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 
@@ -24,3 +28,9 @@ INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 
 target_include_directories(wt_thread PRIVATE ${PATH_SRC})
 target_link_libraries(wt_thread PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
+
+add_executable(bulk_insert bulk_insert_mmap.cpp)
+INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
+
+target_include_directories(bulk_insert PRIVATE ${PATH_SRC})
+target_link_libraries(bulk_insert PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
