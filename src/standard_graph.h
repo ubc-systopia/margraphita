@@ -53,7 +53,7 @@ public:
     string get_metadata(string key);
     void close();
     std::vector<edge> test_cursor_iter(int node_id);
-
+    void create_indices();
     // WT privates
 private:
     WT_CONNECTION *conn;
@@ -95,7 +95,7 @@ private:
     int _get_index_cursor(std::string table_name, std::string idx_name,
                           std::string projection, WT_CURSOR **cursor);
     void __restore_from_db(string db_name);
-    void create_indices();
+
     void drop_indices();
 
     //For Bulk loading

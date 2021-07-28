@@ -48,6 +48,7 @@ public:
     std::vector<node> get_in_nodes(int node_id);
     void close();
     //----------------^DONE
+    void create_indices();
 
 private:
     WT_CONNECTION *conn;
@@ -79,7 +80,7 @@ private:
                           std::string projection,
                           WT_CURSOR **cursor);
     void __restore_from_db(string db_name);
-    void create_indices();
+
     void drop_indices();
     void __record_to_node(WT_CURSOR *cur, node *found);
     void __record_to_edge(WT_CURSOR *cur, edge *found);

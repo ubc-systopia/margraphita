@@ -6,17 +6,27 @@ usage() { echo "Usage: $0 [-f <dataset path> -o <output path> -n <dataset name>"
 # output path: absolute path to the directory that should contain the output
 # files
 #dataset name : used to construct the DB name and to name the output files
+# if cit-Patents is in ~/datasets/cit-Patents/cit-Patents.txt
+# -f ~/datasets/cit-Patents/cit-Patents.txt
+# -o ~/datasets/cit-Patents
+# -n cit-Patents
 
-while getopts "f:o:n:" o; do
+while getopts "f:o:m:n:e:" o; do
     case "${o}" in
         (f)
-            filename=${OPTARG}
+            filename=${OPTARG%/}
             ;;
         (o)
-            output=${OPTARG}
+            output=${OPTARG%/}
+            ;;
+        (m)
+            dataset=${OPTARG%/}
+            ;;
+        (e)
+            edgecnt=${OPTARG}
             ;;
         (n)
-            dataset=${OPTARG}
+            nodecnt=${OPTARG}
             ;;
         (*)
             usage
@@ -48,9 +58,25 @@ sed 's/^ *//' < "temp_nodes_indeg.txt" > "${output}/${dataset}_nodes_indeg_"
 
 #Now create an empty DBs for all three representations for  insertion
 #Using pagerank for this. Too lazy to do any better :(
-./pagerank -n -m std_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l std -e
+# Here rd in the DB Name indicates the r(read optimize) and d(directed) flags 
+./pagerank -n -m std_rd_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l std -e
+./pagerank -n -m std_d_${dataset} -b PR -a ${filename} -s ${dataset} -o -d -l std -e
 
-./pagerank -n -m adj_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l adjlist -e
+./pagerank -n -m adj_rd_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l adjlist -e
+./pagerank -n -m adj_d_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l adjlist -e
 
-./pagerank -n -m ekey_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l edgekey -e
-# Here - 
+./pagerank -n -m ekey_rd_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l edgekey -e
+./pagerank -n -m ekey_d_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l edgekey -e
+
+# Here : n (new graph) m (name of db) b(benchmark-- useless in this context but
+# needed) s(dataset name *NOT* path) o(optimize create) r(read_optimize) d(directed)
+# e (exit on create -- special switch to do this. )
+
+#Now insert into the database
+touch insert_time.txt
+echo "#Inserting ${dataset}" >> insert_time.txt
+echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> insert_time.txt
+echo "#STD:" >> insert_time.txt
+/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d db/std_rd_${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -r
+
+/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d db/std_d_${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset}

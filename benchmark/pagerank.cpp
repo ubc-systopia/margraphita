@@ -100,28 +100,18 @@ int main(int argc, char *argv[])
         auto end = chrono::steady_clock::now();
         // logger->out("Graph loaded in " + chrono::duration_cast<chrono::microseconds>(end - start).count());
         cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
-        start = chrono::steady_clock::now();
-        //Now insert edges into the graph if create_new is true
-        if (pr_cli.is_create_new())
-        {
-            vector<edge> edges = reader::parse_entries(pr_cli.get_filename());
-            cout << "number of edges read " << edges.size() << endl;
-            if (edges.size() == 0)
-            {
-                cout << "Could not parse the file containing edges. Abort.";
-                exit(-1);
-            }
-            for (edge e : edges)
-            {
-                graph.add_edge(e);
-            }
-        }
 
+        // We assume here that the edges have already been inserted into the
+        // graph. We just create indices here.
+        start = chrono::steady_clock::now();
+        if (pr_cli.get_graph_type() == "std" || pr_cli.get_graph_type() == "edgekey")
+        {
+            graph.create_indices();
+        }
         end = chrono::steady_clock::now();
-        cout << "Edges inserted in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
-        //  logger->out("Edges inserted in " + chrono::duration_cast<chrono::microseconds>(end - start).count());
-        graph.close();
-        exit(0);
+        cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+
+        //Now run PR
         start = chrono::steady_clock::now();
         vector<float> scores = pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
         end = chrono::steady_clock::now();

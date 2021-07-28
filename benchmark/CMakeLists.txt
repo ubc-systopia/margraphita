@@ -29,7 +29,7 @@ INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 target_include_directories(wt_thread PRIVATE ${PATH_SRC})
 target_link_libraries(wt_thread PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
 
-add_executable(bulk_insert bulk_insert_mmap.cpp)
+add_executable(bulk_insert bulk_insert.cpp)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 
 target_include_directories(bulk_insert PRIVATE ${PATH_SRC})
