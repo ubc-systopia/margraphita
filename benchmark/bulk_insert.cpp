@@ -75,7 +75,7 @@ void *insert_edge_thread(void *arg)
         cursor->insert(cursor);
         start_idx++;
     }
-    std::cout << tid << "\t" << filename << "\t" << (edge_per_part * tid) + 1 << "\t" << start_idx << "\t" << size << std::endl;
+    //std::cout << tid << "\t" << filename << "\t" << (edge_per_part * tid) + 1 << "\t" << start_idx << "\t" << size << std::endl;
     delete (int *)arg;
 
     return (void *)(size);
@@ -131,13 +131,10 @@ int insert_node()
     return size;
 }
 
-void *insert_inadjlist(void *arg)
+void insert_inadjlist()
 {
     WT_CURSOR *cursor;
     WT_SESSION *session;
-    int tid = *(int *)arg;
-    int start_idx = (node_per_part * tid) + 1;
-    int end_idx = (node_per_part * (tid + 1));
 
     conn->open_session(conn, NULL, NULL, &session);
     session->open_cursor(session, "table:adjlistin", NULL, NULL, &cursor);
@@ -155,7 +152,7 @@ void *insert_inadjlist(void *arg)
     session->close(session, NULL);
 }
 
-void *insert_outadjlist(void *arg)
+void insert_outadjlist()
 {
     WT_CURSOR *cursor;
     WT_SESSION *session;
@@ -221,10 +218,11 @@ int main(int argc, char *argv[])
     }
     edge_per_part = ceil(num_edges / NUM_THREADS);
 
-    std::cout << "edges per part : " << edge_per_part << std::endl;
+    //std::cout << "edges per part : " << edge_per_part << std::endl;
 
     for (std::string prefix : {"std", "adj", "ekey"})
     {
+        std::cout << " Now populating the " << prefix << " implementation DB" << std::endl;
         type = prefix;
         std::string middle;
         if (read_optimized)
@@ -246,7 +244,7 @@ int main(int argc, char *argv[])
         pthread_t threads[NUM_THREADS];
 
         //Insert Edges First;
-        std::cout << "id \t filename \t starting index\t ending idx\t size" << std::endl;
+        //std::cout << "id \t filename \t starting index\t ending idx\t size" << std::endl;
         auto start = std::chrono::steady_clock::now();
         for (i = 0; i < NUM_THREADS; i++)
         {
@@ -270,53 +268,26 @@ int main(int argc, char *argv[])
         std::cout << "Nodes inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
         //Now create the adjlist, if needed
-        //node_per_part = ceil(num_nodes / NUM_THREADS);
+        if (prefix == "adj")
+        {
+            //insert in_Adjlist first
+            start = std::chrono::steady_clock::now();
+            int in_adj_total = 0, out_adj_total = 0;
+            insert_inadjlist();
+            end = std::chrono::steady_clock::now();
+            std::cout << "InAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-        std::cout << reader::in_adjlist.bucket_count() << "\t" << reader::out_adjlist.bucket_count();
-
-        // if (prefix == "adj")
-        // {
-        //     //insert in_Adjlist first
-        //     start = std::chrono::steady_clock::now();
-        //     int in_adj_total = 0, out_adj_total = 0;
-        //     for (i = 0; i < NUM_THREADS; i++)
-        //     {
-        //         pthread_create(&threads[i], NULL, insert_inadjlist, new int(i));
-        //     }
-
-        //     for (i = 0; i < NUM_THREADS; i++)
-        //     {
-        //         void *found;
-        //         pthread_join(threads[i], &found);
-        //         in_adj_total += in_adj_total + (intptr_t)found;
-        //     }
-
-        //     end = std::chrono::steady_clock::now();
-        //     std::cout << "InAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
-
-        //     //Insert out_Adjlist now
-        //     start = std::chrono::steady_clock::now();
-        //     int in_adj_total = 0, out_adj_total = 0;
-        //     for (i = 0; i < NUM_THREADS; i++)
-        //     {
-        //         pthread_create(&threads[i], NULL, insert_outadjlist, new int(i));
-        //     }
-
-        //     for (i = 0; i < NUM_THREADS; i++)
-        //     {
-        //         void *found;
-        //         pthread_join(threads[i], &found);
-        //         out_adj_total += out_adj_total + (intptr_t)found;
-        //     }
-
-        //     end = std::chrono::steady_clock::now();
-        //     std::cout << "OutAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
-        // }
+            //Insert out_Adjlist now
+            start = std::chrono::steady_clock::now();
+            insert_outadjlist();
+            end = std::chrono::steady_clock::now();
+            std::cout << "OutAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+        }
 
         std::cout << "total number of edges inserted = " << edge_total << std::endl;
         std::cout << "total number of nodes inserted = " << node_total << std::endl;
         conn->close(conn, NULL);
-        std::cout << "here" << std::endl;
+        std::cout << "------------------------------------------------------------------------------------" << std::endl;
     }
 
     return (EXIT_SUCCESS);
