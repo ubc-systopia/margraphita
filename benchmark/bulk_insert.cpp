@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
 
     std::cout << "edges per part : " << edge_per_part << std::endl;
 
-    for (std::string prefix : {"ekey"}) //"std", "adj",
+    for (std::string prefix : {"std", "adj", "ekey"})
     {
         type = prefix;
         std::string middle;
@@ -254,14 +254,14 @@ int main(int argc, char *argv[])
         }
         int edge_total = 0;
         int node_total = 0;
-        // for (i = 0; i < NUM_THREADS; i++)
-        // {
-        //     void *found;
-        //     pthread_join(threads[i], &found);
-        //     edge_total = edge_total + (intptr_t)found;
-        // }
+        for (i = 0; i < NUM_THREADS; i++)
+        {
+            void *found;
+            pthread_join(threads[i], &found);
+            edge_total = edge_total + (intptr_t)found;
+        }
         auto end = std::chrono::steady_clock::now();
-        // std::cout << "Edges inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+        std::cout << "Edges inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
         //Now insert nodes;
         start = std::chrono::steady_clock::now();
@@ -316,6 +316,7 @@ int main(int argc, char *argv[])
         std::cout << "total number of edges inserted = " << edge_total << std::endl;
         std::cout << "total number of nodes inserted = " << node_total << std::endl;
         conn->close(conn, NULL);
+        std::cout << "here" << std::endl;
     }
 
     return (EXIT_SUCCESS);
