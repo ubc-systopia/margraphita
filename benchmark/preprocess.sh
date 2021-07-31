@@ -45,15 +45,16 @@ split --number=l/10 ${filename} "${output}/${dataset}_edges"
 
 ##Process out degrees: count of unique entries in 1st column is the outdegree
 #for each node.
-cut -f1 ${filename} | sort | uniq -c > "temp_nodes_outdeg.txt"
+cut -f1 ${filename} | sort --parallel=10 | uniq -c > "temp_nodes_outdeg.txt"
+#cut -f1 ${filename} | uniq -c > "temp_nodes_outdeg.txt"
 #To remove leading whitespace
 sed 's/^ *//' < "temp_nodes_outdeg.txt" > "${output}/${dataset}_nodes_outdeg_"
-#split into 10 parts for MT ingest
-#split --number=l/10 "${output}/${dataset}_nodes_outdeg_" "${output}/${dataset}_nodes_outdeg_"
+
 
 ##Process in degrees: count of unique entries in 2nd column is the indegree for
 #each node
-cut -f2 ${filename} | sort | uniq -c > "temp_nodes_indeg.txt"
+cut -f2 ${filename} | sort --parallel=10 | uniq -c > "temp_nodes_indeg.txt"
+#cut -f2 ${filename} |uniq -c > "temp_nodes_indeg.txt"
 #To remove leading whitespace
 sed 's/^ *//' < "temp_nodes_indeg.txt" > "${output}/${dataset}_nodes_indeg_"
 
