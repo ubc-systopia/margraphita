@@ -39,25 +39,21 @@ while getopts "f:o:m:n:e:" o; do
 done
 
 ##remove all lines that begin with a comment
-# sed -i '/^#/d' ${filename}
+#sort --parallel=10 ${filename} | sed '/^#/d' > ${output}/${dataset}_sorted.txt
+# mv ${filename} ${filename}_orig
+# mv ${output}/${dataset}_sorted.txt ${filename} #overwrite the original file
+# with the sorted, no comment version
 
 # ##Split the edges file
-# split --number=l/10 ${filename} "${output}/${dataset}_edges"
+#split --number=l/10 ${filename} "${output}/${dataset}_edges"
 
-# ##Process out degrees: count of unique entries in 1st column is the outdegree
-# #for each node.
-# cut -f1 ${filename} | sort --parallel=10 | uniq -c > "temp_nodes_outdeg.txt"
-# #cut -f1 ${filename} | uniq -c > "temp_nodes_outdeg.txt"
-# #To remove leading whitespace
-# sed 's/^ *//' < "temp_nodes_outdeg.txt" > "${output}/${dataset}_nodes_outdeg_"
-
+#Process out degrees: count of unique entries in 1st column is the outdegree
+#for each node and remove leading whitespace
+#cut -f1 ${filename} | sed 's/^ *//' | uniq -c > "${output}/${dataset}_nodes_outdeg_"
 
 # ##Process in degrees: count of unique entries in 2nd column is the indegree for
-# #each node
-# cut -f2 ${filename} | sort --parallel=10 | uniq -c > "temp_nodes_indeg.txt"
-# #cut -f2 ${filename} |uniq -c > "temp_nodes_indeg.txt"
-# #To remove leading whitespace
-# sed 's/^ *//' < "temp_nodes_indeg.txt" > "${output}/${dataset}_nodes_indeg_"
+# #each node and remove leading whitespace
+#cut -f2 ${filename} | sed 's/^ *//' | uniq -c > "${output}/${dataset}_nodes_indeg_"
 
 #Now create an empty DBs for all three representations for  insertion
 #Using pagerank for this. Too lazy to do any better :(
@@ -76,7 +72,7 @@ done
 # e (exit on create -- special switch to do this. )
 
 #Now insert into the database
-touch insert_time.txt
+# touch insert_time.txt
 echo "#Inserting ${dataset}" >> insert_time.txt
 echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> insert_time.txt
 echo "#${dataset}:" >> insert_time.txt
@@ -85,5 +81,7 @@ echo "#${dataset}:" >> insert_log.txt
 
 /usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} &>> insert_log.txt
 echo "----------------------------" >> insert_time.txtrweb
-
-## CIT -e 
+echo -ne '\007'
+exit 1
+#CIT: -n 3774768 -e 16518948 
+#Twitter: -n 41652230 -e 1468365182 

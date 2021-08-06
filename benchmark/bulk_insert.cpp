@@ -176,7 +176,6 @@ void insert_inadjlist()
         int indeg = entry.second.size();
         size_t size;
         std::string packed_adjlist = CommonUtil::pack_int_vector_std(entry.second, &size);
-        std::cout << node_id << " " << indeg << " " << packed_adjlist << std::endl;
         cursor->set_key(cursor, node_id);
         cursor->set_value(cursor, indeg, packed_adjlist);
         cursor->insert(cursor);
