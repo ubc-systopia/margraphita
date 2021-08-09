@@ -20,7 +20,8 @@
 using namespace std;
 const float dampness = 0.85;
 
-vector<float> pagerank(StandardGraph &graph, graph_opts opts, int iterations, double tolerance, Logger *logger)
+template <typename Graph>
+vector<float> pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, Logger *logger)
 {
 
     int num_nodes = graph.get_num_nodes();
@@ -102,7 +103,8 @@ int main(int argc, char *argv[])
         cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
 
         // We assume here that the edges have already been inserted into the
-        // graph. We just create indices here.
+        // graph. We just create indices here. Adjlist does not have any
+        // indices.
         start = chrono::steady_clock::now();
         if (pr_cli.get_graph_type() == "std" || pr_cli.get_graph_type() == "edgekey")
         {
@@ -129,6 +131,14 @@ int main(int argc, char *argv[])
         {
             exit(0);
         }
+        //Now run PR
+        auto start = chrono::steady_clock::now();
+        vector<float> scores = pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
+        auto end = chrono::steady_clock::now();
+        cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        // logger->out("PR  completed in : " +
+        // chrono::duration_cast<chrono::microseconds>(end - start).count());
+        graph.close();
     }
     else if (pr_cli.get_graph_type() == "edgekey")
     {
@@ -139,6 +149,25 @@ int main(int argc, char *argv[])
         {
             exit(0);
         }
+        // We assume here that the edges have already been inserted into the
+        // graph. We just create indices here. Adjlist does not have any
+        // indices.
+        auto start = chrono::steady_clock::now();
+        if (pr_cli.get_graph_type() == "std" || pr_cli.get_graph_type() == "edgekey")
+        {
+            graph.create_indices();
+        }
+        auto end = chrono::steady_clock::now();
+        cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+
+        //Now run PR
+        start = chrono::steady_clock::now();
+        vector<float> scores = pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
+        end = chrono::steady_clock::now();
+        cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        // logger->out("PR  completed in : " +
+        // chrono::duration_cast<chrono::microseconds>(end - start).count());
+        graph.close();
     }
     else
     {
