@@ -43,8 +43,7 @@ void *insert_edge_thread(void *arg)
         edjlist = reader::parse_edge_entries(filename);
     int size = edjlist.size();
 
-    //int start_idx = (edge_per_part * tid) + 1;
-    return (void *)(size);
+    // = (edge_per_part * tid) + 1;
     WT_CURSOR *cursor;
     WT_SESSION *session;
 
@@ -124,7 +123,7 @@ void *insert_node(void *arg)
             }
             else
             {
-                cursor->set_value(cursor, 0, 0);
+                cursor->set_value(cursor, "");
             }
 
             cursor->insert(cursor);
@@ -306,7 +305,7 @@ int main(int argc, char *argv[])
     auto end = std::chrono::steady_clock::now();
     std::cout << "Edges inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    std::vector<std::string> prefix = {"adj"}; //{"std", "adj", "ekey"};
+    std::vector<std::string> prefix = {"std", "adj", "ekey"};
 
     //Now insert nodes;
 
