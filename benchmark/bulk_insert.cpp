@@ -44,7 +44,7 @@ void *insert_edge_thread(void *arg)
     int size = edjlist.size();
 
     //int start_idx = (edge_per_part * tid) + 1;
-
+    return (void *)(size);
     WT_CURSOR *cursor;
     WT_SESSION *session;
 
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
     auto end = std::chrono::steady_clock::now();
     std::cout << "Edges inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    std::vector<std::string> prefix = {"std", "adj", "ekey"};
+    std::vector<std::string> prefix = {"adj"}; //{"std", "adj", "ekey"};
 
     //Now insert nodes;
 
@@ -317,11 +317,11 @@ int main(int argc, char *argv[])
     nodelist_size = nodelist.size();
 
     start = std::chrono::steady_clock::now();
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < 1; i++)
     {
         pthread_create(&threads[i], NULL, insert_node, (void *)(prefix.at(i).c_str()));
     }
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < 1; i++)
     {
         void *found;
         pthread_join(threads[i], &found);

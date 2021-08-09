@@ -19,7 +19,7 @@ protected:
     std::string benchmark;
     std::string dataset;
     bool create_new = false;
-    bool read_optimize = true;
+    bool read_optimize = false;
     bool directed = true;
     bool weighted = false;
     bool optimized_create = false;
