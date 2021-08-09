@@ -39,9 +39,11 @@ public:
     std::vector<edge> get_edges();
 
     bool has_edge(int src_id, int dst_id);
-    void get_num_nodes_and_edges(int *node_count, int *edge_count);
-    int get_out_deg(int node_id);
-    int get_in_deg(int node_id);
+    int get_num_edges();
+    int get_num_nodes();
+
+    int get_out_degree(int node_id);
+    int get_in_degree(int node_id);
     std::vector<edge> get_out_edges(int node_id);
     std::vector<node> get_out_nodes(int node_id);
     std::vector<edge> get_in_edges(int node_id);

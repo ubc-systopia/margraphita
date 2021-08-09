@@ -647,8 +647,9 @@ std::vector<node> EdgeKey::get_nodes()
 //metadata table while calling close(). Restore the global node and edge counts
 //value on restore from DB. Then add and delete operations modify this global
 //value. This function is wasteful.
-void EdgeKey::get_num_nodes_and_edges(int *node_count, int *edge_count)
+int EdgeKey::get_num_nodes()
 {
+    int node_count = 0;
     WT_CURSOR *dst_cur = get_dst_idx_cur();
     while (dst_cur->next(dst_cur) == 0)
     {
@@ -656,14 +657,28 @@ void EdgeKey::get_num_nodes_and_edges(int *node_count, int *edge_count)
         dst_cur->get_key(dst_cur, &dst); // dst_cursor key points to dst
         if (dst == -1)
         {
-            *node_count++;
-        }
-        else
-        {
-            *edge_count++;
+            node_count++;
         }
     }
     dst_cur->close(dst_cur);
+    return node_count;
+}
+
+int EdgeKey::get_num_edges()
+{
+    WT_CURSOR *dst_cur = get_dst_idx_cur();
+    int edge_count = 0;
+    while (dst_cur->next(dst_cur) == 0)
+    {
+        int dst;
+        dst_cur->get_key(dst_cur, &dst); // dst_cursor key points to dst
+        if (dst != -1)
+        {
+            edge_count++;
+        }
+    }
+    dst_cur->close(dst_cur);
+    return edge_count;
 }
 
 /**
@@ -672,7 +687,7 @@ void EdgeKey::get_num_nodes_and_edges(int *node_count, int *edge_count)
  * @param node_id ID of the node whose out degree is sought
  * @return int outdegree of node with ID node_id
  */
-int EdgeKey::get_out_deg(int node_id)
+int EdgeKey::get_out_degree(int node_id)
 {
     if (read_optimize)
     {
@@ -729,7 +744,7 @@ int EdgeKey::get_out_deg(int node_id)
  * @param node_id the ID of the node whose in_degree is sought
  * @return int the indegree found/computed. 
  */
-int EdgeKey::get_in_deg(int node_id)
+int EdgeKey::get_in_degree(int node_id)
 {
     if (read_optimize)
     {
