@@ -30,6 +30,13 @@ std::mutex lock;
 
 int nodelist_size;
 
+std::string pack_int_to_str(int a, int b)
+{
+    std::stringstream sstream;
+    sstream << a << " " << b;
+    return sstream.str();
+}
+
 void *insert_edge_thread(void *arg)
 {
 
@@ -103,107 +110,166 @@ void *insert_edge_thread(void *arg)
 void *insert_node(void *arg)
 {
 
-    char *impl = (char *)arg;
-    std::string type(impl);
-    WT_CURSOR *cursor;
-    WT_SESSION *session;
+    int tid = *(int *)arg;
+    std::string filename = dataset + "_nodes";
+    char c = (char)(97 + tid);
+    filename.push_back('a');
+    filename.push_back(c);
 
-    if (type == "std")
+    std::vector<node>
+        nodes = reader::parse_node_entries(filename);
+    std::string type;
+    WT_CURSOR *std_cur, *ekey_cur, *adj_cur, *adj_incur, *adj_outcur;
+    WT_SESSION *std_sess, *ekey_sess, *adj_sess;
+
+    conn_std->open_session(conn_std, NULL, NULL, &std_sess);
+    std_sess->open_cursor(std_sess, "table:node", NULL, NULL, &std_cur);
+
+    conn_ekey->open_session(conn_ekey, NULL, NULL, &ekey_sess);
+    ekey_sess->open_cursor(ekey_sess, "table:edge", NULL, NULL, &ekey_cur);
+
+    conn_adj->open_session(conn_adj, NULL, NULL, &adj_sess);
+    adj_sess->open_cursor(adj_sess, "table:node", NULL, NULL, &adj_cur);
+    adj_sess->open_cursor(adj_sess, "table:adjlistin", NULL, NULL, &adj_incur);
+    adj_sess->open_cursor(adj_sess, "table:adjlistout", NULL, NULL, &adj_outcur);
+
+    for (node to_insert : nodes)
     {
-        conn_std->open_session(conn_std, NULL, NULL, &session);
-        session->open_cursor(session, "table:node", NULL, NULL, &cursor);
-        for (auto &entry : nodelist)
+        for (std::string type : {"std", "adj", "ekey"})
         {
-            node n = entry.second;
-            cursor->set_key(cursor, n.id);
-
-            if (read_optimized)
+            if (type == "std")
             {
-                cursor->set_value(cursor, n.in_degree, n.out_degree);
+                std_cur->set_key(std_cur, to_insert.id);
+
+                if (read_optimized)
+                {
+                    std_cur->set_value(std_cur, to_insert.in_degree, to_insert.out_degree);
+                }
+                else
+                {
+                    std_cur->set_value(std_cur, "");
+                }
+
+                std_cur->insert(std_cur);
             }
-            else
+            else if (type == "ekey")
             {
-                cursor->set_value(cursor, "");
+
+                ekey_cur->set_key(ekey_cur, to_insert.id, -1);
+                if (read_optimized)
+                {
+                    std::string packed = pack_int_to_str(to_insert.in_degree, to_insert.out_degree);
+                    ekey_cur->set_value(ekey_cur, packed.c_str());
+                }
+                else
+                {
+                    ekey_cur->set_value(ekey_cur, "");
+                }
+
+                ekey_cur->insert(ekey_cur);
             }
+            else if (type == "adj")
+            {
 
-            cursor->insert(cursor);
+                adj_cur->set_key(adj_cur, to_insert.id);
+                if (read_optimized)
+                {
+                    adj_cur->set_value(adj_cur, to_insert.in_degree, to_insert.out_degree);
+                }
+                else
+                {
+                    adj_cur->set_value(adj_cur, "");
+                }
+
+                adj_cur->insert(adj_cur);
+
+                //Now insert into in and out tables.
+                adj_incur->set_key(adj_incur, to_insert.id);
+                adj_outcur->set_key(adj_outcur, to_insert.id);
+                size_t size;
+                try
+                {
+                    std::string packed_inlist = CommonUtil::pack_int_vector_std(in_adjlist.at(to_insert.id), &size);
+                    adj_incur->set_value(adj_incur, to_insert.in_degree, packed_inlist.c_str());
+                }
+                catch (const std::out_of_range &oor)
+                {
+                    adj_incur->set_value(adj_incur, 0, "");
+                }
+
+                try
+                {
+                    std::string packed_outlist = CommonUtil::pack_int_vector_std(out_adjlist.at(to_insert.id), &size);
+                    adj_outcur->set_value(adj_outcur, to_insert.out_degree, packed_outlist.c_str());
+                }
+                catch (const std::out_of_range &oor)
+                {
+                    adj_outcur->set_value(adj_outcur, 0, "");
+                }
+
+                adj_incur->insert(adj_incur);
+                adj_outcur->insert(adj_outcur);
+            }
         }
-        cursor->close(cursor);
-        session->close(session, NULL);
     }
-    else if (type == "ekey")
-    {
-        conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
-        session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
-        for (auto &entry : nodelist)
-        {
-            node n = entry.second;
-            cursor->set_key(cursor, n.id, -1);
-            cursor->set_value(cursor, "");
-            cursor->insert(cursor);
-        }
-        cursor->close(cursor);
-        session->close(session, NULL);
-    }
-    else if (type == "adj")
-    {
-        conn_adj->open_session(conn_adj, NULL, NULL, &session);
-        session->open_cursor(session, "table:node", NULL, NULL, &cursor);
-        for (auto &entry : nodelist)
-        {
-            node n = entry.second;
-            cursor->set_key(cursor, n.id, -1);
-            cursor->set_value(cursor, "");
-            cursor->insert(cursor);
-        }
-        cursor->close(cursor);
-        session->close(session, NULL);
-    }
+
+    std_cur->close(std_cur);
+    std_sess->close(std_sess, NULL);
+
+    ekey_cur->close(ekey_cur);
+    ekey_sess->close(ekey_sess, NULL);
+
+    adj_cur->close(adj_cur);
+    adj_sess->close(adj_sess, NULL);
+
+    delete (int *)arg;
+
+    return (void *)(nodes.size());
 }
 
-void insert_inadjlist()
-{
-    WT_CURSOR *cursor;
-    WT_SESSION *session;
+// void insert_inadjlist()
+// {
+//     WT_CURSOR *cursor;
+//     WT_SESSION *session;
 
-    conn_adj->open_session(conn_adj, NULL, NULL, &session);
-    session->open_cursor(session, "table:adjlistin", NULL, NULL, &cursor);
-    int cnt = 0;
-    for (auto &entry : in_adjlist)
-    {
-        int node_id = entry.first;
-        int indeg = entry.second.size();
-        size_t size;
-        std::string packed_adjlist = CommonUtil::pack_int_vector_std(entry.second, &size);
-        cursor->set_key(cursor, node_id);
-        cursor->set_value(cursor, indeg, packed_adjlist);
-        cursor->insert(cursor);
-    }
-    cursor->close(cursor);
-    session->close(session, NULL);
-}
+//     conn_adj->open_session(conn_adj, NULL, NULL, &session);
+//     session->open_cursor(session, "table:adjlistin", NULL, NULL, &cursor);
+//     int cnt = 0;
+//     for (auto &entry : in_adjlist)
+//     {
+//         int node_id = entry.first;
+//         int indeg = entry.second.size();
+//         size_t size;
+//         std::string packed_adjlist = CommonUtil::pack_int_vector_std(entry.second, &size);
+//         cursor->set_key(cursor, node_id);
+//         cursor->set_value(cursor, indeg, packed_adjlist);
+//         cursor->insert(cursor);
+//     }
+//     cursor->close(cursor);
+//     session->close(session, NULL);
+// }
 
-void insert_outadjlist()
-{
-    WT_CURSOR *cursor;
-    WT_SESSION *session;
+// void insert_outadjlist()
+// {
+//     WT_CURSOR *cursor;
+//     WT_SESSION *session;
 
-    conn_adj->open_session(conn_adj, NULL, NULL, &session);
-    session->open_cursor(session, "table:adjlistout", NULL, NULL, &cursor);
-    int cnt = 0;
-    for (auto &entry : out_adjlist)
-    {
-        int node_id = entry.first;
-        int outdeg = entry.second.size();
-        size_t size;
-        std::string packed_adjlist = CommonUtil::pack_int_vector_std(entry.second, &size);
-        cursor->set_key(cursor, node_id);
-        cursor->set_value(cursor, outdeg, packed_adjlist);
-        cursor->insert(cursor);
-    }
-    cursor->close(cursor);
-    session->close(session, NULL);
-}
+//     conn_adj->open_session(conn_adj, NULL, NULL, &session);
+//     session->open_cursor(session, "table:adjlistout", NULL, NULL, &cursor);
+//     int cnt = 0;
+//     for (auto &entry : out_adjlist)
+//     {
+//         int node_id = entry.first;
+//         int outdeg = entry.second.size();
+//         size_t size;
+//         std::string packed_adjlist = CommonUtil::pack_int_vector_std(entry.second, &size);
+//         cursor->set_key(cursor, node_id);
+//         cursor->set_value(cursor, outdeg, packed_adjlist);
+//         cursor->insert(cursor);
+//     }
+//     cursor->close(cursor);
+//     session->close(session, NULL);
+// }
 
 int main(int argc, char *argv[])
 {
@@ -249,6 +315,7 @@ int main(int argc, char *argv[])
         }
     }
     edge_per_part = ceil(num_edges / NUM_THREADS);
+    node_per_part = ceil(num_nodes / NUM_THREADS);
 
     std::string middle;
     if (read_optimized)
@@ -303,43 +370,37 @@ int main(int argc, char *argv[])
         edge_total = edge_total + (intptr_t)found;
     }
     auto end = std::chrono::steady_clock::now();
-    std::cout << "Edges inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+    std::cout << edge_total << " edges inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
     std::vector<std::string> prefix = {"std", "adj", "ekey"};
 
     //Now insert nodes;
-
-    //read the file for nodes and adjlist
-    std::string filename = dataset;
-    filename += "_nodes";
-    nodelist = reader::parse_node_entries(filename);
-    nodelist_size = nodelist.size();
-
     start = std::chrono::steady_clock::now();
-    for (i = 0; i < 1; i++)
+    for (i = 0; i < NUM_THREADS; i++)
     {
-        pthread_create(&threads[i], NULL, insert_node, (void *)(prefix.at(i).c_str()));
+        pthread_create(&threads[i], NULL, insert_node, new int(i)); // (void *)(prefix.at(i).c_str()));
     }
-    for (i = 0; i < 1; i++)
+    for (i = 0; i < NUM_THREADS; i++)
     {
         void *found;
         pthread_join(threads[i], &found);
+        node_total = node_total + (intptr_t)found;
     }
     end = std::chrono::steady_clock::now();
-    std::cout << "Nodes inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+    std::cout << node_total << " nodes inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    //insert in_Adjlist first
-    start = std::chrono::steady_clock::now();
-    int in_adj_total = 0, out_adj_total = 0;
-    insert_inadjlist();
-    end = std::chrono::steady_clock::now();
-    std::cout << "InAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+    // //insert in_Adjlist first
+    // start = std::chrono::steady_clock::now();
+    // int in_adj_total = 0, out_adj_total = 0;
+    // insert_inadjlist();
+    // end = std::chrono::steady_clock::now();
+    // std::cout << "InAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    //Insert out_Adjlist now
-    start = std::chrono::steady_clock::now();
-    insert_outadjlist();
-    end = std::chrono::steady_clock::now();
-    std::cout << "OutAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+    // //Insert out_Adjlist now
+    // start = std::chrono::steady_clock::now();
+    // insert_outadjlist();
+    // end = std::chrono::steady_clock::now();
+    // std::cout << "OutAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
     std::cout << "total number of edges inserted = " << edge_total << std::endl;
     std::cout << "total number of nodes inserted = " << node_total << std::endl;
