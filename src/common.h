@@ -51,9 +51,9 @@ struct graph_opts
 
 typedef struct node
 {
-    uint32_t id; // node ID
-    uint32_t in_degree = 0;
-    uint32_t out_degree = 0;
+    int id; // node ID
+    int in_degree = 0;
+    int out_degree = 0;
 } node;
 
 typedef struct edge

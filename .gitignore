@@ -10,3 +10,4 @@ graph_api
 src/db/
 cscope.out
 tags
+build/
