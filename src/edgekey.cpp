@@ -1253,3 +1253,52 @@ string EdgeKey::pack_int_to_str(int a, int b)
     sstream << a << " " << b;
     return sstream.str();
 }
+
+WT_CURSOR *EdgeKey::get_node_iter()
+{
+    return get_dst_idx_cur();
+}
+
+node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
+{
+    dst_cur->set_key(dst_cur, -1);
+    WT_CURSOR *e_cur = get_edge_cursor();
+    node found = {-1};
+    if (dst_cur->search(dst_cur) == 0)
+    {
+        int node_id, temp;
+        dst_cur->get_value(dst_cur, &node_id, &temp);
+        assert(temp == -1); //this should be true
+        e_cur->set_key(e_cur, node_id, -1);
+        if (e_cur->search(e_cur) == 0)
+        {
+
+            found.id = node_id;
+            __record_to_node(e_cur, &found);
+        }
+    }
+    return found;
+}
+
+WT_CURSOR *EdgeKey::get_edge_iter()
+{
+    return get_edge_cursor();
+}
+
+edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
+{
+    edge found = {-1};
+    while (e_cur->next(e_cur) == 0)
+    {
+        e_cur->get_key(e_cur, &found.src_id, &found.dst_id);
+        if (found.dst_id != -1)
+        {
+            if (is_weighted)
+            {
+                __record_to_edge(e_cur, &found);
+            }
+            break;
+        }
+    }
+    return found;
+}

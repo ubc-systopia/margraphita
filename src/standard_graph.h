@@ -46,8 +46,10 @@ public:
     std::vector<node> get_in_nodes(int node_id);
     void set_node_data(int node_id, int idx, string data);
     std::string get_node_data(int node_id, int idx);
-    void get_node_iter();
-    void get_edge_iter();
+    WT_CURSOR *get_node_iter();
+    node get_next_node(WT_CURSOR *n_iter);
+    WT_CURSOR *get_edge_iter();
+    edge get_next_edge(WT_CURSOR *e_iter);
     // Metadata operations:
     void insert_metadata(string key, string value_format, char *value);
     string get_metadata(string key);

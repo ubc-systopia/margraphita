@@ -1352,6 +1352,44 @@ vector<node> StandardGraph::get_in_nodes(int node_id)
  * @return vector<edge> 
  */
 
+WT_CURSOR *StandardGraph::get_node_iter()
+{
+    WT_CURSOR *n_iter;
+    _get_table_cursor(NODE_TABLE, &n_iter, false);
+    return n_iter;
+}
+
+node StandardGraph::get_next_node(WT_CURSOR *n_iter)
+{
+    node found = {-1};
+    if (n_iter->next(n_iter) == 0)
+    {
+        found = __record_to_node(n_iter);
+        n_iter->get_key(n_iter, &found.id);
+    }
+
+    return found;
+}
+WT_CURSOR *StandardGraph::get_edge_iter()
+{
+    WT_CURSOR *e_iter;
+    _get_table_cursor(EDGE_TABLE, &e_iter, false);
+    return e_iter;
+}
+
+edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
+{
+    if (e_iter->next(e_iter) == 0)
+    {
+        return __record_to_edge(e_iter);
+    }
+    else
+    {
+        edge not_found = {-1};
+        return not_found;
+    }
+}
+
 vector<edge> StandardGraph::test_cursor_iter(int node_id)
 {
     vector<edge> edges;

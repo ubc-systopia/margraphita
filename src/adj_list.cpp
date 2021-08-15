@@ -1555,3 +1555,48 @@ WT_CURSOR *AdjList::get_out_adjlist_cursor()
     }
     return cursor;
 }
+
+WT_CURSOR *AdjList::get_node_iter()
+{
+    return get_node_cursor();
+}
+
+node AdjList::get_next_node(WT_CURSOR *n_cur)
+{
+    int ret = 0;
+    node found = {0};
+    if (n_cur->next(n_cur) == 0)
+    {
+        node found = __record_to_node(n_cur, 0);
+        n_cur->get_key(n_cur, &found.id);
+    }
+    else
+    {
+        found.id = -1;
+    }
+    return found;
+}
+
+WT_CURSOR *AdjList::get_edge_iter()
+{
+    return get_edge_cursor();
+}
+
+edge AdjList::get_next_edge(WT_CURSOR *e_cur)
+{
+    int ret = 0;
+    edge found = {-1};
+    if (e_cur->next(e_cur) == 0)
+    {
+        e_cur->get_key(e_cur, &found.src_id, &found.dst_id);
+        if (is_weighted)
+        {
+            __record_to_edge(e_cur, &found);
+        }
+    }
+    else
+    {
+        found.id = -1;
+    }
+    return found;
+}

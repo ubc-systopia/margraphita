@@ -60,8 +60,10 @@ public:
     //! void set_node_data(int node_id, int idx, string data);
     //! Do we need get all weights of in/out degree from a node
     std::string get_node_data(int node_id, int idx);
-    void get_node_iter(); //! APT Check
-    void get_edge_iter(); //! APT Check
+    WT_CURSOR *get_node_iter();
+    node get_next_node(WT_CURSOR *n_cur);
+    WT_CURSOR *get_edge_iter();
+    edge get_next_edge(WT_CURSOR *e_cur);
     // Metadata operations:
     void insert_metadata(string key, char *value);
     string get_metadata(string key); //
