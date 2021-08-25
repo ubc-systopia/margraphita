@@ -3,6 +3,7 @@
 #include <math.h>
 #include <chrono>
 #include <unistd.h>
+#include <cassert>
 #include "common.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
@@ -20,51 +21,65 @@
 using namespace std;
 const float dampness = 0.85;
 
+std::unordered_map<int, std::vector<float>> pr_map;
+
+void init_pr_map(std::vector<node> nodes)
+{
+    vector<float> pr_vals = {(1 / nodes.size()), 0};
+    for (node n : nodes)
+    {
+        pr_map.insert({n.id, pr_vals});
+    }
+}
+
 template <typename Graph>
-vector<float> pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, Logger *logger)
+void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, Logger *logger)
 {
 
     int num_nodes = graph.get_num_nodes();
-    const float init_score = 1.0f / num_nodes;
-    const float base_score = (1.0f - dampness) / num_nodes;
+    std::vector<node> nodes = graph.get_nodes();
+    init_pr_map(nodes);
+    nodes.clear();                   //delete all elements
+    std::vector<node>().swap(nodes); //free memory
 
-    vector<float> scores(num_nodes, init_score);
-    vector<float> outgoing_contribution(num_nodes);
-
+    int p_curr = 0;
+    int p_next = 1;
+    WT_CURSOR *edge_iter = graph.get_edge_iter();
+    WT_CURSOR *node_iter = graph.get_node_iter();
     for (int iter = 0; iter < iterations; iter++)
     {
-        cout << iter << endl;
         auto start = chrono::steady_clock::now();
-        double error = 0;
-        for (int nodeid = 0; nodeid < num_nodes; nodeid++)
+
+        edge e_found;
+        e_found = graph.get_next_edge(edge_iter);
+        while (e_found.id > 0)
         {
-            if (graph.get_out_degree(nodeid))
-            {
-                outgoing_contribution[nodeid] = scores[nodeid] / graph.get_out_degree(nodeid);
-            }
+
+            int src_out_deg = graph.get_out_degree(e_found.src_id);
+            float rank = pr_map.at(e_found.dst_id).at(p_next) + (pr_map.at(e_found.dst_id).at(p_curr) / src_out_deg);
+            pr_map.at(e_found.dst_id).at(p_next) = rank;
+
+            e_found = graph.get_next_edge(edge_iter);
         }
-        for (int nodeid = 0; nodeid < num_nodes; nodeid++)
+
+        //Now apply Damping
+
+        for (auto itr = pr_map.begin(); itr != pr_map.end(); ++itr)
         {
-            float incoming_total = 0;
-            for (node n : graph.get_in_nodes(nodeid))
-            {
-                incoming_total += outgoing_contribution[n.id];
-            }
-            float old_score = scores[nodeid];
-            scores[nodeid] = base_score + dampness * incoming_total;
-            error += fabs(scores[nodeid] - old_score);
+            float damped_rank = (dampness * ((itr->second).at(p_next))) + ((1 - dampness) / num_nodes);
+            itr->second.at(p_next) = damped_rank;
+            itr->second.at(p_curr) = 0;
         }
-        printf("%2d     %lf\n", iter, error);
-        if (error < tolerance)
-        {
-            break;
-        }
+
+        p_curr = 1 - p_curr;
+        p_next = 1 - p_next;
+
         auto end = chrono::steady_clock::now();
-        // logger->out(to_string(chrono::duration_cast<chrono::microseconds>(end
-        // - start).count()));
-        cout << iter << "\t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count());
+        cout << "Iter " << iter << "took \t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
+        edge_iter->reset(edge_iter);
     }
-    return scores;
+    edge_iter->close(edge_iter);
+    node_iter->close(node_iter);
 }
 
 int main(int argc, char *argv[])
@@ -108,14 +123,14 @@ int main(int argc, char *argv[])
         start = chrono::steady_clock::now();
         if (pr_cli.get_graph_type() == "std" || pr_cli.get_graph_type() == "edgekey")
         {
-            graph.create_indices();
+            //graph.create_indices();
         }
         end = chrono::steady_clock::now();
         cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
 
         //Now run PR
         start = chrono::steady_clock::now();
-        vector<float> scores = pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
         end = chrono::steady_clock::now();
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
         // logger->out("PR  completed in : " +
@@ -133,7 +148,7 @@ int main(int argc, char *argv[])
         }
         //Now run PR
         auto start = chrono::steady_clock::now();
-        vector<float> scores = pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
         auto end = chrono::steady_clock::now();
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
         // logger->out("PR  completed in : " +
@@ -162,7 +177,7 @@ int main(int argc, char *argv[])
 
         //Now run PR
         start = chrono::steady_clock::now();
-        vector<float> scores = pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
         end = chrono::steady_clock::now();
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
         // logger->out("PR  completed in : " +

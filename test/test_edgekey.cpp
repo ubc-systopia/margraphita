@@ -104,18 +104,18 @@ void test_add_edge(EdgeKey graph, bool is_directed)
     e_cur->set_key(e_cur, 5, -1);
     assert(e_cur->search(e_cur) == 0);
     e_cur->close(e_cur);
-    assert(graph.get_out_deg(5) == 1);
-    assert(graph.get_in_deg(6) == 1);
+    assert(graph.get_out_degree(5) == 1);
+    assert(graph.get_in_degree(6) == 1);
 
     if (is_directed)
     {
-        assert(graph.get_in_deg(5) == 0);
-        assert(graph.get_out_deg(6) == 0);
+        assert(graph.get_in_degree(5) == 0);
+        assert(graph.get_out_degree(6) == 0);
     }
     else
     {
-        assert(graph.get_in_deg(5) == 1);
-        assert(graph.get_out_deg(6) == 1);
+        assert(graph.get_in_degree(5) == 1);
+        assert(graph.get_out_degree(6) == 1);
     }
 }
 
@@ -277,13 +277,13 @@ void test_delete_node(EdgeKey graph, bool is_directed)
     //Verify that the in and out degrees of node 1 and 3 got updated
     if (is_directed)
     {
-        assert(graph.get_out_deg(SampleGraph::node1.id) == 1);
-        assert(graph.get_in_deg(SampleGraph::node3.id) == 1);
+        assert(graph.get_out_degree(SampleGraph::node1.id) == 1);
+        assert(graph.get_in_degree(SampleGraph::node3.id) == 1);
     }
     else
     {
-        assert(graph.get_in_deg(SampleGraph::node1.id) == 1);
-        assert(graph.get_out_deg(SampleGraph::node3.id) == 1);
+        assert(graph.get_in_degree(SampleGraph::node1.id) == 1);
+        assert(graph.get_out_degree(SampleGraph::node3.id) == 1);
     }
 }
 
@@ -291,8 +291,8 @@ void test_get_in_and_out_degree(EdgeKey graph)
 {
     INFO();
     int indeg, outdeg;
-    indeg = graph.get_in_deg(3);
-    outdeg = graph.get_out_deg(1);
+    indeg = graph.get_in_degree(3);
+    outdeg = graph.get_out_degree(1);
     assert(indeg == 2);
     assert(outdeg == 2);
 }

@@ -1381,7 +1381,9 @@ edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
 {
     if (e_iter->next(e_iter) == 0)
     {
-        return __record_to_edge(e_iter);
+        edge found = __record_to_edge(e_iter);
+        e_iter->get_key(e_iter, &found.id);
+        return found;
     }
     else
     {
