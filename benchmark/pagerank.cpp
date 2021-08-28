@@ -9,27 +9,67 @@
 #include "standard_graph.h"
 #include "adj_list.h"
 #include "edgekey.h"
+#include <sys/mman.h>
 #include "command_line.h"
 #include "logger.h"
 #include "reader.h"
 
-/**
- * @brief This runs the PageRank kernel on the 
- * 
- */
-
 using namespace std;
 const float dampness = 0.85;
-
-std::unordered_map<int, std::vector<float>> pr_map;
-
-void init_pr_map(std::vector<node> nodes)
+std::hash<int> hashfn;
+int N = 1610612741; //Hash bucket size
+int p_cur = 0;
+int p_next = 1;
+typedef struct pr_map
 {
-    vector<float> pr_vals = {(1 / nodes.size()), 0};
+    int id;
+    float p_rank[2];
+} pr_map;
+
+pr_map *ptr; // pointer to mmap region
+//float *pr_cur, *pr_next;
+
+void init_pr_map(std::vector<node> &nodes)
+{
+
+    int size = nodes.size();
+    //cout << size;
+    ptr = (pr_map *)mmap(NULL, sizeof(pr_map) * N, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+
+    float init_val = 1.0f / size;
+    int i = 0;
     for (node n : nodes)
     {
-        pr_map.insert({n.id, pr_vals});
+
+        int index = hashfn(n.id) % N;
+        if (ptr[index].id == 0)
+        {
+            ptr[index].id = n.id;
+            ptr[index].p_rank[p_cur] = init_val;
+            ptr[index].p_rank[p_next] = 0.0f;
+        }
+        else
+        {
+            cout << "collision at element " << n.id;
+        }
+        i++;
     }
+}
+
+void print_map(std::vector<node> &nodes)
+{
+    ofstream FILE;
+    FILE.open("pr_out.txt", ios::out | ios::ate);
+    for (node n : nodes)
+    {
+        FILE << n.id << "\t" << ptr[n.id].p_rank[p_next] << "\n";
+    }
+    FILE.close();
+}
+
+void delete_map()
+{
+    munmap(ptr, sizeof(pr_map) * 1610612741);
 }
 
 template <typename Graph>
@@ -37,49 +77,47 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, L
 {
 
     int num_nodes = graph.get_num_nodes();
+    auto start = chrono::steady_clock::now();
     std::vector<node> nodes = graph.get_nodes();
     init_pr_map(nodes);
-    nodes.clear();                   //delete all elements
-    std::vector<node>().swap(nodes); //free memory
+    auto end = chrono::steady_clock::now();
+    cout << "Loading the nodes and constructing the map took " << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
 
-    int p_curr = 0;
-    int p_next = 1;
-    WT_CURSOR *edge_iter = graph.get_edge_iter();
-    WT_CURSOR *node_iter = graph.get_node_iter();
-    for (int iter = 0; iter < iterations; iter++)
+    for (node n : nodes)
+    {
+        assert(ptr[hashfn(n.id)].id == n.id);
+    }
+
+    double diff = 1.0;
+    int iter_count = 0;
+    float constant = (1 - dampness) / num_nodes;
+    //printf("at: %d \n", __LINE__);
+    while (iter_count < iterations)
     {
         auto start = chrono::steady_clock::now();
-
-        edge e_found;
-        e_found = graph.get_next_edge(edge_iter);
-        while (e_found.id > 0)
+        for (node n : nodes)
         {
-
-            int src_out_deg = graph.get_out_degree(e_found.src_id);
-            float rank = pr_map.at(e_found.dst_id).at(p_next) + (pr_map.at(e_found.dst_id).at(p_curr) / src_out_deg);
-            pr_map.at(e_found.dst_id).at(p_next) = rank;
-
-            e_found = graph.get_next_edge(edge_iter);
+            int index = hashfn(n.id) % N;
+            float sum = 0.0f;
+            vector<node> in_nodes = graph.get_in_nodes(n.id);
+            //assert(in_nodes.size() == n.in_degree);
+            for (node in : in_nodes)
+            {
+                cout << "here\n";
+                sum += (ptr[hashfn(in.id) % N].p_rank[p_cur]) / in.out_degree;
+            }
+            ptr[index].p_rank[p_next] = constant + (dampness * sum);
         }
+        iter_count++;
 
-        //Now apply Damping
-
-        for (auto itr = pr_map.begin(); itr != pr_map.end(); ++itr)
-        {
-            float damped_rank = (dampness * ((itr->second).at(p_next))) + ((1 - dampness) / num_nodes);
-            itr->second.at(p_next) = damped_rank;
-            itr->second.at(p_curr) = 0;
-        }
-
-        p_curr = 1 - p_curr;
+        p_cur = 1 - p_cur;
         p_next = 1 - p_next;
 
         auto end = chrono::steady_clock::now();
-        cout << "Iter " << iter << "took \t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
-        edge_iter->reset(edge_iter);
+        cout << "Iter " << iter_count << "took \t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
     }
-    edge_iter->close(edge_iter);
-    node_iter->close(node_iter);
+    print_map(nodes);
+    delete_map();
 }
 
 int main(int argc, char *argv[])

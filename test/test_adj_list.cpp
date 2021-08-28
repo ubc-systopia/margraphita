@@ -414,7 +414,7 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
 int main()
 {
     graph_opts opts;
-    opts.create_new = true;
+    opts.create_new = false;
     opts.optimize_create = false;
     opts.is_directed = true;
     opts.read_optimize = true;

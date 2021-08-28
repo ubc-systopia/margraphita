@@ -102,12 +102,12 @@ void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
     INFO();
     if (is_directed)
     {
-        assert(graph.get_num_nodes() == 3);
+        assert(graph.get_num_nodes() == 4);
         assert(graph.get_num_edges() == 3);
     }
     else
     {
-        assert(graph.get_num_nodes() == 3);
+        assert(graph.get_num_nodes() == 4);
         assert(graph.get_num_edges() == 6);
     }
 }
@@ -171,8 +171,8 @@ void test_get_in_nodes_and_edges(StandardGraph graph, bool is_directed)
     vector<node> got_n = graph.get_in_nodes(3);
     if (is_directed)
     {
-        assert(got_e.size() == 1);
-        assert(got_n.size() == 1);
+        assert(got_e.size() == 2);
+        assert(got_n.size() == 2);
     }
     else
     {
@@ -193,8 +193,8 @@ void test_get_out_nodes_and_edges(StandardGraph graph, bool is_directed)
     }
     else
     {
-        assert(got_e.size() == 1);
-        assert(got_n.size() == 1);
+        assert(got_e.size() == 0);
+        assert(got_n.size() == 0);
     }
 
     for (edge x : got_e)
@@ -308,10 +308,10 @@ int main()
 {
 
     graph_opts opts;
-    opts.create_new = false;
+    opts.create_new = true;
     opts.optimize_create = false;
-    //opts.is_directed = true;
-    opts.is_directed = false;
+    opts.is_directed = true;
+    //opts.is_directed = false;
     //opts.read_optimize = false;
     opts.read_optimize = true;
     opts.is_weighted = false;
@@ -319,12 +319,12 @@ int main()
 
     //Test std_graph setup
     StandardGraph graph = StandardGraph(opts);
-    //create_init_nodes(graph, opts.is_directed);
-    test_get_nodes(graph);
-    tearDown(graph);
-    exit(0);
-
     create_init_nodes(graph, opts.is_directed);
+    test_get_nodes(graph);
+    //tearDown(graph);
+    //exit(0);
+
+    //create_init_nodes(graph, opts.is_directed);
     print_delim();
 
     //Test num_get_nodes and num_get_edges

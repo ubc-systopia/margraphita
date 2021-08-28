@@ -957,6 +957,12 @@ void StandardGraph::add_edge(edge to_insert)
             // The edge exists, set the cursor to point to that edge_id
             cursor->set_key(cursor, found_edge_id);
         }
+        else
+        {
+            to_insert.id = this->edge_id;
+            cursor->set_key(cursor, to_insert.id);
+            this->edge_id++;
+        }
     }
 
     else
@@ -1040,6 +1046,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
                                           to_string(dst_id));
     }
     cursor->close(cursor);
+
     // Update in/out degrees for the src and dst nodes if the graph is read
     // optimized
     ret = _get_table_cursor(NODE_TABLE, &cursor, false);
@@ -1054,7 +1061,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     // If not then raise an exceptiion, because we shouldn't have deleted an edge where src/dst have
     // degree 0.
     if ((is_directed and found.out_degree == 0) or
-        ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0)))
+        ((!is_directed) and ((found.out_degree == 0) or (found.in_degree == 0))))
     {
         throw GraphException("Deleted an edge with edgeid " +
                              to_string(edge_id) +
@@ -1077,7 +1084,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     found = __record_to_node(cursor);
     found.id = dst_id;
 
-    if ((is_directed and found.out_degree == 0) or
+    if ((is_directed and found.in_degree == 0) or
         ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0)))
     {
         throw GraphException("Deleted an edge with edgeid " +
@@ -1240,7 +1247,7 @@ vector<node> StandardGraph::get_out_nodes(int node_id)
             }
         }
     }
-    cursor->close(cursor);
+    //cursor->close(cursor);
     return nodes;
 }
 
@@ -1316,8 +1323,12 @@ vector<node> StandardGraph::get_in_nodes(int node_id)
             "Could not get a DST index cursor on the edge table");
     }
 
-    cursor->reset(cursor);
+    //cursor->reset(cursor);
+    assert(cursor != nullptr);
     cursor->set_key(cursor, node_id);
+    int temp;
+    cursor->get_key(cursor, &temp);
+    assert(temp == node_id);
     if (cursor->search(cursor) == 0)
     {
 

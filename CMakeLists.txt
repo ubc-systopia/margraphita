@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(graphapi    VERSION 1.0 
                     DESCRIPTION "C++ GraphAPI for WiredTiger"
                     LANGUAGES CXX)
-SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -O3 -std=gnu++2a")
+SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g -O3 -std=gnu++2a")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
