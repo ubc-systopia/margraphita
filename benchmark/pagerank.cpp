@@ -137,47 +137,32 @@ int main(int argc, char *argv[])
     opts.is_weighted = pr_cli.is_weighted();
     opts.optimize_create = pr_cli.is_create_optimized();
     opts.db_name = pr_cli.get_db_name();
+    opts.db_dir = pr_cli.get_db_path();
 
     if (pr_cli.get_graph_type() == "std")
     {
-
-        Logger *logger = new Logger("pr_run", opts.db_name, "pagerank", pr_cli.get_dataset());
 
         auto start = chrono::steady_clock::now();
 
         StandardGraph graph(opts);
         if (pr_cli.is_exit_on_create()) // Exit after creating the db
         {
+            graph.close();
             exit(0);
         }
 
         auto end = chrono::steady_clock::now();
-        // logger->out("Graph loaded in " + chrono::duration_cast<chrono::microseconds>(end - start).count());
         cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
-
-        // We assume here that the edges have already been inserted into the
-        // graph. We just create indices here. Adjlist does not have any
-        // indices.
-        start = chrono::steady_clock::now();
-        if (pr_cli.get_graph_type() == "std" || pr_cli.get_graph_type() == "edgekey")
-        {
-            //graph.create_indices();
-        }
-        end = chrono::steady_clock::now();
-        cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
 
         //Now run PR
         start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance());
         end = chrono::steady_clock::now();
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
-        // logger->out("PR  completed in : " +
-        // chrono::duration_cast<chrono::microseconds>(end - start).count());
         graph.close();
     }
     else if (pr_cli.get_graph_type() == "adjlist")
     {
-        Logger *logger = new Logger("pr_run", opts.db_name, "pagerank", pr_cli.get_dataset());
 
         AdjList graph(opts);
         if (pr_cli.is_exit_on_create()) // Exit after creating the db
@@ -186,40 +171,25 @@ int main(int argc, char *argv[])
         }
         //Now run PR
         auto start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance());
         auto end = chrono::steady_clock::now();
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
-        // logger->out("PR  completed in : " +
-        // chrono::duration_cast<chrono::microseconds>(end - start).count());
         graph.close();
     }
     else if (pr_cli.get_graph_type() == "edgekey")
     {
-        Logger *logger = new Logger("pr_run", opts.db_name, "pagerank", pr_cli.get_dataset());
 
         EdgeKey graph(opts);
         if (pr_cli.is_exit_on_create()) // Exit after creating the db
         {
             exit(0);
         }
-        // We assume here that the edges have already been inserted into the
-        // graph. We just create indices here. Adjlist does not have any
-        // indices.
-        auto start = chrono::steady_clock::now();
-        if (pr_cli.get_graph_type() == "std" || pr_cli.get_graph_type() == "edgekey")
-        {
-            graph.create_indices();
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
 
         //Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), logger);
-        end = chrono::steady_clock::now();
+        auto start = chrono::steady_clock::now();
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance());
+        auto end = chrono::steady_clock::now();
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
-        // logger->out("PR  completed in : " +
-        // chrono::duration_cast<chrono::microseconds>(end - start).count());
         graph.close();
     }
     else
