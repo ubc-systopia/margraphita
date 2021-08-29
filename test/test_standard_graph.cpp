@@ -179,6 +179,8 @@ void test_get_in_nodes_and_edges(StandardGraph graph, bool is_directed)
         assert(got_e.size() == 2);
         assert(got_n.size() == 2);
     }
+    assert(graph.get_in_degree(3) == got_n.size());
+    assert(graph.get_in_degree(3) == got_e.size());
 }
 
 void test_get_out_nodes_and_edges(StandardGraph graph, bool is_directed)
