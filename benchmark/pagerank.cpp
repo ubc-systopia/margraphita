@@ -73,7 +73,7 @@ void delete_map()
 }
 
 template <typename Graph>
-void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, Logger *logger)
+void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
 {
 
     int num_nodes = graph.get_num_nodes();
@@ -100,7 +100,7 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, L
             int index = hashfn(n.id) % N;
             float sum = 0.0f;
             vector<node> in_nodes = graph.get_in_nodes(n.id);
-            //assert(in_nodes.size() == n.in_degree);
+            assert(in_nodes.size() == n.in_degree);
             for (node in : in_nodes)
             {
                 cout << "here\n";
