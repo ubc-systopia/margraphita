@@ -11,6 +11,7 @@
 
 const std::string METADATA = "metadata";
 const std::string DB_NAME = "db_name";
+const std::string DB_DIR = "db_dir";
 const std::string NODE_COLUMNS = "node_columns";
 const std::string EDGE_COLUMNS = "edge_columns";
 const std::string NODE_ATTR_FORMAT = "node_attr_format";

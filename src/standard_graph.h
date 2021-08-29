@@ -67,6 +67,7 @@ private:
     bool is_weighted = true; //needed to understand when to interpret the weight field in struct edge
     bool optimize_create = false;
     std::string db_name;
+    std::string db_dir;
 
     //structure of the graph
     int edge_id;

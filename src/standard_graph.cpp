@@ -24,6 +24,7 @@ StandardGraph::StandardGraph(graph_opts opt_params)
     this->is_weighted = opt_params.is_weighted;
     this->optimize_create = opt_params.optimize_create;
     this->db_name = opt_params.db_name;
+    this->db_dir = opt_params.db_dir;
 
     try
     {
@@ -52,10 +53,10 @@ StandardGraph::StandardGraph(graph_opts opt_params)
     else
     {
         // Check that the DB directory exists
-        std::filesystem::path dirname = "./db/" + db_name;
+        std::filesystem::path dirname = db_dir + "/" + db_name;
         if (std::filesystem::exists(dirname))
         {
-            __restore_from_db("./db/" + db_name);
+            __restore_from_db(db_dir + "/" + db_name);
         }
         else
         {
@@ -68,7 +69,7 @@ void StandardGraph::create_new_graph()
 {
     int ret;
     // Create new directory for WT DB
-    std::filesystem::path dirname = "./db/" + db_name;
+    std::filesystem::path dirname = db_dir + "/" + db_name;
     if (std::filesystem::exists(dirname))
     {
         filesystem::remove_all(dirname); // remove if exists;
@@ -137,11 +138,14 @@ void StandardGraph::create_new_graph()
     }
 
     // DB_NAME
-    string db_name_fmt;
+    //string db_name_fmt;
     // char *db_name_packed =
     //     CommonUtil::pack_string_wt(db_name, session, &db_name_fmt);
     // insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
     insert_metadata(DB_NAME, "S", const_cast<char *>(db_name.c_str()));
+
+    //DB_DIR
+    insert_metadata(DB_NAME, "S", const_cast<char *>(db_dir.c_str()));
 
     // READ_OPTIMIZE
     string is_read_optimized_str = read_optimize ? "true" : "false";
@@ -300,7 +304,12 @@ void StandardGraph::__restore_from_db(std::string db_name)
         ret = cursor->get_key(cursor, &key);
         ret = cursor->get_value(cursor, &value);
 
-        if (strcmp(key, DB_NAME.c_str()) == 0)
+        if (strcmp(key, DB_DIR.c_str()) == 0)
+        {
+
+            this->db_dir = value; //CommonUtil::unpack_string_wt(value, this->session);
+        }
+        else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
 
             this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);

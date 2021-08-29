@@ -24,6 +24,7 @@ AdjList::AdjList(graph_opts opt_params)
     this->is_directed = opt_params.is_directed;
     this->is_weighted = opt_params.is_weighted;
     this->db_name = opt_params.db_name;
+    this->db_dir = opt_params.db_dir;
 
     try
     {
@@ -163,7 +164,7 @@ void AdjList::create_new_graph()
 {
     int ret;
     // Create new directory for WT DB
-    std::filesystem::path dirname = "./db/" + db_name;
+    std::filesystem::path dirname = db_dir + "/" + db_name;
     if (std::filesystem::exists(dirname))
     {
         filesystem::remove_all(dirname); // remove if exists;
@@ -258,6 +259,9 @@ void AdjList::create_new_graph()
     string db_name_fmt;
     insert_metadata(DB_NAME, const_cast<char *>(db_name.c_str()));
 
+    //DB_DIR
+    insert_metadata(DB_DIR, const_cast<char *>(db_dir.c_str()));
+
     // READ_OPTIMIZE
     string read_optimized_str = read_optimize ? "true" : "false";
     insert_metadata(READ_OPTIMIZE, const_cast<char *>(read_optimized_str.c_str()));
@@ -288,7 +292,12 @@ void AdjList::__restore_from_db(string dbname)
         ret = cursor->get_key(cursor, &key);
         ret = cursor->get_value(cursor, &value);
 
-        if (strcmp(key, DB_NAME.c_str()) == 0)
+        if (strcmp(key, DB_DIR.c_str()) == 0)
+        {
+
+            this->db_dir = value; //CommonUtil::unpack_string_wt(value, this->session);
+        }
+        else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
 
             this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);

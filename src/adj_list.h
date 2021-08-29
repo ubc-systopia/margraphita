@@ -84,6 +84,7 @@ private:
     bool is_directed = true;
     bool is_weighted = false; //needed to understand when to interpret the weight field in struct edge
     std::string db_name;
+    std::string db_dir;
 
     //structure of the graph
     int edge_id;
