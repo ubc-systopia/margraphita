@@ -227,55 +227,13 @@ void *insert_node(void *arg)
     return (void *)(nodes.size());
 }
 
-// void insert_inadjlist()
-// {
-//     WT_CURSOR *cursor;
-//     WT_SESSION *session;
-
-//     conn_adj->open_session(conn_adj, NULL, NULL, &session);
-//     session->open_cursor(session, "table:adjlistin", NULL, NULL, &cursor);
-//     int cnt = 0;
-//     for (auto &entry : in_adjlist)
-//     {
-//         int node_id = entry.first;
-//         int indeg = entry.second.size();
-//         size_t size;
-//         std::string packed_adjlist = CommonUtil::pack_int_vector_std(entry.second, &size);
-//         cursor->set_key(cursor, node_id);
-//         cursor->set_value(cursor, indeg, packed_adjlist);
-//         cursor->insert(cursor);
-//     }
-//     cursor->close(cursor);
-//     session->close(session, NULL);
-// }
-
-// void insert_outadjlist()
-// {
-//     WT_CURSOR *cursor;
-//     WT_SESSION *session;
-
-//     conn_adj->open_session(conn_adj, NULL, NULL, &session);
-//     session->open_cursor(session, "table:adjlistout", NULL, NULL, &cursor);
-//     int cnt = 0;
-//     for (auto &entry : out_adjlist)
-//     {
-//         int node_id = entry.first;
-//         int outdeg = entry.second.size();
-//         size_t size;
-//         std::string packed_adjlist = CommonUtil::pack_int_vector_std(entry.second, &size);
-//         cursor->set_key(cursor, node_id);
-//         cursor->set_value(cursor, outdeg, packed_adjlist);
-//         cursor->insert(cursor);
-//     }
-//     cursor->close(cursor);
-//     session->close(session, NULL);
-// }
-
 int main(int argc, char *argv[])
 {
     std::string db_name;
+    std::string db_path;
     static struct option long_opts[] = {
         {"db", required_argument, 0, 'd'},
+        {"path", required_argument, 0, 'p'},
         {"edges", required_argument, 0, 'e'},
         {"nodes", required_argument, 0, 'n'},
         {"file", required_argument, 0, 'f'},
@@ -284,12 +242,15 @@ int main(int argc, char *argv[])
     int option_idx = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "d:e:n:f:ru", long_opts, &option_idx)) != -1)
+    while ((c = getopt_long(argc, argv, "d:p:e:n:f:ru", long_opts, &option_idx)) != -1)
     {
         switch (c)
         {
         case 'd':
             db_name = optarg;
+            break;
+        case 'p':
+            db_path = optarg;
             break;
         case 'e':
             num_edges = atol(optarg);
@@ -328,7 +289,7 @@ int main(int argc, char *argv[])
     }
 
     //open std connection
-    std::string _db_name = "db/std_" + middle + "_" + db_name;
+    std::string _db_name = db_path + "/std_" + middle + "_" + db_name;
     if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_std) != 0)
     {
         std::cout << "Could not open the DB: " << _db_name;
@@ -336,7 +297,7 @@ int main(int argc, char *argv[])
     }
 
     //open adjlist connection
-    _db_name = "db/adj_" + middle + "_" + db_name;
+    _db_name = db_path + "/adj_" + middle + "_" + db_name;
     if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_adj) != 0)
     {
         std::cout << "Could not open the DB: " << _db_name;
@@ -344,7 +305,7 @@ int main(int argc, char *argv[])
     }
 
     //open ekey connection
-    _db_name = "db/ekey_" + middle + "_" + db_name;
+    _db_name = db_path + "/ekey_" + middle + "_" + db_name;
     if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_ekey) != 0)
     {
         std::cout << "Could not open the DB: " << _db_name;

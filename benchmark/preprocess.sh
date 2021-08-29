@@ -56,20 +56,20 @@ done
 #cut -f2 ${filename} | sed 's/^ *//' | uniq -c > "${output}/${dataset}_nodes_indeg_"
 
 #Create a nodes file
-sed -e 's/\t/\n/g; s/\r//g' ${filename} | sort -u --parallel=10 > ${output}/${dataset}_nodes
-split --number=l/10 ${output}/${dataset}_nodes ${output}/${dataset}_nodes
+# sed -e 's/\t/\n/g; s/\r//g' ${filename} | sort -u --parallel=10 > ${output}/${dataset}_nodes
+# split --number=l/10 ${output}/${dataset}_nodes ${output}/${dataset}_nodes
 
 #Now create an empty DBs for all three representations for  insertion
 #Using pagerank for this. Too lazy to do any better :(
 # Here rd in the DB Name indicates the r(read optimize) and d(directed) flags 
-#  ./pagerank -n -m std_rd_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l std -e
-#  ./pagerank -n -m std_d_${dataset} -b PR -a ${filename} -s ${dataset} -o -d -l std -e
+# ./pagerank -n -m std_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l std -e
+# ./pagerank -n -m std_d_${dataset} -b PR -a ${output} -s ${dataset} -d -l std -e
 
-#  ./pagerank -n -m adj_rd_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l adjlist -e
-#  ./pagerank -n -m adj_d_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l adjlist -e
+# ./pagerank -n -m adj_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l adjlist -e
+# ./pagerank -n -m adj_d_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l adjlist -e
 
-#  ./pagerank -n -m ekey_rd_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l edgekey -e
-#  ./pagerank -n -m ekey_d_${dataset} -b PR -a ${filename} -s ${dataset} -o -r -d -l edgekey -e
+# ./pagerank -n -m ekey_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l edgekey -e
+# ./pagerank -n -m ekey_d_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l edgekey -e
 
 # # Here : n (new graph) m (name of db) b(benchmark-- useless in this context but
 # # needed) s(dataset name *NOT* path) o(optimize create) r(read_optimize) d(directed)
@@ -81,9 +81,9 @@ split --number=l/10 ${output}/${dataset}_nodes ${output}/${dataset}_nodes
 # echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> insert_time.txt
 # echo "#${dataset}:" >> insert_time.txt
 # echo "#${dataset}:" >> insert_log.txt
-# /usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -r &> insert_log.txt
+/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -p ${output} -r &> insert_log.txt
 
-# /usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} &>> insert_log.txt
+/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -p ${output} &>> insert_log.txt
 # echo "----------------------------" >> insert_time.txtrweb
 # echo -ne '\007'
 # exit 1
