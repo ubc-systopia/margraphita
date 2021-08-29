@@ -25,7 +25,7 @@ protected:
     bool optimized_create = false;
     bool exit_on_create = false;
 
-    std::string filename; //This contains the path to the filename being parsed and inserted into the DB. It is used only when create_new is true
+    std::string db_path; //This contains the path to the db dir.
 
     void add_help_message(char opt, std::string opt_arg, std::string text)
     {
@@ -39,7 +39,7 @@ public:
     {
         add_help_message('m', "db_ name", "Name of the WT DB");
         add_help_message('b', "benchmark", "Which benchmark to run -- PR, BFS, CC, TC");
-        add_help_message('a', "file", "path to the dataset that has to be inserted into the DB");
+        add_help_message('a', "path", "DB directory");
         add_help_message('s', "s", "the name of the dataset being used");
         add_help_message('n', "new", "create new DB (defalt = true");
         add_help_message('o', "create_optimized", "if set, then indices are not created while inserting. Default false.");
@@ -59,7 +59,7 @@ public:
         {
             handle_args(opt_c, optarg);
         }
-        if (create_new && filename == "")
+        if (create_new && db_path == "")
         {
             std::cout << "There is no input graph specified for insertion into the database. Use -h for help." << std::endl;
             return false;
@@ -79,7 +79,7 @@ public:
             db_name = std::string(opt_arg);
             break;
         case 'a':
-            filename = std::string(opt_arg);
+            db_path = std::string(opt_arg);
             break;
         case 's':
             dataset = std::string(opt_arg);
@@ -123,7 +123,7 @@ public:
 
     std::string get_db_name() const { return db_name; }
     std::string get_graph_type() const { return graph_type; }
-    std::string get_filename() const { return filename; }
+    std::string get_db_path() const { return db_path; }
     std::string get_dataset() const { return dataset; }
     std::string get_benchmark() const { return benchmark; }
     bool is_create_new() const { return create_new; }
