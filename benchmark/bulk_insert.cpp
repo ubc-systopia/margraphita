@@ -23,7 +23,6 @@ int edge_per_part, node_per_part;
 int read_optimized = 0;
 int is_directed = 1;
 
-std::vector<std::string> types;
 std::unordered_map<int, node> nodelist;
 std::unordered_map<int, std::vector<int>> in_adjlist;
 std::unordered_map<int, std::vector<int>> out_adjlist;
@@ -55,7 +54,7 @@ void *insert_edge_thread(void *arg)
     WT_CURSOR *cursor;
     WT_SESSION *session;
 
-    for (std::string type : types)
+    for (std::string type : {"std", "adj", "ekey"})
     {
         int start_idx = (edge_per_part * tid) + 1;
         if (type == "std")
@@ -136,7 +135,7 @@ void *insert_node(void *arg)
 
     for (node to_insert : nodes)
     {
-        for (std::string type : types)
+        for (std::string type : {"std", "adj", "ekey"})
         {
             if (type == "std")
             {
@@ -238,13 +237,12 @@ int main(int argc, char *argv[])
         {"edges", required_argument, 0, 'e'},
         {"nodes", required_argument, 0, 'n'},
         {"file", required_argument, 0, 'f'},
-        {"type", required_argument, 0, 't'},
         {"undirected", required_argument, &is_directed, 'u'},
         {"ropt", required_argument, &read_optimized, 'r'}};
     int option_idx = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "d:p:e:n:f:t:ru", long_opts, &option_idx)) != -1)
+    while ((c = getopt_long(argc, argv, "d:p:e:n:f:ru", long_opts, &option_idx)) != -1)
     {
         switch (c)
         {
@@ -262,19 +260,6 @@ int main(int argc, char *argv[])
             break;
         case 'f':
             dataset = optarg;
-            break;
-        case 't':
-            string type_opt = optarg;
-            if (types == "all")
-            {
-                types.push_back("std");
-                types.push_back("adj");
-                types.push_back("ekey");
-            }
-            else
-            {
-                types.push_back(type_opt);
-            }
             break;
         case 'r':
             read_optimized = 1;
