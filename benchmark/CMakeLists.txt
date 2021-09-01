@@ -1,6 +1,7 @@
 #file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/preprocess.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/preprocess.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/insert_kron.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
 add_executable(pagerank pagerank.cpp)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")

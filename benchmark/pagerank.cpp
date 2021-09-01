@@ -83,10 +83,14 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
     auto end = chrono::steady_clock::now();
     cout << "Loading the nodes and constructing the map took " << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
 
+    ofstream FILE;
+    FILE.open("nodes_info.txt", ios::out | ios::ate);
     for (node n : nodes)
     {
         assert(ptr[hashfn(n.id)].id == n.id);
+        FILE << n.id << "\t" << n.in_degree << "\t" << n.out_degree << "\n";
     }
+    FILE.close();
 
     double diff = 1.0;
     int iter_count = 0;
@@ -95,19 +99,28 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
     while (iter_count < iterations)
     {
         auto start = chrono::steady_clock::now();
+        int i = 0;
         for (node n : nodes)
         {
             int index = hashfn(n.id) % N;
             float sum = 0.0f;
             vector<node> in_nodes = graph.get_in_nodes(n.id);
-            assert(in_nodes.size() == n.in_degree);
+            // cout << "before assert " << n.id << "\t" << in_nodes.size() << endl;
+            // assert(in_nodes.size() == n.in_degree);
             for (node in : in_nodes)
             {
-                cout << "here\n";
+                //cout << "here\n";
                 sum += (ptr[hashfn(in.id) % N].p_rank[p_cur]) / in.out_degree;
             }
+
+            if (i % 50000 == 0)
+            {
+                cout << "next \t" << i << endl;
+            }
             ptr[index].p_rank[p_next] = constant + (dampness * sum);
+            i++;
         }
+        cout << "here here" << endl;
         iter_count++;
 
         p_cur = 1 - p_cur;
