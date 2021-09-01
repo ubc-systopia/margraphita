@@ -3,15 +3,17 @@ set -e
 set -x
 
 usage() { 
-echo "Usage: $0 [-f <dataset path> -o <output path> -m <dataset name> -n<edge count> -e<edge count>"  
+echo "Usage: $0 [-f <dataset path> -o <output path> -m <dataset name> -n<edge count> -e<edge count> -t <type>"  
 echo "Dataset path : the absolute path to the dataset that is being inserted."
 echo "Output path: absolute path to the **directory** that should contain the output
 files"
 echo "Dataset name : used to construct the DB name and to name the output files"
+echo "type is one of std, ekey, adj. Use all for all types of tables"
 echo "if cit-Patents is in ~/datasets/cit-Patents/cit-Patents.txt"
 echo " -f ~/datasets/cit-Patents/cit-Patents.txt"
 echo " -o ~/datasets/cit-Patents"
 echo " -m cit-Patents"
+echo " -t std"
 exit 1;}
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
@@ -31,6 +33,9 @@ while getopts "f:o:m:n:e:" o; do
             ;;
         (n)
             nodecnt=${OPTARG}
+            ;;
+        (t)
+            type=${OPTARG}
             ;;
         (*)
             usage
@@ -54,14 +59,20 @@ split --number=l/10 ${output}/${dataset}_nodes ${output}/${dataset}_nodes
 #Now create an empty DBs for all three representations for  insertion
 #Using pagerank for this. Too lazy to do any better :(
 # Here rd in the DB Name indicates the r(read optimize) and d(directed) flags 
+if [ $type == "std" || $type == "all" ]; then 
  ./pagerank -n -m std_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l std -e
  ./pagerank -n -m std_d_${dataset} -b PR -a ${output} -s ${dataset} -d -l std -e
+fi
 
+if [ $type == "adj" || $type == "all" ]; then 
  ./pagerank -n -m adj_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l adjlist -e
  ./pagerank -n -m adj_d_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l adjlist -e
+fi
 
+if [ $type == "ekey" || $type == "all" ]; then 
  ./pagerank -n -m ekey_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l edgekey -e
  ./pagerank -n -m ekey_d_${dataset} -b PR -a ${output} -s ${dataset} -r -d -l edgekey -e
+fi
 
 # # Here : n (new graph) m (name of db) b(benchmark-- useless in this context but
 # # needed) s(dataset name *NOT* path) o(optimize create) r(read_optimize) d(directed)
@@ -73,9 +84,9 @@ split --number=l/10 ${output}/${dataset}_nodes ${output}/${dataset}_nodes
  echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> insert_time.txt
  echo "#${dataset}:" >> insert_time.txt
  echo "#${dataset}:" >> insert_log.txt
-/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -p ${output} -r &> insert_log.txt
+/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -r &> insert_log.txt
 
-/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -p ${output} &>> insert_log.txt
+/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} &>> insert_log.txt
 # echo "----------------------------" >> insert_time.txtrweb
 # echo -ne '\007'
 # exit 1
