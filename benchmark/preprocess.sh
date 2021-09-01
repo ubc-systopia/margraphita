@@ -17,7 +17,7 @@ echo " -t std"
 exit 1;}
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
-while getopts "f:o:m:n:e:" o; do
+while getopts "f:o:m:e:n:t:" o; do
     case "${o}" in
         (f)
             filename=${OPTARG%/}
