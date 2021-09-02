@@ -169,12 +169,15 @@ class PageRankOpts : public CmdLineApp
 {
     double _tolerance; //used for PR
     int _iterations;   // Used for PR
+    bool create_indices = false;
+
 public:
     PageRankOpts(int argc, char **argv, double tolerance, int iters) : CmdLineApp(argc, argv), _tolerance(tolerance), _iterations(iters)
     {
-        argstr_ += "i:t:";
+        argstr_ += "i:t:x";
         add_help_message('i', "i", "The number of iterations of PageRank to run. Defaults to " + std::to_string(iters));
         add_help_message('t', "t", "the tolerance to use for terminating PR. Defaults to " + std::to_string(tolerance));
+        add_help_message('x', "x", "Used to specify if indices need to be created. Defaults to false. ");
     }
 
     void handle_args(signed char opt, char *opt_arg) override
@@ -187,12 +190,16 @@ public:
         case 't':
             _tolerance = std::stod(opt_arg);
             break;
+        case 'x':
+            create_indices = true;
+            break;
         default:
             CmdLineApp::handle_args(opt, opt_arg);
         }
     }
     double tolerance() const { return _tolerance; }
     int iterations() const { return _iterations; }
+    int is_index_create() const { return create_indices; }
 };
 
 #endif

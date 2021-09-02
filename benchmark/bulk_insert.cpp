@@ -123,20 +123,28 @@ void *insert_node(void *arg)
     WT_CURSOR *std_cur, *ekey_cur, *adj_cur, *adj_incur, *adj_outcur;
     WT_SESSION *std_sess, *ekey_sess, *adj_sess;
 
-    conn_std->open_session(conn_std, NULL, NULL, &std_sess);
-    std_sess->open_cursor(std_sess, "table:node", NULL, NULL, &std_cur);
-
-    conn_ekey->open_session(conn_ekey, NULL, NULL, &ekey_sess);
-    ekey_sess->open_cursor(ekey_sess, "table:edge", NULL, NULL, &ekey_cur);
-
-    conn_adj->open_session(conn_adj, NULL, NULL, &adj_sess);
-    adj_sess->open_cursor(adj_sess, "table:node", NULL, NULL, &adj_cur);
-    adj_sess->open_cursor(adj_sess, "table:adjlistin", NULL, NULL, &adj_incur);
-    adj_sess->open_cursor(adj_sess, "table:adjlistout", NULL, NULL, &adj_outcur);
-
-    for (node to_insert : nodes)
+    for (std::string type : types)
     {
-        for (std::string type : types)
+        if (type.compare("all") == 0 || type.compare("std") == 0)
+        {
+            conn_std->open_session(conn_std, NULL, NULL, &std_sess);
+            std_sess->open_cursor(std_sess, "table:node", NULL, NULL, &std_cur);
+        }
+
+        if (type.compare("all") == 0 || type.compare("ekey") == 0)
+        {
+            conn_ekey->open_session(conn_ekey, NULL, NULL, &ekey_sess);
+            ekey_sess->open_cursor(ekey_sess, "table:edge", NULL, NULL, &ekey_cur);
+        }
+
+        if (type.compare("all") == 0 || type.compare("adj") == 0)
+        {
+            conn_adj->open_session(conn_adj, NULL, NULL, &adj_sess);
+            adj_sess->open_cursor(adj_sess, "table:node", NULL, NULL, &adj_cur);
+            adj_sess->open_cursor(adj_sess, "table:adjlistin", NULL, NULL, &adj_incur);
+            adj_sess->open_cursor(adj_sess, "table:adjlistout", NULL, NULL, &adj_outcur);
+        }
+        for (node to_insert : nodes)
         {
             if (type == "std")
             {
@@ -212,16 +220,22 @@ void *insert_node(void *arg)
                 adj_outcur->insert(adj_outcur);
             }
         }
+        if (type.compare("all") == 0 || type.compare("std") == 0)
+        {
+            std_cur->close(std_cur);
+            std_sess->close(std_sess, NULL);
+        }
+        if (type.compare("all") == 0 || type.compare("ekey") == 0)
+        {
+            ekey_cur->close(ekey_cur);
+            ekey_sess->close(ekey_sess, NULL);
+        }
+        if (type.compare("all") == 0 || type.compare("adj") == 0)
+        {
+            adj_cur->close(adj_cur);
+            adj_sess->close(adj_sess, NULL);
+        }
     }
-
-    std_cur->close(std_cur);
-    std_sess->close(std_sess, NULL);
-
-    ekey_cur->close(ekey_cur);
-    ekey_sess->close(ekey_sess, NULL);
-
-    adj_cur->close(adj_cur);
-    adj_sess->close(adj_sess, NULL);
 
     delete (int *)arg;
 
@@ -232,6 +246,7 @@ int main(int argc, char *argv[])
 {
     std::string db_name;
     std::string db_path;
+    std::string type_opt;
     static struct option long_opts[] = {
         {"db", required_argument, 0, 'd'},
         {"path", required_argument, 0, 'p'},
@@ -244,7 +259,7 @@ int main(int argc, char *argv[])
     int option_idx = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "d:p:e:n:f:ru", long_opts, &option_idx)) != -1)
+    while ((c = getopt_long(argc, argv, "d:p:e:n:f:t:ru", long_opts, &option_idx)) != -1)
     {
         switch (c)
         {
@@ -265,7 +280,7 @@ int main(int argc, char *argv[])
             break;
         case 't':
         {
-            std::string type_opt = optarg;
+            type_opt = optarg;
             if (type_opt.compare("all") == 0)
             {
                 types.push_back("std");
@@ -305,28 +320,38 @@ int main(int argc, char *argv[])
         middle += "d";
     }
 
+    std::string _db_name;
     //open std connection
-    std::string _db_name = db_path + "/std_" + middle + "_" + db_name;
-    if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_std) != 0)
+    if (type_opt.compare("all") == 0 || type_opt.compare("std") == 0)
     {
-        std::cout << "Could not open the DB: " << _db_name;
-        exit(1);
+        _db_name = db_path + "/std_" + middle + "_" + db_name;
+        if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_std) != 0)
+        {
+            std::cout << "Could not open the DB: " << _db_name;
+            exit(1);
+        }
     }
 
     //open adjlist connection
-    _db_name = db_path + "/adj_" + middle + "_" + db_name;
-    if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_adj) != 0)
+    if (type_opt.compare("all") == 0 || type_opt.compare("adj") == 0)
     {
-        std::cout << "Could not open the DB: " << _db_name;
-        exit(1);
+        _db_name = db_path + "/adj_" + middle + "_" + db_name;
+        if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_adj) != 0)
+        {
+            std::cout << "Could not open the DB: " << _db_name;
+            exit(1);
+        }
     }
 
     //open ekey connection
-    _db_name = db_path + "/ekey_" + middle + "_" + db_name;
-    if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_ekey) != 0)
+    if (type_opt.compare("all") == 0 || type_opt.compare("ekey") == 0)
     {
-        std::cout << "Could not open the DB: " << _db_name;
-        exit(1);
+        _db_name = db_path + "/ekey_" + middle + "_" + db_name;
+        if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_ekey) != 0)
+        {
+            std::cout << "Could not open the DB: " << _db_name;
+            exit(1);
+        }
     }
 
     int i;
@@ -349,8 +374,6 @@ int main(int argc, char *argv[])
     }
     auto end = std::chrono::steady_clock::now();
     std::cout << edge_total << " edges inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
-
-    std::vector<std::string> prefix = {"std", "adj", "ekey"};
 
     //Now insert nodes;
     start = std::chrono::steady_clock::now();
@@ -382,9 +405,20 @@ int main(int argc, char *argv[])
 
     std::cout << "total number of edges inserted = " << edge_total << std::endl;
     std::cout << "total number of nodes inserted = " << node_total << std::endl;
-    conn_std->close(conn_std, NULL);
-    conn_adj->close(conn_adj, NULL);
-    conn_ekey->close(conn_ekey, NULL);
+
+    if (type_opt.compare("all") == 0 || type_opt.compare("std") == 0)
+    {
+        conn_std->close(conn_std, NULL);
+    }
+    if (type_opt.compare("all") == 0 || type_opt.compare("adj") == 0)
+    {
+        conn_adj->close(conn_adj, NULL);
+    }
+    if (type_opt.compare("all") == 0 || type_opt.compare("ekey") == 0)
+    {
+        conn_ekey->close(conn_ekey, NULL);
+    }
+
     std::cout << "------------------------------------------------------------------------------------" << std::endl;
 
     return (EXIT_SUCCESS);

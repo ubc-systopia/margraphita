@@ -163,9 +163,19 @@ int main(int argc, char *argv[])
             graph.close();
             exit(0);
         }
-
         auto end = chrono::steady_clock::now();
         cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+
+        if (pr_cli.is_index_create())
+        {
+
+            start = chrono::steady_clock::now();
+            graph.create_indices();
+            end = chrono::steady_clock::now();
+            cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+            graph.close();
+            exit(0);
+        }
 
         //Now run PR
         start = chrono::steady_clock::now();
