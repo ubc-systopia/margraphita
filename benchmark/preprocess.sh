@@ -93,7 +93,7 @@ fi
  echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> insert_time.txt
  echo "#${dataset}:" >> insert_time.txt
  echo "#${dataset}:" >> insert_log.txt
-/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -r &> insert_log.txt
+/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -r &>> insert_log.txt
 
 /usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} &>> insert_log.txt
 

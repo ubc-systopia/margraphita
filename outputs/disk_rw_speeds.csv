@@ -1,0 +1,58 @@
+#NVME main partition
+#Format: num of bytes written, time taken in seconds, throughput (MB/s)
+1024000000, 0.972902, 1100 MB/s
+4096000000, 9.58968, 427 MB/s
+4096000000, 8.29093, 494 MB/s
+1024000000, 1.81252, 565 MB/s
+1024000000, 1.81252, 565 MB/s
+
+#ssd
+4096000000, 3.57817, 1100 GB/s
+4096000000, 11.3905, 360 MB/s
+4096000000, 11.4163, 359 MB/s
+1024000000, 2.82482, 363 MB/s
+4096000000, 11.4079, 359 MB/s
+
+#puneet@patterson:~$ dd if=/dev/zero of=/home/puneet/test.img bs=4k count=250000
+#250000+0 records in
+#250000+0 records out
+#1024000000 bytes (1.0 GB, 977 MiB) copied, 0.972902 s, 1.1 GB/s
+#puneet@patterson:~$ dd if=/dev/zero of=/home/puneet/test.img bs=4k count=1000000
+#1000000+0 records in
+#1000000+0 records out
+#4096000000 bytes (4.1 GB, 3.8 GiB) copied, 9.58968 s, 427 MB/s
+#puneet@patterson:~$ dd if=/dev/zero of=/home/puneet/test.img bs=4k count=1000000
+#1000000+0 records in
+#1000000+0 records out
+#4096000000 bytes (4.1 GB, 3.8 GiB) copied, 8.29093 s, 494 MB/s
+#puneet@patterson:~$ dd if=/dev/zero of=/home/puneet/test.img bs=4k count=250000
+#250000+0 records in
+#250000+0 records out
+#1024000000 bytes (1.0 GB, 977 MiB) copied, 1.81252 s, 565 MB/s
+#puneet@patterson:~$ dd if=/dev/zero of=/home/puneet/test.img bs=4k count=1000000
+#1000000+0 records in
+#1000000+0 records out
+#1024000000 bytes (1.0 GB, 977 MiB) copied, 1.81252 s, 565 MB/s
+#puneet@patterson:~$ 
+
+now testing the ssd
+#puneet@patterson:~$ dd if=/dev/zero of=/ssd_graph/test.img bs=4k count=1000000
+#1000000+0 records in
+#1000000+0 records out
+#4096000000 bytes (4.1 GB, 3.8 GiB) copied, 3.57817 s, 1.1 GB/s
+#puneet@patterson:~$ dd if=/dev/zero of=/ssd_graph/test.img bs=4k count=1000000
+#1000000+0 records in
+#1000000+0 records out
+#4096000000 bytes (4.1 GB, 3.8 GiB) copied, 11.3905 s, 360 MB/s
+#puneet@patterson:~$ dd if=/dev/zero of=/ssd_graph/test.img bs=4k count=1000000
+#1000000+0 records in
+#1000000+0 records out
+#4096000000 bytes (4.1 GB, 3.8 GiB) copied, 11.4163 s, 359 MB/s
+#puneet@patterson:~$ dd if=/dev/zero of=/ssd_graph/test.img bs=4k count=250000
+#250000+0 records in
+#250000+0 records out
+#1024000000 bytes (1.0 GB, 977 MiB) copied, 2.82482 s, 363 MB/s
+#puneet@patterson:~$ dd if=/dev/zero of=/ssd_graph/test.img bs=4k count=1000000
+#1000000+0 records in
+#1000000+0 records out
+#4096000000 bytes (4.1 GB, 3.8 GiB) copied, 11.4079 s, 359 MB/s
