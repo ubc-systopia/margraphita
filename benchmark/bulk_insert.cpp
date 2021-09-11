@@ -38,6 +38,25 @@ std::string pack_int_to_str(int a, int b)
     return sstream.str();
 }
 
+typedef struct time_info
+{
+    int64_t insert_time;
+    int64_t read_time;
+    int num_inserted;
+    time_info(int _val) : insert_time(_val), read_time(_val), num_inserted(_val){};
+} time_info;
+
+void print_time_csvline(time_info *edget, time_info *nodet)
+{
+    //num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+    std::cout << nodet->num_inserted << ","
+              << edget->num_inserted << ","
+              << edget->read_time << ","
+              << edget->insert_time << ","
+              << nodet->read_time << ","
+              << nodet->insert_time << std::endl;
+}
+
 void *insert_edge_thread(void *arg)
 {
 
@@ -46,12 +65,15 @@ void *insert_edge_thread(void *arg)
     char c = (char)(97 + tid);
     filename.push_back('a');
     filename.push_back(c);
+    time_info *info = new time_info(0);
 
+    auto start = std::chrono::steady_clock::now();
     std::vector<edge>
         edjlist = reader::parse_edge_entries(filename);
-    int size = edjlist.size();
+    auto end = std::chrono::steady_clock::now();
+    info->read_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    info->num_inserted = edjlist.size();
 
-    // = (edge_per_part * tid) + 1;
     WT_CURSOR *cursor;
     WT_SESSION *session;
 
@@ -62,6 +84,7 @@ void *insert_edge_thread(void *arg)
         {
             conn_std->open_session(conn_std, NULL, NULL, &session);
             session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
+            auto start = std::chrono::steady_clock::now();
             for (edge e : edjlist)
             {
                 cursor->set_key(cursor, start_idx);
@@ -69,6 +92,8 @@ void *insert_edge_thread(void *arg)
                 cursor->insert(cursor);
                 start_idx++;
             }
+            auto end = std::chrono::steady_clock::now();
+            info->insert_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             cursor->close(cursor);
             session->close(session, NULL);
         }
@@ -76,6 +101,7 @@ void *insert_edge_thread(void *arg)
         {
             conn_adj->open_session(conn_adj, NULL, NULL, &session);
             session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
+            auto start = std::chrono::steady_clock::now();
             for (edge e : edjlist)
             {
                 cursor->set_key(cursor, e.src_id, e.dst_id);
@@ -83,6 +109,8 @@ void *insert_edge_thread(void *arg)
                 cursor->insert(cursor);
                 start_idx++;
             }
+            auto end = std::chrono::steady_clock::now();
+            info->insert_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             cursor->close(cursor);
             session->close(session, NULL);
         }
@@ -90,6 +118,7 @@ void *insert_edge_thread(void *arg)
         {
             conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
             session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
+            auto start = std::chrono::steady_clock::now();
             for (edge e : edjlist)
             {
                 cursor->set_key(cursor, e.src_id, e.dst_id);
@@ -97,15 +126,15 @@ void *insert_edge_thread(void *arg)
                 cursor->insert(cursor);
                 start_idx++;
             }
+            auto end = std::chrono::steady_clock::now();
+            info->insert_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             cursor->close(cursor);
             session->close(session, NULL);
         }
     }
-
-    //std::cout << tid << "\t" << filename << "\t" << (edge_per_part * tid) + 1 << "\t" << start_idx << "\t" << size << std::endl;
     delete (int *)arg;
 
-    return (void *)(size);
+    return (void *)(info);
 }
 
 void *insert_node(void *arg)
@@ -117,8 +146,14 @@ void *insert_node(void *arg)
     filename.push_back('a');
     filename.push_back(c);
 
+    time_info *info = new time_info(0);
+    auto start = std::chrono::steady_clock::now();
     std::vector<node>
         nodes = reader::parse_node_entries(filename);
+    auto end = std::chrono::steady_clock::now();
+    info->read_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    info->num_inserted = nodes.size();
+
     std::string type;
     WT_CURSOR *std_cur, *ekey_cur, *adj_cur, *adj_incur, *adj_outcur;
     WT_SESSION *std_sess, *ekey_sess, *adj_sess;
@@ -144,6 +179,7 @@ void *insert_node(void *arg)
             adj_sess->open_cursor(adj_sess, "table:adjlistin", NULL, NULL, &adj_incur);
             adj_sess->open_cursor(adj_sess, "table:adjlistout", NULL, NULL, &adj_outcur);
         }
+        auto start = std::chrono::steady_clock::now();
         for (node to_insert : nodes)
         {
             if (type == "std")
@@ -220,6 +256,8 @@ void *insert_node(void *arg)
                 adj_outcur->insert(adj_outcur);
             }
         }
+        auto end = std::chrono::steady_clock::now();
+        info->insert_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         if (type.compare("all") == 0 || type.compare("std") == 0)
         {
             std_cur->close(std_cur);
@@ -239,7 +277,7 @@ void *insert_node(void *arg)
 
     delete (int *)arg;
 
-    return (void *)(nodes.size());
+    return (void *)(info);
 }
 
 int main(int argc, char *argv[])
@@ -364,16 +402,20 @@ int main(int argc, char *argv[])
     {
         pthread_create(&threads[i], NULL, insert_edge_thread, new int(i));
     }
-    int edge_total = 0;
-    int node_total = 0;
+    time_info *edge_times = new time_info(0);
+    time_info *node_times = new time_info(0);
     for (i = 0; i < NUM_THREADS; i++)
     {
         void *found;
         pthread_join(threads[i], &found);
-        edge_total = edge_total + (intptr_t)found;
+        time_info *this_thread_time = (time_info *)found;
+        std::cout << i << " inserted " << this_thread_time->num_inserted << "\n";
+        edge_times->insert_time += this_thread_time->insert_time;
+        edge_times->num_inserted += this_thread_time->num_inserted;
+        edge_times->read_time += this_thread_time->read_time;
     }
     auto end = std::chrono::steady_clock::now();
-    std::cout << edge_total << " edges inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+    std::cout << " Total time to insert edges was " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
     //Now insert nodes;
     start = std::chrono::steady_clock::now();
@@ -385,26 +427,15 @@ int main(int argc, char *argv[])
     {
         void *found;
         pthread_join(threads[i], &found);
-        node_total = node_total + (intptr_t)found;
+        time_info *this_thread_time = (time_info *)found;
+        node_times->insert_time += this_thread_time->insert_time;
+        node_times->num_inserted += this_thread_time->num_inserted;
+        node_times->read_time += this_thread_time->read_time;
     }
     end = std::chrono::steady_clock::now();
-    std::cout << node_total << " nodes inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+    std::cout << " nodes inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    // //insert in_Adjlist first
-    // start = std::chrono::steady_clock::now();
-    // int in_adj_total = 0, out_adj_total = 0;
-    // insert_inadjlist();
-    // end = std::chrono::steady_clock::now();
-    // std::cout << "InAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
-
-    // //Insert out_Adjlist now
-    // start = std::chrono::steady_clock::now();
-    // insert_outadjlist();
-    // end = std::chrono::steady_clock::now();
-    // std::cout << "OutAdjList inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
-
-    std::cout << "total number of edges inserted = " << edge_total << std::endl;
-    std::cout << "total number of nodes inserted = " << node_total << std::endl;
+    print_time_csvline(edge_times, node_times);
 
     if (type_opt.compare("all") == 0 || type_opt.compare("std") == 0)
     {
@@ -418,8 +449,6 @@ int main(int argc, char *argv[])
     {
         conn_ekey->close(conn_ekey, NULL);
     }
-
-    std::cout << "------------------------------------------------------------------------------------" << std::endl;
 
     return (EXIT_SUCCESS);
 }
