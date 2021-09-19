@@ -43,7 +43,15 @@ EdgeKey::EdgeKey(graph_opts opt_params)
     }
     else
     {
-        __restore_from_db(db_name);
+        std::filesystem::path dirname = db_dir + "/" + db_name;
+        if (std::filesystem::exists(dirname))
+        {
+            __restore_from_db(db_dir + "/" + db_name);
+        }
+        else
+        {
+            throw GraphException("Could not find the expected WT DB directory - " + db_dir + "/" + db_name);
+        }
     }
 }
 

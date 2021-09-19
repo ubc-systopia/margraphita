@@ -56,6 +56,8 @@ public:
     WT_CURSOR *get_edge_iter();
     edge get_next_edge(WT_CURSOR *e_iter);
 
+    std::string get_db_name() const { return this->db_name; };
+
 private:
     WT_CONNECTION *conn;
     WT_SESSION *session;
