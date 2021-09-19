@@ -1,0 +1,17 @@
+#db_name, benchmark, starting node_id, num_visited, sum_out_deg, time_taken_usecs
+std_rd_cit-Patents,bfs,5430537,20548,290000,1525678
+std_rd_cit-Patents,bfs,5543617,27,390,2724
+std_rd_cit-Patents,bfs,5909459,11080,205880,2055582
+std_rd_cit-Patents,bfs,4309566,14,140,2143
+std_rd_cit-Patents,bfs,5940711,17248,374030,5351608
+std_rd_cit-Patents,bfs,4173241,5,40,998
+std_rd_cit-Patents,bfs,4835252,10,150,3193
+std_rd_cit-Patents,bfs,4302972,15,140,3088
+std_rd_cit-Patents,bfs,5054727,84,930,20185
+std_rd_cit-Patents,bfs,4071601,5,40,1036
+std_rd_cit-Patents,bfs,4563695,166,1930,44448
+std_rd_cit-Patents,bfs,4810375,67,700,16224
+std_rd_cit-Patents,bfs,5463090,1483,24640,457393
+std_rd_cit-Patents,bfs,5556675,31,440,8973
+std_rd_cit-Patents,bfs,4441145,16,150,3403
+std_rd_cit-Patents,bfs,4531504,5,40,1101

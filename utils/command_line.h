@@ -142,7 +142,7 @@ class CmdLineApp : public CmdLineBase
 public:
     CmdLineApp(int argc, char **argv) : CmdLineBase(argc, argv)
     {
-        argstr_ += "cr"; // add r: for start_vertex
+        argstr_ += "cv:"; // add v: for start_vertex
         add_help_message('c', "c", "perform c trials. Defaults to " + std::to_string(num_trials));
         add_help_message('v', "v", "Starting vertex id. If not provided, then a random vertex is picked. ");
     }
@@ -155,7 +155,7 @@ public:
             num_trials = atoi(opt_arg);
             break;
         case 'v':
-            start_vertex_ = atol(opt_arg);
+            start_vertex_ = atoi(opt_arg);
             break;
         default:
             CmdLineBase::handle_args(opt, opt_arg);
