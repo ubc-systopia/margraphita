@@ -72,6 +72,38 @@ void delete_map()
     munmap(ptr, sizeof(pr_map) * 1610612741);
 }
 
+void print_to_csv(std::string name, std::vector<int64_t> &times)
+{
+    ofstream FILE;
+    std::string _name = "/home/puneet/scratch/margraphita/outputs/" + name + "_pr.csv";
+    if (access(_name.c_str(), F_OK) == -1)
+    {
+        //The file does not exist yet.
+        FILE.open(_name, ios::out | ios::app);
+        FILE << "#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1..."
+             << "\n ";
+    }
+    else
+    {
+        FILE.open(_name, ios::out | ios::app);
+    }
+
+    FILE << name << ",pr,";
+    for (int i = 0; i < times.size(); i++)
+    {
+        FILE << times[i];
+        if (i != times.size() - 1)
+        {
+            FILE << ",";
+        }
+        else
+        {
+            FILE << "\n";
+        }
+    }
+    FILE.close();
+}
+
 template <typename Graph>
 void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
 {
@@ -80,8 +112,10 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
     auto start = chrono::steady_clock::now();
     std::vector<node> nodes = graph.get_nodes();
     init_pr_map(nodes);
+    std::vector<int64_t> times;
     auto end = chrono::steady_clock::now();
     cout << "Loading the nodes and constructing the map took " << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
+    times.push_back(chrono::duration_cast<chrono::microseconds>(end - start).count());
 
     ofstream FILE;
     FILE.open("nodes_info.txt", ios::out | ios::ate);
@@ -95,7 +129,7 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
     double diff = 1.0;
     int iter_count = 0;
     float constant = (1 - dampness) / num_nodes;
-    //printf("at: %d \n", __LINE__);
+
     while (iter_count < iterations)
     {
         auto start = chrono::steady_clock::now();
@@ -105,22 +139,20 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
             int index = hashfn(n.id) % N;
             float sum = 0.0f;
             vector<node> in_nodes = graph.get_in_nodes(n.id);
-            // cout << "before assert " << n.id << "\t" << in_nodes.size() << endl;
-            // assert(in_nodes.size() == n.in_degree);
+
             for (node in : in_nodes)
             {
                 //cout << "here\n";
                 sum += (ptr[hashfn(in.id) % N].p_rank[p_cur]) / in.out_degree;
             }
 
-            if (i % 50000 == 0)
-            {
-                cout << "next \t" << i << endl;
-            }
+            // if (i % 50000 == 0)
+            // {
+            //     cout << "next \t" << i << endl;
+            // }
             ptr[index].p_rank[p_next] = constant + (dampness * sum);
             i++;
         }
-        cout << "here here" << endl;
         iter_count++;
 
         p_cur = 1 - p_cur;
@@ -128,7 +160,9 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
 
         auto end = chrono::steady_clock::now();
         cout << "Iter " << iter_count << "took \t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
+        times.push_back(chrono::duration_cast<chrono::microseconds>(end - start).count());
     }
+    print_to_csv(graph.get_db_name(), times);
     print_map(nodes);
     delete_map();
 }
@@ -184,7 +218,7 @@ int main(int argc, char *argv[])
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
         graph.close();
     }
-    else if (pr_cli.get_graph_type() == "adjlist")
+    else if (pr_cli.get_graph_type() == "adj")
     {
 
         AdjList graph(opts);
@@ -199,7 +233,7 @@ int main(int argc, char *argv[])
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
         graph.close();
     }
-    else if (pr_cli.get_graph_type() == "edgekey")
+    else if (pr_cli.get_graph_type() == "ekey")
     {
 
         EdgeKey graph(opts);

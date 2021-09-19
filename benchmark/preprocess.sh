@@ -73,14 +73,14 @@ fi
 
 if [[ $type == "adj" || $type == "all" ]]
 then 
- ./pagerank -n -m adj_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -o -d -l adjlist -e
- ./pagerank -n -m adj_d_${dataset} -b PR -a ${output} -s ${dataset} -r -o -d -l adjlist -e
+ ./pagerank -n -m adj_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -o -d -l adj -e
+ ./pagerank -n -m adj_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l adj -e
 fi
 
 if [[ $type == "ekey" || $type == "all" ]]
 then 
- ./pagerank -n -m ekey_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l edgekey -e
- ./pagerank -n -m ekey_d_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l edgekey -e
+ ./pagerank -n -m ekey_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l ekey -e
+ ./pagerank -n -m ekey_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l ekey -e
 fi
 
 # # Here : n (new graph) m (name of db) b(benchmark-- useless in this context but
@@ -97,9 +97,17 @@ fi
 
 /usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} &>> insert_log.txt
 
-if [[$index_create == 0]]
+if [ $index_create -eq 1 ]
 then
-usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ${type}_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ${type} -x &> insert_log.txt
+
+usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l std -x &> insert_log.txt
+usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_d_$./{dataset}  -b PR -a ${output} -s ${dataset} -d -l std -x &> insert_log.txt
+
+usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l adj -x &> insert_log.txt
+usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l adj -x &> insert_log.txt
+
+usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ekey -x &> insert_log.txt
+usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ekey -x &> insert_log.txt
 
 fi
 # echo -ne '\007'

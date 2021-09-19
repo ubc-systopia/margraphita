@@ -31,7 +31,8 @@ std::mutex lock;
 
 int nodelist_size;
 
-std::string pack_int_to_str(int a, int b)
+std::string
+pack_int_to_str(int a, int b)
 {
     std::stringstream sstream;
     sstream << a << " " << b;
@@ -46,15 +47,22 @@ typedef struct time_info
     time_info(int _val) : insert_time(_val), read_time(_val), num_inserted(_val){};
 } time_info;
 
-void print_time_csvline(time_info *edget, time_info *nodet)
+void print_time_csvline(std::string db_name, std::string db_path, time_info *edget, time_info *nodet)
 {
-    //num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
-    std::cout << nodet->num_inserted << ","
-              << edget->num_inserted << ","
-              << edget->read_time << ","
-              << edget->insert_time << ","
-              << nodet->read_time << ","
-              << nodet->insert_time << std::endl;
+    std::ofstream log_file;
+    log_file.open("new_kron_insert.csv", std::fstream::app);
+    log_file << "db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
+    log_file
+        << db_name << ","
+        << db_path << ","
+        << db_name << ","
+        << nodet->num_inserted << ","
+        << edget->num_inserted << ","
+        << edget->read_time << ","
+        << edget->insert_time << ","
+        << nodet->read_time << ","
+        << nodet->insert_time << "\n";
+    log_file.close();
 }
 
 void *insert_edge_thread(void *arg)
@@ -435,7 +443,7 @@ int main(int argc, char *argv[])
     end = std::chrono::steady_clock::now();
     std::cout << " nodes inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    print_time_csvline(edge_times, node_times);
+    print_time_csvline(db_name, db_path, edge_times, node_times);
 
     if (type_opt.compare("all") == 0 || type_opt.compare("std") == 0)
     {
