@@ -74,6 +74,7 @@ public:
     WT_CURSOR *get_in_adjlist_cursor();
     WT_CURSOR *get_out_adjlist_cursor();
 
+    std::string get_db_name() const { return this->db_name; };
     // WT privates
 private:
     WT_CONNECTION *conn;

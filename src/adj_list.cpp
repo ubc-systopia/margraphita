@@ -41,7 +41,15 @@ AdjList::AdjList(graph_opts opt_params)
     }
     else
     {
-        __restore_from_db(db_name); //! APT Check towards the end by a unit test
+        std::filesystem::path dirname = db_dir + "/" + db_name;
+        if (std::filesystem::exists(dirname))
+        {
+            __restore_from_db(db_dir + "/" + db_name);
+        }
+        else
+        {
+            throw GraphException("Could not find the expected WT DB directory - .db/" + db_name);
+        }
     }
 }
 
@@ -234,9 +242,6 @@ void AdjList::create_new_graph()
     CommonUtil::set_table(session, OUT_ADJLIST, out_adjlist_columns,
                           adjlist_key_format, adjlist_value_format);
 
-    //Initialize all cursors
-    init_cursors();
-
     /* Now doing the metadata table creation.
      function This table stores the graph metadata
      value_format:string (S)
@@ -281,9 +286,10 @@ void AdjList::create_new_graph()
 void AdjList::__restore_from_db(string dbname)
 {
     int ret = CommonUtil::open_connection(const_cast<char *>(dbname.c_str()), &conn);
-    WT_CURSOR *cursor = nullptr;
-
     ret = CommonUtil::open_session(conn, &session);
+    //Initialize all cursors
+    init_cursors();
+    WT_CURSOR *cursor = nullptr;
     const char *key, *value;
     ret = _get_table_cursor(METADATA, &cursor, false);
 
@@ -612,7 +618,7 @@ node AdjList::get_random_node()
         throw GraphException("Could not seek a random node in the table");
     }
     found = AdjList::__record_to_node(cursor, 0);
-    found.id = cursor->get_key(cursor);
+    cursor->get_key(cursor, &found.id);
     cursor->close(cursor);
     return found;
 }
@@ -710,6 +716,7 @@ int AdjList::get_out_degree(int node_id)
 {
     int ret = 0;
     WT_CURSOR *cursor = get_node_cursor();
+    cursor->reset(cursor);
     if (read_optimize)
     {
         cursor->set_key(cursor, node_id);
@@ -1527,42 +1534,46 @@ WT_CURSOR *AdjList::get_node_cursor()
         throw GraphException("Could not get a test node cursor");
     }
     return cursor;
+    //return node_cursor;
 }
 
 WT_CURSOR *AdjList::get_edge_cursor()
 {
-    WT_CURSOR *cursor;
+    // WT_CURSOR *cursor;
 
-    int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
-    if (ret != 0)
-    {
-        throw GraphException("Could not get a test edge cursor");
-    }
-    return cursor;
+    // int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
+    // if (ret != 0)
+    // {
+    //     throw GraphException("Could not get a test edge cursor");
+    // }
+    // return cursor;
+    return edge_cursor;
 }
 
 WT_CURSOR *AdjList::get_in_adjlist_cursor()
 {
-    WT_CURSOR *cursor;
+    // WT_CURSOR *cursor;
 
-    int ret = _get_table_cursor(IN_ADJLIST, &cursor, false);
-    if (ret != 0)
-    {
-        throw GraphException("Could not get a test in_adjlist cursor");
-    }
-    return cursor;
+    // int ret = _get_table_cursor(IN_ADJLIST, &cursor, false);
+    // if (ret != 0)
+    // {
+    //     throw GraphException("Could not get a test in_adjlist cursor");
+    // }
+    // return cursor;
+    return in_adjlist_cursor;
 }
 
 WT_CURSOR *AdjList::get_out_adjlist_cursor()
 {
-    WT_CURSOR *cursor;
+    // WT_CURSOR *cursor;
 
-    int ret = _get_table_cursor(OUT_ADJLIST, &cursor, false);
-    if (ret != 0)
-    {
-        throw GraphException("Could not get a test out_adjlist cursor");
-    }
-    return cursor;
+    // int ret = _get_table_cursor(OUT_ADJLIST, &cursor, false);
+    // if (ret != 0)
+    // {
+    //     throw GraphException("Could not get a test out_adjlist cursor");
+    // }
+    // return cursor;
+    return out_adjlist_cursor;
 }
 
 WT_CURSOR *AdjList::get_node_iter()
