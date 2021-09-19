@@ -646,6 +646,7 @@ node StandardGraph::get_random_node()
     }
 
     found = __record_to_node(this->random_node_cursor);
+    random_node_cursor->get_key(random_node_cursor, &found.id);
     // random_node_cursor->close(random_node_cursor); <- don't close a cursor
     // prematurely
     return found;

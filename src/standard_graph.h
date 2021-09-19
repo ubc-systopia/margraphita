@@ -56,6 +56,9 @@ public:
     void close();
     std::vector<edge> test_cursor_iter(int node_id);
     void create_indices();
+
+    std::string get_db_name() const { return this->db_name; };
+    WT_CONNECTION *get_db_conn() { return this->conn; }
     // WT privates
 private:
     WT_CONNECTION *conn;
