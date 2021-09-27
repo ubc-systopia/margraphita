@@ -220,32 +220,47 @@ int main(int argc, char *argv[])
     }
     else if (pr_cli.get_graph_type() == "adj")
     {
-
+        auto start = chrono::steady_clock::now();
         AdjList graph(opts);
         if (pr_cli.is_exit_on_create()) // Exit after creating the db
         {
             exit(0);
         }
-        //Now run PR
-        auto start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance());
         auto end = chrono::steady_clock::now();
+        cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        //Now run PR
+        start = chrono::steady_clock::now();
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance());
+        end = chrono::steady_clock::now();
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
         graph.close();
     }
     else if (pr_cli.get_graph_type() == "ekey")
     {
-
+        auto start = chrono::steady_clock::now();
         EdgeKey graph(opts);
         if (pr_cli.is_exit_on_create()) // Exit after creating the db
         {
             exit(0);
         }
+        auto end = chrono::steady_clock::now();
+        cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+
+        if (pr_cli.is_index_create())
+        {
+
+            start = chrono::steady_clock::now();
+            graph.create_indices();
+            end = chrono::steady_clock::now();
+            cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+            graph.close();
+            exit(0);
+        }
 
         //Now run PR
-        auto start = chrono::steady_clock::now();
+        start = chrono::steady_clock::now();
         pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance());
-        auto end = chrono::steady_clock::now();
+        end = chrono::steady_clock::now();
         cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
         graph.close();
     }
