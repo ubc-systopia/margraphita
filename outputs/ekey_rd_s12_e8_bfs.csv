@@ -1,0 +1,17 @@
+#db_name, benchmark, starting node_id, num_visited, sum_out_deg, time_taken_usecs
+ekey_rd_s12_e8,bfs,3697,2675,320710,63371
+ekey_rd_s12_e8,bfs,1444,2675,320710,63356
+ekey_rd_s12_e8,bfs,1828,2677,320750,63348
+ekey_rd_s12_e8,bfs,3775,2675,320710,62958
+ekey_rd_s12_e8,bfs,1556,2675,320710,63340
+ekey_rd_s12_e8,bfs,868,2675,320710,64825
+ekey_rd_s12_e8,bfs,130,2675,320710,64226
+ekey_rd_s12_e8,bfs,1009,2676,320720,64065
+ekey_rd_s12_e8,bfs,1809,2675,320710,64326
+ekey_rd_s12_e8,bfs,2593,2675,320710,64284
+ekey_rd_s12_e8,bfs,292,2675,320710,64366
+ekey_rd_s12_e8,bfs,791,2675,320710,64772
+ekey_rd_s12_e8,bfs,92,2675,320710,64596
+ekey_rd_s12_e8,bfs,793,2675,320710,65162
+ekey_rd_s12_e8,bfs,771,2675,320710,64885
+ekey_rd_s12_e8,bfs,386,2675,320710,65583

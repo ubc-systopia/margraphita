@@ -1,0 +1,16 @@
+#db_name, benchmark, starting node_id, num_visited, sum_out_deg, time_taken_usecs
+ekey_rd_cit-Patents,bfs,4027332,5,40,513
+ekey_rd_cit-Patents,bfs,2282634,1,0,21
+ekey_rd_cit-Patents,bfs,4161954,18,170,345
+ekey_rd_cit-Patents,bfs,5615385,22122,470720,3764192
+ekey_rd_cit-Patents,bfs,4276469,6,50,1237
+ekey_rd_cit-Patents,bfs,4339986,21,220,4228
+ekey_rd_cit-Patents,bfs,3865592,8,70,1356
+ekey_rd_cit-Patents,bfs,4788124,760,10560,208298
+ekey_rd_cit-Patents,bfs,4639484,508,6450,160501
+ekey_rd_cit-Patents,bfs,4841846,389,4110,119676
+ekey_rd_cit-Patents,bfs,4169896,4,40,1078
+ekey_rd_cit-Patents,bfs,4245846,7,60,2073
+ekey_rd_cit-Patents,bfs,4608514,77,860,24296
+ekey_rd_cit-Patents,bfs,5717290,1721,25070,632147
+ekey_rd_cit-Patents,bfs,3916985,5,40,1556

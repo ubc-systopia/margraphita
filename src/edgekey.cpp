@@ -243,25 +243,47 @@ node EdgeKey::get_random_node()
     node rando = {0};
     WT_CURSOR *random_cur;
     int ret = _get_table_cursor(EDGE_TABLE, &random_cur, true);
-    if (random_cur->next(random_cur) != 0)
+    if (ret != 0)
     {
-        return rando;
+        throw GraphException("could not get a random cursor to the node table");
     }
     int src, dst;
-    random_cur->get_key(random_cur, &src, &dst);
-    if (dst == -1)
+    ret = random_cur->next(random_cur);
+    do
     {
-        __record_to_node(random_cur, &rando);
-    }
-    else
-    {
-        WT_CURSOR *e_cur = get_edge_cursor();
-        e_cur->set_key(e_cur, src, -1);
-        e_cur->search(e_cur); // guaranteed to return 0
-        __record_to_node(e_cur, &rando);
-        e_cur->close(e_cur);
-    }
-    random_cur->close(random_cur);
+        ret = random_cur->get_key(random_cur, &src, &dst);
+        if (ret != 0)
+        {
+            throw GraphException("here");
+        }
+        if (dst == -1)
+        {
+            //random_cur->set_key(random_cur, src, dst);
+            __record_to_node(random_cur, &rando);
+            rando.id = src;
+            break;
+        }
+        else
+        {
+            ret = random_cur->next(random_cur);
+            if (ret != 0)
+            {
+                throw GraphException("here here");
+            }
+            ret = random_cur->get_key(random_cur, &src, &dst);
+            if (ret != 0)
+            {
+                throw GraphException("hereherehere");
+            }
+            if (dst == -1)
+            {
+                //random_cur->set_key(random_cur, src, dst);
+                __record_to_node(random_cur, &rando);
+                rando.id = src;
+                break;
+            }
+        }
+    } while (dst != -1);
     return rando;
 }
 
@@ -1165,7 +1187,11 @@ void EdgeKey::drop_indices()
 void EdgeKey::__record_to_node(WT_CURSOR *cur, node *found)
 {
     char *packed_vec;
-    cur->get_value(cur, &packed_vec);
+    int ret = cur->get_value(cur, &packed_vec);
+    if (ret != 0)
+    {
+        throw GraphException("in here");
+    }
     std::string str(packed_vec);
     int a, b;
     extract_from_string(packed_vec, &a, &b);

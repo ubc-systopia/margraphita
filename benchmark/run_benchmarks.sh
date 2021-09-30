@@ -3,10 +3,10 @@ set -x
 set -e
 
 TYPES=( "adj" "std"  "ekey" )
-DATASETS=( "cit-Patents" "twitter_kwak" )
+DATASETS=( "cit-Patents" ) #"twitter" )
 DRIVE=( "hdd" "ssd")
 BENCHMARKS=( "pagerank" "bfs" "tc" )
-RESULT=/home/puneet/scratch/margraphita/outputs/pr
+RESULT=/home/puneet/scratch/margraphita/outputs
 COUNTS=10
 run_pagerank()
 {
@@ -16,7 +16,7 @@ do
     do
         for trials in $(seq 1 $COUNTS)
         do
-        ./pagerank -m ${type}_rd_${ds} -b PR -a ./db -s $ds -r -d -l $type -i 10 -t 0.0001 &>> ${RESULT}/${ds}.txt
+        ./pagerank -m ${type}_rd_${ds} -b PR -a ./db -s $ds -r -d -l $type -i 10 -t 0.0001 &>> ${RESULT}/pr/${ds}.txt
         done
     done
 done
@@ -29,7 +29,7 @@ do
     for type in "${TYPES[@]}"
     do
     # The bfs binary handles running the tests 10 times for 10 different random nodes. 
-        ./bfs -m "${type}_rd_${ds}" -b BFS -a /ssd_graph/cit-Patents  -s $ds -r -d -l $type &>> ${RESULT}/bfs_test.txt
+        ./bfs -m "${type}_rd_${ds}" -b BFS -a ./db  -s $ds -r -d -l $type &>> ${RESULT}/bfs/${type}_rd_${ds}.txt
     done
 done
 }
