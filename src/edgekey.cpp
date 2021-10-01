@@ -1013,11 +1013,13 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
     dst_cur->set_key(dst_cur, node_id);
-    int search_ret = dst_cur->search(dst_cur);
-    if (search_ret == 0)
+    if (dst_cur->search(dst_cur) == 0)
     {
         int src_id, dst_id;
-        dst_cur->get_value(dst_cur, &src_id, &dst_id);
+        if (dst_cur->get_value(dst_cur, &src_id, &dst_id) != 0)
+        {
+            throw GraphException("here" + __LINE__);
+        }
 
         do
         {
@@ -1029,8 +1031,18 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
                 __record_to_node(e_cur, &found);
                 in_nodes.push_back(found);
             }
-            dst_cur->next(dst_cur);
-            dst_cur->get_value(dst_cur, &src_id, &dst_id);
+            if (dst_cur->next(dst_cur) == 0)
+            {
+                if (dst_cur->get_value(dst_cur, &src_id, &dst_id) != 0)
+                {
+                    throw GraphException("here" + __LINE__);
+                }
+            }
+            else
+            {
+                break;
+            }
+
         } while (dst_id == node_id);
     }
     e_cur->close(e_cur);
@@ -1142,7 +1154,10 @@ void EdgeKey::create_indices()
     {
         throw GraphException("Failed to create an index on the DST column of the edge table");
     }
-}
+} /**
+ * changing the src index column from SRC to SRC, DST
+ * and dst index column from DST to DST,SRC 
+ */
 
 /**
  * @brief Drops the indices not required for adding edges.
@@ -1202,7 +1217,11 @@ void EdgeKey::__record_to_node(WT_CURSOR *cur, node *found)
 void EdgeKey::__record_to_edge(WT_CURSOR *cur, edge *found)
 {
     char *packed_vec;
-    cur->get_value(cur, &packed_vec);
+    int ret = cur->get_value(cur, &packed_vec);
+    if (ret != 0)
+    {
+        throw GraphException("in here");
+    }
     std::string str(packed_vec);
     int a, b;
     extract_from_string(str, &a, &b);
