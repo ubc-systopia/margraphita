@@ -142,14 +142,8 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
 
             for (node in : in_nodes)
             {
-                //cout << "here\n";
                 sum += (ptr[hashfn(in.id) % N].p_rank[p_cur]) / in.out_degree;
             }
-
-            // if (i % 50000 == 0)
-            // {
-            //     cout << "next \t" << i << endl;
-            // }
             ptr[index].p_rank[p_next] = constant + (dampness * sum);
             i++;
         }
