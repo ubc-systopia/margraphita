@@ -1539,6 +1539,14 @@ WT_CURSOR *AdjList::get_node_cursor()
 
 WT_CURSOR *AdjList::get_edge_cursor()
 {
+    if (edge_cursor == nullptr)
+    {
+        int ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a test edge cursor");
+        }
+    }
     // WT_CURSOR *cursor;
 
     // int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
@@ -1552,6 +1560,14 @@ WT_CURSOR *AdjList::get_edge_cursor()
 
 WT_CURSOR *AdjList::get_in_adjlist_cursor()
 {
+    if (in_adjlist_cursor == nullptr)
+    {
+        int ret = _get_table_cursor(IN_ADJLIST, &in_adjlist_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a test in_adjlist cursor");
+        }
+    }
     // WT_CURSOR *cursor;
 
     // int ret = _get_table_cursor(IN_ADJLIST, &cursor, false);
@@ -1565,6 +1581,14 @@ WT_CURSOR *AdjList::get_in_adjlist_cursor()
 
 WT_CURSOR *AdjList::get_out_adjlist_cursor()
 {
+    if (out_adjlist_cursor == nullptr)
+    {
+        int ret = _get_table_cursor(OUT_ADJLIST, &out_adjlist_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a test out_adjlist cursor");
+        }
+    }
     // WT_CURSOR *cursor;
 
     // int ret = _get_table_cursor(OUT_ADJLIST, &cursor, false);
