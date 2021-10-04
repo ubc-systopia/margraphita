@@ -4,6 +4,7 @@
 #include <set>
 #include <deque>
 #include <algorithm>
+#include <cassert>
 #include <unistd.h>
 #include "common.h"
 #include "graph_exception.h"
@@ -50,8 +51,53 @@ void print_csv_info(std::string name, tc_info &info)
     FILE.close();
 }
 
+bool node_compare(node a, node b)
+{
+    return ((a.id < b.id));
+}
+
+std::vector<node> intersection(std::vector<node> A, std::vector<node> B)
+{
+    int a = A.size();
+    int b = B.size();
+    std::sort(A.begin(), A.end(), node_compare);
+    std::sort(B.begin(), B.end(), node_compare);
+    //std::set<int> ABintersection;
+    std::vector<node> ABintersection;
+    // std::set_intersect(A.begin(),
+    //                    A.end(),
+    //                    B.begin(),
+    //                    B.end(),
+    //                    std::inserter(ABintersection, ABintersection.begin()));
+    std::vector<node>::iterator A_iter = A.begin();
+    std::vector<node>::iterator B_iter = B.begin();
+    int i = 0;
+    int j = 0;
+    int k = 0;
+    while (i < a and j < b)
+    {
+        if ((*A_iter).id == (*B_iter).id)
+        {
+            ABintersection[k] = *A_iter;
+            k++;
+            ++A_iter;
+            ++B_iter;
+        }
+        else if ((*A_iter).id < (*B_iter).id)
+        {
+            ++A_iter;
+        }
+        else
+        {
+            ++B_iter;
+        }
+    }
+    assert(ABintersection.size() == k);
+    return ABintersection;
+}
+
 template <typename Graph>
-int tc(Graph &graph, bool isTrust)
+int trust_tc(Graph &graph)
 {
     int count = 0;
     vector<node> nodes = graph.get_nodes();
@@ -68,55 +114,63 @@ int tc(Graph &graph, bool isTrust)
                 continue; //self loop -- ignore.
             }
 
-            if (isTrust or e.dst_id > n.id)
+            // if (isTrust) // or e.dst_id > n.id)
+            // {
+            edges2 = graph.get_out_edges(nbr_id);
+            // }
+
+            // if (isTrust)
+            // {
+            set<int> edge_nei;
+            set<int> edge2_nei;
+
+            for (edge e : out_edges)
             {
-                edges2 = graph.get_out_edges(nbr_id);
+
+                if (e.src_id != e.dst_id)
+                {
+                    edge_nei.insert(e.dst_id);
+                }
             }
 
-            if (isTrust)
+            for (edge e : edges2)
             {
-                set<int> edge_nei;
-                set<int> edge2_nei;
-
-                for (edge e : out_edges)
+                if (e.src_id != e.dst_id && edge_nei.find(e.dst_id) != edge_nei.end())
                 {
-
-                    if (e.src_id != e.dst_id)
-                    {
-                        edge_nei.insert(e.dst_id);
-                    }
+                    count++;
                 }
+            }
+            //}
+        }
+    }
 
-                for (edge e : edges2)
+    return count;
+}
+
+template <typename Graph>
+int cycle_tc(Graph &graph)
+{
+    int count = 0;
+    vector<node> nodes = graph.get_nodes();
+    for (node n : nodes)
+    {
+        vector<node> out_nodes = graph.get_out_nodes(n.id);
+        for (node out_node : out_nodes)
+        {
+            if (n.id < out_node.id)
+            {
+                std::vector<node> intersect = (graph.get_in_nodes(n.id), graph.get_out_nodes(out_node.id));
+                for (node w : intersect)
                 {
-                    if (e.src_id != e.dst_id && edge_nei.find(e.dst_id) != edge_nei.end())
+                    if (n.id < w.id and out_node.id < w.id)
                     {
+                        //cout << "(" << n.id << "," << out_node.id << "," << w.id << ")\n";
                         count++;
-                    }
-                }
-
-                // set<int> intersect;
-                // set_intersection(edge_nei.begin(), edge_nei.end(), edge2_nei.begin(), edge2_nei.end(), std::inserter(intersect, intersect.begin()));
-                // count += intersect.size();
-            }
-
-            else
-            { //Cycle Triangle
-                if (e.dst_id > n.id)
-                {
-                    for (edge edge2 : edges2)
-                    {
-                        edge last_edge = graph.get_edge(edge2.dst_id, n.id);
-                        if ((edge2.dst_id > e.dst_id)) // && (last_edge.id != 0))
-                        {
-                            count++;
-                        }
                     }
                 }
             }
         }
     }
-
     return count;
 }
 
@@ -150,7 +204,7 @@ int main(int argc, char *argv[])
             tc_info info(0);
             //Count Trust Triangles
             start = chrono::steady_clock::now();
-            info.trust_count = tc(graph, true);
+            info.trust_count = trust_tc(graph);
             end = chrono::steady_clock::now();
 
             info.trust_time = chrono::duration_cast<chrono::microseconds>(end - start).count();
@@ -159,7 +213,7 @@ int main(int argc, char *argv[])
 
             //Count Cycle Triangles
             start = chrono::steady_clock::now();
-            info.cycle_count = tc(graph, false);
+            info.cycle_count = cycle_tc(graph);
             end = chrono::steady_clock::now();
             info.cycle_time = chrono::duration_cast<chrono::microseconds>(end - start).count();
             std::cout << "Cycle TriangleCounting  completed in : " << info.cycle_time << std::endl;
@@ -180,7 +234,7 @@ int main(int argc, char *argv[])
             tc_info info(0);
             //Count Trust Triangles
             start = chrono::steady_clock::now();
-            info.trust_count = tc(graph, true);
+            info.trust_count = trust_tc(graph);
             end = chrono::steady_clock::now();
             info.trust_time = chrono::duration_cast<chrono::microseconds>(end - start).count();
             std::cout << "Trust TriangleCounting completed in : " << info.trust_time << std::endl;
@@ -188,7 +242,7 @@ int main(int argc, char *argv[])
 
             //Count Cycle Triangles
             start = chrono::steady_clock::now();
-            info.cycle_count = tc(graph, false);
+            info.cycle_count = cycle_tc(graph);
             end = chrono::steady_clock::now();
             info.cycle_time = chrono::duration_cast<chrono::microseconds>(end - start).count();
             std::cout << "Cycle Triangle Counting  completed in : " << info.cycle_time << std::endl;
@@ -209,7 +263,7 @@ int main(int argc, char *argv[])
             tc_info info(0);
             //Count Trust Triangles
             start = chrono::steady_clock::now();
-            info.trust_count = tc(graph, true);
+            info.trust_count = trust_tc(graph);
             end = chrono::steady_clock::now();
             info.trust_time = chrono::duration_cast<chrono::microseconds>(end - start).count();
             std::cout << "Trust TriangleCounting completed in : " << info.trust_time << std::endl;
@@ -217,7 +271,7 @@ int main(int argc, char *argv[])
 
             //Count Cycle Triangles
             start = chrono::steady_clock::now();
-            info.cycle_count = tc(graph, false);
+            info.cycle_count = cycle_tc(graph);
             end = chrono::steady_clock::now();
             info.cycle_time = chrono::duration_cast<chrono::microseconds>(end - start).count();
             std::cout << "Cycle TriangleCounting  completed in : " << info.cycle_time << std::endl;
