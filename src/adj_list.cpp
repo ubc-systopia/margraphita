@@ -549,7 +549,7 @@ void AdjList::add_edge(edge to_insert)
         {
             cursor->set_value(cursor, 0);
         }
-        cursor->insert(cursor);
+        cursor->reset(cursor);
     }
     //cursor->close(cursor);
 
