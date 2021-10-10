@@ -85,7 +85,7 @@ void EdgeKey::create_new_graph()
     }
     //Set up the edge table
     //Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
-    //Edge Column Format: IIS
+    //Edge Column Format: iiS
 
     CommonUtil::set_table(session, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
 
@@ -351,7 +351,7 @@ bool EdgeKey::has_edge(int src_id, int dst_id)
     {
         found = true;
     }
-    e_cur->close(e_cur);
+    e_cur->reset(e_cur);
     return found;
 }
 
@@ -664,8 +664,8 @@ std::vector<node> EdgeKey::get_nodes()
             }
         }
     }
-    dst_cur->close(dst_cur);
-    e_cur->close(e_cur);
+    dst_cur->reset(dst_cur);
+    e_cur->reset(e_cur);
     return nodes;
 }
 
@@ -693,7 +693,7 @@ int EdgeKey::get_num_nodes()
             node_count++;
         }
     }
-    dst_cur->close(dst_cur);
+    dst_cur->reset(dst_cur);
     return node_count;
 }
 
@@ -710,7 +710,7 @@ int EdgeKey::get_num_edges()
             edge_count++;
         }
     }
-    dst_cur->close(dst_cur);
+    dst_cur->reset(dst_cur);
     return edge_count;
 }
 
@@ -729,7 +729,7 @@ int EdgeKey::get_out_degree(int node_id)
         e_cur->search(e_cur);
         node found;
         __record_to_node(e_cur, &found);
-        e_cur->close(e_cur);
+        e_cur->reset(e_cur);
         return found.out_degree;
     }
     else
@@ -766,7 +766,7 @@ int EdgeKey::get_out_degree(int node_id)
                 }
             }
         }
-        src_cur->close(src_cur);
+        src_cur->reset(src_cur);
         return out_deg;
     }
 }
@@ -786,7 +786,7 @@ int EdgeKey::get_in_degree(int node_id)
         e_cur->search(e_cur);
         node found;
         __record_to_node(e_cur, &found);
-        e_cur->close(e_cur);
+        e_cur->reset(e_cur);
         return found.in_degree;
     }
     else
@@ -815,7 +815,7 @@ int EdgeKey::get_in_degree(int node_id)
                 }
             }
         }
-        dst_cur->close(dst_cur);
+        dst_cur->reset(dst_cur);
         return in_degree;
     }
 }
@@ -843,7 +843,7 @@ std::vector<edge> EdgeKey::get_edges()
             edges.push_back(found);
         }
     }
-    e_cur->close(e_cur);
+    e_cur->reset(e_cur);
     return edges;
 }
 
@@ -896,8 +896,8 @@ std::vector<edge> EdgeKey::get_out_edges(int node_id)
 
         } while (src_id == node_id && src_cur->next(src_cur) == 0 && flag <= 1); //flag check ensures that if the first entry we hit was (node_id, -1), we try to look for the next entry the cursor points to to see if it has a (node_id, <dst>) entry.
     }
-    e_cur->close(e_cur);
-    src_cur->close(src_cur);
+    e_cur->reset(e_cur);
+    src_cur->reset(src_cur);
     return out_edges;
 }
 
@@ -948,8 +948,8 @@ std::vector<node> EdgeKey::get_out_nodes(int node_id)
             }
         } while (src == node_id && src_cur->next(src_cur) == 0 && flag <= 1); //flag check ensures that if the first entry we hit was (node_id, -1), we try to look for the next entry the cursor points to to see if it has a (node_id, <dst>) entry.
     }
-    e_cur->close(e_cur);
-    src_cur->close(src_cur);
+    e_cur->reset(e_cur);
+    src_cur->reset(src_cur);
     return out_nodes;
 }
 
@@ -991,8 +991,8 @@ std::vector<edge> EdgeKey::get_in_edges(int node_id)
             dst_cur->get_value(dst_cur, &src_id, &dst_id);
         } while (dst_id == node_id);
     }
-    e_cur->close(e_cur);
-    dst_cur->close(dst_cur);
+    e_cur->reset(e_cur);
+    dst_cur->reset(dst_cur);
     return in_edges;
 }
 
@@ -1045,8 +1045,8 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
 
         } while (dst_id == node_id);
     }
-    e_cur->close(e_cur);
-    dst_cur->close(dst_cur);
+    e_cur->reset(e_cur);
+    dst_cur->reset(dst_cur);
     return in_nodes;
 }
 
@@ -1267,37 +1267,44 @@ Get cursors
 */
 WT_CURSOR *EdgeKey::get_edge_cursor()
 {
-    WT_CURSOR *cursor;
-    if (_get_table_cursor(EDGE_TABLE, &cursor, false) != 0)
+    if (edge_cursor == nullptr)
     {
-        throw GraphException("Could not get a cursor to the Edge table");
+        if (_get_table_cursor(EDGE_TABLE, &edge_cursor, false) != 0)
+        {
+            throw GraphException("Could not get a cursor to the Edge table");
+        }
     }
 
-    return cursor;
+    return edge_cursor;
 }
 
 WT_CURSOR *EdgeKey::get_src_idx_cur()
 {
-    WT_CURSOR *cursor;
-    string projection = "(" + SRC + "," + DST + ")";
-    int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX, projection,
-                                &cursor);
-    if (ret != 0)
+    if (src_idx_cursor == nullptr)
     {
-        throw GraphException("Could not get a cursor to the SRC_INDEX ");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(EDGE_TABLE, SRC_INDEX, projection,
+                              &src_idx_cursor) != 0)
+        {
+            throw GraphException("Could not get a cursor to the SRC_INDEX ");
+        }
     }
-    return cursor;
+
+    return src_idx_cursor;
 }
 
 WT_CURSOR *EdgeKey::get_dst_idx_cur()
 {
-    WT_CURSOR *cursor;
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(EDGE_TABLE, DST_INDEX, projection, &cursor) != 0)
+    if (dst_idx_cursor == nullptr)
     {
-        throw GraphException("Could not get a cursor to DST_INDEX");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(EDGE_TABLE, DST_INDEX, projection, &dst_idx_cursor) != 0)
+        {
+            throw GraphException("Could not get a cursor to DST_INDEX");
+        }
     }
-    return cursor;
+
+    return dst_idx_cursor;
 }
 
 //Because we know that there can only be two. By design.

@@ -91,18 +91,18 @@ int main()
     opts.db_name = "test_s15";
     opts.db_dir = "./db";
 
-    // std::cout << "Inserting STD \n";
-    // StandardGraph graph1 = StandardGraph(opts);
-    // create_init_nodes(graph1);
-    // tearDown(graph1);
+     /*std::cout << "Inserting STD \n";
+    StandardGraph graph1 = StandardGraph(opts);
+     create_init_nodes(graph1);
+    tearDown(graph1);
 
     std::cout << "Inserting ADJ \n";
     AdjList graph2 = AdjList(opts);
     create_init_nodes(graph2);
     tearDown(graph2);
-
-    // std::cout << "Inserting EKEY \n";
-    // EdgeKey graph3 = EdgeKey(opts);
-    // create_init_nodes(graph3);
-    // tearDown(graph3);
+*/
+    std::cout << "Inserting EKEY \n";
+    EdgeKey graph3 = EdgeKey(opts);
+     create_init_nodes(graph3);
+     tearDown(graph3);
 }
