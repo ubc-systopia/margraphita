@@ -36,3 +36,9 @@ INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 
 target_include_directories(bulk_insert PRIVATE ${PATH_SRC})
 target_link_libraries(bulk_insert PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
+
+add_executable(single_threaded_graphapi_insert single_threaded_graphapi_insert.cpp)
+INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
+
+target_include_directories(single_threaded_graphapi_insert PRIVATE ${PATH_SRC})
+target_link_libraries(single_threaded_graphapi_insert PUBLIC ${NAME_LIB} graph_utils)

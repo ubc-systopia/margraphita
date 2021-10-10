@@ -122,7 +122,7 @@ int AdjList::get_num_nodes()
     {
         count += 1;
     }
-    cursor->close(cursor);
+    //cursor->close(cursor);
     return count;
 }
 
@@ -137,7 +137,7 @@ int AdjList::get_num_edges()
     {
         count += 1;
     }
-    cursor->close(cursor);
+    //cursor->close(cursor);
     return count;
 }
 
@@ -280,7 +280,7 @@ void AdjList::create_new_graph()
     insert_metadata(IS_WEIGHTED, const_cast<char *>(is_weighted_str.c_str()));
     //#endif
 
-    this->metadata_cursor->close(this->metadata_cursor);
+    //this->metadata_cursor->close(this->metadata_cursor);
 }
 
 void AdjList::__restore_from_db(string dbname)
@@ -342,7 +342,7 @@ void AdjList::__restore_from_db(string dbname)
             }
         }
     }
-    cursor->close(cursor);
+    //cursor->close(cursor);
 }
 /**
  * @brief This is the generic function to get a cursor on the table
@@ -519,7 +519,7 @@ void AdjList::add_edge(edge to_insert)
     //We don't need to check if the edge exists already -- overwrite it regardless
     to_insert.id = -1; // uninterpreted
     cursor->set_key(cursor, to_insert.src_id, to_insert.dst_id);
-    cout << "New Edge ID inserted" << endl;
+    //cout << "New Edge ID inserted" << endl;
 
     if (is_weighted)
     {
@@ -551,7 +551,7 @@ void AdjList::add_edge(edge to_insert)
         }
         cursor->insert(cursor);
     }
-    cursor->close(cursor);
+    //cursor->close(cursor);
 
     add_to_adjlists(out_adjlist_cursor, to_insert.src_id, to_insert.dst_id);
     add_to_adjlists(in_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
@@ -588,7 +588,7 @@ void AdjList::add_edge(edge to_insert)
         found.id = to_insert.dst_id;
         found.in_degree = found.in_degree + 1;
         update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
-        cursor->close(cursor);
+        //cursor->close(cursor);
     }
 }
 
@@ -619,7 +619,7 @@ node AdjList::get_random_node()
     }
     found = AdjList::__record_to_node(cursor, 0);
     cursor->get_key(cursor, &found.id);
-    cursor->close(cursor);
+    //cursor->close(cursor);
     return found;
 }
 
@@ -686,7 +686,7 @@ int AdjList::get_in_degree(int node_id)
             throw GraphException("Could not find a node with ID " + std::to_string(node_id));
         }
         node found = __record_to_node(cursor, node_id);
-        cursor->close(cursor);
+        //cursor->close(cursor);
         return found.in_degree;
     }
     else
@@ -701,7 +701,7 @@ int AdjList::get_in_degree(int node_id)
         adjlist in_edges;
         in_edges.node_id = node_id;
         __record_to_adjlist(cursor, &in_edges);
-        cursor->close(cursor);
+        //cursor->close(cursor);
         return in_edges.degree;
     }
 }
@@ -726,7 +726,7 @@ int AdjList::get_out_degree(int node_id)
             throw GraphException("Could not find a node with ID " + std::to_string(node_id));
         }
         node found = __record_to_node(cursor, node_id);
-        cursor->close(cursor);
+        //cursor->close(cursor);
         return found.out_degree;
     }
 
@@ -742,9 +742,9 @@ int AdjList::get_out_degree(int node_id)
         adjlist out_edges;
         out_edges.node_id = node_id;
         __record_to_adjlist(cursor, &out_edges);
+        //cursor->close(cursor);
         return out_edges.degree;
     }
-    cursor->close(cursor);
 }
 
 //TODO:Verify that this works. get value should handle the buffer size.
@@ -1526,15 +1526,17 @@ Get test cursors
 */
 WT_CURSOR *AdjList::get_node_cursor()
 {
-    WT_CURSOR *cursor;
-
-    int ret = _get_table_cursor(NODE_TABLE, &cursor, false);
-    if (ret != 0)
+    if (node_cursor == nullptr)
     {
-        throw GraphException("Could not get a test node cursor");
+
+        int ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a test node cursor");
+        }
     }
-    return cursor;
-    //return node_cursor;
+
+    return node_cursor;
 }
 
 WT_CURSOR *AdjList::get_edge_cursor()
@@ -1562,6 +1564,7 @@ WT_CURSOR *AdjList::get_in_adjlist_cursor()
 {
     if (in_adjlist_cursor == nullptr)
     {
+        std::cout << "opening cursosr here\n\n";
         int ret = _get_table_cursor(IN_ADJLIST, &in_adjlist_cursor, false);
         if (ret != 0)
         {
