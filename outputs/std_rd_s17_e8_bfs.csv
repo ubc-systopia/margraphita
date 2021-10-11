@@ -1,0 +1,6 @@
+#db_name, benchmark, starting node_id, num_visited, sum_out_deg, time_taken_usecs
+std_rd_s17_e8,bfs,122937,67546,10202170,122399051
+std_rd_s17_e8,bfs,81024,67546,10202170,389897284
+std_rd_s17_e8,bfs,38303,67546,10202170,789867285
+std_rd_s17_e8,bfs,119104,67546,10202170,1266698614
+std_rd_s17_e8,bfs,97288,67547,10202180,1669020684

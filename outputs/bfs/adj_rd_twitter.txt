@@ -1,0 +1,12 @@
+Running BFS
+Graph loaded in 393880
+59095699
+random start vertex is 59095699
+Running BFS
+Graph loaded in 355471
+59095699
+random start vertex is 59095699
+Running BFS
+Graph loaded in 371084
+59095699
+random start vertex is 59095699

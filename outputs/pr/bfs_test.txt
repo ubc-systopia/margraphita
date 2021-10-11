@@ -1,0 +1,4 @@
+Running BFS
+Failed to get table cursor to table:node
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to the NODE TABLEOperation not permitted

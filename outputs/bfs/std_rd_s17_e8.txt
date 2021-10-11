@@ -1,0 +1,74 @@
+Running BFS
+Graph loaded in 358067
+122937
+random start vertex is 122937
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 1224056830
+81024
+random start vertex is 81024
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 3899051746
+38303
+random start vertex is 38303
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 7898754946
+119104
+random start vertex is 119104
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 12667068881
+97288
+random start vertex is 97288
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 16690286548
+44000
+random start vertex is 44000

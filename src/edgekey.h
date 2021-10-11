@@ -55,7 +55,7 @@ public:
     node get_next_node(WT_CURSOR *n_iter);
     WT_CURSOR *get_edge_iter();
     edge get_next_edge(WT_CURSOR *e_iter);
-
+    void close_all_cursors();
     std::string get_db_name() const { return this->db_name; };
 
 private:

@@ -15,6 +15,7 @@
 #define delim "--------------"
 #define INFO() \
     fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
+#define quote(x) #x
 
 std::vector<edge> get_edge_entries(std::vector<edge> &edges, std::string filename)
 {
@@ -55,15 +56,12 @@ std::vector<edge> get_edge_entries(std::vector<edge> &edges, std::string filenam
 template <typename Graph>
 void create_init_nodes(Graph graph)
 {
-    INFO()
     auto start = std::chrono::steady_clock::now();
     std::vector<edge> edjlist;
     get_edge_entries(edjlist, "/home/puneet/graph_s15_e8");
 
     auto end = std::chrono::steady_clock::now();
-    std::cout << "read graph in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
-
-    std::cout << edjlist.size() << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << ",";
 
     start = std::chrono::steady_clock::now();
     for (edge x : edjlist)
@@ -71,7 +69,7 @@ void create_init_nodes(Graph graph)
         graph.add_edge(x);
     }
     end = std::chrono::steady_clock::now();
-    std::cout << "inserted graph in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " microseconds\n";
+    std::cout << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << ",";
 }
 
 template <typename Graph>
@@ -91,18 +89,36 @@ int main()
     opts.db_name = "test_s15";
     opts.db_dir = "./db";
 
-     /*std::cout << "Inserting STD \n";
-    StandardGraph graph1 = StandardGraph(opts);
-     create_init_nodes(graph1);
-    tearDown(graph1);
+    std::cout << "Inserting STD \n";
+    for (int i = 0; i < 10; i++)
+    {
+        opts.db_name = "test_s15_std";
+        StandardGraph graph1 = StandardGraph(opts);
+        create_init_nodes(graph1);
+        auto start = std::chrono::steady_clock::now();
+        graph1.create_indices();
+        auto end = std::chrono::steady_clock::now();
+        std::cout << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+        tearDown(graph1);
+    }
 
     std::cout << "Inserting ADJ \n";
-    AdjList graph2 = AdjList(opts);
-    create_init_nodes(graph2);
-    tearDown(graph2);
-*/
+    for (int i = 0; i < 10; i++)
+    {
+        opts.db_name = "test_s15_adj";
+        AdjList graph2 = AdjList(opts);
+        create_init_nodes(graph2);
+        std::cout << "NA" << std::endl;
+        tearDown(graph2);
+    }
+
     std::cout << "Inserting EKEY \n";
-    EdgeKey graph3 = EdgeKey(opts);
-     create_init_nodes(graph3);
-     tearDown(graph3);
+    for (int i = 0; i < 10; i++)
+    {
+        opts.db_name = "test_s15_ekey";
+        EdgeKey graph3 = EdgeKey(opts);
+        create_init_nodes(graph3);
+        auto start = std::chrono::steady_clock::now();
+        tearDown(graph3);
+    }
 }

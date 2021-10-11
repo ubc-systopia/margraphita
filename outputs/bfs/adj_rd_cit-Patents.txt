@@ -1,0 +1,286 @@
+
+Running BFS
+Graph loaded in 344415
+3807346
+random start vertex is 3807346
+out degree was zero. finding a new random vertex.
+3754638
+random start vertex is 3754638
+out degree was zero. finding a new random vertex.
+4937795
+random start vertex is 4937795
+Starting Node:4937795
+outdegree is :7
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 35125
+5011647
+random start vertex is 5011647
+Starting Node:5011647
+outdegree is :51
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 79227
+4732041
+random start vertex is 4732041
+Starting Node:4732041
+outdegree is :3
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 16269
+4694344
+random start vertex is 4694344
+Starting Node:4694344
+outdegree is :3
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 22278
+3865078
+random start vertex is 3865078
+Starting Node:3865078
+outdegree is :6
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 908
+4821316
+random start vertex is 4821316
+Starting Node:4821316
+outdegree is :3
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 35704
+3772252
+random start vertex is 3772252
+out degree was zero. finding a new random vertex.
+2810917
+random start vertex is 2810917
+out degree was zero. finding a new random vertex.
+4478949
+random start vertex is 4478949
+Starting Node:4478949
+outdegree is :12
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 7560
+4737668
+random start vertex is 4737668
+Starting Node:4737668
+outdegree is :2
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 8450
+2188213
+random start vertex is 2188213
+out degree was zero. finding a new random vertex.
+177057
+random start vertex is 177057
+out degree was zero. finding a new random vertex.
+5739592
+random start vertex is 5739592
+Starting Node:5739592
+outdegree is :8
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 5410120
+5434503
+random start vertex is 5434503
+Starting Node:5434503
+outdegree is :2
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 2937
+5887141
+random start vertex is 5887141
+Starting Node:5887141
+outdegree is :21
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 105614976
+3277707
+random start vertex is 3277707
+out degree was zero. finding a new random vertex.
+2618595
+random start vertex is 2618595
+out degree was zero. finding a new random vertex.
+2518478
+random start vertex is 2518478
+out degree was zero. finding a new random vertex.
+4396286
+random start vertex is 4396286
+Starting Node:4396286
+outdegree is :7
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 26828
+4674776
+random start vertex is 4674776
+Starting Node:4674776
+outdegree is :10
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 372754
+4113807
+random start vertex is 4113807
+Starting Node:4113807
+outdegree is :1
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 5632
+5938031
+random start vertex is 5938031
+Starting Node:5938031
+outdegree is :13
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 21850260
+4764906
+random start vertex is 4764906
+Starting Node:4764906
+outdegree is :5
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 107086

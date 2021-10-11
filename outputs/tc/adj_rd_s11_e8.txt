@@ -1,0 +1,660 @@
+Running TC
+Graph loaded in 351697
+Trust TriangleCounting completed in : 569191
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 510380
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2007
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 511225
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2007
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 511696
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1964
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 510216
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1969
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 512215
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2032
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 511414
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1974
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 509813
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1964
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 510605
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1975
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 509175
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2050
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 508540
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2155
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 511230
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1968
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 508237
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1996
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 510127
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1995
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 512018
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1974
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 510013
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1965
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 510705
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 352699
+Trust TriangleCounting completed in : 564331
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 506143
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2142
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504813
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1998
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504623
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2057
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504005
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1987
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504780
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1993
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503734
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1957
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505754
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2013
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506763
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1967
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505031
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2046
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503029
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1955
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503634
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1990
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502891
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2117
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503483
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1950
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 501928
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1962
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504839
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1987
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505508
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 349206
+Trust TriangleCounting completed in : 562764
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 504053
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1955
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505750
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1959
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 501425
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2174
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502528
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1946
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504009
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2062
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503751
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2094
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503697
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1977
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503694
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1955
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502234
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1959
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502581
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1982
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503639
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1959
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 501366
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1980
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503662
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2075
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503777
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1989
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502365
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2022
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 499891
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 347348
+Trust TriangleCounting completed in : 563918
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 505973
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1991
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505425
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1962
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506134
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1958
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 507294
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1952
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503627
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1979
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504871
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2086
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 509601
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2116
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504228
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1952
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506034
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1956
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505673
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1971
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504137
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1983
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 507163
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1993
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505586
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1979
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504847
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2078
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505257
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2033
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504716
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 350986
+Trust TriangleCounting completed in : 565263
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 507269
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2079
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506669
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1969
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505064
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2011
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504455
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1963
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506316
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1963
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 507373
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1998
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505018
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1956
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506654
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1961
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505727
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1994
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506080
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1989
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504372
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1959
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506709
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2044
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 508676
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2004
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 507445
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1967
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506742
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2030
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504729
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 349451
+Trust TriangleCounting completed in : 563536
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 503563
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1997
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504098
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1992
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504482
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1961
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502175
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1983
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504005
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1982
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504135
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1964
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502762
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2095
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503772
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1988
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505137
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2049
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502714
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1986
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503708
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2012
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 501299
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1963
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502853
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1953
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503945
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1986
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505733
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2106
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503241
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 349994
+Trust TriangleCounting completed in : 563076
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 505237
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1970
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503651
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2050
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505395
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1999
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506427
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1988
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504462
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1959
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 507897
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1998
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503371
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1959
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506291
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1965
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505640
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2002
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504775
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1961
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 507395
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1957
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505921
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1965
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504618
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2051
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505007
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1990
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505964
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2044
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505538
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 347870
+Trust TriangleCounting completed in : 563586
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 505360
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2026
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504763
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1959
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505034
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1963
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504038
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1984
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504633
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1946
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503099
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1955
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505082
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1949
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504973
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1980
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506756
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1983
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504234
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1995
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505208
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2012
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504576
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2074
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502087
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2044
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503452
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1979
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 505931
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1990
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 501525
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 347961
+Trust TriangleCounting completed in : 560951
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 501762
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2065
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502623
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1959
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502782
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1961
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503132
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1985
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502519
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2115
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502600
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1988
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502047
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2016
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 500802
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1982
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503416
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2246
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 501117
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1982
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502851
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1950
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504716
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2013
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504727
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1962
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502032
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1953
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503016
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2024
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 502178
+Cycle Triangles count = 117440
+Running TC
+Graph loaded in 351101
+Trust TriangleCounting completed in : 563938
+Trust Triangles count = 131009
+Cycle Triangle Counting  completed in : 504240
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1941
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504820
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2049
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504773
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2071
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504139
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1947
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503897
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1970
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 504379
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1953
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503841
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2055
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 501468
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1971
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503031
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2064
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503145
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1941
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506305
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1941
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503557
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1981
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503835
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2090
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503222
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 1948
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 506146
+Cycle Triangles count = 117440
+Trust TriangleCounting completed in : 2156
+Trust Triangles count = 21
+Cycle Triangle Counting  completed in : 503104
+Cycle Triangles count = 117440

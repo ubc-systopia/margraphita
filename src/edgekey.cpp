@@ -1370,3 +1370,11 @@ edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
     }
     return found;
 }
+
+void EdgeKey::close_all_cursors()
+{
+    edge_cursor->close(edge_cursor);
+    metadata_cursor->close(metadata_cursor);
+    src_idx_cursor->close(src_idx_cursor);
+    dst_idx_cursor->close(dst_idx_cursor);
+}

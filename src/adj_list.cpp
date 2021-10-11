@@ -1564,7 +1564,6 @@ WT_CURSOR *AdjList::get_in_adjlist_cursor()
 {
     if (in_adjlist_cursor == nullptr)
     {
-        std::cout << "opening cursosr here\n\n";
         int ret = _get_table_cursor(IN_ADJLIST, &in_adjlist_cursor, false);
         if (ret != 0)
         {
