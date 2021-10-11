@@ -858,3 +858,163 @@ Iter 8took 	2912004
 Iter 9took 	2877890
 Iter 10took 	2871504
 PR  completed in : 29056083
+--------------------------------
+Mon 11 Oct 2021 02:43:31 AM
+Running PageRank
+Graph loaded in 345032
+Loading the nodes and constructing the map took 166299
+Iter 1took 	1670512
+Iter 2took 	1665196
+Iter 3took 	1671287
+Iter 4took 	1671264
+Iter 5took 	1682362
+Iter 6took 	1672301
+Iter 7took 	1672910
+Iter 8took 	1670405
+Iter 9took 	1674708
+Iter 10took 	1673745
+PR  completed in : 17236869
+--------------------------------
+Mon 11 Oct 2021 02:43:49 AM
+Running PageRank
+Graph loaded in 344090
+Loading the nodes and constructing the map took 127112
+Iter 1took 	1708660
+Iter 2took 	1706820
+Iter 3took 	1707467
+Iter 4took 	1705964
+Iter 5took 	1708272
+Iter 6took 	1705854
+Iter 7took 	1707669
+Iter 8took 	1706495
+Iter 9took 	1707788
+Iter 10took 	1716694
+PR  completed in : 17511599
+--------------------------------
+Mon 11 Oct 2021 02:44:07 AM
+Running PageRank
+Graph loaded in 342403
+Loading the nodes and constructing the map took 119591
+Iter 1took 	1631334
+Iter 2took 	1631896
+Iter 3took 	1629708
+Iter 4took 	1630246
+Iter 5took 	1631009
+Iter 6took 	1628842
+Iter 7took 	1634037
+Iter 8took 	1628291
+Iter 9took 	1632394
+Iter 10took 	1631229
+PR  completed in : 16731425
+--------------------------------
+Mon 11 Oct 2021 02:44:24 AM
+Running PageRank
+Graph loaded in 345624
+Loading the nodes and constructing the map took 119475
+Iter 1took 	1637206
+Iter 2took 	1636875
+Iter 3took 	1636561
+Iter 4took 	1633574
+Iter 5took 	1634928
+Iter 6took 	1638385
+Iter 7took 	1636593
+Iter 8took 	1635615
+Iter 9took 	1633132
+Iter 10took 	1634385
+PR  completed in : 16778933
+--------------------------------
+Mon 11 Oct 2021 02:44:41 AM
+Running PageRank
+Graph loaded in 340807
+Loading the nodes and constructing the map took 117905
+Iter 1took 	1608845
+Iter 2took 	1608600
+Iter 3took 	1611875
+Iter 4took 	1609946
+Iter 5took 	1610227
+Iter 6took 	1606278
+Iter 7took 	1608808
+Iter 8took 	1610105
+Iter 9took 	1609773
+Iter 10took 	1610610
+PR  completed in : 16514651
+--------------------------------
+Mon 11 Oct 2021 02:44:58 AM
+Running PageRank
+Graph loaded in 343407
+Loading the nodes and constructing the map took 119093
+Iter 1took 	1622729
+Iter 2took 	1620478
+Iter 3took 	1618774
+Iter 4took 	1619658
+Iter 5took 	1625571
+Iter 6took 	1620342
+Iter 7took 	1624933
+Iter 8took 	1618612
+Iter 9took 	1618189
+Iter 10took 	1619182
+PR  completed in : 16628436
+--------------------------------
+Mon 11 Oct 2021 02:45:15 AM
+Running PageRank
+Graph loaded in 343546
+Loading the nodes and constructing the map took 124056
+Iter 1took 	1666394
+Iter 2took 	1670304
+Iter 3took 	1667993
+Iter 4took 	1668054
+Iter 5took 	1665289
+Iter 6took 	1667408
+Iter 7took 	1662247
+Iter 8took 	1666775
+Iter 9took 	1667483
+Iter 10took 	1666886
+PR  completed in : 17095597
+--------------------------------
+Mon 11 Oct 2021 02:45:32 AM
+Running PageRank
+Graph loaded in 345178
+Loading the nodes and constructing the map took 120296
+Iter 1took 	1620693
+Iter 2took 	1624952
+Iter 3took 	1626981
+Iter 4took 	1616300
+Iter 5took 	1626025
+Iter 6took 	1613763
+Iter 7took 	1626620
+Iter 8took 	1613364
+Iter 9took 	1613283
+Iter 10took 	1613251
+PR  completed in : 16617540
+--------------------------------
+Mon 11 Oct 2021 02:45:49 AM
+Running PageRank
+Graph loaded in 344443
+Loading the nodes and constructing the map took 122751
+Iter 1took 	1673578
+Iter 2took 	1664876
+Iter 3took 	1666602
+Iter 4took 	1668993
+Iter 5took 	1673707
+Iter 6took 	1680637
+Iter 7took 	1671155
+Iter 8took 	1685779
+Iter 9took 	1673723
+Iter 10took 	1677740
+PR  completed in : 17165517
+--------------------------------
+Mon 11 Oct 2021 02:46:07 AM
+Running PageRank
+Graph loaded in 340830
+Loading the nodes and constructing the map took 119350
+Iter 1took 	1622104
+Iter 2took 	1624139
+Iter 3took 	1621613
+Iter 4took 	1616333
+Iter 5took 	1619077
+Iter 6took 	1618807
+Iter 7took 	1622249
+Iter 8took 	1622582
+Iter 9took 	1621626
+Iter 10took 	1623456
+PR  completed in : 16632375

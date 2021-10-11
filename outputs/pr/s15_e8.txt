@@ -858,3 +858,163 @@ Iter 8took 	636435
 Iter 9took 	641122
 Iter 10took 	630810
 PR  completed in : 6391602
+--------------------------------
+Mon 11 Oct 2021 02:41:29 AM
+Running PageRank
+Graph loaded in 347952
+Loading the nodes and constructing the map took 38940
+Iter 1took 	364791
+Iter 2took 	363833
+Iter 3took 	363227
+Iter 4took 	364044
+Iter 5took 	363369
+Iter 6took 	362352
+Iter 7took 	360857
+Iter 8took 	363447
+Iter 9took 	362022
+Iter 10took 	363440
+PR  completed in : 3757149
+--------------------------------
+Mon 11 Oct 2021 02:41:33 AM
+Running PageRank
+Graph loaded in 343846
+Loading the nodes and constructing the map took 31730
+Iter 1took 	371283
+Iter 2took 	372909
+Iter 3took 	371854
+Iter 4took 	372297
+Iter 5took 	375133
+Iter 6took 	372976
+Iter 7took 	372376
+Iter 8took 	370470
+Iter 9took 	372458
+Iter 10took 	372276
+PR  completed in : 3831931
+--------------------------------
+Mon 11 Oct 2021 02:41:38 AM
+Running PageRank
+Graph loaded in 342477
+Loading the nodes and constructing the map took 31555
+Iter 1took 	380280
+Iter 2took 	388773
+Iter 3took 	386410
+Iter 4took 	375788
+Iter 5took 	380909
+Iter 6took 	379560
+Iter 7took 	377539
+Iter 8took 	375255
+Iter 9took 	374674
+Iter 10took 	378214
+PR  completed in : 3905016
+--------------------------------
+Mon 11 Oct 2021 02:41:42 AM
+Running PageRank
+Graph loaded in 345522
+Loading the nodes and constructing the map took 30986
+Iter 1took 	364371
+Iter 2took 	363657
+Iter 3took 	365692
+Iter 4took 	364103
+Iter 5took 	362147
+Iter 6took 	362722
+Iter 7took 	363858
+Iter 8took 	363577
+Iter 9took 	364967
+Iter 10took 	364613
+PR  completed in : 3747108
+--------------------------------
+Mon 11 Oct 2021 02:41:46 AM
+Running PageRank
+Graph loaded in 344883
+Loading the nodes and constructing the map took 31948
+Iter 1took 	380365
+Iter 2took 	379593
+Iter 3took 	381215
+Iter 4took 	379454
+Iter 5took 	379583
+Iter 6took 	377931
+Iter 7took 	380185
+Iter 8took 	381330
+Iter 9took 	379103
+Iter 10took 	379751
+PR  completed in : 3911100
+--------------------------------
+Mon 11 Oct 2021 02:41:50 AM
+Running PageRank
+Graph loaded in 342645
+Loading the nodes and constructing the map took 30616
+Iter 1took 	356241
+Iter 2took 	354015
+Iter 3took 	351999
+Iter 4took 	350538
+Iter 5took 	355774
+Iter 6took 	352283
+Iter 7took 	356271
+Iter 8took 	356434
+Iter 9took 	351897
+Iter 10took 	353235
+PR  completed in : 3646269
+--------------------------------
+Mon 11 Oct 2021 02:41:54 AM
+Running PageRank
+Graph loaded in 344308
+Loading the nodes and constructing the map took 31033
+Iter 1took 	363570
+Iter 2took 	366447
+Iter 3took 	364450
+Iter 4took 	364043
+Iter 5took 	363575
+Iter 6took 	363866
+Iter 7took 	365681
+Iter 8took 	364838
+Iter 9took 	363110
+Iter 10took 	362747
+PR  completed in : 3749202
+--------------------------------
+Mon 11 Oct 2021 02:41:58 AM
+Running PageRank
+Graph loaded in 340436
+Loading the nodes and constructing the map took 30629
+Iter 1took 	365315
+Iter 2took 	367431
+Iter 3took 	364854
+Iter 4took 	365550
+Iter 5took 	367134
+Iter 6took 	364619
+Iter 7took 	366663
+Iter 8took 	367637
+Iter 9took 	365141
+Iter 10took 	365917
+PR  completed in : 3766843
+--------------------------------
+Mon 11 Oct 2021 02:42:02 AM
+Running PageRank
+Graph loaded in 342760
+Loading the nodes and constructing the map took 30734
+Iter 1took 	359368
+Iter 2took 	360889
+Iter 3took 	359584
+Iter 4took 	360842
+Iter 5took 	359868
+Iter 6took 	361398
+Iter 7took 	362260
+Iter 8took 	361464
+Iter 9took 	357604
+Iter 10took 	360345
+PR  completed in : 3710812
+--------------------------------
+Mon 11 Oct 2021 02:42:07 AM
+Running PageRank
+Graph loaded in 340154
+Loading the nodes and constructing the map took 30688
+Iter 1took 	364096
+Iter 2took 	368766
+Iter 3took 	362884
+Iter 4took 	365524
+Iter 5took 	364492
+Iter 6took 	364641
+Iter 7took 	365652
+Iter 8took 	364030
+Iter 9took 	363190
+Iter 10took 	363736
+PR  completed in : 3753522

@@ -523,3 +523,163 @@ Iter 8took 	19429534
 Iter 9took 	21963029
 Iter 10took 	23154815
 PR  completed in : 174461119
+--------------------------------
+Mon 11 Oct 2021 02:52:22 AM
+Running PageRank
+Graph loaded in 343619
+Loading the nodes and constructing the map took 673278
+Iter 1took 	7692087
+Iter 2took 	7672142
+Iter 3took 	7617809
+Iter 4took 	7686384
+Iter 5took 	7644675
+Iter 6took 	7753455
+Iter 7took 	7806597
+Iter 8took 	7737642
+Iter 9took 	7791250
+Iter 10took 	7800303
+PR  completed in : 79300044
+--------------------------------
+Mon 11 Oct 2021 02:53:41 AM
+Running PageRank
+Graph loaded in 344204
+Loading the nodes and constructing the map took 463202
+Iter 1took 	8129728
+Iter 2took 	8084299
+Iter 3took 	8087476
+Iter 4took 	8085934
+Iter 5took 	8108735
+Iter 6took 	8116451
+Iter 7took 	8114902
+Iter 8took 	8065922
+Iter 9took 	8041769
+Iter 10took 	8060851
+PR  completed in : 82552917
+--------------------------------
+Mon 11 Oct 2021 02:55:04 AM
+Running PageRank
+Graph loaded in 343698
+Loading the nodes and constructing the map took 446359
+Iter 1took 	7873293
+Iter 2took 	7876495
+Iter 3took 	7849900
+Iter 4took 	7854558
+Iter 5took 	7860672
+Iter 6took 	7830230
+Iter 7took 	7859287
+Iter 8took 	7893755
+Iter 9took 	7844125
+Iter 10took 	7853413
+PR  completed in : 80247679
+--------------------------------
+Mon 11 Oct 2021 02:56:25 AM
+Running PageRank
+Graph loaded in 342157
+Loading the nodes and constructing the map took 452128
+Iter 1took 	7902535
+Iter 2took 	7919090
+Iter 3took 	7943739
+Iter 4took 	7921711
+Iter 5took 	7948767
+Iter 6took 	7931566
+Iter 7took 	7922753
+Iter 8took 	7918841
+Iter 9took 	7907255
+Iter 10took 	7847220
+PR  completed in : 80815958
+--------------------------------
+Mon 11 Oct 2021 02:57:46 AM
+Running PageRank
+Graph loaded in 341899
+Loading the nodes and constructing the map took 443730
+Iter 1took 	7863242
+Iter 2took 	7839462
+Iter 3took 	7858631
+Iter 4took 	7815063
+Iter 5took 	7865230
+Iter 6took 	7837917
+Iter 7took 	7865797
+Iter 8took 	7817759
+Iter 9took 	7753558
+Iter 10took 	7868921
+PR  completed in : 80031103
+--------------------------------
+Mon 11 Oct 2021 02:59:06 AM
+Running PageRank
+Graph loaded in 342425
+Loading the nodes and constructing the map took 436785
+Iter 1took 	7758533
+Iter 2took 	7756111
+Iter 3took 	7805872
+Iter 4took 	7829188
+Iter 5took 	7797024
+Iter 6took 	7719472
+Iter 7took 	7762778
+Iter 8took 	7753037
+Iter 9took 	7744604
+Iter 10took 	7756808
+PR  completed in : 79318392
+--------------------------------
+Mon 11 Oct 2021 03:00:26 AM
+Running PageRank
+Graph loaded in 341754
+Loading the nodes and constructing the map took 438772
+Iter 1took 	7813029
+Iter 2took 	7826253
+Iter 3took 	7783229
+Iter 4took 	7786125
+Iter 5took 	7788280
+Iter 6took 	7811959
+Iter 7took 	7826633
+Iter 8took 	7758785
+Iter 9took 	7817773
+Iter 10took 	7811563
+PR  completed in : 79669707
+--------------------------------
+Mon 11 Oct 2021 03:01:46 AM
+Running PageRank
+Graph loaded in 343342
+Loading the nodes and constructing the map took 427596
+Iter 1took 	7745223
+Iter 2took 	7707193
+Iter 3took 	7812354
+Iter 4took 	7757952
+Iter 5took 	7727511
+Iter 6took 	7771292
+Iter 7took 	7757056
+Iter 8took 	7725285
+Iter 9took 	7716782
+Iter 10took 	7671681
+PR  completed in : 79022713
+--------------------------------
+Mon 11 Oct 2021 03:03:05 AM
+Running PageRank
+Graph loaded in 344236
+Loading the nodes and constructing the map took 437581
+Iter 1took 	7800882
+Iter 2took 	7791154
+Iter 3took 	7725816
+Iter 4took 	7781491
+Iter 5took 	7764170
+Iter 6took 	7743743
+Iter 7took 	7780336
+Iter 8took 	7765605
+Iter 9took 	7751589
+Iter 10took 	7762448
+PR  completed in : 79300701
+--------------------------------
+Mon 11 Oct 2021 03:04:25 AM
+Running PageRank
+Graph loaded in 345466
+Loading the nodes and constructing the map took 437600
+Iter 1took 	7735164
+Iter 2took 	7815811
+Iter 3took 	7807662
+Iter 4took 	7786737
+Iter 5took 	7762249
+Iter 6took 	7860412
+Iter 7took 	9311730
+Iter 8took 	9364054
+Iter 9took 	10251611
+Iter 10took 	7724074
+PR  completed in : 85053455

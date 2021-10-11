@@ -1,1 +1,4 @@
 
+Running BFS
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/puneet/gen_graphs/cit-Patents/cit-Patents/ekey_rd_cit-Patents
