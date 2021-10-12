@@ -12,3 +12,4 @@ cscope.out
 tags
 build/
 debug/
+.DS_Store
