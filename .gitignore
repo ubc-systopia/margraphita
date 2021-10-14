@@ -13,3 +13,4 @@ tags
 build/
 debug/
 .DS_Store
+mt_test/

@@ -19,6 +19,7 @@ StandardGraph::StandardGraph() {}
 StandardGraph::StandardGraph(graph_opts opt_params)
 
 {
+    cout << "In constructor" << endl;
     this->create_new = opt_params.create_new;
     this->read_optimize = opt_params.read_optimize;
     this->is_directed = opt_params.is_directed;
@@ -27,7 +28,6 @@ StandardGraph::StandardGraph(graph_opts opt_params)
     this->db_name = opt_params.db_name;
     this->db_dir = opt_params.db_dir;
     this->conn = opt_params.conn;
-    this->session = opt_params.session;
 
     try
     {
@@ -1450,4 +1450,14 @@ void StandardGraph::test_multithread(std::string filename)
 StandardGraph::~StandardGraph()
 {
     close();
+}
+
+void StandardGraph::hello()
+{
+    cout << "Hello! \n";
+}
+
+void StandardGraph::create_session()
+{
+    CommonUtil::open_session(conn, &session);
 }

@@ -75,57 +75,59 @@ void delete_map()
 
 void pagerank(graph_opts opts, int iterations, double tolerance)
 {
-    cout << "hello";
-    StandardGraph graph(opts);
-    int num_nodes = graph.get_num_nodes();
-    auto start = chrono::steady_clock::now();
-    init_pr_map(nodes);
+    int num_nodes;
+    std::vector<node> nodes;
+    ofstream FILE;
     std::vector<int64_t> times;
 
     double diff = 1.0;
     int iter_count = 0;
     float constant = (1 - dampness) / num_nodes;
-    // std::vector<StandardGraph> db_conns;
-    // int tid = 0;
-    // while (tid < NUM_THREADS)
-    // {
-    //     db_conns.push_back(StandardGraph(opts));
-    //     tid++;
-    // }
-    while (iter_count < iterations)
+
+    std::vector<StandardGraph *> vec;
+    for (int i = 0; i < 10; i++)
+    {
+        StandardGraph *g = new StandardGraph(opts);
+        g->create_session();
+        if (i == 0)
+        {
+            //g->create_indices();
+            num_nodes = g->get_num_nodes();
+            auto start = chrono::steady_clock::now();
+            nodes = g->get_nodes();
+            init_pr_map(nodes);
+
+            auto end = chrono::steady_clock::now();
+            cout << "Loading the nodes and constructing the map took " << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
+            times.push_back(chrono::duration_cast<chrono::microseconds>(end - start).count());
+        }
+        vec.push_back(g);
+    }
+    while (iter_count < 1)
     {
         auto start = chrono::steady_clock::now();
-        int i = 0;
-#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp parallel for
+        for (node n : nodes)
         {
-#pragma omp for
-            for (node n : nodes)
-            {
-                int index = hashfn(n.id) % N;
-                float sum = 0.0f;
-                StandardGraph g(opts);
-                vector<node> in_nodes = g.get_in_nodes(n.id);
+            int tid = omp_get_thread_num();
+            // int index = hashfn(n.id) % N;
+            // float sum = 0.0f;
+            cout << n.id << "\t" << vec[tid]->get_in_degree(n.id) << endl;
 
-                for (node in : in_nodes)
-                {
-                    sum += (ptr[hashfn(in.id) % N].p_rank[p_cur]) / in.out_degree;
-                }
-                ptr[index].p_rank[p_next] = constant + (dampness * sum);
-                i++;
-            }
+            // for (node in : in_nodes)
+            // {
+            //     sum += (ptr[hashfn(in.id) % N].p_rank[p_cur]) / in.out_degree;
+            // }
+            // ptr[index].p_rank[p_next] = constant + (dampness * sum);
         }
-        iter_count++;
-
-        p_cur = 1 - p_cur;
-        p_next = 1 - p_next;
+        // iter_count++;
+        // p_cur = 1 - p_cur;
+        // p_next = 1 - p_next;
 
         auto end = chrono::steady_clock::now();
-        cout << "Iter " << iter_count << "took \t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
-        times.push_back(chrono::duration_cast<chrono::microseconds>(end - start).count());
+        // cout << "Iter " << iter_count << "took \t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
+        // times.push_back(chrono::duration_cast<chrono::microseconds>(end - start).count());
     }
-    //print_to_csv(graph.get_db_name(), times);
-    print_map(nodes);
-    delete_map();
 }
 
 int main(int argc, char *argv[])
@@ -155,12 +157,6 @@ int main(int argc, char *argv[])
         std::cout << "Failed to open a connection to the DB" << std::endl;
         exit(-1);
     };
-
-    ret = CommonUtil::open_session(opts.conn, &opts.session);
-    if (ret != 0)
-    {
-        cout << "did not work";
-    }
 
     pagerank(opts, pr_cli.iterations(), pr_cli.tolerance());
 
