@@ -49,6 +49,9 @@ struct graph_opts
     std::string db_name;
     std::string db_dir;
     bool optimize_create; // directs when the index should be created
+    WT_CONNECTION *conn;
+    WT_SESSION *session;
+    graph_opts() : create_new(false), read_optimize(true), is_directed(true), is_weighted(false), db_name(""), db_dir(""), optimize_create(true){};
 };
 
 typedef struct node
@@ -148,7 +151,7 @@ public:
     static std::vector<int> unpack_vector_int(WT_SESSION *, WT_ITEM packed, std::string format);
 
     static WT_ITEM pack_items(WT_SESSION *session, std::string fmt, ...);
-    static std::variant<int, std::string> unpack_items(WT_SESSION *session, std::string fmt, WT_ITEM packed);
+    //static std::variant<int, std::string> unpack_items(WT_SESSION *session, std::string fmt, WT_ITEM packed);
 };
 
 #endif

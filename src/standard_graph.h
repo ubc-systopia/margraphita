@@ -16,6 +16,7 @@ class StandardGraph
 public:
     StandardGraph(graph_opts opt_params);
     StandardGraph();
+    ~StandardGraph();
 
     void create_new_graph();
     void add_node(node to_insert);
@@ -59,6 +60,8 @@ public:
 
     std::string get_db_name() const { return this->db_name; };
     WT_CONNECTION *get_db_conn() { return this->conn; }
+    void test_multithread(std::string filename);
+
     // WT privates
 private:
     WT_CONNECTION *conn;

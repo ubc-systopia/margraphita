@@ -1023,3 +1023,18 @@ Iter 8took 	10521
 Iter 9took 	10495
 Iter 10took 	10888
 PR  completed in : 110034
+-bash: ./pagerank_mt: No such file or directory
+-bash: ./pagerank_mt: No such file or directory
+Running PageRank
+Failed to get table cursor to table:metadata
+Running PageRank
+Failed to get table cursor to table:metadata
+Running PageRank
+Failed to get table cursor to table:metadata
+[1634150025:958602][319094:0x7ffff7a10740], WT_SESSION.open_cursor: __wt_bad_object_type, 572: unknown object type: metadata: Operation not supported
+Running PageRank
+[1634150141:481889][319681:0x7ffff7a10740], WT_SESSION.open_cursor: __wt_bad_object_type, 572: unknown object type: metadata: Operation not supported
+Running PageRank
+[1634150299:764074][320840:0x7ffff7a10740], WT_SESSION.open_cursor: __wt_bad_object_type, 572: unknown object type: metadata: Operation not supported
+Running PageRank
+[1634150438:542651][321722:0x7ffff7a10740], WT_SESSION.open_cursor: __wt_bad_object_type, 572: unknown object type: metadata: Operation not supported

@@ -9,6 +9,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <wiredtiger.h>
+#include <fstream>
 
 using namespace std;
 const std::string GRAPH_PREFIX = "std";
@@ -25,6 +26,8 @@ StandardGraph::StandardGraph(graph_opts opt_params)
     this->optimize_create = opt_params.optimize_create;
     this->db_name = opt_params.db_name;
     this->db_dir = opt_params.db_dir;
+    this->conn = opt_params.conn;
+    this->session = opt_params.session;
 
     try
     {
@@ -50,38 +53,24 @@ StandardGraph::StandardGraph(graph_opts opt_params)
             create_indices();
         }
     }
-    else
-    {
-        // Check that the DB directory exists
-        std::filesystem::path dirname = db_dir + "/" + db_name;
-        if (std::filesystem::exists(dirname))
-        {
-            __restore_from_db(db_dir + "/" + db_name);
-        }
-        else
-        {
-            throw GraphException("Could not find the expected WT DB directory - .db/" + db_name);
-        }
-    }
+    // else
+    // {
+    // Check that the DB directory exists
+    // std::filesystem::path dirname = db_dir + "/" + db_name;
+    // if (std::filesystem::exists(dirname))
+    // {
+    //     __restore_from_db(db_dir + "/" + db_name);
+    // }
+    // else
+    // {
+    //     throw GraphException("Could not find the expected WT DB directory - " + db_dir + db_name);
+    // }
+    // }
 }
 
 void StandardGraph::create_new_graph()
 {
-    int ret;
-    // Create new directory for WT DB
-    std::filesystem::path dirname = db_dir + "/" + db_name;
-    if (std::filesystem::exists(dirname))
-    {
-        filesystem::remove_all(dirname); // remove if exists;
-    }
-    std::filesystem::create_directories(dirname);
-
-    // open connection to WT
-    if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), &conn) < 0)
-    {
-        exit(-1);
-    };
-
+    int ret = 0;
     // Open a session handle for the database
     if (CommonUtil::open_session(conn, &session) != 0)
     {
@@ -142,29 +131,29 @@ void StandardGraph::create_new_graph()
     // char *db_name_packed =
     //     CommonUtil::pack_string_wt(db_name, session, &db_name_fmt);
     // insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
-    insert_metadata(DB_NAME, "S", const_cast<char *>(db_name.c_str()));
+    // insert_metadata(DB_NAME, "S", const_cast<char *>(db_name.c_str()));
 
-    //DB_DIR
-    insert_metadata(DB_NAME, "S", const_cast<char *>(db_dir.c_str()));
+    // //DB_DIR
+    // insert_metadata(DB_NAME, "S", const_cast<char *>(db_dir.c_str()));
 
-    // READ_OPTIMIZE
-    string is_read_optimized_str = read_optimize ? "true" : "false";
-    insert_metadata(READ_OPTIMIZE, "S",
-                    const_cast<char *>(is_read_optimized_str.c_str()));
+    // // READ_OPTIMIZE
+    // string is_read_optimized_str = read_optimize ? "true" : "false";
+    // insert_metadata(READ_OPTIMIZE, "S",
+    //                 const_cast<char *>(is_read_optimized_str.c_str()));
 
-    // EDGE_ID <- this is the last edge_id that was used to add an edge
-    //! THIS WILL CAUSE A RACE CONDITION ... use locks (get, set)
-    string edge_id_fmt;
-    char *edge_id_packed = CommonUtil::pack_int_wt(edge_id, session);
-    insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
+    // // EDGE_ID <- this is the last edge_id that was used to add an edge
+    // //! THIS WILL CAUSE A RACE CONDITION ... use locks (get, set)
+    // string edge_id_fmt;
+    // char *edge_id_packed = CommonUtil::pack_int_wt(edge_id, session);
+    // insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
 
-    // IS_DIRECTED
-    string is_directed_str = is_directed ? "true" : "false";
-    insert_metadata(IS_DIRECTED, "S", const_cast<char *>(is_directed_str.c_str()));
+    // // IS_DIRECTED
+    // string is_directed_str = is_directed ? "true" : "false";
+    // insert_metadata(IS_DIRECTED, "S", const_cast<char *>(is_directed_str.c_str()));
 
-    //IS_WEIGHTED
-    string is_weighted_str = is_weighted ? "true" : "false";
-    insert_metadata(IS_WEIGHTED, "S", const_cast<char *>(is_weighted_str.c_str()));
+    // //IS_WEIGHTED
+    // string is_weighted_str = is_weighted ? "true" : "false";
+    // insert_metadata(IS_WEIGHTED, "S", const_cast<char *>(is_weighted_str.c_str()));
 }
 
 WT_CONNECTION *StandardGraph::get_conn()
@@ -248,13 +237,11 @@ int StandardGraph::_get_table_cursor(string table, WT_CURSOR **cursor,
     {
         config = "next_random=true";
     }
-    if (int ret = session->open_cursor(session, table_name.c_str(), NULL, config,
-                                       cursor) != 0)
+    if (session->open_cursor(session, table_name.c_str(), NULL, config,
+                             cursor) != 0)
     {
-        fprintf(stderr, "Failed to get table cursor to %s\n", table_name.c_str());
-        return ret;
+        throw(stderr, "Failed to get table cursor to %s\n", table_name.c_str());
     }
-    return 0;
 }
 
 /**
@@ -292,10 +279,10 @@ int StandardGraph::_get_index_cursor(std::string table_name,
 void StandardGraph::__restore_from_db(std::string db_name)
 {
 
-    int ret = CommonUtil::open_connection(strdup(db_name.c_str()), &conn);
+    //int ret = CommonUtil::open_connection(strdup(db_name.c_str()), &conn);
     WT_CURSOR *cursor = nullptr;
 
-    ret = CommonUtil::open_session(conn, &session);
+    int ret = CommonUtil::open_session(conn, &session);
     const char *key, *value;
     ret = _get_table_cursor(METADATA, &cursor, false);
 
@@ -449,7 +436,8 @@ void StandardGraph::close()
     string edge_id_fmt;
     char *edge_id_packed = CommonUtil::pack_int_wt(edge_id, session);
     insert_metadata(EDGE_ID, "I", edge_id_packed); // single int fmt is "I"
-    CommonUtil::close_connection(conn);
+    //CommonUtil::close_connection(conn); <<- this would close it for all other threads too.
+    CommonUtil::close_session(session);
 }
 
 /**
@@ -1446,4 +1434,20 @@ vector<edge> StandardGraph::test_cursor_iter(int node_id)
     }
     src_index_cursor->close(src_index_cursor);
     return edges;
+}
+
+void StandardGraph::test_multithread(std::string filename)
+{
+    std::ofstream FILE;
+    FILE.open(filename.c_str(), ios::out | ios::ate);
+    for (node n : get_nodes())
+    {
+        FILE << n.id << "\t(" << n.in_degree << "," << n.out_degree << ")\n";
+    }
+    FILE.close();
+}
+
+StandardGraph::~StandardGraph()
+{
+    close();
 }
