@@ -1,0 +1,194 @@
+--------------------------------
+Fri 15 Oct 2021 09:53:33 PM
+Running PageRank
+Graph loaded in 359125
+Loading the nodes and constructing the map took 209389
+Iter 1took 	15009463
+Iter 2took 	14711270
+Iter 3took 	14732432
+Iter 4took 	14779119
+Iter 5took 	14761648
+Iter 6took 	14744910
+Iter 7took 	14707166
+Iter 8took 	14760282
+Iter 9took 	14782229
+Iter 10took 	14759823
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 209389,15009463,14711270,14732432,14779119,14761648,14744910,14707166,14760282,14782229,14759823
+PR  completed in : 148563743
+--------------------------------
+Fri 15 Oct 2021 09:56:02 PM
+Running PageRank
+Graph loaded in 363467
+Loading the nodes and constructing the map took 192808
+Iter 1took 	14741444
+Iter 2took 	14819031
+Iter 3took 	14861861
+Iter 4took 	14800020
+Iter 5took 	14773981
+Iter 6took 	14801148
+Iter 7took 	14742974
+Iter 8took 	14760030
+Iter 9took 	14818705
+Iter 10took 	14803552
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 192808,14741444,14819031,14861861,14800020,14773981,14801148,14742974,14760030,14818705,14803552
+PR  completed in : 148692396
+--------------------------------
+Fri 15 Oct 2021 09:58:31 PM
+Running PageRank
+Graph loaded in 358570
+Loading the nodes and constructing the map took 189700
+Iter 1took 	14758389
+Iter 2took 	14741345
+Iter 3took 	14704693
+Iter 4took 	14702704
+Iter 5took 	14714480
+Iter 6took 	14768787
+Iter 7took 	14689204
+Iter 8took 	14703500
+Iter 9took 	14746935
+Iter 10took 	14789349
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 189700,14758389,14741345,14704693,14702704,14714480,14768787,14689204,14703500,14746935,14789349
+PR  completed in : 148092842
+--------------------------------
+Fri 15 Oct 2021 10:00:59 PM
+Running PageRank
+Graph loaded in 364726
+Loading the nodes and constructing the map took 192656
+Iter 1took 	14869487
+Iter 2took 	14872908
+Iter 3took 	14810907
+Iter 4took 	14927046
+Iter 5took 	14875157
+Iter 6took 	14823363
+Iter 7took 	14708002
+Iter 8took 	14627158
+Iter 9took 	14259948
+Iter 10took 	14294634
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 192656,14869487,14872908,14810907,14927046,14875157,14823363,14708002,14627158,14259948,14294634
+PR  completed in : 147826129
+--------------------------------
+Fri 15 Oct 2021 10:03:27 PM
+Running PageRank
+Graph loaded in 357689
+Loading the nodes and constructing the map took 194335
+Iter 1took 	14221694
+Iter 2took 	14269270
+Iter 3took 	14216943
+Iter 4took 	14210999
+Iter 5took 	14244151
+Iter 6took 	14364957
+Iter 7took 	14308611
+Iter 8took 	14270398
+Iter 9took 	14243849
+Iter 10took 	14284838
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 194335,14221694,14269270,14216943,14210999,14244151,14364957,14308611,14270398,14243849,14284838
+PR  completed in : 143390865
+--------------------------------
+Fri 15 Oct 2021 10:05:51 PM
+Running PageRank
+Graph loaded in 358307
+Loading the nodes and constructing the map took 190796
+Iter 1took 	14231041
+Iter 2took 	14254917
+Iter 3took 	14280746
+Iter 4took 	14285718
+Iter 5took 	14251126
+Iter 6took 	14259240
+Iter 7took 	14292402
+Iter 8took 	14304833
+Iter 9took 	14297641
+Iter 10took 	14279454
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 190796,14231041,14254917,14280746,14285718,14251126,14259240,14292402,14304833,14297641,14279454
+PR  completed in : 143502940
+--------------------------------
+Fri 15 Oct 2021 10:08:15 PM
+Running PageRank
+Graph loaded in 355976
+Loading the nodes and constructing the map took 190970
+Iter 1took 	14186316
+Iter 2took 	14418294
+Iter 3took 	14244783
+Iter 4took 	14275668
+Iter 5took 	14174257
+Iter 6took 	14143025
+Iter 7took 	14148922
+Iter 8took 	14158556
+Iter 9took 	14187287
+Iter 10took 	14195199
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 190970,14186316,14418294,14244783,14275668,14174257,14143025,14148922,14158556,14187287,14195199
+PR  completed in : 142867513
+--------------------------------
+Fri 15 Oct 2021 10:10:38 PM
+Running PageRank
+Graph loaded in 355852
+Loading the nodes and constructing the map took 190708
+Iter 1took 	14280570
+Iter 2took 	14264284
+Iter 3took 	14230496
+Iter 4took 	14235411
+Iter 5took 	14234539
+Iter 6took 	14250052
+Iter 7took 	14279129
+Iter 8took 	14265960
+Iter 9took 	14279425
+Iter 10took 	14289696
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 190708,14280570,14264284,14230496,14235411,14234539,14250052,14279129,14265960,14279425,14289696
+PR  completed in : 143388638
+--------------------------------
+Fri 15 Oct 2021 10:13:02 PM
+Running PageRank
+Graph loaded in 354365
+Loading the nodes and constructing the map took 190488
+Iter 1took 	14269961
+Iter 2took 	14269586
+Iter 3took 	14601004
+Iter 4took 	14534216
+Iter 5took 	14254336
+Iter 6took 	14320381
+Iter 7took 	14295591
+Iter 8took 	14292325
+Iter 9took 	14341767
+Iter 10took 	14305426
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 190488,14269961,14269586,14601004,14534216,14254336,14320381,14295591,14292325,14341767,14305426
+PR  completed in : 144213579
+--------------------------------
+Fri 15 Oct 2021 10:15:27 PM
+Running PageRank
+Graph loaded in 351467
+Loading the nodes and constructing the map took 192827
+Iter 1took 	14093741
+Iter 2took 	14150397
+Iter 3took 	14144662
+Iter 4took 	14190055
+Iter 5took 	14138342
+Iter 6took 	14150571
+Iter 7took 	14213424
+Iter 8took 	14252491
+Iter 9took 	14267502
+Iter 10took 	14252277
+#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+ 192827,14093741,14150397,14144662,14190055,14138342,14150571,14213424,14252491,14267502,14252277
+PR  completed in : 142584279
+--------------------------------
+Sat 16 Oct 2021 09:39:01 PM
+Running PageRank
+Graph loaded in 361390
+Failed to open the cursor on the index index:edge:IX_edge_dst(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to DST_INDEX
+--------------------------------
+Sat 16 Oct 2021 09:39:15 PM
+Running PageRank
+Graph loaded in 361769
+Failed to open the cursor on the index index:edge:IX_edge_dst(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to DST_INDEX

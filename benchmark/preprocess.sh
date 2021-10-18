@@ -50,7 +50,7 @@ while getopts "f:o:m:e:n:t:i" o; do
 done
 
 ##remove all lines that begin with a comment
-sort --parallel=10 ${filename} | sed '/^#/d' > ${output}/${dataset}_sorted.txt
+sort --parallel=10 -k 1,2 ${filename} | parallel --pipe sed '/^#/d' > ${output}/${dataset}_sorted.txt
 mv ${filename} ${filename}_orig
 mv ${output}/${dataset}_sorted.txt ${filename} #overwrite the original file
 # with the sorted, no comment version

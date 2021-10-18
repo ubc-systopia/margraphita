@@ -192,6 +192,8 @@ int main(int argc, char *argv[])
     opts.db_name = tc_cli.get_db_name();
     opts.db_dir = tc_cli.get_db_path();
 
+    int num_trials = 5;
+
     if (tc_cli.get_graph_type() == "std")
     {
         auto start = chrono::steady_clock::now();
@@ -199,7 +201,7 @@ int main(int argc, char *argv[])
         auto end = chrono::steady_clock::now();
         std::cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << std::endl;
 
-        for (int i = 0; i < tc_cli.get_num_trials(); i++)
+        for (int i = 0; i < num_trials; i++)
         {
             tc_info info(0);
             //Count Trust Triangles
@@ -229,7 +231,7 @@ int main(int argc, char *argv[])
         auto end = chrono::steady_clock::now();
         std::cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << std::endl;
 
-        for (int i = 0; i < tc_cli.get_num_trials(); i++)
+        for (int i = 0; i < num_trials; i++)
         {
             tc_info info(0);
             //Count Trust Triangles
@@ -258,7 +260,7 @@ int main(int argc, char *argv[])
         auto end = chrono::steady_clock::now();
         std::cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << std::endl;
 
-        for (int i = 0; i < tc_cli.get_num_trials(); i++)
+        for (int i = 0; i < num_trials; i++)
         {
             tc_info info(0);
             //Count Trust Triangles

@@ -135,10 +135,10 @@ int main(int argc, char **argv)
         opts.create_new = true;
         StandardGraph graph1 = StandardGraph(opts);
         info->std_insert = create_init_nodes(graph1, filename);
-        // auto start = std::chrono::steady_clock::now();
-        // graph1.create_indices();
-        // auto end = std::chrono::steady_clock::now();
-        // info->std_index = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        auto start = std::chrono::steady_clock::now();
+        graph1.create_indices();
+        auto end = std::chrono::steady_clock::now();
+        info->std_index = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         tearDown(graph1);
         print_csv_info("s" + std::to_string(i), info);
 

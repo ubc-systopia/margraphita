@@ -1,0 +1,57 @@
+Running TC
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/puneet/gen_graphs/s10_e8/s10_e8
+Running TC
+./tc: invalid option -- 'i'
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/puneet/gen_graphs/s10_e8/s10_e8/s10_e8
+Running TC
+./tc: invalid option -- 'i'
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/puneet/gen_graphs/s10_e8/s10_e8
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 354516
+Trust TriangleCounting completed in : 404102
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 473097
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 407341
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 476694
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 407676
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 476018
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 407549
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 475859
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 408269
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 475487
+Cycle Triangles count = 48157
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 361778
+Trust TriangleCounting completed in : 410783
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 480773
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 409186
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 480178
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 408603
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 481219
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 409108
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 480785
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 409261
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 479497
+Cycle Triangles count = 48157

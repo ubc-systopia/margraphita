@@ -32,7 +32,7 @@ bfs_info *bfs(Graph &graph, int src)
     bfs_info *info = new bfs_info(0);
     for (int i = 0; i < 10; i++)
     {
-        std::cout << "Iter " << i << "\n";
+        std::cout << "Iter " << i << " ";
         auto start = chrono::steady_clock::now();
         set<int> visited = {src};
         deque<int> queue = {src};
@@ -44,10 +44,13 @@ bfs_info *bfs(Graph &graph, int src)
             queue.pop_front();
             result.push_back(node_id);
             vector<node> out_nbrs = graph.get_out_nodes(node_id);
+            cout << "num_out_nbr" << out_nbrs.size();
+            std::cout << "\n(sum" << info->sum_out_deg << ";";
+            std::cout << "num_visited " << info->num_visited << ")\n";
             info->sum_out_deg += out_nbrs.size();
             for (node nbr : out_nbrs)
             {
-                //std::cout << "nbr is " << nbr.id << std::endl;
+                std::cout << "nbr is " << nbr.id << std::endl;
                 if (visited.find(nbr.id) == visited.end())
                 {
                     visited.insert(nbr.id);
@@ -57,12 +60,13 @@ bfs_info *bfs(Graph &graph, int src)
         }
         auto end = chrono::steady_clock::now();
         info->time_taken += chrono::duration_cast<chrono::microseconds>(end - start).count();
+        std::cout << info->time_taken << std::endl;
         info->num_visited = visited.size();
     }
     std::cout << " -----------"
               << "\n";
     //average the time taken to get average per iteration.
-    info->time_taken = info->time_taken / 10;
+    info->time_taken = info->time_taken;
     return info;
 }
 
@@ -74,7 +78,7 @@ void print_csv_info(std::string name, int starting_node, bfs_info *info)
     {
         //The file does not exist yet.
         FILE.open(_name, ios::out | ios::app);
-        FILE << "#db_name, benchmark, starting node_id, num_visited, sum_out_deg, time_taken_usecs\n";
+        FILE << "#db_name, benchmark, starting node_id, num_visited, sum_out_deg, total_time_taken_usecs\n";
     }
     else
     {

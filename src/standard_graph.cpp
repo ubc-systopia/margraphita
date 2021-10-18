@@ -60,7 +60,7 @@ StandardGraph::StandardGraph(graph_opts opt_params)
         }
         else
         {
-            throw GraphException("Could not find the expected WT DB directory - .db/" + db_name);
+            throw GraphException("Could not find the expected WT DB directory - " + db_dir + "/" + db_name);
         }
     }
 }

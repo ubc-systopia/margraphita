@@ -703,3 +703,38 @@ Iter 8
 Iter 9
  -----------
 BFS  completed in : 109938
+Running BFS
+Graph loaded in 363775
+624
+random start vertex is 624
+Failed to open the cursor on the index index:edge:IX_edge_src(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to the SRC_INDEX 
+Running BFS
+Graph loaded in 355922
+624
+random start vertex is 624
+Failed to open the cursor on the index index:edge:IX_edge_src(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to the SRC_INDEX 
+Running BFS
+Graph loaded in 356753
+624
+random start vertex is 624
+Failed to open the cursor on the index index:edge:IX_edge_src(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to the SRC_INDEX 
+Running BFS
+Graph loaded in 356391
+624
+random start vertex is 624
+Failed to open the cursor on the index index:edge:IX_edge_src(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to the SRC_INDEX 
+Running BFS
+Graph loaded in 359032
+624
+random start vertex is 624
+Failed to open the cursor on the index index:edge:IX_edge_src(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to the SRC_INDEX 

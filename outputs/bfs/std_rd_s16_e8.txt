@@ -236,3 +236,6 @@ Iter 8
 Iter 9
  -----------
 BFS  completed in : 14615403115
+Running BFS
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/puneet/gen_graphs/s16_e8/s16_e8/std_rd_s16_e8

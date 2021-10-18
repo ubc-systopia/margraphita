@@ -74,7 +74,7 @@ void delete_map()
 
 void print_to_csv(std::string name, std::vector<int64_t> &times)
 {
-    ofstream FILE;
+    fstream FILE;
     std::string _name = "/home/puneet/scratch/margraphita/outputs/" + name + "_pr.csv";
     if (access(_name.c_str(), F_OK) == -1)
     {
@@ -156,7 +156,7 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance)
         cout << "Iter " << iter_count << "took \t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
         times.push_back(chrono::duration_cast<chrono::microseconds>(end - start).count());
     }
-    print_to_csv(graph.get_db_name(), times);
+    print_to_csv(opts.db_name, times);
     print_map(nodes);
     delete_map();
 }
