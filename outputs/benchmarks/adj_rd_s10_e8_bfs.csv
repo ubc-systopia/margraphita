@@ -1,4 +1,4 @@
-#db_name, benchmark, starting node_id, num_visited, sum_out_deg, time_taken_usecs
+#db_name, benchmark, starting_node_id, num_visited, sum_out_deg, time_taken_usecs
 adj_rd_s10_e8,bfs,205,738,80080,7536
 adj_rd_s10_e8,bfs,176,738,80080,9831
 adj_rd_s10_e8,bfs,260,738,80080,11249

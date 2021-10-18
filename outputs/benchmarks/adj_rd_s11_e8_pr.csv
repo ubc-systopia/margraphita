@@ -1,4 +1,4 @@
-#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
+#db_name,bmark,map_t,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9
  adj_rd_s11_e8,pr,258,9916,9598,9653,9804,9742,9654,9647,9717,9589,9559
 adj_rd_s11_e8,pr,258,9767,9592,9581,9712,9584,9584,9614,9706,9671,9581
 adj_rd_s11_e8,pr,256,9831,9701,9693,9688,9627,9598,9597,9625,9706,9623

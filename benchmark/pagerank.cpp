@@ -80,7 +80,7 @@ void print_to_csv(std::string name, std::vector<int64_t> &times)
     {
         //The file does not exist yet.
         FILE.open(_name, ios::out | ios::app);
-        FILE << "#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1..."
+        FILE << "#db_name,bmark,map_t,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9"
              << "\n ";
     }
     else
