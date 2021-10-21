@@ -2453,3 +2453,54 @@ Iter 10took 	3372
 std_rd_s10_e8/home/puneet/scratch/margraphita/outputs/std_rd_s10_e8_pr.csv#db_name, benchmark,map_construction_time,iteration_time0,iteration_time1...
  143,3588,3423,3142,3150,3250,3630,3220,3124,3284,3372
 PR  completed in : 34287
+--------------------------------
+Wed 20 Oct 2021 09:58:55 AM
+Running PageRank
+Graph loaded in 354301
+Loading the nodes and constructing the map took 168
+Iter 1took 	5217
+Iter 2took 	5650
+Iter 3took 	5320
+Iter 4took 	5119
+Iter 5took 	5126
+Iter 6took 	5079
+Iter 7took 	5189
+Iter 8took 	5091
+Iter 9took 	5097
+Iter 10took 	5470
+PR  completed in : 57591
+--------------------------------
+Wed 20 Oct 2021 09:58:56 AM
+Running PageRank
+Graph loaded in 345218
+Loading the nodes and constructing the map took 262
+Iter 1took 	5204
+Iter 2took 	5032
+Iter 3took 	5166
+Iter 4took 	5232
+Iter 5took 	5208
+Iter 6took 	5290
+Iter 7took 	5134
+Iter 8took 	5303
+Iter 9took 	5223
+Iter 10took 	5105
+PR  completed in : 52865
+--------------------------------
+Wed 20 Oct 2021 09:58:56 AM
+Running PageRank
+Graph loaded in 344068
+Loading the nodes and constructing the map took 205
+Iter 1took 	5251
+Iter 2took 	5086
+Iter 3took 	5081
+Iter 4took 	5101
+Iter 5took 	5222
+Iter 6took 	5225
+Iter 7took 	5104
+Iter 8took 	5086
+Iter 9took 	5060
+Iter 10took 	5471
+PR  completed in : 52891
+--------------------------------
+Wed 20 Oct 2021 09:58:57 AM
+Running PageRank

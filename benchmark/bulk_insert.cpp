@@ -84,7 +84,7 @@ void *insert_edge_thread(void *arg)
 
     WT_CURSOR *cursor;
     WT_SESSION *session;
-
+    start = std::chrono::steady_clock::now();
     for (std::string type : types)
     {
         int start_idx = (edge_per_part * tid) + 1;
@@ -92,7 +92,7 @@ void *insert_edge_thread(void *arg)
         {
             conn_std->open_session(conn_std, NULL, NULL, &session);
             session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
-            auto start = std::chrono::steady_clock::now();
+
             for (edge e : edjlist)
             {
                 cursor->set_key(cursor, start_idx);
@@ -100,8 +100,7 @@ void *insert_edge_thread(void *arg)
                 cursor->insert(cursor);
                 start_idx++;
             }
-            auto end = std::chrono::steady_clock::now();
-            info->insert_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+
             cursor->close(cursor);
             session->close(session, NULL);
         }
@@ -109,7 +108,7 @@ void *insert_edge_thread(void *arg)
         {
             conn_adj->open_session(conn_adj, NULL, NULL, &session);
             session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
-            auto start = std::chrono::steady_clock::now();
+
             for (edge e : edjlist)
             {
                 cursor->set_key(cursor, e.src_id, e.dst_id);
@@ -117,8 +116,6 @@ void *insert_edge_thread(void *arg)
                 cursor->insert(cursor);
                 start_idx++;
             }
-            auto end = std::chrono::steady_clock::now();
-            info->insert_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             cursor->close(cursor);
             session->close(session, NULL);
         }
@@ -126,7 +123,7 @@ void *insert_edge_thread(void *arg)
         {
             conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
             session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
-            auto start = std::chrono::steady_clock::now();
+
             for (edge e : edjlist)
             {
                 cursor->set_key(cursor, e.src_id, e.dst_id);
@@ -134,12 +131,12 @@ void *insert_edge_thread(void *arg)
                 cursor->insert(cursor);
                 start_idx++;
             }
-            auto end = std::chrono::steady_clock::now();
-            info->insert_time += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             cursor->close(cursor);
             session->close(session, NULL);
         }
     }
+    end = std::chrono::steady_clock::now();
+    info->insert_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     delete (int *)arg;
 
     return (void *)(info);
@@ -417,13 +414,16 @@ int main(int argc, char *argv[])
         void *found;
         pthread_join(threads[i], &found);
         time_info *this_thread_time = (time_info *)found;
-        std::cout << i << " inserted " << this_thread_time->num_inserted << "\n";
         edge_times->insert_time += this_thread_time->insert_time;
         edge_times->num_inserted += this_thread_time->num_inserted;
         edge_times->read_time += this_thread_time->read_time;
     }
+    std::cout << " total inserted edges from threads = " << edge_times->num_inserted << " num_edges = " << num_edges << std::endl;
+    std::cout << "average time in insert_edges " << edge_times->insert_time / NUM_THREADS << std::endl;
+    std::cout << "average read time in insert_edges " << edge_times->read_time / NUM_THREADS << std::endl;
     auto end = std::chrono::steady_clock::now();
-    std::cout << " Total time to insert edges was " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+
+    std::cout << " Total time to insert edges from outside was " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
     //Now insert nodes;
     start = std::chrono::steady_clock::now();
@@ -441,6 +441,9 @@ int main(int argc, char *argv[])
         node_times->read_time += this_thread_time->read_time;
     }
     end = std::chrono::steady_clock::now();
+    std::cout << " total inserted nodes from threads = " << node_times->num_inserted << " num_nodes = " << num_nodes << std::endl;
+    std::cout << "average time in insert_nodes " << node_times->insert_time / NUM_THREADS << std::endl;
+    std::cout << "average read time in insert_nodes " << node_times->read_time / NUM_THREADS << std::endl;
     std::cout << " nodes inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
     print_time_csvline(db_name, db_path, edge_times, node_times);

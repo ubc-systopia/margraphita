@@ -473,7 +473,7 @@ void StandardGraph::add_node(node to_insert)
 
     if (read_optimize)
     {
-        node_cursor->set_value(node_cursor, 0, 0);
+        node_cursor->set_value(node_cursor, to_insert.in_degree, to_insert.out_degree);
     }
     else
     {
@@ -638,15 +638,17 @@ node StandardGraph::get_random_node()
     {
         ret = _get_table_cursor(NODE_TABLE, &(this->random_node_cursor), true);
     }
+    random_node_cursor->reset(random_node_cursor);
 
     ret = this->random_node_cursor->next(random_node_cursor);
     if (ret != 0)
     {
-        throw GraphException("Could not find a random node");
+        throw GraphException(wiredtiger_strerror(ret));
     }
-
+    int id;
+    random_node_cursor->get_key(random_node_cursor, &id);
     found = __record_to_node(this->random_node_cursor);
-    random_node_cursor->get_key(random_node_cursor, &found.id);
+    found.id = id;
     // random_node_cursor->close(random_node_cursor); <- don't close a cursor
     // prematurely
     return found;
@@ -1026,6 +1028,35 @@ void StandardGraph::add_edge(edge to_insert)
     }
 }
 
+void StandardGraph::bulk_add_edge(int src, int dst, int weight)
+{
+    // We have already added the src and dst
+
+    WT_CURSOR *cursor = nullptr;
+    int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
+
+    // The edge does not exist, use the global edge-id and update it by 1
+    cursor->set_key(cursor, this->edge_id);
+    this->edge_id++;
+
+    if (is_weighted)
+    {
+        cursor->set_value(cursor, src, dst, weight);
+    }
+    else
+    {
+        cursor->set_value(cursor, src, dst, 0);
+    }
+    ret = cursor->insert(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Failed to insert edge (" +
+                             to_string(src) + "," +
+                             to_string(dst));
+    }
+    cursor->close(cursor);
+}
+
 void StandardGraph::delete_edge(int src_id, int dst_id)
 {
     int edge_id = get_edge_id(src_id, dst_id);
@@ -1333,12 +1364,7 @@ vector<node> StandardGraph::get_in_nodes(int node_id)
             "Could not get a DST index cursor on the edge table");
     }
 
-    //cursor->reset(cursor);
-    assert(cursor != nullptr);
     cursor->set_key(cursor, node_id);
-    int temp;
-    cursor->get_key(cursor, &temp);
-    assert(temp == node_id);
     if (cursor->search(cursor) == 0)
     {
 
@@ -1358,7 +1384,7 @@ vector<node> StandardGraph::get_in_nodes(int node_id)
             }
         }
     }
-    cursor->close(cursor);
+    cursor->reset(cursor);
 
     return nodes;
 }

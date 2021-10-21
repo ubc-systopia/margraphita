@@ -474,3 +474,53 @@ Iter 8
 Iter 9
  -----------
 BFS  completed in : 7921966
+Running BFS
+Graph loaded in 342312
+25157
+random start vertex is 25157
+BFS  completed in : 8238410
+37329
+random start vertex is 37329
+BFS  completed in : 8255528
+11446
+random start vertex is 11446
+BFS  completed in : 8206122
+49876
+random start vertex is 49876
+BFS  completed in : 8193348
+33166
+random start vertex is 33166
+BFS  completed in : 8209962
+38395
+random start vertex is 38395
+BFS  completed in : 8208603
+41923
+random start vertex is 41923
+BFS  completed in : 8193885
+26168
+random start vertex is 26168
+BFS  completed in : 8205729
+33067
+random start vertex is 33067
+BFS  completed in : 8211660
+39593
+random start vertex is 39593
+BFS  completed in : 8209659
+11468
+random start vertex is 11468
+BFS  completed in : 8209526
+43103
+random start vertex is 43103
+BFS  completed in : 8213707
+59103
+random start vertex is 59103
+BFS  completed in : 8221288
+34958
+random start vertex is 34958
+BFS  completed in : 8223497
+22295
+random start vertex is 22295
+BFS  completed in : 8211533
+16489
+random start vertex is 16489
+BFS  completed in : 8206718

@@ -1,0 +1,17 @@
+#db_name, benchmark, starting node_id, num_visited, sum_out_deg, total_time_taken_usecs
+std_rd_s10_e8,bfs,176,738,79290,12224
+std_rd_s10_e8,bfs,260,738,79290,12353
+std_rd_s10_e8,bfs,51,738,79290,12315
+std_rd_s10_e8,bfs,603,738,79290,12341
+std_rd_s10_e8,bfs,337,738,79290,12567
+std_rd_s10_e8,bfs,306,738,79290,12273
+std_rd_s10_e8,bfs,123,738,79290,12276
+std_rd_s10_e8,bfs,656,738,79290,12295
+std_rd_s10_e8,bfs,88,738,79290,12513
+std_rd_s10_e8,bfs,859,739,79300,12285
+std_rd_s10_e8,bfs,141,738,79290,12265
+std_rd_s10_e8,bfs,565,738,79290,12310
+std_rd_s10_e8,bfs,857,738,79290,12373
+std_rd_s10_e8,bfs,297,738,79290,12381
+std_rd_s10_e8,bfs,167,739,79310,12216
+std_rd_s10_e8,bfs,782,738,79290,12347

@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <set>
+#include <list>
 #include <deque>
 #include "common.h"
 #include "graph_exception.h"
@@ -30,27 +31,22 @@ template <typename Graph>
 bfs_info *bfs(Graph &graph, int src)
 {
     bfs_info *info = new bfs_info(0);
+    auto start = chrono::steady_clock::now();
     for (int i = 0; i < 10; i++)
     {
-        std::cout << "Iter " << i << " ";
-        auto start = chrono::steady_clock::now();
         set<int> visited = {src};
-        deque<int> queue = {src};
+        list<int> queue = {src};
         vector<int> result;
 
         while (!queue.empty())
         {
-            int node_id = queue.at(0);
+            int node_id = queue.front();
             queue.pop_front();
             result.push_back(node_id);
             vector<node> out_nbrs = graph.get_out_nodes(node_id);
-            cout << "num_out_nbr" << out_nbrs.size();
-            std::cout << "\n(sum" << info->sum_out_deg << ";";
-            std::cout << "num_visited " << info->num_visited << ")\n";
             info->sum_out_deg += out_nbrs.size();
             for (node nbr : out_nbrs)
             {
-                std::cout << "nbr is " << nbr.id << std::endl;
                 if (visited.find(nbr.id) == visited.end())
                 {
                     visited.insert(nbr.id);
@@ -58,15 +54,12 @@ bfs_info *bfs(Graph &graph, int src)
                 }
             }
         }
-        auto end = chrono::steady_clock::now();
-        info->time_taken += chrono::duration_cast<chrono::microseconds>(end - start).count();
-        std::cout << info->time_taken << std::endl;
         info->num_visited = visited.size();
     }
-    std::cout << " -----------"
-              << "\n";
+    auto end = chrono::steady_clock::now();
+    info->time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
     //average the time taken to get average per iteration.
-    info->time_taken = info->time_taken;
+    info->time_taken = info->time_taken / 10;
     return info;
 }
 

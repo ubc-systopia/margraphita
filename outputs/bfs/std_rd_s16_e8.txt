@@ -239,3 +239,46 @@ BFS  completed in : 14615403115
 Running BFS
 terminate called after throwing an instance of 'GraphException'
   what():  Could not find the expected WT DB directory - /home/puneet/gen_graphs/s16_e8/s16_e8/std_rd_s16_e8
+Running BFS
+Graph loaded in 344646
+10572
+random start vertex is 10572
+BFS  completed in : 306670110
+25704
+random start vertex is 25704
+BFS  completed in : 926020073
+25344
+random start vertex is 25344
+BFS  completed in : 1576020010
+65457
+random start vertex is 65457
+out degree was zero. finding a new random vertex.
+9832
+random start vertex is 9832
+BFS  completed in : 2373561592
+25237
+random start vertex is 25237
+BFS  completed in : 3409520106
+51617
+random start vertex is 51617
+BFS  completed in : 4604887091
+17405
+random start vertex is 17405
+BFS  completed in : 5756594417
+28689
+random start vertex is 28689
+BFS  completed in : 6732051827
+10006
+random start vertex is 10006
+BFS  completed in : 7687377452
+10024
+random start vertex is 10024
+BFS  completed in : 8655183879
+55569
+random start vertex is 55569
+BFS  completed in : 9640423742
+10011
+random start vertex is 10011
+BFS  completed in : 10626649786
+10007
+random start vertex is 10007

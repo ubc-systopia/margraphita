@@ -245,3 +245,77 @@ Iter 8
 Iter 9
  -----------
 BFS  completed in : 213631855
+Running BFS
+Graph loaded in 343876
+288032
+random start vertex is 288032
+BFS  completed in : 202945205
+329697
+random start vertex is 329697
+BFS  completed in : 201956284
+112419
+random start vertex is 112419
+out degree was zero. finding a new random vertex.
+302432
+random start vertex is 302432
+BFS  completed in : 206125586
+123656
+random start vertex is 123656
+BFS  completed in : 204013610
+32847
+random start vertex is 32847
+BFS  completed in : 201737871
+271328
+random start vertex is 271328
+BFS  completed in : 204176544
+301201
+random start vertex is 301201
+BFS  completed in : 205445842
+475457
+random start vertex is 475457
+BFS  completed in : 204768265
+385306
+random start vertex is 385306
+out degree was zero. finding a new random vertex.
+190289
+random start vertex is 190289
+BFS  completed in : 203968951
+116079
+random start vertex is 116079
+out degree was zero. finding a new random vertex.
+372877
+random start vertex is 372877
+BFS  completed in : 211580227
+354588
+random start vertex is 354588
+out degree was zero. finding a new random vertex.
+179241
+random start vertex is 179241
+BFS  completed in : 210399824
+134097
+random start vertex is 134097
+BFS  completed in : 203180131
+329739
+random start vertex is 329739
+BFS  completed in : 203920697
+235083
+random start vertex is 235083
+BFS  completed in : 205270796
+512020
+random start vertex is 512020
+out degree was zero. finding a new random vertex.
+19909
+random start vertex is 19909
+BFS  completed in : 202802699
+350985
+random start vertex is 350985
+out degree was zero. finding a new random vertex.
+390195
+random start vertex is 390195
+out degree was zero. finding a new random vertex.
+103658
+random start vertex is 103658
+out degree was zero. finding a new random vertex.
+283599
+random start vertex is 283599
+BFS  completed in : 205169365

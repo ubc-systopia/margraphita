@@ -712,3 +712,811 @@ Iter 8
 Iter 9
  -----------
 BFS  completed in : 444785
+Running BFS
+Graph loaded in 344843
+1496
+random start vertex is 1496
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 442211
+2267
+random start vertex is 2267
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 442822
+3264
+random start vertex is 3264
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 442484
+1209
+random start vertex is 1209
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 442050
+105
+random start vertex is 105
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 444442
+3584
+random start vertex is 3584
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 438278
+3603
+random start vertex is 3603
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 438313
+667
+random start vertex is 667
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 441311
+1536
+random start vertex is 1536
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 443309
+3544
+random start vertex is 3544
+out degree was zero. finding a new random vertex.
+956
+random start vertex is 956
+out degree was zero. finding a new random vertex.
+3668
+random start vertex is 3668
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 452185
+597
+random start vertex is 597
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 443890
+3142
+random start vertex is 3142
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 445568
+377
+random start vertex is 377
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 436917
+2067
+random start vertex is 2067
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 441271
+388
+random start vertex is 388
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 446203
+3975
+random start vertex is 3975
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 435948
+Running BFS
+Graph loaded in 343779
+1496
+random start vertex is 1496
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 436084
+2267
+random start vertex is 2267
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 441221
+3264
+random start vertex is 3264
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 437605
+1209
+random start vertex is 1209
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 436493
+105
+random start vertex is 105
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 438209
+3584
+random start vertex is 3584
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 439611
+3603
+random start vertex is 3603
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 438277
+667
+random start vertex is 667
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 437833
+1536
+random start vertex is 1536
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 437777
+3544
+random start vertex is 3544
+out degree was zero. finding a new random vertex.
+956
+random start vertex is 956
+out degree was zero. finding a new random vertex.
+3668
+random start vertex is 3668
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 437816
+597
+random start vertex is 597
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 437887
+3142
+random start vertex is 3142
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 439645
+377
+random start vertex is 377
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 442639
+2067
+random start vertex is 2067
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 437339
+388
+random start vertex is 388
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 437695
+3975
+random start vertex is 3975
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 439822
+Running BFS
+Graph loaded in 350555
+1496
+random start vertex is 1496
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 436635
+2267
+random start vertex is 2267
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 440216
+3264
+random start vertex is 3264
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 439569
+1209
+random start vertex is 1209
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 438410
+105
+random start vertex is 105
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 441411
+3584
+random start vertex is 3584
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 436353
+3603
+random start vertex is 3603
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 440987
+667
+random start vertex is 667
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 443048
+1536
+random start vertex is 1536
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 441438
+3544
+random start vertex is 3544
+out degree was zero. finding a new random vertex.
+956
+random start vertex is 956
+out degree was zero. finding a new random vertex.
+3668
+random start vertex is 3668
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 442878
+597
+random start vertex is 597
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 440749
+3142
+random start vertex is 3142
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 443547
+377
+random start vertex is 377
+Iter 0
+2676Iter 1
+2676Iter 2
+2676Iter 3
+2676Iter 4
+2676Iter 5
+2676Iter 6
+2676Iter 7
+2676Iter 8
+2676Iter 9
+2676 -----------
+BFS  completed in : 440035
+2067
+random start vertex is 2067
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 439758
+388
+random start vertex is 388
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 444666
+3975
+random start vertex is 3975
+Iter 0
+2675Iter 1
+2675Iter 2
+2675Iter 3
+2675Iter 4
+2675Iter 5
+2675Iter 6
+2675Iter 7
+2675Iter 8
+2675Iter 9
+2675 -----------
+BFS  completed in : 438866
+Running BFS
+Graph loaded in 342019
+1496
+random start vertex is 1496
+BFS  completed in : 437063
+2267
+random start vertex is 2267
+BFS  completed in : 436865
+3264
+random start vertex is 3264
+BFS  completed in : 440301
+1209
+random start vertex is 1209
+BFS  completed in : 435842
+105
+random start vertex is 105
+BFS  completed in : 437300
+3584
+random start vertex is 3584
+BFS  completed in : 436840
+3603
+random start vertex is 3603
+BFS  completed in : 439874
+667
+random start vertex is 667
+BFS  completed in : 437328
+1536
+random start vertex is 1536
+BFS  completed in : 437642
+3544
+random start vertex is 3544
+out degree was zero. finding a new random vertex.
+956
+random start vertex is 956
+out degree was zero. finding a new random vertex.
+3668
+random start vertex is 3668
+BFS  completed in : 437187
+597
+random start vertex is 597
+BFS  completed in : 437410
+3142
+random start vertex is 3142
+BFS  completed in : 437077
+377
+random start vertex is 377
+BFS  completed in : 436667
+2067
+random start vertex is 2067
+BFS  completed in : 441475
+388
+random start vertex is 388
+BFS  completed in : 438160
+3975
+random start vertex is 3975
+BFS  completed in : 437847
+Running BFS
+Graph loaded in 365005
+1496
+random start vertex is 1496
+BFS  completed in : 457675
+2267
+random start vertex is 2267
+BFS  completed in : 454222
+3264
+random start vertex is 3264
+BFS  completed in : 457362
+1209
+random start vertex is 1209
+BFS  completed in : 460054
+105
+random start vertex is 105
+BFS  completed in : 463244
+3584
+random start vertex is 3584
+BFS  completed in : 459821
+3603
+random start vertex is 3603
+BFS  completed in : 461735
+667
+random start vertex is 667
+BFS  completed in : 454586
+1536
+random start vertex is 1536
+BFS  completed in : 447436
+3544
+random start vertex is 3544
+out degree was zero. finding a new random vertex.
+956
+random start vertex is 956
+out degree was zero. finding a new random vertex.
+3668
+random start vertex is 3668
+BFS  completed in : 444044
+597
+random start vertex is 597
+BFS  completed in : 443083
+3142
+random start vertex is 3142
+BFS  completed in : 447515
+377
+random start vertex is 377
+BFS  completed in : 445018
+2067
+random start vertex is 2067
+BFS  completed in : 454134
+388
+random start vertex is 388
+BFS  completed in : 442066
+3975
+random start vertex is 3975
+BFS  completed in : 445146
