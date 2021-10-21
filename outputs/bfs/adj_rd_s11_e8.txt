@@ -1038,3 +1038,59 @@ BFS  completed in : 97988
 1163
 random start vertex is 1163
 BFS  completed in : 97261
+Running BFS
+Graph loaded in 347003
+346
+random start vertex is 346
+BFS  completed in : 99256
+661
+random start vertex is 661
+BFS  completed in : 97696
+744
+random start vertex is 744
+BFS  completed in : 97602
+257
+random start vertex is 257
+BFS  completed in : 97333
+1161
+random start vertex is 1161
+BFS  completed in : 96957
+739
+random start vertex is 739
+BFS  completed in : 97197
+681
+random start vertex is 681
+BFS  completed in : 97765
+377
+random start vertex is 377
+BFS  completed in : 96745
+1870
+random start vertex is 1870
+BFS  completed in : 97975
+1207
+random start vertex is 1207
+out degree was zero. finding a new random vertex.
+1859
+random start vertex is 1859
+BFS  completed in : 97530
+1887
+random start vertex is 1887
+BFS  completed in : 97550
+241
+random start vertex is 241
+BFS  completed in : 97518
+879
+random start vertex is 879
+out degree was zero. finding a new random vertex.
+567
+random start vertex is 567
+BFS  completed in : 97775
+751
+random start vertex is 751
+BFS  completed in : 97335
+592
+random start vertex is 592
+BFS  completed in : 97939
+1163
+random start vertex is 1163
+BFS  completed in : 98030

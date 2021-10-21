@@ -524,3 +524,53 @@ BFS  completed in : 8211533
 16489
 random start vertex is 16489
 BFS  completed in : 8206718
+Running BFS
+Graph loaded in 362869
+25157
+random start vertex is 25157
+BFS  completed in : 8519460
+37329
+random start vertex is 37329
+BFS  completed in : 8467700
+11446
+random start vertex is 11446
+BFS  completed in : 8458076
+49876
+random start vertex is 49876
+BFS  completed in : 8505598
+33166
+random start vertex is 33166
+BFS  completed in : 8514045
+38395
+random start vertex is 38395
+BFS  completed in : 8471017
+41923
+random start vertex is 41923
+BFS  completed in : 8453636
+26168
+random start vertex is 26168
+BFS  completed in : 8433833
+33067
+random start vertex is 33067
+BFS  completed in : 8459176
+39593
+random start vertex is 39593
+BFS  completed in : 8474077
+11468
+random start vertex is 11468
+BFS  completed in : 8442373
+43103
+random start vertex is 43103
+BFS  completed in : 8455736
+59103
+random start vertex is 59103
+BFS  completed in : 8441292
+34958
+random start vertex is 34958
+BFS  completed in : 8490198
+22295
+random start vertex is 22295
+BFS  completed in : 8511649
+16489
+random start vertex is 16489
+BFS  completed in : 8481504

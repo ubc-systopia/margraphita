@@ -777,3 +777,53 @@ BFS  completed in : 4304380
 774
 random start vertex is 774
 BFS  completed in : 4038409
+Running BFS
+Graph loaded in 347001
+2354
+random start vertex is 2354
+BFS  completed in : 4045127
+1746
+random start vertex is 1746
+BFS  completed in : 4029151
+3258
+random start vertex is 3258
+BFS  completed in : 4014268
+12384
+random start vertex is 12384
+BFS  completed in : 3994078
+12553
+random start vertex is 12553
+BFS  completed in : 4018980
+4515
+random start vertex is 4515
+BFS  completed in : 4012759
+4576
+random start vertex is 4576
+BFS  completed in : 4014787
+8529
+random start vertex is 8529
+BFS  completed in : 4014154
+3306
+random start vertex is 3306
+BFS  completed in : 4022907
+23831
+random start vertex is 23831
+BFS  completed in : 4006577
+17643
+random start vertex is 17643
+BFS  completed in : 4071095
+4514
+random start vertex is 4514
+BFS  completed in : 4134650
+17698
+random start vertex is 17698
+BFS  completed in : 4128707
+3244
+random start vertex is 3244
+BFS  completed in : 4115050
+3303
+random start vertex is 3303
+BFS  completed in : 4119526
+774
+random start vertex is 774
+BFS  completed in : 4098456

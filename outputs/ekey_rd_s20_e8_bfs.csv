@@ -1,6 +1,0 @@
-#db_name, benchmark, starting node_id, num_visited, sum_out_deg, total_time_taken_usecs
-ekey_rd_s20_e8,bfs,711937,472830,82442430,186484056
-ekey_rd_s20_e8,bfs,230816,472830,82442430,193573371
-ekey_rd_s20_e8,bfs,211255,472830,82442430,192103698
-ekey_rd_s20_e8,bfs,583707,472830,82442430,192066256
-ekey_rd_s20_e8,bfs,534700,472830,82442430,193081814

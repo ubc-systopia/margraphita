@@ -304,3 +304,28 @@ BFS  completed in : 39803982
 190239
 random start vertex is 190239
 BFS  completed in : 40005159
+Running BFS
+Graph loaded in 345697
+23736
+random start vertex is 23736
+out degree was zero. finding a new random vertex.
+57535
+random start vertex is 57535
+BFS  completed in : 39726493
+49512
+random start vertex is 49512
+BFS  completed in : 39547026
+151462
+random start vertex is 151462
+BFS  completed in : 39452607
+30202
+random start vertex is 30202
+BFS  completed in : 39566408
+102001
+random start vertex is 102001
+BFS  completed in : 39485560
+72643
+random start vertex is 72643
+BFS  completed in : 39637295
+201859
+random start vertex is 201859
