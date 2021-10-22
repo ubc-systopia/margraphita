@@ -255,3 +255,10 @@ random start vertex is 534700
 BFS  completed in : 1930818147
 525792
 random start vertex is 525792
+Running BFS
+Graph loaded in 345683
+711937
+random start vertex is 711937
+BFS  completed in : 2054946679
+230816
+random start vertex is 230816
