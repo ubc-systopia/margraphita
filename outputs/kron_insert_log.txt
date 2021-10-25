@@ -1,0 +1,656 @@
+#s10_e8:
+8192 edges inserted in 5220
+727 nodes inserted in 740
+total number of edges inserted = 8192
+total number of nodes inserted = 727
+------------------------------------------------------------------------------------
+8192 edges inserted in 5247
+727 nodes inserted in 745
+total number of edges inserted = 8192
+total number of nodes inserted = 727
+------------------------------------------------------------------------------------
+#s10_e8:
+8192 edges inserted in 9083
+727 nodes inserted in 1680
+total number of edges inserted = 8192
+total number of nodes inserted = 727
+------------------------------------------------------------------------------------
+8192 edges inserted in 9923
+727 nodes inserted in 1784
+total number of edges inserted = 8192
+total number of nodes inserted = 727
+------------------------------------------------------------------------------------
+#s10_e8:
+8192 edges inserted in 8137
+727 nodes inserted in 758
+total number of edges inserted = 8192
+total number of nodes inserted = 727
+------------------------------------------------------------------------------------
+8192 edges inserted in 5177
+727 nodes inserted in 582
+total number of edges inserted = 8192
+total number of nodes inserted = 727
+------------------------------------------------------------------------------------
+#s11_e8:
+16384 edges inserted in 9635
+1390 nodes inserted in 1118
+total number of edges inserted = 16384
+total number of nodes inserted = 1390
+------------------------------------------------------------------------------------
+16384 edges inserted in 14300
+1390 nodes inserted in 1036
+total number of edges inserted = 16384
+total number of nodes inserted = 1390
+------------------------------------------------------------------------------------
+#s11_e8:
+16384 edges inserted in 17335
+1390 nodes inserted in 4678
+total number of edges inserted = 16384
+total number of nodes inserted = 1390
+------------------------------------------------------------------------------------
+16384 edges inserted in 9328
+1390 nodes inserted in 2696
+total number of edges inserted = 16384
+total number of nodes inserted = 1390
+------------------------------------------------------------------------------------
+#s11_e8:
+16384 edges inserted in 9906
+1390 nodes inserted in 1009
+total number of edges inserted = 16384
+total number of nodes inserted = 1390
+------------------------------------------------------------------------------------
+16384 edges inserted in 9804
+1390 nodes inserted in 824
+total number of edges inserted = 16384
+total number of nodes inserted = 1390
+------------------------------------------------------------------------------------
+#s12_e8:
+32768 edges inserted in 20822
+2702 nodes inserted in 1480
+total number of edges inserted = 32768
+total number of nodes inserted = 2702
+------------------------------------------------------------------------------------
+32768 edges inserted in 24715
+2702 nodes inserted in 10857
+total number of edges inserted = 32768
+total number of nodes inserted = 2702
+------------------------------------------------------------------------------------
+#s12_e8:
+32768 edges inserted in 20051
+2702 nodes inserted in 4614
+total number of edges inserted = 32768
+total number of nodes inserted = 2702
+------------------------------------------------------------------------------------
+32768 edges inserted in 18814
+2702 nodes inserted in 4515
+total number of edges inserted = 32768
+total number of nodes inserted = 2702
+------------------------------------------------------------------------------------
+#s12_e8:
+32768 edges inserted in 22686
+2702 nodes inserted in 1706
+total number of edges inserted = 32768
+total number of nodes inserted = 2702
+------------------------------------------------------------------------------------
+32768 edges inserted in 22309
+2702 nodes inserted in 1450
+total number of edges inserted = 32768
+total number of nodes inserted = 2702
+------------------------------------------------------------------------------------
+#s13_e8:
+65536 edges inserted in 40976
+5146 nodes inserted in 2533
+total number of edges inserted = 65536
+total number of nodes inserted = 5146
+------------------------------------------------------------------------------------
+65536 edges inserted in 39773
+5146 nodes inserted in 2428
+total number of edges inserted = 65536
+total number of nodes inserted = 5146
+------------------------------------------------------------------------------------
+#s13_e8:
+65536 edges inserted in 38020
+5146 nodes inserted in 8616
+total number of edges inserted = 65536
+total number of nodes inserted = 5146
+------------------------------------------------------------------------------------
+65536 edges inserted in 36585
+5146 nodes inserted in 8746
+total number of edges inserted = 65536
+total number of nodes inserted = 5146
+------------------------------------------------------------------------------------
+#s13_e8:
+65536 edges inserted in 36974
+5146 nodes inserted in 4124
+total number of edges inserted = 65536
+total number of nodes inserted = 5146
+------------------------------------------------------------------------------------
+65536 edges inserted in 41353
+5146 nodes inserted in 3740
+total number of edges inserted = 65536
+total number of nodes inserted = 5146
+------------------------------------------------------------------------------------
+#s14_e8:
+131072 edges inserted in 78435
+9798 nodes inserted in 3896
+total number of edges inserted = 131072
+total number of nodes inserted = 9798
+------------------------------------------------------------------------------------
+131072 edges inserted in 74398
+9798 nodes inserted in 3747
+total number of edges inserted = 131072
+total number of nodes inserted = 9798
+------------------------------------------------------------------------------------
+#s14_e8:
+131072 edges inserted in 75958
+9798 nodes inserted in 15589
+total number of edges inserted = 131072
+total number of nodes inserted = 9798
+------------------------------------------------------------------------------------
+131072 edges inserted in 74925
+9798 nodes inserted in 16184
+total number of edges inserted = 131072
+total number of nodes inserted = 9798
+------------------------------------------------------------------------------------
+#s14_e8:
+131072 edges inserted in 75432
+9798 nodes inserted in 4775
+total number of edges inserted = 131072
+total number of nodes inserted = 9798
+------------------------------------------------------------------------------------
+131072 edges inserted in 79949
+9798 nodes inserted in 5528
+total number of edges inserted = 131072
+total number of nodes inserted = 9798
+------------------------------------------------------------------------------------
+#s15_e8:
+262144 edges inserted in 150922
+18704 nodes inserted in 15135
+total number of edges inserted = 262144
+total number of nodes inserted = 18704
+------------------------------------------------------------------------------------
+262144 edges inserted in 247223
+18704 nodes inserted in 7637
+total number of edges inserted = 262144
+total number of nodes inserted = 18704
+------------------------------------------------------------------------------------
+#s15_e8:
+262144 edges inserted in 150141
+18704 nodes inserted in 37362
+total number of edges inserted = 262144
+total number of nodes inserted = 18704
+------------------------------------------------------------------------------------
+262144 edges inserted in 148692
+18704 nodes inserted in 36401
+total number of edges inserted = 262144
+total number of nodes inserted = 18704
+------------------------------------------------------------------------------------
+#s15_e8:
+262144 edges inserted in 149418
+18704 nodes inserted in 10366
+total number of edges inserted = 262144
+total number of nodes inserted = 18704
+------------------------------------------------------------------------------------
+262144 edges inserted in 151074
+18704 nodes inserted in 7155
+total number of edges inserted = 262144
+total number of nodes inserted = 18704
+------------------------------------------------------------------------------------
+#s16_e8:
+524288 edges inserted in 293576
+36061 nodes inserted in 16677
+total number of edges inserted = 524288
+total number of nodes inserted = 36061
+------------------------------------------------------------------------------------
+524288 edges inserted in 630143
+36061 nodes inserted in 344595
+total number of edges inserted = 524288
+total number of nodes inserted = 36061
+------------------------------------------------------------------------------------
+#s16_e8:
+524288 edges inserted in 324922
+36061 nodes inserted in 315733
+total number of edges inserted = 524288
+total number of nodes inserted = 36061
+------------------------------------------------------------------------------------
+524288 edges inserted in 299285
+36061 nodes inserted in 72738
+total number of edges inserted = 524288
+total number of nodes inserted = 36061
+------------------------------------------------------------------------------------
+#s16_e8:
+524288 edges inserted in 297457
+36061 nodes inserted in 17785
+total number of edges inserted = 524288
+total number of nodes inserted = 36061
+------------------------------------------------------------------------------------
+524288 edges inserted in 294909
+36061 nodes inserted in 15874
+total number of edges inserted = 524288
+total number of nodes inserted = 36061
+------------------------------------------------------------------------------------
+#s17_e8:
+1048576 edges inserted in 669514
+68792 nodes inserted in 26126
+total number of edges inserted = 1048576
+total number of nodes inserted = 68792
+------------------------------------------------------------------------------------
+1048576 edges inserted in 599886
+68792 nodes inserted in 24646
+total number of edges inserted = 1048576
+total number of nodes inserted = 68792
+------------------------------------------------------------------------------------
+#s17_e8:
+1048576 edges inserted in 617111
+68792 nodes inserted in 152252
+total number of edges inserted = 1048576
+total number of nodes inserted = 68792
+------------------------------------------------------------------------------------
+1048576 edges inserted in 585695
+68792 nodes inserted in 154564
+total number of edges inserted = 1048576
+total number of nodes inserted = 68792
+------------------------------------------------------------------------------------
+#s17_e8:
+1048576 edges inserted in 587885
+68792 nodes inserted in 34484
+total number of edges inserted = 1048576
+total number of nodes inserted = 68792
+------------------------------------------------------------------------------------
+1048576 edges inserted in 624701
+68792 nodes inserted in 33161
+total number of edges inserted = 1048576
+total number of nodes inserted = 68792
+------------------------------------------------------------------------------------
+#s18_e8:
+2097152 edges inserted in 1170586
+131679 nodes inserted in 48449
+total number of edges inserted = 2097152
+total number of nodes inserted = 131679
+------------------------------------------------------------------------------------
+2097152 edges inserted in 1243130
+131679 nodes inserted in 47484
+total number of edges inserted = 2097152
+total number of nodes inserted = 131679
+------------------------------------------------------------------------------------
+#s18_e8:
+2097152 edges inserted in 1277864
+131679 nodes inserted in 254636
+total number of edges inserted = 2097152
+total number of nodes inserted = 131679
+------------------------------------------------------------------------------------
+2097152 edges inserted in 1204616
+131679 nodes inserted in 277802
+total number of edges inserted = 2097152
+total number of nodes inserted = 131679
+------------------------------------------------------------------------------------
+#s18_e8:
+2097152 edges inserted in 1173970
+131679 nodes inserted in 58497
+total number of edges inserted = 2097152
+total number of nodes inserted = 131679
+------------------------------------------------------------------------------------
+2097152 edges inserted in 1231751
+131679 nodes inserted in 57969
+total number of edges inserted = 2097152
+total number of nodes inserted = 131679
+------------------------------------------------------------------------------------
+#s19_e8:
+4194304 edges inserted in 10783942
+252258 nodes inserted in 93816
+total number of edges inserted = 4194304
+total number of nodes inserted = 252258
+------------------------------------------------------------------------------------
+4194304 edges inserted in 2365977
+252258 nodes inserted in 126545
+total number of edges inserted = 4194304
+total number of nodes inserted = 252258
+------------------------------------------------------------------------------------
+#s19_e8:
+4194304 edges inserted in 2401118
+252258 nodes inserted in 579589
+total number of edges inserted = 4194304
+total number of nodes inserted = 252258
+------------------------------------------------------------------------------------
+4194304 edges inserted in 2426337
+252258 nodes inserted in 590402
+total number of edges inserted = 4194304
+total number of nodes inserted = 252258
+------------------------------------------------------------------------------------
+#s19_e8:
+4194304 edges inserted in 2414351
+252258 nodes inserted in 118352
+total number of edges inserted = 4194304
+total number of nodes inserted = 252258
+------------------------------------------------------------------------------------
+4194304 edges inserted in 2448367
+252258 nodes inserted in 101841
+total number of edges inserted = 4194304
+total number of nodes inserted = 252258
+------------------------------------------------------------------------------------
+#s20_e8:
+8388608 edges inserted in 4548911
+484085 nodes inserted in 160652
+total number of edges inserted = 8388608
+total number of nodes inserted = 484085
+------------------------------------------------------------------------------------
+8388608 edges inserted in 4664956
+484085 nodes inserted in 172562
+total number of edges inserted = 8388608
+total number of nodes inserted = 484085
+------------------------------------------------------------------------------------
+#s20_e8:
+8388608 edges inserted in 4712708
+484085 nodes inserted in 1170181
+total number of edges inserted = 8388608
+total number of nodes inserted = 484085
+------------------------------------------------------------------------------------
+8388608 edges inserted in 4739059
+484085 nodes inserted in 1157749
+total number of edges inserted = 8388608
+total number of nodes inserted = 484085
+------------------------------------------------------------------------------------
+#s20_e8:
+8388608 edges inserted in 4765398
+484085 nodes inserted in 220134
+total number of edges inserted = 8388608
+total number of nodes inserted = 484085
+------------------------------------------------------------------------------------
+8388608 edges inserted in 4685495
+484085 nodes inserted in 189042
+total number of edges inserted = 8388608
+total number of nodes inserted = 484085
+------------------------------------------------------------------------------------
+#s21_e8:
+16777216 edges inserted in 9682881
+928727 nodes inserted in 333341
+total number of edges inserted = 16777216
+total number of nodes inserted = 928727
+------------------------------------------------------------------------------------
+16777216 edges inserted in 9367129
+928727 nodes inserted in 309409
+total number of edges inserted = 16777216
+total number of nodes inserted = 928727
+------------------------------------------------------------------------------------
+#s21_e8:
+16777216 edges inserted in 9444309
+928727 nodes inserted in 2409694
+total number of edges inserted = 16777216
+total number of nodes inserted = 928727
+------------------------------------------------------------------------------------
+16777216 edges inserted in 9589397
+928727 nodes inserted in 2424823
+total number of edges inserted = 16777216
+total number of nodes inserted = 928727
+------------------------------------------------------------------------------------
+#s21_e8:
+16777216 edges inserted in 9318318
+928727 nodes inserted in 446344
+total number of edges inserted = 16777216
+total number of nodes inserted = 928727
+------------------------------------------------------------------------------------
+16777216 edges inserted in 9232225
+928727 nodes inserted in 374270
+total number of edges inserted = 16777216
+total number of nodes inserted = 928727
+------------------------------------------------------------------------------------
+#s22_e8:
+33554432 edges inserted in 18667942
+1779031 nodes inserted in 604202
+total number of edges inserted = 33554432
+total number of nodes inserted = 1779031
+------------------------------------------------------------------------------------
+33554432 edges inserted in 35867089
+1779031 nodes inserted in 596884
+total number of edges inserted = 33554432
+total number of nodes inserted = 1779031
+------------------------------------------------------------------------------------
+#s22_e8:
+33554432 edges inserted in 19392204
+1779031 nodes inserted in 5476477
+total number of edges inserted = 33554432
+total number of nodes inserted = 1779031
+------------------------------------------------------------------------------------
+33554432 edges inserted in 19099873
+1779031 nodes inserted in 5458245
+total number of edges inserted = 33554432
+total number of nodes inserted = 1779031
+------------------------------------------------------------------------------------
+#s22_e8:
+33554432 edges inserted in 18491314
+1779031 nodes inserted in 845040
+total number of edges inserted = 33554432
+total number of nodes inserted = 1779031
+------------------------------------------------------------------------------------
+33554432 edges inserted in 19773664
+1779031 nodes inserted in 748955
+total number of edges inserted = 33554432
+total number of nodes inserted = 1779031
+------------------------------------------------------------------------------------
+#s23_e8:
+67108864 edges inserted in 37391644
+3413614 nodes inserted in 1155515
+total number of edges inserted = 67108864
+total number of nodes inserted = 3413614
+------------------------------------------------------------------------------------
+67108864 edges inserted in 49520212
+3413614 nodes inserted in 1137475
+total number of edges inserted = 67108864
+total number of nodes inserted = 3413614
+------------------------------------------------------------------------------------
+#s23_e8:
+67108864 edges inserted in 37590820
+3413614 nodes inserted in 14531742
+total number of edges inserted = 67108864
+total number of nodes inserted = 3413614
+------------------------------------------------------------------------------------
+67108864 edges inserted in 39653770
+3413614 nodes inserted in 14935575
+total number of edges inserted = 67108864
+total number of nodes inserted = 3413614
+------------------------------------------------------------------------------------
+#s23_e8:
+67108864 edges inserted in 37725498
+3413614 nodes inserted in 1601683
+total number of edges inserted = 67108864
+total number of nodes inserted = 3413614
+------------------------------------------------------------------------------------
+67108864 edges inserted in 38532357
+3413614 nodes inserted in 1428122
+total number of edges inserted = 67108864
+total number of nodes inserted = 3413614
+------------------------------------------------------------------------------------
+#s24_e8:
+134217728 edges inserted in 75165748
+6542703 nodes inserted in 2234551
+total number of edges inserted = 134217728
+total number of nodes inserted = 6542703
+------------------------------------------------------------------------------------
+134217728 edges inserted in 77608385
+6542703 nodes inserted in 2279001
+total number of edges inserted = 134217728
+total number of nodes inserted = 6542703
+------------------------------------------------------------------------------------
+#s24_e8:
+134217728 edges inserted in 75631852
+6542703 nodes inserted in 32492298
+total number of edges inserted = 134217728
+total number of nodes inserted = 6542703
+------------------------------------------------------------------------------------
+134217728 edges inserted in 76221427
+6542703 nodes inserted in 32239451
+total number of edges inserted = 134217728
+total number of nodes inserted = 6542703
+------------------------------------------------------------------------------------
+#s24_e8:
+134217728 edges inserted in 76398471
+6542703 nodes inserted in 3253395
+total number of edges inserted = 134217728
+total number of nodes inserted = 6542703
+------------------------------------------------------------------------------------
+134217728 edges inserted in 80413024
+6542703 nodes inserted in 2973203
+total number of edges inserted = 134217728
+total number of nodes inserted = 6542703
+------------------------------------------------------------------------------------
+#s25_e8:
+268435456 edges inserted in 155394463
+12548264 nodes inserted in 4535000
+total number of edges inserted = 268435456
+total number of nodes inserted = 12548264
+------------------------------------------------------------------------------------
+268435456 edges inserted in 160305183
+12548264 nodes inserted in 4581068
+total number of edges inserted = 268435456
+total number of nodes inserted = 12548264
+------------------------------------------------------------------------------------
+#s25_e8:
+268435456 edges inserted in 150974220
+12548264 nodes inserted in 70116003
+total number of edges inserted = 268435456
+total number of nodes inserted = 12548264
+------------------------------------------------------------------------------------
+268435456 edges inserted in 155282622
+12548264 nodes inserted in 68244929
+total number of edges inserted = 268435456
+total number of nodes inserted = 12548264
+------------------------------------------------------------------------------------
+#s25_e8:
+268435456 edges inserted in 156295666
+12548264 nodes inserted in 6770277
+total number of edges inserted = 268435456
+total number of nodes inserted = 12548264
+------------------------------------------------------------------------------------
+268435456 edges inserted in 156908705
+12548264 nodes inserted in 5619194
+total number of edges inserted = 268435456
+total number of nodes inserted = 12548264
+------------------------------------------------------------------------------------
+#s26_e8:
+536870912 edges inserted in 308952385
+24069625 nodes inserted in 8531200
+total number of edges inserted = 536870912
+total number of nodes inserted = 24069625
+------------------------------------------------------------------------------------
+536870912 edges inserted in 314035807
+24069625 nodes inserted in 8908072
+total number of edges inserted = 536870912
+total number of nodes inserted = 24069625
+------------------------------------------------------------------------------------
+#s26_e8:
+536870912 edges inserted in 309499764
+24069625 nodes inserted in 182302482
+total number of edges inserted = 536870912
+total number of nodes inserted = 24069625
+------------------------------------------------------------------------------------
+536870912 edges inserted in 324618138
+24069625 nodes inserted in 183273989
+total number of edges inserted = 536870912
+total number of nodes inserted = 24069625
+------------------------------------------------------------------------------------
+#s26_e8:
+536870912 edges inserted in 313943301
+24069625 nodes inserted in 12762900
+total number of edges inserted = 536870912
+total number of nodes inserted = 24069625
+------------------------------------------------------------------------------------
+536870912 edges inserted in 313636494
+24069625 nodes inserted in 11032060
+total number of edges inserted = 536870912
+total number of nodes inserted = 24069625
+------------------------------------------------------------------------------------
+#s27_e8:
+1073741824 edges inserted in 623833951
+46163979 nodes inserted in 17035577
+total number of edges inserted = 1073741824
+total number of nodes inserted = 46163979
+------------------------------------------------------------------------------------
+1073741824 edges inserted in 631585579
+46163979 nodes inserted in 16380034
+total number of edges inserted = 1073741824
+total number of nodes inserted = 46163979
+------------------------------------------------------------------------------------
+#s27_e8:
+1073741824 edges inserted in 618955831
+46163979 nodes inserted in 516888964
+total number of edges inserted = 1073741824
+total number of nodes inserted = 46163979
+------------------------------------------------------------------------------------
+1073741824 edges inserted in 624770730
+46163979 nodes inserted in 537459553
+total number of edges inserted = 1073741824
+total number of nodes inserted = 46163979
+------------------------------------------------------------------------------------
+#s27_e8:
+1073741824 edges inserted in 625159152
+46163979 nodes inserted in 24052577
+total number of edges inserted = 1073741824
+total number of nodes inserted = 46163979
+------------------------------------------------------------------------------------
+1073741824 edges inserted in 629084499
+46163979 nodes inserted in 20491069
+total number of edges inserted = 1073741824
+total number of nodes inserted = 46163979
+------------------------------------------------------------------------------------
+#twitter_kwak:
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaa**could not open 
+/ssd_graph/twitter/twitter_kwak_edgesab
+**could not open /ssd_graph/twitter/twitter_kwak_edgesad
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaf
+**could not open /ssd_graph/twitter/twitter_kwak_edgesae
+**could not open **could not open /ssd_graph/twitter/twitter_kwak_edgesag
+/ssd_graph/twitter/twitter_kwak_edgesac
+**could not open /ssd_graph/twitter/twitter_kwak_edgesah
+**could not open /ssd_graph/twitter/twitter_kwak_edgesai
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaj
+0 edges inserted in 1014
+0 nodes inserted in 1147
+total number of edges inserted = 0
+total number of nodes inserted = 0
+------------------------------------------------------------------------------------
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaa
+**could not open /ssd_graph/twitter/twitter_kwak_edgesab
+**could not open /ssd_graph/twitter/twitter_kwak_edgesac
+**could not open /ssd_graph/twitter/twitter_kwak_edgesad
+**could not open /ssd_graph/twitter/twitter_kwak_edgesae
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaf
+**could not open /ssd_graph/twitter/twitter_kwak_edgesag
+**could not open /ssd_graph/twitter/twitter_kwak_edgesah
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaj
+**could not open /ssd_graph/twitter/twitter_kwak_edgesai
+0 edges inserted in 10980
+0 nodes inserted in 1082
+total number of edges inserted = 0
+total number of nodes inserted = 0
+------------------------------------------------------------------------------------
+#twitter_kwak:
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaa
+**could not open /ssd_graph/twitter/twitter_kwak_edgesad
+**could not open /ssd_graph/twitter/twitter_kwak_edgesac
+**could not open /ssd_graph/twitter/twitter_kwak_edgesab
+**could not open /ssd_graph/twitter/twitter_kwak_edgesae
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaf
+**could not open /ssd_graph/twitter/twitter_kwak_edgesag
+**could not open /ssd_graph/twitter/twitter_kwak_edgesah
+**could not open /ssd_graph/twitter/twitter_kwak_edgesai
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaj
+0 edges inserted in 5263
+41652230 nodes inserted in 417595004
+total number of edges inserted = 0
+total number of nodes inserted = 41652230
+------------------------------------------------------------------------------------
+**could not open /ssd_graph/twitter/twitter_kwak_edgesab
+**could not open /ssd_graph/twitter/twitter_kwak_edgesac
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaa
+**could not open /ssd_graph/twitter/twitter_kwak_edgesae
+**could not open /ssd_graph/twitter/twitter_kwak_edgesad
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaf
+**could not open /ssd_graph/twitter/twitter_kwak_edgesah
+**could not open /ssd_graph/twitter/twitter_kwak_edgesag
+**could not open /ssd_graph/twitter/twitter_kwak_edgesai
+**could not open /ssd_graph/twitter/twitter_kwak_edgesaj
+0 edges inserted in 5131
+41652230 nodes inserted in 423104735
+total number of edges inserted = 0
+total number of nodes inserted = 41652230
+------------------------------------------------------------------------------------

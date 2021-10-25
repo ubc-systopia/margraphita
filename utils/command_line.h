@@ -25,7 +25,7 @@ protected:
     bool optimized_create = false;
     bool exit_on_create = false;
 
-    std::string filename; //This contains the path to the filename being parsed and inserted into the DB. It is used only when create_new is true
+    std::string db_path; //This contains the path to the db dir.
 
     void add_help_message(char opt, std::string opt_arg, std::string text)
     {
@@ -39,7 +39,7 @@ public:
     {
         add_help_message('m', "db_ name", "Name of the WT DB");
         add_help_message('b', "benchmark", "Which benchmark to run -- PR, BFS, CC, TC");
-        add_help_message('a', "file", "path to the dataset that has to be inserted into the DB");
+        add_help_message('a', "path", "DB directory");
         add_help_message('s', "s", "the name of the dataset being used");
         add_help_message('n', "new", "create new DB (defalt = true");
         add_help_message('o', "create_optimized", "if set, then indices are not created while inserting. Default false.");
@@ -59,7 +59,7 @@ public:
         {
             handle_args(opt_c, optarg);
         }
-        if (create_new && filename == "")
+        if (create_new && db_path == "")
         {
             std::cout << "There is no input graph specified for insertion into the database. Use -h for help." << std::endl;
             return false;
@@ -79,7 +79,7 @@ public:
             db_name = std::string(opt_arg);
             break;
         case 'a':
-            filename = std::string(opt_arg);
+            db_path = std::string(opt_arg);
             break;
         case 's':
             dataset = std::string(opt_arg);
@@ -123,7 +123,7 @@ public:
 
     std::string get_db_name() const { return db_name; }
     std::string get_graph_type() const { return graph_type; }
-    std::string get_filename() const { return filename; }
+    std::string get_db_path() const { return db_path; }
     std::string get_dataset() const { return dataset; }
     std::string get_benchmark() const { return benchmark; }
     bool is_create_new() const { return create_new; }
@@ -142,7 +142,7 @@ class CmdLineApp : public CmdLineBase
 public:
     CmdLineApp(int argc, char **argv) : CmdLineBase(argc, argv)
     {
-        argstr_ += "cr"; // add r: for start_vertex
+        argstr_ += "cv:"; // add v: for start_vertex
         add_help_message('c', "c", "perform c trials. Defaults to " + std::to_string(num_trials));
         add_help_message('v', "v", "Starting vertex id. If not provided, then a random vertex is picked. ");
     }
@@ -155,7 +155,7 @@ public:
             num_trials = atoi(opt_arg);
             break;
         case 'v':
-            start_vertex_ = atol(opt_arg);
+            start_vertex_ = atoi(opt_arg);
             break;
         default:
             CmdLineBase::handle_args(opt, opt_arg);
@@ -169,12 +169,15 @@ class PageRankOpts : public CmdLineApp
 {
     double _tolerance; //used for PR
     int _iterations;   // Used for PR
+    bool create_indices = false;
+
 public:
     PageRankOpts(int argc, char **argv, double tolerance, int iters) : CmdLineApp(argc, argv), _tolerance(tolerance), _iterations(iters)
     {
-        argstr_ += "i:t:";
+        argstr_ += "i:t:x";
         add_help_message('i', "i", "The number of iterations of PageRank to run. Defaults to " + std::to_string(iters));
         add_help_message('t', "t", "the tolerance to use for terminating PR. Defaults to " + std::to_string(tolerance));
+        add_help_message('x', "x", "Used to specify if indices need to be created. Defaults to false. ");
     }
 
     void handle_args(signed char opt, char *opt_arg) override
@@ -187,12 +190,16 @@ public:
         case 't':
             _tolerance = std::stod(opt_arg);
             break;
+        case 'x':
+            create_indices = true;
+            break;
         default:
             CmdLineApp::handle_args(opt, opt_arg);
         }
     }
     double tolerance() const { return _tolerance; }
     int iterations() const { return _iterations; }
+    int is_index_create() const { return create_indices; }
 };
 
 #endif

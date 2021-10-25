@@ -2,10 +2,18 @@ cmake_minimum_required(VERSION 3.16)
 project(graphapi    VERSION 1.0 
                     DESCRIPTION "C++ GraphAPI for WiredTiger"
                     LANGUAGES CXX)
-SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -O3 -std=gnu++2a")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+
+SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g -std=gnu++2a")
+IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+    MESSAGE("Generating a debug build")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -pg")
+    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+ELSE()
+    MESSAGE("Generating a release build (-O3)")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+
 
 find_package (Threads) #To include pthreads
 ####################################################

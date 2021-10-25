@@ -14,6 +14,7 @@
 //These are the string constants
 extern const std::string METADATA;
 extern const std::string DB_NAME;
+extern const std::string DB_DIR;
 extern const std::string IS_WEIGHTED;
 extern const std::string READ_OPTIMIZE;
 extern const std::string IS_DIRECTED;
@@ -46,6 +47,7 @@ struct graph_opts
     bool is_directed = true;
     bool is_weighted = false;
     std::string db_name;
+    std::string db_dir;
     bool optimize_create; // directs when the index should be created
 };
 

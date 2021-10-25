@@ -1,0 +1,6 @@
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 351154
+Failed to open the cursor on the index index:edge:IX_edge_dst(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to DST_INDEX

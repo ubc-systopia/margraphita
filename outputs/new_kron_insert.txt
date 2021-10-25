@@ -1,0 +1,382 @@
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts10_e8,/ssd_graph/s10_e8,s10_e8,727,8192,85766,22671,1111,1389db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts10_e8,/ssd_graph/s10_e8,s10_e8,727,8192,82257,16720,941,2689db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts10_e8,/ssd_graph/s10_e8,s10_e8,727,8192,82138,19059,1094,23578db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts10_e8,/ssd_graph/s10_e8,s10_e8,727,8192,82837,18571,1023,25369db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts10_e8,/ssd_graph/s10_e8,s10_e8,727,8192,78154,20788,882,1957db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts10_e8,/ssd_graph/s10_e8,s10_e8,727,8192,82500,23471,1002,1183db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts11_e8,/ssd_graph/s11_e8,s11_e8,1390,16384,157738,38549,1771,3331db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts11_e8,/ssd_graph/s11_e8,s11_e8,1390,16384,152628,37942,1680,3676db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts11_e8,/ssd_graph/s11_e8,s11_e8,1390,16384,154810,32500,1821,40029db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts11_e8,/ssd_graph/s11_e8,s11_e8,1390,16384,168620,29062,1836,42854db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts11_e8,/ssd_graph/s11_e8,s11_e8,1390,16384,153937,35921,1593,3854db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts11_e8,/ssd_graph/s11_e8,s11_e8,1390,16384,145570,34444,1482,2243db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts12_e8,/ssd_graph/s12_e8,s12_e8,2702,32768,308576,107263,3304,6243db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts12_e8,/ssd_graph/s12_e8,s12_e8,2702,32768,303194,85426,3480,6223db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts12_e8,/ssd_graph/s12_e8,s12_e8,2702,32768,334880,56298,3500,81062db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts12_e8,/ssd_graph/s12_e8,s12_e8,2702,32768,301481,81812,3266,79245db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts12_e8,/ssd_graph/s12_e8,s12_e8,2702,32768,306858,78475,3207,7300db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts12_e8,/ssd_graph/s12_e8,s12_e8,2702,32768,306962,81874,3196,4846db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts13_e8,/ssd_graph/s13_e8,s13_e8,5146,65536,612389,178403,6122,10969db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts13_e8,/ssd_graph/s13_e8,s13_e8,5146,65536,625714,168490,6196,11907db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts13_e8,/ssd_graph/s13_e8,s13_e8,5146,65536,620855,155413,7978,151159db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts13_e8,/ssd_graph/s13_e8,s13_e8,5146,65536,612687,291080,7647,142995db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts13_e8,/ssd_graph/s13_e8,s13_e8,5146,65536,625303,137566,6364,14071db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts13_e8,/ssd_graph/s13_e8,s13_e8,5146,65536,648345,158160,8839,11538db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts14_e8,/ssd_graph/s14_e8,s14_e8,9798,131072,1226064,288162,13071,25872db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts14_e8,/ssd_graph/s14_e8,s14_e8,9798,131072,1205737,299139,11574,20966db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts14_e8,/ssd_graph/s14_e8,s14_e8,9798,131072,1223122,291664,13376,308286db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts14_e8,/ssd_graph/s14_e8,s14_e8,9798,131072,1214480,300424,12550,293110db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts14_e8,/ssd_graph/s14_e8,s14_e8,9798,131072,1231385,458148,11783,27034db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts14_e8,/ssd_graph/s14_e8,s14_e8,9798,131072,1220990,283911,11497,17486db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts15_e8,/ssd_graph/s15_e8,s15_e8,18704,262144,2430428,641680,23577,43593db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts15_e8,/ssd_graph/s15_e8,s15_e8,18704,262144,2389168,533637,26209,49032db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts15_e8,/ssd_graph/s15_e8,s15_e8,18704,262144,2334982,559054,22912,596742db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts15_e8,/ssd_graph/s15_e8,s15_e8,18704,262144,2389529,525341,22914,1633986db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts15_e8,/ssd_graph/s15_e8,s15_e8,18704,262144,2397056,1947272,23692,67803db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts15_e8,/ssd_graph/s15_e8,s15_e8,18704,262144,2487937,550466,25516,38447db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts16_e8,/ssd_graph/s16_e8,s16_e8,36061,524288,4790916,7429769,40794,118677db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts16_e8,/ssd_graph/s16_e8,s16_e8,36061,524288,4815148,4180605,44795,191120db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts16_e8,/ssd_graph/s16_e8,s16_e8,36061,524288,4791892,2961235,40197,1293531db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts16_e8,/ssd_graph/s16_e8,s16_e8,36061,524288,4790614,3053758,40699,1982715db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts16_e8,/ssd_graph/s16_e8,s16_e8,36061,524288,4790674,2235763,42620,94849db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts16_e8,/ssd_graph/s16_e8,s16_e8,36061,524288,4855252,1997357,44645,69865db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts17_e8,/ssd_graph/s17_e8,s17_e8,68792,1048576,9555925,14292055,91665,205421db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts17_e8,/ssd_graph/s17_e8,s17_e8,68792,1048576,9422269,10058369,154151,396884db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts17_e8,/ssd_graph/s17_e8,s17_e8,68792,1048576,9615202,7030399,89938,2728558db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts17_e8,/ssd_graph/s17_e8,s17_e8,68792,1048576,9414796,18056475,86654,2590564db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts17_e8,/ssd_graph/s17_e8,s17_e8,68792,1048576,9079241,5406967,84731,234741db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts17_e8,/ssd_graph/s17_e8,s17_e8,68792,1048576,9594673,13016573,100744,145221db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts18_e8,/ssd_graph/s18_e8,s18_e8,131679,2097152,18550238,6239737,167631,363425db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts18_e8,/ssd_graph/s18_e8,s18_e8,131679,2097152,18362146,16919581,185116,509917db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts18_e8,/ssd_graph/s18_e8,s18_e8,131679,2097152,18809366,6140603,176564,7672351db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts18_e8,/ssd_graph/s18_e8,s18_e8,131679,2097152,18834633,6045929,168868,9813035db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts18_e8,/ssd_graph/s18_e8,s18_e8,131679,2097152,18942514,8611177,181591,422485db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts18_e8,/ssd_graph/s18_e8,s18_e8,131679,2097152,18945499,9253728,184322,2371019db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts19_e8,/ssd_graph/s19_e8,s19_e8,252258,4194304,37789739,33992264,368116,6704179db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts19_e8,/ssd_graph/s19_e8,s19_e8,252258,4194304,37757385,31112358,354906,781430db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts19_e8,/ssd_graph/s19_e8,s19_e8,252258,4194304,35107549,27400036,338537,12913285db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts19_e8,/ssd_graph/s19_e8,s19_e8,252258,4194304,37949906,49166924,378922,16633231db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts19_e8,/ssd_graph/s19_e8,s19_e8,252258,4194304,43027177,31245855,464735,987828db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts19_e8,/ssd_graph/s19_e8,s19_e8,252258,4194304,38974395,66183381,378410,3442915db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts20_e8,/ssd_graph/s20_e8,s20_e8,484085,8388608,78246370,108584957,774205,2185202db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts20_e8,/ssd_graph/s20_e8,s20_e8,484085,8388608,73124869,103536655,829903,1853132db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts20_e8,/ssd_graph/s20_e8,s20_e8,484085,8388608,74325104,93258897,780009,37677985db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts20_e8,/ssd_graph/s20_e8,s20_e8,484085,8388608,77837370,109831676,716006,40105831db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts20_e8,/ssd_graph/s20_e8,s20_e8,484085,8388608,77616116,91569670,751487,4684124db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts20_e8,/ssd_graph/s20_e8,s20_e8,484085,8388608,77447412,78036779,784643,3866138db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts21_e8,/ssd_graph/s21_e8,s21_e8,928727,16777216,140021701,130859253,1333457,25004873db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts21_e8,/ssd_graph/s21_e8,s21_e8,928727,16777216,148547439,128672343,1388459,3025903db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts21_e8,/ssd_graph/s21_e8,s21_e8,928727,16777216,148499807,164314054,1337477,77006731db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts21_e8,/ssd_graph/s21_e8,s21_e8,928727,16777216,153964337,129837276,1454298,82114511db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts21_e8,/ssd_graph/s21_e8,s21_e8,928727,16777216,142201256,129945937,1458006,10196268db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts21_e8,/ssd_graph/s21_e8,s21_e8,928727,16777216,152930240,169633260,1426258,13288286db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts22_e8,/ssd_graph/s22_e8,s22_e8,1779031,33554432,278053671,409826115,2795462,14580971db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts22_e8,/ssd_graph/s22_e8,s22_e8,1779031,33554432,302647802,397204577,2877780,26607010db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts22_e8,/ssd_graph/s22_e8,s22_e8,1779031,33554432,278071785,383423803,2606167,154429323db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts22_e8,/ssd_graph/s22_e8,s22_e8,1779031,33554432,289091833,394387662,2337367,149920317db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts22_e8,/ssd_graph/s22_e8,s22_e8,1779031,33554432,281931294,396096924,2565197,37764466db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts22_e8,/ssd_graph/s22_e8,s22_e8,1779031,33554432,308129786,353998050,2553789,21825843db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts23_e8,/ssd_graph/s23_e8,s23_e8,3413614,67108864,568573929,1061669848,5405699,50180576db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts23_e8,/ssd_graph/s23_e8,s23_e8,3413614,67108864,605002037,1018659132,5350057,54426142db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert,,,0,0,223,0,127,0db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts23_e8,/ssd_graph/s23_e8,s23_e8,3413614,67108864,594708729,958721948,5285441,356816904db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts23_e8,/ssd_graph/s23_e8,s23_e8,3413614,67108864,611283087,945217878,5361159,335417254db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts23_e8,/ssd_graph/s23_e8,s23_e8,3413614,67108864,567649083,982627646,4947703,80173637db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts23_e8,/ssd_graph/s23_e8,s23_e8,3413614,67108864,603281623,896080958,5382461,58263202db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts24_e8,/ssd_graph/s24_e8,s24_e8,6542703,134217728,1115517253,1731278533,11071316,105773792db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts24_e8,/ssd_graph/s24_e8,s24_e8,6542703,134217728,1204051149,1851779111,11447901,122724875db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts24_e8,/ssd_graph/s24_e8,s24_e8,6542703,134217728,1126292379,1767191574,12258925,710124302db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts24_e8,/ssd_graph/s24_e8,s24_e8,6542703,134217728,1133115471,1643236292,10807987,664204766db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts24_e8,/ssd_graph/s24_e8,s24_e8,6542703,134217728,1163225212,1512532184,11065438,134189052db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts24_e8,/ssd_graph/s24_e8,s24_e8,6542703,134217728,1199344965,1553541114,10889551,130091182db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts25_e8,/ssd_graph/s25_e8,s25_e8,12548264,268435456,2281761168,3012350202,23266335,159659238db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts25_e8,/ssd_graph/s25_e8,s25_e8,12548264,268435456,2255588335,3283384436,22733747,162325207db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts25_e8,/ssd_graph/s25_e8,s25_e8,12548264,268435456,2229454329,2677197349,22656436,1442427089db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts25_e8,/ssd_graph/s25_e8,s25_e8,12548264,268435456,2304821933,2903125686,21896257,1449514598db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts25_e8,/ssd_graph/s25_e8,s25_e8,12548264,268435456,2309730862,2653162318,22586100,303298749db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_inserts25_e8,/ssd_graph/s25_e8,s25_e8,12548264,268435456,2347892899,2697758674,21338600,271539550db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,86987,16784,5729,1624
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,87924,17195,6968,1905
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,156729,30499,14170,3238
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,573674,63725,20819,4586
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,329013,92720,26479,5710
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,321343,83316,27125,5570
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/ssd_graph/s13_e8,s13_e8,5990,65536,649473,137540,49582,10167
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/ssd_graph/s13_e8,s13_e8,5990,65536,651425,134611,51097,9416
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/ssd_graph/s14_e8,s14_e8,11545,131072,1351702,298440,112044,20908
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/ssd_graph/s14_e8,s14_e8,11545,131072,1359780,274864,116023,19746
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,2584572,538125,226805,62310
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,2609909,621599,236863,40108
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/ssd_graph/s16_e8,s16_e8,42369,524288,5785273,2807364,438285,918960
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/ssd_graph/s16_e8,s16_e8,42369,524288,5187318,1285330,436338,84023
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/ssd_graph/s17_e8,s17_e8,81468,1048576,10747451,2483003,851006,139083
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/ssd_graph/s17_e8,s17_e8,81468,1048576,10725776,2584641,868474,149905
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/ssd_graph/s18_e8,s18_e8,155576,2097152,21613595,4580365,1779936,376480
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/ssd_graph/s18_e8,s18_e8,155576,2097152,21579476,4712495,1744938,309799
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/ssd_graph/s19_e8,s19_e8,296688,4194304,44822588,9714397,3368204,567253
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/ssd_graph/s19_e8,s19_e8,296688,4194304,44725670,10053414,3425755,658429
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/ssd_graph/s20_e8,s20_e8,575281,8388608,96029941,19505792,6330787,930844
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/ssd_graph/s20_e8,s20_e8,575281,8388608,95956089,18962536,6649029,1057878
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s21_e8,/ssd_graph/s21_e8,s21_e8,1085945,16777216,203630990,192577338,13376215,1974894
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s21_e8,/ssd_graph/s21_e8,s21_e8,1085945,16777216,204387874,36830690,13090528,1942237
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s22_e8,/ssd_graph/s22_e8,s22_e8,2105215,33554432,426586532,81588289,25622989,3851982
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s22_e8,/ssd_graph/s22_e8,s22_e8,2105215,33554432,428652098,75440584,26135382,4332723
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s23_e8,/ssd_graph/s23_e8,s23_e8,3996018,67108864,877993204,158065930,50881832,8044645
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s23_e8,/ssd_graph/s23_e8,s23_e8,3996018,67108864,872760038,161399600,50611492,6951504
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,102697,56973,6302,1912
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,92798,47901,6175,1161
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,652583,146296,14765,3417
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,433047,134476,15831,1922
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,537543,228769,26984,6302
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,1052651,269370,26521,3888
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/ssd_graph/s13_e8,s13_e8,5990,65536,1592351,498441,51243,12772
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/ssd_graph/s13_e8,s13_e8,5990,65536,1483533,471374,51126,7885
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/ssd_graph/s14_e8,s14_e8,11545,131072,1464974,853881,109872,23600
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/ssd_graph/s14_e8,s14_e8,11545,131072,2298567,871511,112993,16363
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,3682333,1764056,221169,46644
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,2881825,1923807,219616,33135
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/ssd_graph/s16_e8,s16_e8,42369,524288,5274709,19771417,438987,72352
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/ssd_graph/s16_e8,s16_e8,42369,524288,7630218,4186826,429937,62134
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/ssd_graph/s17_e8,s17_e8,81468,1048576,10616992,42380378,870551,170680
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/ssd_graph/s17_e8,s17_e8,81468,1048576,11075724,7645614,895081,125100
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/ssd_graph/s18_e8,s18_e8,155576,2097152,21301575,15292577,1801093,340735
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/ssd_graph/s18_e8,s18_e8,155576,2097152,21100549,337008509,1737316,260875
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/ssd_graph/s19_e8,s19_e8,296688,4194304,44933761,193503123,3352642,800162
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/ssd_graph/s19_e8,s19_e8,296688,4194304,44155911,322451239,3562130,560940
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/ssd_graph/s20_e8,s20_e8,575281,8388608,95491947,244158258,6778256,1395971
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/ssd_graph/s20_e8,s20_e8,575281,8388608,98739508,309364232,6887649,1096696
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s21_e8,/ssd_graph/s21_e8,s21_e8,1085945,16777216,202964915,118579650,13059889,2684192
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s21_e8,/ssd_graph/s21_e8,s21_e8,1085945,16777216,202943094,113691295,13034983,1793995
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s22_e8,/ssd_graph/s22_e8,s22_e8,2105215,33554432,426689689,247164868,25897219,5436015
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s22_e8,/ssd_graph/s22_e8,s22_e8,2105215,33554432,443456606,245289438,26575390,3845956
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s23_e8,/ssd_graph/s23_e8,s23_e8,3996018,67108864,858863354,533189776,50257539,10874741
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s23_e8,/ssd_graph/s23_e8,s23_e8,3996018,67108864,872461706,514288939,51803741,7551659
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s24_e8,/ssd_graph/s24_e8,s24_e8,7772576,134217728,1892533692,1087425628,106358445,21752368
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s24_e8,/ssd_graph/s24_e8,s24_e8,7772576,134217728,1938907018,1096872588,105508601,15646795
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s25_e8,/ssd_graph/s25_e8,s25_e8,14807754,268435456,3951824901,2239456320,200332461,43016939
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s25_e8,/ssd_graph/s25_e8,s25_e8,14807754,268435456,3889258973,2218467900,208428862,29498875
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s26_e8,/ssd_graph/s26_e8,s26_e8,28172543,536870912,8332273579,4562694343,398888794,80282393
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,1088641,1658902,141571,49817
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,67623,51728,3705,1919
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,93480,51421,3762,1375
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,144114,94481,8770,3895
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,118233,103088,8763,2655
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,158696,238605,16453,7189
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,163808,250817,17182,5304
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/ssd_graph/s13_e8,s13_e8,5990,65536,335406,421977,32021,16228
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/ssd_graph/s13_e8,s13_e8,5990,65536,246918,457121,33462,9151
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/ssd_graph/s14_e8,s14_e8,11545,131072,595092,841987,69658,23879
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/ssd_graph/s14_e8,s14_e8,11545,131072,563594,821600,71523,17368
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,1040866,1705719,142792,48257
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,1031480,2662290,138751,35451
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,1015100,1683239,149217,59469
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/ssd_graph/s15_e8,s15_e8,22128,262144,1025129,1641016,139838,38068
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+twitter,/ssd_graph/twitter,twitter,41652230,1468365182,12374898499,13197491187,159059536,216880189
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+twitter,/ssd_graph/twitter,twitter,41652230,1468365182,12407228122,13182344558,159044899,205780013
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,33714,22477,3978,2236
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,35652,18791,1818,1120
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,33857,19516,3743,2256
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,35195,19361,3979,1793
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,33821,23338,5188,12670
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,33476,20013,4466,10366
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,34419,19193,4064,2400
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,33237,19736,4488,1629
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,37195,19316,3855,2082
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,33794,19418,4514,2018
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,./db,s10_e8,854,8192,35851,20788,3797,1623
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,36137,17679,3883,2439
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,33533,19196,3806,2207
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,34807,20734,3716,2510
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,33655,19119,3927,2062
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,33969,20704,3775,2493
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,33813,20049,4087,2227
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,65108,39065,8469,3527
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,64074,38034,8766,3099
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,64739,38205,8380,3880
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,64268,40655,8741,2962
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,66613,36601,8650,3664
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,66054,41367,8589,3677
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,123644,104150,17299,5927
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,129170,97349,17157,5693
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,126217,87461,17741,6409
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,131963,101848,17457,6272
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,125590,102821,17386,6098
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,125111,88607,17296,5845
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,35302,21335,3941,2276
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,33107,19762,3766,2161
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,34032,19061,3813,9453
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,35696,21167,3735,9939
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,32993,18631,3784,2300
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/ssd_graph/s10_e8,s10_e8,854,8192,34189,19486,3833,1621
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,66311,40483,8976,3054
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,63769,37468,8551,3515
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,64047,39761,8818,19128
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,63910,34815,8420,19068
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,63521,39989,8632,5145
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/ssd_graph/s11_e8,s11_e8,1628,16384,65099,40868,8471,3602
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,129934,101797,17501,6318
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,125940,92310,17255,5342
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,128418,107477,17431,36295
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,127587,121512,17380,36963
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,129153,104540,18168,8119
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/ssd_graph/s12_e8,s12_e8,3115,32768,125504,98656,17044,5909
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/home/puneet/gen_graphs/s10_e8,s10_e8,854,8192,35106,18933,4157,2165
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/home/puneet/gen_graphs/s10_e8,s10_e8,854,8192,34829,21841,4014,2473
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/home/puneet/gen_graphs/s10_e8,s10_e8,854,8192,34576,20504,4136,10909
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/home/puneet/gen_graphs/s10_e8,s10_e8,854,8192,35054,19849,3822,10335
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/home/puneet/gen_graphs/s10_e8,s10_e8,854,8192,36768,20012,4182,2463
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s10_e8,/home/puneet/gen_graphs/s10_e8,s10_e8,854,8192,36127,19638,4169,1718
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/home/puneet/gen_graphs/s11_e8,s11_e8,1628,16384,67869,39739,9486,3698
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/home/puneet/gen_graphs/s11_e8,s11_e8,1628,16384,67541,38840,9225,3769
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/home/puneet/gen_graphs/s11_e8,s11_e8,1628,16384,66558,40174,8415,19460
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/home/puneet/gen_graphs/s11_e8,s11_e8,1628,16384,76190,86277,11626,23258
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/home/puneet/gen_graphs/s11_e8,s11_e8,1628,16384,68258,40767,9274,5131
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s11_e8,/home/puneet/gen_graphs/s11_e8,s11_e8,1628,16384,66385,39740,9109,4116
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/home/puneet/gen_graphs/s12_e8,s12_e8,3115,32768,132636,103646,17914,6273
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/home/puneet/gen_graphs/s12_e8,s12_e8,3115,32768,129610,107012,17879,6560
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/home/puneet/gen_graphs/s12_e8,s12_e8,3115,32768,138235,113681,8403,38353
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/home/puneet/gen_graphs/s12_e8,s12_e8,3115,32768,134707,100605,19480,36972
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/home/puneet/gen_graphs/s12_e8,s12_e8,3115,32768,133543,89269,18697,8792
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s12_e8,/home/puneet/gen_graphs/s12_e8,s12_e8,3115,32768,133799,92727,18390,6479
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/home/puneet/gen_graphs/s13_e8,s13_e8,5990,65536,260460,151243,34514,11903
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/home/puneet/gen_graphs/s13_e8,s13_e8,5990,65536,263907,170175,35481,10893
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/home/puneet/gen_graphs/s13_e8,s13_e8,5990,65536,262462,190518,35064,75107
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/home/puneet/gen_graphs/s13_e8,s13_e8,5990,65536,262830,187070,36077,76196
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/home/puneet/gen_graphs/s13_e8,s13_e8,5990,65536,262083,158521,36176,17855
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s13_e8,/home/puneet/gen_graphs/s13_e8,s13_e8,5990,65536,265638,169243,34871,12579
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/home/puneet/gen_graphs/s14_e8,s14_e8,11545,131072,528652,308422,75586,24074
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/home/puneet/gen_graphs/s14_e8,s14_e8,11545,131072,538200,281945,75188,22207
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/home/puneet/gen_graphs/s14_e8,s14_e8,11545,131072,538286,343296,79318,160466
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/home/puneet/gen_graphs/s14_e8,s14_e8,11545,131072,529964,343085,79750,166249
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/home/puneet/gen_graphs/s14_e8,s14_e8,11545,131072,537457,338904,76606,42022
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s14_e8,/home/puneet/gen_graphs/s14_e8,s14_e8,11545,131072,554946,352689,73871,33438
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/home/puneet/gen_graphs/s15_e8,s15_e8,22128,262144,1104845,662889,149833,66158
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/home/puneet/gen_graphs/s15_e8,s15_e8,22128,262144,1111159,625034,145649,46078
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/home/puneet/gen_graphs/s15_e8,s15_e8,22128,262144,1157352,725762,156026,373368
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/home/puneet/gen_graphs/s15_e8,s15_e8,22128,262144,1066616,662561,151549,429871
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/home/puneet/gen_graphs/s15_e8,s15_e8,22128,262144,1108587,669274,149008,85430
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s15_e8,/home/puneet/gen_graphs/s15_e8,s15_e8,22128,262144,1181601,738306,151501,60234
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/home/puneet/gen_graphs/s16_e8,s16_e8,42369,524288,2287993,1435821,284418,99813
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/home/puneet/gen_graphs/s16_e8,s16_e8,42369,524288,2326820,1324097,319592,105553
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/home/puneet/gen_graphs/s16_e8,s16_e8,42369,524288,2289625,1406313,318242,1011954
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/home/puneet/gen_graphs/s16_e8,s16_e8,42369,524288,2278964,1410711,301637,658783
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/home/puneet/gen_graphs/s16_e8,s16_e8,42369,524288,2363183,1329777,296183,145687
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s16_e8,/home/puneet/gen_graphs/s16_e8,s16_e8,42369,524288,2595921,1409711,287328,103373
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/home/puneet/gen_graphs/s17_e8,s17_e8,81468,1048576,4925602,3805431,580417,191661
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/home/puneet/gen_graphs/s17_e8,s17_e8,81468,1048576,4736929,2670941,576395,178012
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/home/puneet/gen_graphs/s17_e8,s17_e8,81468,1048576,4720035,2942968,600752,1381023
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/home/puneet/gen_graphs/s17_e8,s17_e8,81468,1048576,4836931,2771215,597532,1407222
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/home/puneet/gen_graphs/s17_e8,s17_e8,81468,1048576,4844206,2721676,570288,327694
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s17_e8,/home/puneet/gen_graphs/s17_e8,s17_e8,81468,1048576,4936535,3012033,576220,258598
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/home/puneet/gen_graphs/s18_e8,s18_e8,155576,2097152,10519030,5308999,1159569,346298
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/home/puneet/gen_graphs/s18_e8,s18_e8,155576,2097152,10353745,5089759,1179371,313932
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/home/puneet/gen_graphs/s18_e8,s18_e8,155576,2097152,10869235,5625590,1192874,2779336
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/home/puneet/gen_graphs/s18_e8,s18_e8,155576,2097152,10981603,6938011,1209855,2818052
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/home/puneet/gen_graphs/s18_e8,s18_e8,155576,2097152,10728614,5638588,1175773,613863
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s18_e8,/home/puneet/gen_graphs/s18_e8,s18_e8,155576,2097152,10642141,6297010,1173213,556842
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/home/puneet/gen_graphs/s19_e8,s19_e8,296688,4194304,22983316,11314219,2211353,584655
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/home/puneet/gen_graphs/s19_e8,s19_e8,296688,4194304,22748512,11594631,2242243,656501
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/home/puneet/gen_graphs/s19_e8,s19_e8,296688,4194304,22938768,12492948,2289086,5626806
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/home/puneet/gen_graphs/s19_e8,s19_e8,296688,4194304,23156443,11873127,2386022,5701747
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/home/puneet/gen_graphs/s19_e8,s19_e8,296688,4194304,25644748,12585788,2217322,1362792
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s19_e8,/home/puneet/gen_graphs/s19_e8,s19_e8,296688,4194304,24785430,12424781,2246526,1180733
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/home/puneet/gen_graphs/s20_e8,s20_e8,575281,8388608,53664264,23124422,4455084,1429229
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/home/puneet/gen_graphs/s20_e8,s20_e8,575281,8388608,53461639,22771491,4497389,1216807
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/home/puneet/gen_graphs/s20_e8,s20_e8,575281,8388608,51632958,24887442,4527503,12745590
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/home/puneet/gen_graphs/s20_e8,s20_e8,575281,8388608,52019204,25380512,4652490,13029661
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/home/puneet/gen_graphs/s20_e8,s20_e8,575281,8388608,54157162,27829723,4599559,3378974
+db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert
+s20_e8,/home/puneet/gen_graphs/s20_e8,s20_e8,575281,8388608,54724132,28987871,4486103,4604897

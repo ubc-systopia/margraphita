@@ -21,6 +21,7 @@ public:
     void init_cursors();
 
     void add_node(node to_insert);
+    void add_node(int to_insert, std::vector<int>, std::vector<int>);
     bool has_node(int node_id);
     node get_node(int node_id);
     void delete_node(int node_id);
@@ -32,13 +33,14 @@ public:
     int get_num_nodes();
     int get_num_edges();
 
-    void add_edge(edge to_insert);
+    void add_edge(edge to_insert, bool is_bulk);
     bool has_edge(int src_id, int dst_id);
     int get_edge_weight(int src_id, int dst_id);
     void delete_edge(int src_id, int dst_id);
     void update_edge_weight(int src_id, int dst_id, int edge_weight);
 
     void add_adjlist(WT_CURSOR *cursor, int node_id);
+    void add_adjlist(WT_CURSOR *cursor, int node_id, std::vector<int> list);
     void delete_adjlist(WT_CURSOR *cursor, int node_id);
     void delete_node_from_adjlists(int node_id);
     std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id);
@@ -74,6 +76,7 @@ public:
     WT_CURSOR *get_in_adjlist_cursor();
     WT_CURSOR *get_out_adjlist_cursor();
 
+    std::string get_db_name() const { return this->db_name; };
     // WT privates
 private:
     WT_CONNECTION *conn;
@@ -84,6 +87,7 @@ private:
     bool is_directed = true;
     bool is_weighted = false; //needed to understand when to interpret the weight field in struct edge
     std::string db_name;
+    std::string db_dir;
 
     //structure of the graph
     int edge_id;

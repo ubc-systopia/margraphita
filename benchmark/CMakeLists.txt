@@ -1,6 +1,8 @@
 #file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/preprocess.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/preprocess.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/insert_kron.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/run_benchmarks.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
 add_executable(pagerank pagerank.cpp)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
@@ -34,3 +36,9 @@ INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 
 target_include_directories(bulk_insert PRIVATE ${PATH_SRC})
 target_link_libraries(bulk_insert PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
+
+add_executable(single_threaded_graphapi_insert single_threaded_graphapi_insert.cpp)
+INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
+
+target_include_directories(single_threaded_graphapi_insert PRIVATE ${PATH_SRC})
+target_link_libraries(single_threaded_graphapi_insert PUBLIC ${NAME_LIB} graph_utils)

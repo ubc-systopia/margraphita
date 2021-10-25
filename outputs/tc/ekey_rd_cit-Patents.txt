@@ -1,0 +1,9 @@
+Running TC
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/puneet/gen_graphs/cit-Patents/cit-Patents
+Running TC
+Graph loaded in 343802
+Trust TriangleCounting completed in : 1063782346
+Trust Triangles count = 7515023
+Cycle TriangleCounting  completed in : 283348630
+Cycle Triangles count = 0

@@ -24,6 +24,7 @@ StandardGraph::StandardGraph(graph_opts opt_params)
     this->is_weighted = opt_params.is_weighted;
     this->optimize_create = opt_params.optimize_create;
     this->db_name = opt_params.db_name;
+    this->db_dir = opt_params.db_dir;
 
     try
     {
@@ -52,14 +53,14 @@ StandardGraph::StandardGraph(graph_opts opt_params)
     else
     {
         // Check that the DB directory exists
-        std::filesystem::path dirname = "./db/" + db_name;
+        std::filesystem::path dirname = db_dir + "/" + db_name;
         if (std::filesystem::exists(dirname))
         {
-            __restore_from_db("./db/" + db_name);
+            __restore_from_db(db_dir + "/" + db_name);
         }
         else
         {
-            throw GraphException("Could not find the expected WT DB directory - .db/" + db_name);
+            throw GraphException("Could not find the expected WT DB directory - " + db_dir + "/" + db_name);
         }
     }
 }
@@ -68,7 +69,7 @@ void StandardGraph::create_new_graph()
 {
     int ret;
     // Create new directory for WT DB
-    std::filesystem::path dirname = "./db/" + db_name;
+    std::filesystem::path dirname = db_dir + "/" + db_name;
     if (std::filesystem::exists(dirname))
     {
         filesystem::remove_all(dirname); // remove if exists;
@@ -137,11 +138,14 @@ void StandardGraph::create_new_graph()
     }
 
     // DB_NAME
-    string db_name_fmt;
+    //string db_name_fmt;
     // char *db_name_packed =
     //     CommonUtil::pack_string_wt(db_name, session, &db_name_fmt);
     // insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
     insert_metadata(DB_NAME, "S", const_cast<char *>(db_name.c_str()));
+
+    //DB_DIR
+    insert_metadata(DB_NAME, "S", const_cast<char *>(db_dir.c_str()));
 
     // READ_OPTIMIZE
     string is_read_optimized_str = read_optimize ? "true" : "false";
@@ -300,7 +304,12 @@ void StandardGraph::__restore_from_db(std::string db_name)
         ret = cursor->get_key(cursor, &key);
         ret = cursor->get_value(cursor, &value);
 
-        if (strcmp(key, DB_NAME.c_str()) == 0)
+        if (strcmp(key, DB_DIR.c_str()) == 0)
+        {
+
+            this->db_dir = value; //CommonUtil::unpack_string_wt(value, this->session);
+        }
+        else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
 
             this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);
@@ -464,7 +473,7 @@ void StandardGraph::add_node(node to_insert)
 
     if (read_optimize)
     {
-        node_cursor->set_value(node_cursor, 0, 0);
+        node_cursor->set_value(node_cursor, to_insert.in_degree, to_insert.out_degree);
     }
     else
     {
@@ -629,14 +638,17 @@ node StandardGraph::get_random_node()
     {
         ret = _get_table_cursor(NODE_TABLE, &(this->random_node_cursor), true);
     }
+    random_node_cursor->reset(random_node_cursor);
 
     ret = this->random_node_cursor->next(random_node_cursor);
     if (ret != 0)
     {
-        throw GraphException("Could not find a random node");
+        throw GraphException(wiredtiger_strerror(ret));
     }
-
+    int id;
+    random_node_cursor->get_key(random_node_cursor, &id);
     found = __record_to_node(this->random_node_cursor);
+    found.id = id;
     // random_node_cursor->close(random_node_cursor); <- don't close a cursor
     // prematurely
     return found;
@@ -957,6 +969,12 @@ void StandardGraph::add_edge(edge to_insert)
             // The edge exists, set the cursor to point to that edge_id
             cursor->set_key(cursor, found_edge_id);
         }
+        else
+        {
+            to_insert.id = this->edge_id;
+            cursor->set_key(cursor, to_insert.id);
+            this->edge_id++;
+        }
     }
 
     else
@@ -1010,6 +1028,35 @@ void StandardGraph::add_edge(edge to_insert)
     }
 }
 
+void StandardGraph::bulk_add_edge(int src, int dst, int weight)
+{
+    // We have already added the src and dst
+
+    WT_CURSOR *cursor = nullptr;
+    int ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
+
+    // The edge does not exist, use the global edge-id and update it by 1
+    cursor->set_key(cursor, this->edge_id);
+    this->edge_id++;
+
+    if (is_weighted)
+    {
+        cursor->set_value(cursor, src, dst, weight);
+    }
+    else
+    {
+        cursor->set_value(cursor, src, dst, 0);
+    }
+    ret = cursor->insert(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Failed to insert edge (" +
+                             to_string(src) + "," +
+                             to_string(dst));
+    }
+    cursor->close(cursor);
+}
+
 void StandardGraph::delete_edge(int src_id, int dst_id)
 {
     int edge_id = get_edge_id(src_id, dst_id);
@@ -1040,6 +1087,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
                                           to_string(dst_id));
     }
     cursor->close(cursor);
+
     // Update in/out degrees for the src and dst nodes if the graph is read
     // optimized
     ret = _get_table_cursor(NODE_TABLE, &cursor, false);
@@ -1054,7 +1102,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     // If not then raise an exceptiion, because we shouldn't have deleted an edge where src/dst have
     // degree 0.
     if ((is_directed and found.out_degree == 0) or
-        ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0)))
+        ((!is_directed) and ((found.out_degree == 0) or (found.in_degree == 0))))
     {
         throw GraphException("Deleted an edge with edgeid " +
                              to_string(edge_id) +
@@ -1077,7 +1125,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     found = __record_to_node(cursor);
     found.id = dst_id;
 
-    if ((is_directed and found.out_degree == 0) or
+    if ((is_directed and found.in_degree == 0) or
         ((!is_directed) and (found.out_degree == 0) and (found.in_degree == 0)))
     {
         throw GraphException("Deleted an edge with edgeid " +
@@ -1240,7 +1288,7 @@ vector<node> StandardGraph::get_out_nodes(int node_id)
             }
         }
     }
-    cursor->close(cursor);
+    //cursor->close(cursor);
     return nodes;
 }
 
@@ -1316,7 +1364,6 @@ vector<node> StandardGraph::get_in_nodes(int node_id)
             "Could not get a DST index cursor on the edge table");
     }
 
-    cursor->reset(cursor);
     cursor->set_key(cursor, node_id);
     if (cursor->search(cursor) == 0)
     {
@@ -1337,7 +1384,7 @@ vector<node> StandardGraph::get_in_nodes(int node_id)
             }
         }
     }
-    cursor->close(cursor);
+    cursor->reset(cursor);
 
     return nodes;
 }

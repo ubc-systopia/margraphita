@@ -1,0 +1,284 @@
+Running BFS
+Graph loaded in 369221
+41820
+random start vertex is 41820
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 308078417
+41524
+random start vertex is 41524
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 932132383
+42258
+random start vertex is 42258
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 1583233938
+24920
+random start vertex is 24920
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 2378265406
+43920
+random start vertex is 43920
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 3426075770
+57790
+random start vertex is 57790
+out degree was zero. finding a new random vertex.
+16463
+random start vertex is 16463
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 4647198778
+41257
+random start vertex is 41257
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 5841266146
+30745
+random start vertex is 30745
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 6821632946
+1441
+random start vertex is 1441
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 7794110566
+41670
+random start vertex is 41670
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 8772565162
+33429
+random start vertex is 33429
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 10360249294
+41651
+random start vertex is 41651
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 10752977921
+41676
+random start vertex is 41676
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 11700138122
+41884
+random start vertex is 41884
+out degree was zero. finding a new random vertex.
+41677
+random start vertex is 41677
+out degree was zero. finding a new random vertex.
+41677
+random start vertex is 41677
+out degree was zero. finding a new random vertex.
+42157
+random start vertex is 42157
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 12731717597
+61599
+random start vertex is 61599
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 13670239696
+29635
+random start vertex is 29635
+Iter 0
+Iter 1
+Iter 2
+Iter 3
+Iter 4
+Iter 5
+Iter 6
+Iter 7
+Iter 8
+Iter 9
+ -----------
+BFS  completed in : 14615403115
+Running BFS
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/puneet/gen_graphs/s16_e8/s16_e8/std_rd_s16_e8
+Running BFS
+Graph loaded in 344646
+10572
+random start vertex is 10572
+BFS  completed in : 306670110
+25704
+random start vertex is 25704
+BFS  completed in : 926020073
+25344
+random start vertex is 25344
+BFS  completed in : 1576020010
+65457
+random start vertex is 65457
+out degree was zero. finding a new random vertex.
+9832
+random start vertex is 9832
+BFS  completed in : 2373561592
+25237
+random start vertex is 25237
+BFS  completed in : 3409520106
+51617
+random start vertex is 51617
+BFS  completed in : 4604887091
+17405
+random start vertex is 17405
+BFS  completed in : 5756594417
+28689
+random start vertex is 28689
+BFS  completed in : 6732051827
+10006
+random start vertex is 10006
+BFS  completed in : 7687377452
+10024
+random start vertex is 10024
+BFS  completed in : 8655183879
+55569
+random start vertex is 55569
+BFS  completed in : 9640423742
+10011
+random start vertex is 10011
+BFS  completed in : 10626649786
+10007
+random start vertex is 10007

@@ -11,3 +11,7 @@ src/db/
 cscope.out
 tags
 build/
+debug/
+.DS_Store
+mt_test/
+profile/

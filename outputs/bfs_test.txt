@@ -1,0 +1,193 @@
+
+Running BFS
+Graph loaded in 356701
+5430537
+random start vertex is -1
+BFS  completed in : 723898
+Number of nodes explored : 20548
+BFS  completed in : 863898
+Number of nodes explored : 20548
+BFS  completed in : 1140181
+Number of nodes explored : 20548
+BFS  completed in : 1355516
+Number of nodes explored : 20548
+BFS  completed in : 1609397
+Number of nodes explored : 20548
+BFS  completed in : 1861119
+Number of nodes explored : 20548
+BFS  completed in : 2109182
+Number of nodes explored : 20548
+BFS  completed in : 2341443
+Number of nodes explored : 20548
+BFS  completed in : 2583349
+Number of nodes explored : 20548
+BFS  completed in : 2805836
+Number of nodes explored : 20548
+BFS  completed in : 3068128
+Number of nodes explored : 20548
+BFS  completed in : 3313266
+Number of nodes explored : 20548
+BFS  completed in : 3536597
+Number of nodes explored : 20548
+BFS  completed in : 3769850
+Number of nodes explored : 20548
+BFS  completed in : 4026973
+Number of nodes explored : 20548
+BFS  completed in : 4256630
+Number of nodes explored : 20548
+Running BFS
+Graph loaded in 356049
+5430537
+random start vertex is -1
+number visited: 20548result? : 20548BFS  completed in : 699205
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 896065
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 1170475
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 1405725
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 1654102
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 1878197
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 2139304
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 2365013
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 2615352
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 2851998
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 3106612
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 3342023
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 3569590
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 3820866
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 4055302
+Number of nodes explored : 20548
+number visited: 20548result? : 20548BFS  completed in : 4308192
+Number of nodes explored : 20548
+Running BFS
+Graph loaded in 364158
+5430537
+random start vertex is -1
+BFS  completed in : 702551
+BFS  completed in : 770907
+BFS  completed in : 928003
+BFS  completed in : 1133320
+BFS  completed in : 1315980
+BFS  completed in : 1534328
+BFS  completed in : 1697103
+BFS  completed in : 1898117
+BFS  completed in : 2103622
+BFS  completed in : 2277394
+BFS  completed in : 2462786
+BFS  completed in : 2655652
+BFS  completed in : 2830484
+BFS  completed in : 3026763
+BFS  completed in : 3193477
+BFS  completed in : 3381088
+Running BFS
+Graph loaded in 357691
+5430537
+random start vertex is -1
+BFS  completed in : 668983
+BFS  completed in : 922139
+BFS  completed in : 981023
+BFS  completed in : 1235798
+BFS  completed in : 1385046
+BFS  completed in : 1575681
+BFS  completed in : 1745060
+BFS  completed in : 1947240
+BFS  completed in : 2279549
+BFS  completed in : 2319316
+BFS  completed in : 2540029
+BFS  completed in : 2753673
+BFS  completed in : 3064348
+BFS  completed in : 3092304
+BFS  completed in : 3182588
+BFS  completed in : 3348247
+Running BFS
+Graph loaded in 356679
+5430537
+random start vertex is 5430537
+BFS  completed in : 17674794
+5543617
+random start vertex is 5543617
+BFS  completed in : 34609
+1149028
+random start vertex is 1149028
+out degree was zero. finding a new random vertex.
+5909459
+random start vertex is 5909459
+BFS  completed in : 26180241
+4309566
+random start vertex is 4309566
+BFS  completed in : 26883
+5940711
+random start vertex is 5940711
+BFS  completed in : 68528789
+4173241
+random start vertex is 4173241
+BFS  completed in : 12912
+229358
+random start vertex is 229358
+out degree was zero. finding a new random vertex.
+4835252
+random start vertex is 4835252
+BFS  completed in : 42341
+3354451
+random start vertex is 3354451
+out degree was zero. finding a new random vertex.
+2258515
+random start vertex is 2258515
+out degree was zero. finding a new random vertex.
+4302972
+random start vertex is 4302972
+BFS  completed in : 41562
+3758648
+random start vertex is 3758648
+out degree was zero. finding a new random vertex.
+5054727
+random start vertex is 5054727
+BFS  completed in : 259039
+4071601
+random start vertex is 4071601
+BFS  completed in : 12871
+4563695
+random start vertex is 4563695
+BFS  completed in : 576298
+2136845
+random start vertex is 2136845
+out degree was zero. finding a new random vertex.
+4810375
+random start vertex is 4810375
+BFS  completed in : 209853
+5463090
+random start vertex is 5463090
+BFS  completed in : 5895210
+5556675
+random start vertex is 5556675
+BFS  completed in : 116404
+4441145
+random start vertex is 4441145
+BFS  completed in : 43627
+4531504
+random start vertex is 4531504
+BFS  completed in : 15148
+Running BFS
+Graph loaded in 389430
+5430537
+random start vertex is 5430537
+Running BFS
+Graph loaded in 357730
+5430537
+random start vertex is 5430537
+Running BFS
+Graph loaded in 363429
+5430537
+random start vertex is 5430537

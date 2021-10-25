@@ -1,0 +1,2 @@
+#db_name, benchmark, starting node_id, num_visited, sum_out_deg, total_time_taken_usecs, time_from_main
+ekey_rd_s20_e8,bfs,711937,472830,82442430,205494667,2054946679

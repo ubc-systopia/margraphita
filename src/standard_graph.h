@@ -32,6 +32,7 @@ public:
     int get_out_degree(int node_id);
     std::vector<node> get_nodes();
     void add_edge(edge to_insert);
+    void bulk_add_edge(int src, int dst, int weight);
     void delete_edge(int src_id, int dst_id);
     void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
                             int out_degree);
@@ -56,6 +57,9 @@ public:
     void close();
     std::vector<edge> test_cursor_iter(int node_id);
     void create_indices();
+
+    std::string get_db_name() const { return this->db_name; };
+    WT_CONNECTION *get_db_conn() { return this->conn; }
     // WT privates
 private:
     WT_CONNECTION *conn;
@@ -67,6 +71,7 @@ private:
     bool is_weighted = true; //needed to understand when to interpret the weight field in struct edge
     bool optimize_create = false;
     std::string db_name;
+    std::string db_dir;
 
     //structure of the graph
     int edge_id;

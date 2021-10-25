@@ -23,6 +23,7 @@ EdgeKey::EdgeKey(graph_opts opt_params)
     this->is_directed = opt_params.is_directed;
     this->is_weighted = opt_params.is_weighted;
     this->db_name = opt_params.db_name;
+    this->db_dir = opt_params.db_dir;
 
     try
     {
@@ -42,7 +43,15 @@ EdgeKey::EdgeKey(graph_opts opt_params)
     }
     else
     {
-        __restore_from_db(db_name);
+        std::filesystem::path dirname = db_dir + "/" + db_name;
+        if (std::filesystem::exists(dirname))
+        {
+            __restore_from_db(db_dir + "/" + db_name);
+        }
+        else
+        {
+            throw GraphException("Could not find the expected WT DB directory - " + db_dir + "/" + db_name);
+        }
     }
 }
 
@@ -56,7 +65,7 @@ void EdgeKey::create_new_graph()
 {
     int ret = 0;
     //Create new directory for WT DB
-    std::filesystem::path dirname = "./db/" + db_name;
+    std::filesystem::path dirname = db_dir + "/" + db_name;
     if (std::filesystem::exists(dirname))
     {
         filesystem::remove_all(dirname);
@@ -76,7 +85,7 @@ void EdgeKey::create_new_graph()
     }
     //Set up the edge table
     //Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
-    //Edge Column Format: IIS
+    //Edge Column Format: iiS
 
     CommonUtil::set_table(session, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
 
@@ -98,8 +107,10 @@ void EdgeKey::create_new_graph()
     }
 
     // DB_NAME
-    string db_name_fmt;
     insert_metadata(DB_NAME, const_cast<char *>(db_name.c_str()));
+
+    //DB_DIR
+    insert_metadata(DB_DIR, const_cast<char *>(db_dir.c_str()));
 
     // READ_OPTIMIZE
     string read_optimized_str = read_optimize ? "true" : "false";
@@ -232,25 +243,47 @@ node EdgeKey::get_random_node()
     node rando = {0};
     WT_CURSOR *random_cur;
     int ret = _get_table_cursor(EDGE_TABLE, &random_cur, true);
-    if (random_cur->next(random_cur) != 0)
+    if (ret != 0)
     {
-        return rando;
+        throw GraphException("could not get a random cursor to the node table");
     }
     int src, dst;
-    random_cur->get_key(random_cur, &src, &dst);
-    if (dst == -1)
+    ret = random_cur->next(random_cur);
+    do
     {
-        __record_to_node(random_cur, &rando);
-    }
-    else
-    {
-        WT_CURSOR *e_cur = get_edge_cursor();
-        e_cur->set_key(e_cur, src, -1);
-        e_cur->search(e_cur); // guaranteed to return 0
-        __record_to_node(e_cur, &rando);
-        e_cur->close(e_cur);
-    }
-    random_cur->close(random_cur);
+        ret = random_cur->get_key(random_cur, &src, &dst);
+        if (ret != 0)
+        {
+            throw GraphException("here");
+        }
+        if (dst == -1)
+        {
+            //random_cur->set_key(random_cur, src, dst);
+            __record_to_node(random_cur, &rando);
+            rando.id = src;
+            break;
+        }
+        else
+        {
+            ret = random_cur->next(random_cur);
+            if (ret != 0)
+            {
+                throw GraphException("here here");
+            }
+            ret = random_cur->get_key(random_cur, &src, &dst);
+            if (ret != 0)
+            {
+                throw GraphException("hereherehere");
+            }
+            if (dst == -1)
+            {
+                //random_cur->set_key(random_cur, src, dst);
+                __record_to_node(random_cur, &rando);
+                rando.id = src;
+                break;
+            }
+        }
+    } while (dst != -1);
     return rando;
 }
 
@@ -318,7 +351,7 @@ bool EdgeKey::has_edge(int src_id, int dst_id)
     {
         found = true;
     }
-    e_cur->close(e_cur);
+    e_cur->reset(e_cur);
     return found;
 }
 
@@ -503,6 +536,43 @@ void EdgeKey::add_edge(edge to_insert)
     }
 }
 
+void EdgeKey::bulk_add_edge(int src, int dst, int weight)
+{
+    // No need to Check if the src and dst nodes exist. Inserted already.
+    //Insert the edge
+    WT_CURSOR *e_cur = get_edge_cursor();
+    e_cur->set_key(e_cur, src, dst);
+    if (is_weighted)
+    {
+        e_cur->set_value(e_cur, std::to_string(weight).c_str());
+    }
+    else
+    {
+        e_cur->set_value(e_cur, "");
+    }
+    if (e_cur->insert(e_cur) != 0)
+    {
+        throw GraphException("Failed to insert edge between " + std::to_string(src) + " and " + std::to_string(dst));
+    }
+    //insert reverse edge if undirected
+    if (!is_directed)
+    {
+        e_cur->set_key(e_cur, dst, src);
+        if (is_weighted)
+        {
+            e_cur->set_value(e_cur, std::to_string(weight).c_str());
+        }
+        else
+        {
+            e_cur->set_value(e_cur, "");
+        }
+        if (e_cur->insert(e_cur) != 0)
+        {
+            throw GraphException("Failed to insert the reverse edge between " + std::to_string(src) + " and " + std::to_string(dst));
+        }
+    }
+}
+
 /**
  * @brief Delete the edge identified by (src_id, dst_id)
  * 
@@ -631,8 +701,8 @@ std::vector<node> EdgeKey::get_nodes()
             }
         }
     }
-    dst_cur->close(dst_cur);
-    e_cur->close(e_cur);
+    dst_cur->reset(dst_cur);
+    e_cur->reset(e_cur);
     return nodes;
 }
 
@@ -660,7 +730,7 @@ int EdgeKey::get_num_nodes()
             node_count++;
         }
     }
-    dst_cur->close(dst_cur);
+    dst_cur->reset(dst_cur);
     return node_count;
 }
 
@@ -677,7 +747,7 @@ int EdgeKey::get_num_edges()
             edge_count++;
         }
     }
-    dst_cur->close(dst_cur);
+    dst_cur->reset(dst_cur);
     return edge_count;
 }
 
@@ -696,7 +766,7 @@ int EdgeKey::get_out_degree(int node_id)
         e_cur->search(e_cur);
         node found;
         __record_to_node(e_cur, &found);
-        e_cur->close(e_cur);
+        e_cur->reset(e_cur);
         return found.out_degree;
     }
     else
@@ -733,7 +803,7 @@ int EdgeKey::get_out_degree(int node_id)
                 }
             }
         }
-        src_cur->close(src_cur);
+        src_cur->reset(src_cur);
         return out_deg;
     }
 }
@@ -753,7 +823,7 @@ int EdgeKey::get_in_degree(int node_id)
         e_cur->search(e_cur);
         node found;
         __record_to_node(e_cur, &found);
-        e_cur->close(e_cur);
+        e_cur->reset(e_cur);
         return found.in_degree;
     }
     else
@@ -782,7 +852,7 @@ int EdgeKey::get_in_degree(int node_id)
                 }
             }
         }
-        dst_cur->close(dst_cur);
+        dst_cur->reset(dst_cur);
         return in_degree;
     }
 }
@@ -810,7 +880,7 @@ std::vector<edge> EdgeKey::get_edges()
             edges.push_back(found);
         }
     }
-    e_cur->close(e_cur);
+    e_cur->reset(e_cur);
     return edges;
 }
 
@@ -863,8 +933,8 @@ std::vector<edge> EdgeKey::get_out_edges(int node_id)
 
         } while (src_id == node_id && src_cur->next(src_cur) == 0 && flag <= 1); //flag check ensures that if the first entry we hit was (node_id, -1), we try to look for the next entry the cursor points to to see if it has a (node_id, <dst>) entry.
     }
-    e_cur->close(e_cur);
-    src_cur->close(src_cur);
+    e_cur->reset(e_cur);
+    src_cur->reset(src_cur);
     return out_edges;
 }
 
@@ -915,8 +985,8 @@ std::vector<node> EdgeKey::get_out_nodes(int node_id)
             }
         } while (src == node_id && src_cur->next(src_cur) == 0 && flag <= 1); //flag check ensures that if the first entry we hit was (node_id, -1), we try to look for the next entry the cursor points to to see if it has a (node_id, <dst>) entry.
     }
-    e_cur->close(e_cur);
-    src_cur->close(src_cur);
+    e_cur->reset(e_cur);
+    src_cur->reset(src_cur);
     return out_nodes;
 }
 
@@ -958,8 +1028,8 @@ std::vector<edge> EdgeKey::get_in_edges(int node_id)
             dst_cur->get_value(dst_cur, &src_id, &dst_id);
         } while (dst_id == node_id);
     }
-    e_cur->close(e_cur);
-    dst_cur->close(dst_cur);
+    e_cur->reset(e_cur);
+    dst_cur->reset(dst_cur);
     return in_edges;
 }
 
@@ -980,11 +1050,13 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
     dst_cur->set_key(dst_cur, node_id);
-    int search_ret = dst_cur->search(dst_cur);
-    if (search_ret == 0)
+    if (dst_cur->search(dst_cur) == 0)
     {
         int src_id, dst_id;
-        dst_cur->get_value(dst_cur, &src_id, &dst_id);
+        if (dst_cur->get_value(dst_cur, &src_id, &dst_id) != 0)
+        {
+            throw GraphException("here" + __LINE__);
+        }
 
         do
         {
@@ -996,12 +1068,22 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
                 __record_to_node(e_cur, &found);
                 in_nodes.push_back(found);
             }
-            dst_cur->next(dst_cur);
-            dst_cur->get_value(dst_cur, &src_id, &dst_id);
+            if (dst_cur->next(dst_cur) == 0)
+            {
+                if (dst_cur->get_value(dst_cur, &src_id, &dst_id) != 0)
+                {
+                    throw GraphException("here" + __LINE__);
+                }
+            }
+            else
+            {
+                break;
+            }
+
         } while (dst_id == node_id);
     }
-    e_cur->close(e_cur);
-    dst_cur->close(dst_cur);
+    e_cur->reset(e_cur);
+    dst_cur->reset(dst_cur);
     return in_nodes;
 }
 
@@ -1020,7 +1102,12 @@ void EdgeKey::__restore_from_db(string db_name)
         ret = cursor->get_key(cursor, &key);
         ret = cursor->get_value(cursor, &value);
 
-        if (strcmp(key, DB_NAME.c_str()) == 0)
+        if (strcmp(key, DB_DIR.c_str()) == 0)
+        {
+
+            this->db_dir = value; //CommonUtil::unpack_string_wt(value, this->session);
+        }
+        else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
 
             this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);
@@ -1104,7 +1191,10 @@ void EdgeKey::create_indices()
     {
         throw GraphException("Failed to create an index on the DST column of the edge table");
     }
-}
+} /**
+ * changing the src index column from SRC to SRC, DST
+ * and dst index column from DST to DST,SRC 
+ */
 
 /**
  * @brief Drops the indices not required for adding edges.
@@ -1149,7 +1239,11 @@ void EdgeKey::drop_indices()
 void EdgeKey::__record_to_node(WT_CURSOR *cur, node *found)
 {
     char *packed_vec;
-    cur->get_value(cur, &packed_vec);
+    int ret = cur->get_value(cur, &packed_vec);
+    if (ret != 0)
+    {
+        throw GraphException("in here");
+    }
     std::string str(packed_vec);
     int a, b;
     extract_from_string(packed_vec, &a, &b);
@@ -1160,7 +1254,11 @@ void EdgeKey::__record_to_node(WT_CURSOR *cur, node *found)
 void EdgeKey::__record_to_edge(WT_CURSOR *cur, edge *found)
 {
     char *packed_vec;
-    cur->get_value(cur, &packed_vec);
+    int ret = cur->get_value(cur, &packed_vec);
+    if (ret != 0)
+    {
+        throw GraphException("in here");
+    }
     std::string str(packed_vec);
     int a, b;
     extract_from_string(str, &a, &b);
@@ -1206,37 +1304,44 @@ Get cursors
 */
 WT_CURSOR *EdgeKey::get_edge_cursor()
 {
-    WT_CURSOR *cursor;
-    if (_get_table_cursor(EDGE_TABLE, &cursor, false) != 0)
+    if (edge_cursor == nullptr)
     {
-        throw GraphException("Could not get a cursor to the Edge table");
+        if (_get_table_cursor(EDGE_TABLE, &edge_cursor, false) != 0)
+        {
+            throw GraphException("Could not get a cursor to the Edge table");
+        }
     }
 
-    return cursor;
+    return edge_cursor;
 }
 
 WT_CURSOR *EdgeKey::get_src_idx_cur()
 {
-    WT_CURSOR *cursor;
-    string projection = "(" + SRC + "," + DST + ")";
-    int ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX, projection,
-                                &cursor);
-    if (ret != 0)
+    if (src_idx_cursor == nullptr)
     {
-        throw GraphException("Could not get a cursor to the SRC_INDEX ");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(EDGE_TABLE, SRC_INDEX, projection,
+                              &src_idx_cursor) != 0)
+        {
+            throw GraphException("Could not get a cursor to the SRC_INDEX ");
+        }
     }
-    return cursor;
+
+    return src_idx_cursor;
 }
 
 WT_CURSOR *EdgeKey::get_dst_idx_cur()
 {
-    WT_CURSOR *cursor;
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(EDGE_TABLE, DST_INDEX, projection, &cursor) != 0)
+    if (dst_idx_cursor == nullptr)
     {
-        throw GraphException("Could not get a cursor to DST_INDEX");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(EDGE_TABLE, DST_INDEX, projection, &dst_idx_cursor) != 0)
+        {
+            throw GraphException("Could not get a cursor to DST_INDEX");
+        }
     }
-    return cursor;
+
+    return dst_idx_cursor;
 }
 
 //Because we know that there can only be two. By design.
@@ -1301,4 +1406,12 @@ edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
         }
     }
     return found;
+}
+
+void EdgeKey::close_all_cursors()
+{
+    edge_cursor->close(edge_cursor);
+    metadata_cursor->close(metadata_cursor);
+    src_idx_cursor->close(src_idx_cursor);
+    dst_idx_cursor->close(dst_idx_cursor);
 }

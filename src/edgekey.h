@@ -32,6 +32,7 @@ public:
     void delete_related_edges(WT_CURSOR *idx_cursor, WT_CURSOR *edge_cur, int node_id);
     void update_node_degree(int node_id, int indeg, int outdeg);
     void add_edge(edge to_insert);
+    void bulk_add_edge(int src, int dst, int weight);
     void delete_edge(int src_id, int dst_id);
     edge get_edge(int src_id, int dst_id);
     //void update_edge(edge to_update); no need to implement.
@@ -55,6 +56,8 @@ public:
     node get_next_node(WT_CURSOR *n_iter);
     WT_CURSOR *get_edge_iter();
     edge get_next_edge(WT_CURSOR *e_iter);
+    void close_all_cursors();
+    std::string get_db_name() const { return this->db_name; };
 
 private:
     WT_CONNECTION *conn;
@@ -65,6 +68,7 @@ private:
     bool is_directed = true;
     bool is_weighted = false; //needed to understand when to interpret the weight field in struct edge
     std::string db_name;
+    std::string db_dir;
 
     //Cursors
     WT_CURSOR *edge_cursor = nullptr;
