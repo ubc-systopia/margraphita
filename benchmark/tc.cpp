@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
     opts.db_name = tc_cli.get_db_name();
     opts.db_dir = tc_cli.get_db_path();
 
-    int num_trials = 5;
+    int num_trials = 1;
 
     if (tc_cli.get_graph_type() == "std")
     {
