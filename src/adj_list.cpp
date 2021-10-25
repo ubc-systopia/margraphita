@@ -411,6 +411,7 @@ void AdjList::init_cursors()
  *
  * @param to_insert
  */
+//todo:add overloaded function that accepts an adjlist and just passes it to add_adjlist.
 void AdjList::add_node(node to_insert)
 {
     int ret = 0;
@@ -443,11 +444,44 @@ void AdjList::add_node(node to_insert)
     add_adjlist(out_adj_cur, to_insert.id);
 }
 
+void AdjList::add_node(int to_insert, std::vector<int> inlist, std::vector<int> outlist)
+{
+    int ret = 0;
+    WT_CURSOR *n_cursor, *in_adj_cur, *out_adj_cur = nullptr;
+
+    n_cursor = get_node_cursor();
+    in_adj_cur = get_in_adjlist_cursor();
+    out_adj_cur = get_out_adjlist_cursor();
+
+    node_cursor->set_key(node_cursor, to_insert);
+
+    if (read_optimize)
+    {
+        node_cursor->set_value(node_cursor, inlist.size(), outlist.size());
+    }
+    else
+    {
+        node_cursor->set_value(node_cursor, "");
+    }
+
+    ret = node_cursor->insert(node_cursor);
+
+    if (ret != 0)
+    {
+        throw GraphException("Failed to add node_id" +
+                             std::to_string(to_insert));
+    }
+    //Now add the adjlist entires
+    add_adjlist(in_adj_cur, to_insert, inlist);
+    add_adjlist(out_adj_cur, to_insert, outlist);
+}
+
 /**
  * @brief Add a record for the node_id in the in or out adjlist,
  * as pointed by the cursor.
  * if the node_id record already exists then reset it with an empty list.
 **/
+//TODO:create an overloaded function that accepts a fully formed in adj list and adds it directly.
 void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
 {
     int ret = 0;
@@ -461,7 +495,30 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
 
     // Now, initialize the in/out degree to 0 and adjlist to empty list
     cursor->set_value(cursor, 0, " "); // serialize the vector and send ""
-    //TODO: check if "" is acceptable as a const char *
+    ret = cursor->insert(cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Failed to add node_id" +
+                             std::to_string(node_id));
+    }
+}
+
+void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id, std::vector<int> list)
+{
+    int ret = 0;
+    // Check if the cursor is not NULL, else throw exception
+    if (cursor == NULL)
+    {
+        throw GraphException("Uninitiated Cursor passed to add_adjlist call");
+    }
+
+    cursor->set_key(cursor, node_id);
+
+    // Now, initialize the in/out degree to 0 and adjlist to empty list
+    size_t size = 0;
+    std::string packed_list = CommonUtil::pack_int_vector_std(list, &size);
+    cursor->set_value(cursor, 0, packed_list.c_str()); // serialize the vector and send ""
+
     ret = cursor->insert(cursor);
     if (ret != 0)
     {
@@ -492,7 +549,7 @@ void AdjList::delete_adjlist(WT_CURSOR *cursor, int node_id)
     }
 }
 
-void AdjList::add_edge(edge to_insert)
+void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 {
     int ret = 0;
     // Update the adj_list table both in and out
@@ -552,7 +609,10 @@ void AdjList::add_edge(edge to_insert)
         cursor->reset(cursor);
     }
     //cursor->close(cursor);
-
+    if (is_bulk_insert)
+    {
+        return; // we ahve already added adjlists while adding nodes.
+    }
     add_to_adjlists(out_adjlist_cursor, to_insert.src_id, to_insert.dst_id);
     add_to_adjlists(in_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
     if (!is_directed)

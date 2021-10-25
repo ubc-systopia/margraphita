@@ -677,3 +677,153 @@ Iter 8
 Iter 9
  -----------
 BFS  completed in : 3840775
+Running BFS
+Graph loaded in 348871
+2354
+random start vertex is 2354
+BFS  completed in : 3932954
+1746
+random start vertex is 1746
+BFS  completed in : 3946134
+3258
+random start vertex is 3258
+BFS  completed in : 3934736
+12384
+random start vertex is 12384
+BFS  completed in : 3930470
+12553
+random start vertex is 12553
+BFS  completed in : 3928181
+4515
+random start vertex is 4515
+BFS  completed in : 3947627
+4576
+random start vertex is 4576
+BFS  completed in : 3941297
+8529
+random start vertex is 8529
+BFS  completed in : 3925465
+3306
+random start vertex is 3306
+BFS  completed in : 3927016
+23831
+random start vertex is 23831
+BFS  completed in : 3925237
+17643
+random start vertex is 17643
+BFS  completed in : 3925267
+4514
+random start vertex is 4514
+BFS  completed in : 3924406
+17698
+random start vertex is 17698
+BFS  completed in : 3925450
+3244
+random start vertex is 3244
+BFS  completed in : 3923593
+3303
+random start vertex is 3303
+BFS  completed in : 3921915
+774
+random start vertex is 774
+BFS  completed in : 3929176
+Running BFS
+Graph loaded in 343068
+2354
+random start vertex is 2354
+BFS  completed in : 3966629
+1746
+random start vertex is 1746
+BFS  completed in : 3953411
+3258
+random start vertex is 3258
+BFS  completed in : 3948461
+12384
+random start vertex is 12384
+BFS  completed in : 3949109
+12553
+random start vertex is 12553
+BFS  completed in : 3950263
+4515
+random start vertex is 4515
+BFS  completed in : 3957583
+4576
+random start vertex is 4576
+BFS  completed in : 3954335
+8529
+random start vertex is 8529
+BFS  completed in : 3953235
+3306
+random start vertex is 3306
+BFS  completed in : 3953961
+23831
+random start vertex is 23831
+BFS  completed in : 3951284
+17643
+random start vertex is 17643
+BFS  completed in : 3959927
+4514
+random start vertex is 4514
+BFS  completed in : 3952348
+17698
+random start vertex is 17698
+BFS  completed in : 3966179
+3244
+random start vertex is 3244
+BFS  completed in : 4299728
+3303
+random start vertex is 3303
+BFS  completed in : 4304380
+774
+random start vertex is 774
+BFS  completed in : 4038409
+Running BFS
+Graph loaded in 347001
+2354
+random start vertex is 2354
+BFS  completed in : 4045127
+1746
+random start vertex is 1746
+BFS  completed in : 4029151
+3258
+random start vertex is 3258
+BFS  completed in : 4014268
+12384
+random start vertex is 12384
+BFS  completed in : 3994078
+12553
+random start vertex is 12553
+BFS  completed in : 4018980
+4515
+random start vertex is 4515
+BFS  completed in : 4012759
+4576
+random start vertex is 4576
+BFS  completed in : 4014787
+8529
+random start vertex is 8529
+BFS  completed in : 4014154
+3306
+random start vertex is 3306
+BFS  completed in : 4022907
+23831
+random start vertex is 23831
+BFS  completed in : 4006577
+17643
+random start vertex is 17643
+BFS  completed in : 4071095
+4514
+random start vertex is 4514
+BFS  completed in : 4134650
+17698
+random start vertex is 17698
+BFS  completed in : 4128707
+3244
+random start vertex is 3244
+BFS  completed in : 4115050
+3303
+random start vertex is 3303
+BFS  completed in : 4119526
+774
+random start vertex is 774
+BFS  completed in : 4098456

@@ -32,6 +32,7 @@ public:
     void delete_related_edges(WT_CURSOR *idx_cursor, WT_CURSOR *edge_cur, int node_id);
     void update_node_degree(int node_id, int indeg, int outdeg);
     void add_edge(edge to_insert);
+    void bulk_add_edge(int src, int dst, int weight);
     void delete_edge(int src_id, int dst_id);
     edge get_edge(int src_id, int dst_id);
     //void update_edge(edge to_update); no need to implement.

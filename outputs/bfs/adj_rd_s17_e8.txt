@@ -233,3 +233,121 @@ Iter 8
 Iter 9
  -----------
 BFS  completed in : 2974944054
+Running BFS
+Graph loaded in 345072
+46604
+random start vertex is 46604
+BFS  completed in : 7993383
+7313
+random start vertex is 7313
+BFS  completed in : 8016489
+80331
+random start vertex is 80331
+BFS  completed in : 7966388
+19243
+random start vertex is 19243
+BFS  completed in : 7958075
+31266
+random start vertex is 31266
+BFS  completed in : 7964076
+6040
+random start vertex is 6040
+BFS  completed in : 7977353
+131040
+random start vertex is 131040
+out degree was zero. finding a new random vertex.
+20641
+random start vertex is 20641
+BFS  completed in : 7953230
+67392
+random start vertex is 67392
+BFS  completed in : 7968676
+402
+random start vertex is 402
+BFS  completed in : 7954682
+93444
+random start vertex is 93444
+BFS  completed in : 7948122
+69876
+random start vertex is 69876
+BFS  completed in : 7940419
+25950
+random start vertex is 25950
+out degree was zero. finding a new random vertex.
+107594
+random start vertex is 107594
+BFS  completed in : 7979444
+23835
+random start vertex is 23835
+BFS  completed in : 7955832
+83238
+random start vertex is 83238
+BFS  completed in : 7961874
+9663
+random start vertex is 9663
+BFS  completed in : 7972284
+37677
+random start vertex is 37677
+out degree was zero. finding a new random vertex.
+39482
+random start vertex is 39482
+BFS  completed in : 7956591
+Running BFS
+Graph loaded in 349504
+46604
+random start vertex is 46604
+BFS  completed in : 8025347
+7313
+random start vertex is 7313
+BFS  completed in : 7968411
+80331
+random start vertex is 80331
+BFS  completed in : 7963794
+19243
+random start vertex is 19243
+BFS  completed in : 7977689
+31266
+random start vertex is 31266
+BFS  completed in : 7987333
+6040
+random start vertex is 6040
+BFS  completed in : 7951001
+131040
+random start vertex is 131040
+out degree was zero. finding a new random vertex.
+20641
+random start vertex is 20641
+BFS  completed in : 7972427
+67392
+random start vertex is 67392
+BFS  completed in : 7963164
+402
+random start vertex is 402
+BFS  completed in : 7973771
+93444
+random start vertex is 93444
+BFS  completed in : 7988746
+69876
+random start vertex is 69876
+BFS  completed in : 7964401
+25950
+random start vertex is 25950
+out degree was zero. finding a new random vertex.
+107594
+random start vertex is 107594
+BFS  completed in : 7996811
+23835
+random start vertex is 23835
+BFS  completed in : 7958473
+83238
+random start vertex is 83238
+BFS  completed in : 8120158
+9663
+random start vertex is 9663
+BFS  completed in : 8243583
+37677
+random start vertex is 37677
+out degree was zero. finding a new random vertex.
+39482
+random start vertex is 39482
+BFS  completed in : 8140082

@@ -29,7 +29,7 @@ void create_init_nodes(AdjList graph, bool is_directed)
 
     for (edge x : SampleGraph::test_edges)
     {
-        graph.add_edge(x);
+        graph.add_edge(x, false);
         edge_cnt++;
     }
 }
@@ -129,7 +129,7 @@ void test_add_edge(AdjList graph, bool is_directed)
                       .src_id = 5,
                       .dst_id = 6,
                       .edge_weight = 333}; // node 300 and 400 dont exist yet so we must also check if the nodes get created
-    graph.add_edge(to_insert);
+    graph.add_edge(to_insert, false);
     edge found = graph.get_edge(5, 6);
     CommonUtil::dump_edge(found);
     assert(found.edge_weight == 333);

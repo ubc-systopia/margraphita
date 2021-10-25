@@ -536,6 +536,43 @@ void EdgeKey::add_edge(edge to_insert)
     }
 }
 
+void EdgeKey::bulk_add_edge(int src, int dst, int weight)
+{
+    // No need to Check if the src and dst nodes exist. Inserted already.
+    //Insert the edge
+    WT_CURSOR *e_cur = get_edge_cursor();
+    e_cur->set_key(e_cur, src, dst);
+    if (is_weighted)
+    {
+        e_cur->set_value(e_cur, std::to_string(weight).c_str());
+    }
+    else
+    {
+        e_cur->set_value(e_cur, "");
+    }
+    if (e_cur->insert(e_cur) != 0)
+    {
+        throw GraphException("Failed to insert edge between " + std::to_string(src) + " and " + std::to_string(dst));
+    }
+    //insert reverse edge if undirected
+    if (!is_directed)
+    {
+        e_cur->set_key(e_cur, dst, src);
+        if (is_weighted)
+        {
+            e_cur->set_value(e_cur, std::to_string(weight).c_str());
+        }
+        else
+        {
+            e_cur->set_value(e_cur, "");
+        }
+        if (e_cur->insert(e_cur) != 0)
+        {
+            throw GraphException("Failed to insert the reverse edge between " + std::to_string(src) + " and " + std::to_string(dst));
+        }
+    }
+}
+
 /**
  * @brief Delete the edge identified by (src_id, dst_id)
  * 

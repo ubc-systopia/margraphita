@@ -49,18 +49,21 @@ while getopts "f:o:m:e:n:t:i" o; do
     esac
 done
 
+NUM_THREADS=10
+NUM_FILES=10
+
 ##remove all lines that begin with a comment
-sort --parallel=10 ${filename} | sed '/^#/d' > ${output}/${dataset}_sorted.txt
+sort --parallel=$NUM_THREADS -k 1,2 ${filename} | parallel --pipe sed '/^#/d' > ${output}/${dataset}_sorted.txt
 mv ${filename} ${filename}_orig
 mv ${output}/${dataset}_sorted.txt ${filename} #overwrite the original file
 # with the sorted, no comment version
 
 # ##Split the edges file
-split --number=l/10 ${filename} "${output}/${dataset}_edges"
+split --number=l/$NUM_FILES ${filename} "${output}/${dataset}_edges"
 
 #Create a nodes file
-sed -e 's/\t/\n/g; s/\r//g' ${filename} | sort -u --parallel=10 > ${output}/${dataset}_nodes
-split --number=l/10 ${output}/${dataset}_nodes ${output}/${dataset}_nodes
+sed -e 's/\t/\n/g; s/\r//g' ${filename} | sort -u --parallel=$NUM_THREADS > ${output}/${dataset}_nodes
+split --number=l/$NUM_FILES ${output}/${dataset}_nodes ${output}/${dataset}_nodes
 
 #Now create an empty DBs for all three representations for  insertion
 #Using pagerank for this. Too lazy to do any better :(

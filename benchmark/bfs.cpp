@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <set>
+#include <list>
 #include <deque>
 #include "common.h"
 #include "graph_exception.h"
@@ -30,24 +31,22 @@ template <typename Graph>
 bfs_info *bfs(Graph &graph, int src)
 {
     bfs_info *info = new bfs_info(0);
+    auto start = chrono::steady_clock::now();
     for (int i = 0; i < 10; i++)
     {
-        std::cout << "Iter " << i << "\n";
-        auto start = chrono::steady_clock::now();
         set<int> visited = {src};
-        deque<int> queue = {src};
+        list<int> queue = {src};
         vector<int> result;
 
         while (!queue.empty())
         {
-            int node_id = queue.at(0);
+            int node_id = queue.front();
             queue.pop_front();
             result.push_back(node_id);
             vector<node> out_nbrs = graph.get_out_nodes(node_id);
             info->sum_out_deg += out_nbrs.size();
             for (node nbr : out_nbrs)
             {
-                //std::cout << "nbr is " << nbr.id << std::endl;
                 if (visited.find(nbr.id) == visited.end())
                 {
                     visited.insert(nbr.id);
@@ -55,18 +54,16 @@ bfs_info *bfs(Graph &graph, int src)
                 }
             }
         }
-        auto end = chrono::steady_clock::now();
-        info->time_taken += chrono::duration_cast<chrono::microseconds>(end - start).count();
         info->num_visited = visited.size();
     }
-    std::cout << " -----------"
-              << "\n";
+    auto end = chrono::steady_clock::now();
+    info->time_taken = chrono::duration_cast<chrono::microseconds>(end - start).count();
     //average the time taken to get average per iteration.
     info->time_taken = info->time_taken / 10;
     return info;
 }
 
-void print_csv_info(std::string name, int starting_node, bfs_info *info)
+void print_csv_info(std::string name, int starting_node, bfs_info *info, int time_from_outside)
 {
     fstream FILE;
     std::string _name = "/home/puneet/scratch/margraphita/outputs/" + name + "_bfs.csv";
@@ -74,7 +71,7 @@ void print_csv_info(std::string name, int starting_node, bfs_info *info)
     {
         //The file does not exist yet.
         FILE.open(_name, ios::out | ios::app);
-        FILE << "#db_name, benchmark, starting node_id, num_visited, sum_out_deg, time_taken_usecs\n";
+        FILE << "#db_name, benchmark, starting node_id, num_visited, sum_out_deg, total_time_taken_usecs, time_from_main\n";
     }
     else
     {
@@ -85,7 +82,8 @@ void print_csv_info(std::string name, int starting_node, bfs_info *info)
          << starting_node << ","
          << info->num_visited << ","
          << info->sum_out_deg << ","
-         << info->time_taken << "\n";
+         << info->time_taken << ","
+         << time_from_outside << "\n";
 
     FILE.close();
 }
@@ -145,9 +143,9 @@ int main(int argc, char *argv[])
             start = chrono::steady_clock::now();
             bfs_info *bfs_run = bfs(graph, start_vertex);
             end = chrono::steady_clock::now();
-            std::cout << "BFS  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << std::endl;
-
-            print_csv_info(opts.db_name, start_vertex, bfs_run);
+            int time_from_outside = chrono::duration_cast<chrono::microseconds>(end - start).count();
+            std::cout << "BFS  completed in : " << time_from_outside << std::endl;
+            print_csv_info(opts.db_name, start_vertex, bfs_run, time_from_outside);
         }
         graph.close();
     }
@@ -173,9 +171,9 @@ int main(int argc, char *argv[])
             start = chrono::steady_clock::now();
             bfs_info *bfs_run = bfs(graph, start_vertex);
             end = chrono::steady_clock::now();
-            std::cout << "BFS  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << std::endl;
-
-            print_csv_info(opts.db_name, start_vertex, bfs_run);
+            int time_from_outside = chrono::duration_cast<chrono::microseconds>(end - start).count();
+            std::cout << "BFS  completed in : " << time_from_outside << std::endl;
+            print_csv_info(opts.db_name, start_vertex, bfs_run, time_from_outside);
         }
         graph.close();
     }
@@ -208,9 +206,9 @@ int main(int argc, char *argv[])
             start = chrono::steady_clock::now();
             bfs_info *bfs_run = bfs(graph, start_vertex);
             end = chrono::steady_clock::now();
-            std::cout << "BFS  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << std::endl;
-
-            print_csv_info(opts.db_name, start_vertex, bfs_run);
+            int time_from_outside = chrono::duration_cast<chrono::microseconds>(end - start).count();
+            std::cout << "BFS  completed in : " << time_from_outside << std::endl;
+            print_csv_info(opts.db_name, start_vertex, bfs_run, time_from_outside);
         }
         graph.close();
     }

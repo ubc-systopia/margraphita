@@ -236,3 +236,29 @@ Iter 8
 Iter 9
  -----------
 BFS  completed in : 1962239086
+Running BFS
+Graph loaded in 347205
+711937
+random start vertex is 711937
+BFS  completed in : 1864840561
+230816
+random start vertex is 230816
+BFS  completed in : 1935733715
+211255
+random start vertex is 211255
+BFS  completed in : 1921036983
+583707
+random start vertex is 583707
+BFS  completed in : 1920662565
+534700
+random start vertex is 534700
+BFS  completed in : 1930818147
+525792
+random start vertex is 525792
+Running BFS
+Graph loaded in 345683
+711937
+random start vertex is 711937
+BFS  completed in : 2054946679
+230816
+random start vertex is 230816

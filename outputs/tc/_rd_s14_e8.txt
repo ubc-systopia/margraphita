@@ -1,0 +1,115 @@
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 375497
+Trust TriangleCounting completed in : 20772276
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24276990
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20674011
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24255363
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20712262
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24262432
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20732242
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24256015
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20796294
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24173236
+Cycle Triangles count = 2087315
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 374298
+Trust TriangleCounting completed in : 21849355
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24840363
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20879284
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25075695
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21002373
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24787606
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20951466
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24768285
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20877251
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24751507
+Cycle Triangles count = 2087315
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 374665
+Trust TriangleCounting completed in : 20847887
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24422532
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20623964
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24936346
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20932898
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24541911
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20600411
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24803515
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 20461689
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 24413935
+Cycle Triangles count = 2087315
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 375380
+Trust TriangleCounting completed in : 21504361
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25372764
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21380588
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25387212
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21362004
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25368803
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21364802
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25344815
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21363306
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25373128
+Cycle Triangles count = 2087315
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 374953
+Trust TriangleCounting completed in : 21533686
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25542609
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21449694
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25491316
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21496056
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25571288
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21549850
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25541829
+Cycle Triangles count = 2087315
+Trust TriangleCounting completed in : 21443057
+Trust Triangles count = 1241081
+Cycle TriangleCounting  completed in : 25593443
+Cycle Triangles count = 2087315

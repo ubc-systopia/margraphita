@@ -1,0 +1,121 @@
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 375734
+Failed to open the cursor on the index index:edge:IX_edge_dst(src,dst) on table edge 
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not get a cursor to DST_INDEX
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 378727
+Trust TriangleCounting completed in : 437409
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 486400
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 436077
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 485311
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 433681
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 487480
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 433684
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 490260
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 438602
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 484292
+Cycle Triangles count = 48157
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 376534
+Trust TriangleCounting completed in : 433474
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 486022
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 431216
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 485988
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 433977
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 487195
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 433445
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 484628
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 430791
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 486063
+Cycle Triangles count = 48157
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 376477
+Trust TriangleCounting completed in : 428820
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 486142
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 426510
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 482571
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 428581
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 483195
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 430969
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 487231
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 430077
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 479606
+Cycle Triangles count = 48157
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 377994
+Trust TriangleCounting completed in : 417639
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 472625
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 414784
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 472515
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 416283
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 467608
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 415792
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 470190
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 418615
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 471926
+Cycle Triangles count = 48157
+Running TC
+./tc: invalid option -- 'i'
+Graph loaded in 377015
+Trust TriangleCounting completed in : 449208
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 505979
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 447322
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 503327
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 450830
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 504176
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 449212
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 507268
+Cycle Triangles count = 48157
+Trust TriangleCounting completed in : 448763
+Trust Triangles count = 61656
+Cycle TriangleCounting  completed in : 507636
+Cycle Triangles count = 48157
