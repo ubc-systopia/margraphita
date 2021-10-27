@@ -80,18 +80,12 @@ int main()
     */
 
     WT_PACK_STREAM *psp, *psp1;
-    WT_ITEM item, unpacked;
-    //4299178224
-    //
-    void *buf = malloc(sizeof(long) * vec.size());
-    // memcpy(buf, vec.data(), sizeof(long) * vec.size());
-    // const void *ptr = buf;
+    WT_ITEM item;
     item.data = vec.data();
     item.size = sizeof(long) * vec.size();
 
     void *pack_buf = malloc(sizeof(long) * vec.size());
 
-    // const char *fmt = "III";
     int ret = wiredtiger_pack_start(session, "u", pack_buf,
                                     sizeof(long) * vec.size(), &psp);
 
@@ -99,19 +93,12 @@ int main()
     size_t used;
     wiredtiger_pack_close(psp, &used);
 
+    WT_ITEM unpacked;
     wiredtiger_unpack_start(session, "u", pack_buf, used, &psp1);
     wiredtiger_unpack_item(psp1, &unpacked);
-
-        // for (int x : vect)
-    // {
-    //     ret = wiredtiger_pack_int(psp, x);
-    // }
-    // size_t used;
-    // cout << "used : " << used << endl;
-    // wiredtiger_pack_close(psp, &used);
-
-    // vector<int> unpack = unpack_int_vector(buffer, session);
-
-    // conn->close(conn, NULL);
+    cout << "\n"
+         << used << endl;
+    for (int i = 0; i < vec.size(); i++)
+        cout << ((long *)unpacked.data)[i] << "\t";
     return 0;
 }
