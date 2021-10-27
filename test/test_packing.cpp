@@ -10,31 +10,6 @@
 using namespace std;
 static const char *db_name = "test";
 
-// std::vector<int> unpack_int_vector(char *to_unpack,
-//                                    WT_SESSION *session)
-// {
-//     std::vector<int> unpacked_vector;
-//     WT_PACK_STREAM *psp;
-//     const char *fmt = "III";
-//     size_t size = 1000000; // for lack of something clever
-//     int ret = wiredtiger_unpack_start(session, fmt, to_unpack, size, &psp);
-//     const char *format_str;
-//     //ret = wiredtiger_unpack_str(psp, &format_str);
-//     //cout << "init format is " << format_str << endl;
-//     //wiredtiger_pack_close(psp, &size); // To reset the unpacking stream.
-
-//     int64_t res;
-//     for (int i = 0; i < 3; i++)
-//     {
-//         ret = wiredtiger_unpack_int(psp, &res);
-//         cout << res << endl;
-//         unpacked_vector.push_back(res);
-//     }
-
-//     wiredtiger_pack_close(psp, &size);
-//     return unpacked_vector;
-// }
-
 int main()
 {
     // Create an empty vector
@@ -56,29 +31,16 @@ int main()
     for (long x : vec)
         cout << x << endl;
 
-    // std::filesystem::path dirname = "./db/" + string(db_name);
-    // if (std::filesystem::exists(dirname))
-    // {
-    //     filesystem::remove_all(dirname); // remove if exists;
-    // }
-    // std::filesystem::create_directory(dirname);
-
     WT_CONNECTION *conn;
     WT_SESSION *session;
     // /* Open a connection to the database, creating it if necessary. */
     wiredtiger_open("./db", NULL, "create", &conn);
-    // /* Open a session for the current thread's work. */
     conn->open_session(conn, NULL, NULL, &session);
-    // /* Do some work... */
-    // /* Note: closing the connection implicitly closes open session(s). */
-    // char *buffer = (char *)malloc(1000000);
-    // size_t size = 1000000;
 
     /*
     This is a definitely a problem with the API -- as an application developer, I need to know the size 
     of the buffer needed to hold the packed array before I pack it. 
     */
-
     WT_PACK_STREAM *psp, *psp1;
     WT_ITEM item;
     item.data = vec.data();
