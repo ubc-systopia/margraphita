@@ -30,6 +30,7 @@ typedef struct insert_time
     int64_t adj_insert;
     int64_t ekey_insert;
     int64_t ekey_index;
+    insert_time(int _val) : std_insert(_val), std_index(_val), adj_insert(_val), ekey_index(_val), ekey_insert(_val){};
 } insert_time;
 
 void print_csv_info(std::string name, insert_time *info)
