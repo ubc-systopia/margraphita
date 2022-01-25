@@ -2,11 +2,29 @@
 set -x
 set -e
 
-TYPES=( "adj" "std"  ) #"ekey" )
-DATASETS=( "s10_e8"  ) #"cit-Patents" )
-RESULT=/home/puneet/scratch/margraphita/outputs
+usage() { 
+echo "Usage: $0 [-d log_dir"  
+echo "log_dir : (required) the absolute path to the directory where the benchmark results will be stored"
+exit 1;}
+
+TYPES=( "adj" "std" "ekey" )
+DATASETS=( "cit-Patents" "s10_e8" )
+unset RESULT
 DATADIR=/home/puneet/gen_graphs
 COUNTS=10
+
+if [ -z "$*" ]; then echo "No args provided"; usage; fi
+while getopts "d:" o; do
+    case "${o}" in
+        (d)
+            RESULT=${OPTARG%/}
+            ;;
+        (*)
+            usage
+            ;;
+    esac
+done
+
 
 for ((scale=11; scale <=20; scale ++ )); do
     DATASETS+=( "s${scale}_e8" )
