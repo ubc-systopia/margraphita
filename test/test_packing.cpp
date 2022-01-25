@@ -7,6 +7,7 @@
 #include <iterator>
 #include <wiredtiger.h>
 #include <stdlib.h>
+#include <chrono>
 using namespace std;
 static const char *db_name = "test";
 
@@ -25,11 +26,11 @@ int main()
         return dist(mersenne_engine);
     };
 
-    vector<long> vec(10);
+    vector<long> vec(1000);
     generate(begin(vec), end(vec), gen);
 
-    for (long x : vec)
-        cout << x << endl;
+    // for (long x : vec)
+    //     cout << x << endl;
 
     WT_CONNECTION *conn;
     WT_SESSION *session;
@@ -41,6 +42,7 @@ int main()
     This is a definitely a problem with the API -- as an application developer, I need to know the size 
     of the buffer needed to hold the packed array before I pack it. 
     */
+    auto start = std::chrono::steady_clock::now();
     WT_PACK_STREAM *psp, *psp1;
     WT_ITEM item;
     item.data = vec.data();
@@ -54,13 +56,26 @@ int main()
     wiredtiger_pack_item(psp, &item);
     size_t used;
     wiredtiger_pack_close(psp, &used);
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "packed in : "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+              << "\n";
 
+    start = std::chrono::steady_clock::now();
     WT_ITEM unpacked;
     wiredtiger_unpack_start(session, "u", pack_buf, used, &psp1);
     wiredtiger_unpack_item(psp1, &unpacked);
     cout << "\n"
          << used << endl;
+
+    std::vector<long> unpacked_vec;
     for (int i = 0; i < vec.size(); i++)
-        cout << ((long *)unpacked.data)[i] << "\t";
-    return 0;
+        unpacked_vec.push_back(((long *)unpacked.data)[i]);
+    // cout << ((long *)unpacked.data)[i] << "\t";
+    // return 0;
+    vec == unpacked_vec ? std::cout << "true" : std::cout << "false";
+    end = std::chrono::steady_clock::now();
+    std::cout << "unpacked in : "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+              << "\n";
 }
