@@ -6,7 +6,7 @@ project(graphapi    VERSION 1.0
 SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g -std=gnu++2a")
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     MESSAGE("Generating a debug build")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -pg")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline-functions -pg")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
     SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 ELSE()
