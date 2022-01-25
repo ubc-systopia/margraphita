@@ -1,11 +1,14 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
-#include <cstring>
-#include <unordered_map>
 #include <vector>
+#include <random>
+#include <algorithm>
+#include <iterator>
 #include <wiredtiger.h>
 #include <stdlib.h>
+#include <chrono>
+#include "common.h"
 using namespace std;
 static const char *db_name = "test";
 
@@ -49,49 +52,30 @@ int main()
   // Create an empty vector
   vector<int> vect;
 
-  bool val = true;
-  cout << "val is" << int(val) << endl;
-  val = false;
-  cout << "val is " << int(val) << endl;
-  vect.push_back(10);
-  vect.push_back(20);
-  vect.push_back(30); //keeping the packing buffer size the same, this fails if the vector values are changed to 100, 200, 300
+  random_device rnd_device;
+  // Specify the engine and distribution.
+  mt19937 mersenne_engine{rnd_device()}; // Generates random integers
+  uniform_int_distribution<long> dist{214748, 3147483};
 
-  for (int x : vect)
-    cout << x << endl;
-
-  std::filesystem::path dirname = "./db/" + string(db_name);
-  if (std::filesystem::exists(dirname))
+  auto gen = [&dist, &mersenne_engine]()
   {
-    filesystem::remove_all(dirname); // remove if exists;
-  }
-  std::filesystem::create_directory(dirname);
+    return dist(mersenne_engine);
+  };
 
-  WT_CONNECTION *conn;
-  WT_SESSION *session;
-  /* Open a connection to the database, creating it if necessary. */
-  wiredtiger_open(dirname.c_str(), NULL, "create", &conn);
-  /* Open a session for the current thread's work. */
-  conn->open_session(conn, NULL, NULL, &session);
-  /* Do some work... */
-  /* Note: closing the connection implicitly closes open session(s). */
-  char *buffer = (char *)malloc(1000000);
-  size_t size = 1000000;
+  vector<int> vec(1000);
+  generate(begin(vec), end(vec), gen);
+  size_t size;
+  auto start = std::chrono::steady_clock::now();
+  std::string packed = CommonUtil::pack_int_vector_std(vec, &size);
+  auto end = std::chrono::steady_clock::now();
+  std::cout << "packed in : "
+            << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+            << "\n";
 
-  WT_PACK_STREAM *psp;
-  const char *fmt = "III";
-  int ret = wiredtiger_pack_start(session, fmt, buffer, size, &psp);
-  //wiredtiger_pack_str(psp, fmt);
-  for (int x : vect)
-  {
-    ret = wiredtiger_pack_int(psp, x);
-  }
-  size_t used;
-  cout << "used : " << used << endl;
-  wiredtiger_pack_close(psp, &used);
-
-  vector<int> unpack = unpack_int_vector(buffer, session);
-
-  conn->close(conn, NULL);
-  return 0;
+  start = std::chrono::steady_clock::now();
+  std::vector<int> unpacked = CommonUtil::unpack_int_vector_std(packed);
+  end = std::chrono::steady_clock::now();
+  std::cout << "unpacked in : "
+            << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+            << "\n";
 }

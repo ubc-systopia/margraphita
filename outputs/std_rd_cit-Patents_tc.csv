@@ -1,0 +1,2 @@
+#db_name, benchmark, cycle_count, cycle_time_usec, trust_count, trust_time_usecs
+std_rd_cit-Patents,tc,0,16908641624,7512585,1089486629
