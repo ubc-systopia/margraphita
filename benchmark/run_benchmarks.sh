@@ -4,27 +4,35 @@ set -e
 
 usage() { 
 echo "Usage: $0 [-d log_dir"  
-echo "log_dir : (required) the absolute path to the directory where the benchmark results will be stored"
+echo "log_dir : the absolute path to the directory where the benchmark results will be stored"
 exit 1;}
 
 TYPES=( "adj" "std" "ekey" )
 DATASETS=( "cit-Patents" "s10_e8" )
-unset RESULT
+RESULT=$HOME/scratch/margraphita/outputs #This is the directory where log files will get generated. If not passed in args, this will default to $HOME/scratch/margraphita/outputs/
 DATADIR=/home/puneet/gen_graphs
 COUNTS=10
 
-if [ -z "$*" ]; then echo "No args provided"; usage; fi
-while getopts "d:" o; do
+while getopts "dh" o; do
     case "${o}" in
         (d)
+            unset RESULT
             RESULT=${OPTARG%/}
+            echo "Using ${RESULT} as the log directory."
+            ;;
+        (h)
+            usage
+            exit
             ;;
         (*)
             usage
+            exit
             ;;
     esac
 done
 
+if [ $OPTIND -eq 1 ]; then echo "No options were passed. Using ${RESULTS} as log dir."; fi
+echo $RESULT
 
 for ((scale=11; scale <=20; scale ++ )); do
     DATASETS+=( "s${scale}_e8" )
