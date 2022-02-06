@@ -8,6 +8,12 @@
 #include <stdlib.h>
 #include <variant>
 #include <wiredtiger.h>
+#ifdef MACOSX
+#include <experimental/filesystem>
+#endif
+#ifdef LINUX
+#include <filesystem>>
+#endif
 
 const std::string METADATA = "metadata";
 const std::string DB_NAME = "db_name";
@@ -46,6 +52,62 @@ const std::string IN_ADJLIST = "adjlistin";
 const std::string SRC_INDEX = "IX_edge_" + SRC;
 const std::string DST_INDEX = "IX_edge_" + DST;
 const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
+
+void CommonUtil::create_dir(std::string path)
+{
+#ifdef MACOSX
+    std::experimental::filesystem::path dirname = path;
+    if (std::experimental::filesystem::exists(dirname))
+    {
+        filesystem::remove_all(dirname); // remove if exists;
+    }
+    std::experimental::filesystem::create_directories(dirname);
+#endif
+#ifdef LINUX
+    stdfilesystem::path dirname = path;
+    if (std::filesystem::exists(dirname))
+    {
+        std::filesystem::remove_all(dirname); // remove if exists;
+    }
+    std::filesystem::create_directories(dirname);
+#endif
+}
+
+void CommonUtil::remove_dir(std::string path)
+{
+#ifdef MACOSX
+    std::experimental::filesystem::remove_all(path);
+#endif
+#ifdef LINUX
+    std::filesystem::remove_all(path);
+#endif
+}
+
+bool CommonUtil::check_dir_exists(std::string path)
+{
+#ifdef MACOSX
+    std::experimental::filesystem::path dirname = db_dir + "/" + db_name;
+    if (std::experimental::filesystem::exists(dirname))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+#endif
+#ifdef LINUX
+    std::filesystem::path dirname = db_dir + "/" + db_name;
+    if (std::filesystem::exists(dirname))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+#endif
+}
 
 void CommonUtil::set_table(WT_SESSION *session, std::string prefix,
                            std::vector<std::string> columns,
@@ -831,4 +893,62 @@ std::vector<int> CommonUtil::unpack_vector_int(WT_SESSION *session, WT_ITEM pack
         unpacked.push_back(found);
     }
     return unpacked;
+}
+
+/**
+ * We need to change how the int/string vector packing is implemented:
+ * 1. pack_int_vector
+ * 2. unpack_int_vector
+ * 3. pack_string_vector
+ * 4. unpack_string_vector
+ * 
+ */
+
+/**
+ * @brief This function unpacks the buffer into a vector<int>. This assumes the
+ * buffer was packed using pack_int_vector_std()
+ * @param to_unpack string that contains the packed vector
+ * @return std::vector<int> unpacked buffer
+ */
+std::vector<int> CommonUtil::unpack_int_vector_wti(WT_SESSION *session, size_t size, char *packed_str)
+{
+    WT_PACK_STREAM *psp;
+    WT_ITEM unpacked;
+    size_t used;
+    wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
+    wiredtiger_unpack_item(psp, &unpacked);
+    wiredtiger_pack_close(psp, &used);
+    std::vector<int> unpacked_vec;
+
+    int vec_size = (int)size / sizeof(int);
+    for (int i = 0; i < vec_size; i++)
+        unpacked_vec.push_back(((long *)unpacked.data)[i]);
+    return unpacked_vec;
+}
+
+/**
+ * @brief This function is used to pack all integers in the integer vector by
+ * using the wiredtiger packing stream interface. There's nothing to it, really:
+ * This packs it into a malloc'd buffer and sets the size variable passed as argument.
+ *
+ * @param session The WiredTiger Session variable
+ * @param to_pack The vector of ints to pack.
+ * @param size pointer to a size_t variable to store the size of buffer. THIS IS NEEDED TO UNPACK -> STORE THIS IN THE TABLE
+ * @return buffer containing the packed array.
+ */
+char *CommonUtil::pack_int_vector_wti(WT_SESSION *session, std::vector<int> to_pack, size_t *size)
+{
+    WT_PACK_STREAM *psp;
+    WT_ITEM item;
+    item.data = to_pack.data();
+    item.size = sizeof(int) * to_pack.size();
+
+    void *pack_buf = malloc(sizeof(int) * to_pack.size());
+    int ret = wiredtiger_pack_start(session, "u", pack_buf,
+                                    item.size, &psp);
+
+    wiredtiger_pack_item(psp, &item);
+    wiredtiger_pack_close(psp, size);
+
+    return (char *)pack_buf;
 }

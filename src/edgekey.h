@@ -3,7 +3,6 @@
 
 #include "common.h"
 #include "graph_exception.h"
-#include <filesystem>
 #include <iostream>
 #include <string>
 #include <unordered_map>

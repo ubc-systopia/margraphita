@@ -16,12 +16,8 @@ const char *home;
 void __setup()
 {
     // Create new directory for WT DB
-    std::filesystem::path dirname = "./db/common_test";
-    if (std::filesystem::exists(dirname))
-    {
-        filesystem::remove_all(dirname); // remove if exists;
-    }
-    std::filesystem::create_directories(dirname);
+    std::string dirname = "./db/common_test";
+    CommonUtil::create_dir(dirname);
 
     wiredtiger_open(dirname.c_str(), NULL, "create", &conn);
     conn->open_session(conn, NULL, NULL, &session);
@@ -30,7 +26,7 @@ void __setup()
 void __close()
 {
     conn->close(conn, NULL);
-    filesystem::remove_all("./db/common_test");
+    CommonUtil::remove_dir("./db/common_test");
 }
 
 TEST(CommonTest, TestPackStringVector)

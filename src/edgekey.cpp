@@ -1,6 +1,5 @@
 #include "edgekey.h"
 #include "common.h"
-#include <filesystem>
 #include <algorithm>
 #include <cstring>
 #include <cassert>
@@ -43,10 +42,10 @@ EdgeKey::EdgeKey(graph_opts opt_params)
     }
     else
     {
-        std::filesystem::path dirname = db_dir + "/" + db_name;
-        if (std::filesystem::exists(dirname))
+        string dirname = db_dir + "/" + db_name;
+        if (CommonUtil::check_dir_exists(dirname))
         {
-            __restore_from_db(db_dir + "/" + db_name);
+            __restore_from_db(dirname);
         }
         else
         {
@@ -65,12 +64,8 @@ void EdgeKey::create_new_graph()
 {
     int ret = 0;
     //Create new directory for WT DB
-    std::filesystem::path dirname = db_dir + "/" + db_name;
-    if (std::filesystem::exists(dirname))
-    {
-        filesystem::remove_all(dirname);
-    }
-    std::filesystem::create_directories(dirname);
+    std::string dirname = db_dir + "/" + db_name;
+    CommonUtil::create_dir(dirname);
 
     //open connection to WT DB
     ret = CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), &conn);

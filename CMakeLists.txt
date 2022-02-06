@@ -2,7 +2,13 @@ cmake_minimum_required(VERSION 3.16)
 project(graphapi    VERSION 1.0 
                     DESCRIPTION "C++ GraphAPI for WiredTiger"
                     LANGUAGES CXX)
-
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    MESSAGE("Building on MacOSX")
+    set(MACOSX TRUE)
+else()
+    MESSAGE("Building on Linux")
+    set(LINUX TRUE)
+endif()
 SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g -std=gnu++2a")
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     MESSAGE("Generating a debug build")

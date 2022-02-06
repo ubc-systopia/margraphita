@@ -11,8 +11,9 @@
 #include "edgekey.h"
 #include <sys/mman.h>
 #include "command_line.h"
-#include "logger.h"
 #include "reader.h"
+#include <iostream>
+#include <fstream>
 
 using namespace std;
 const float dampness = 0.85;

@@ -83,7 +83,8 @@
         "ios": "cpp",
         "locale": "cpp",
         "mutex": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "any": "cpp"
     },
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "cmake.configureOnOpen": false,

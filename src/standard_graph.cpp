@@ -53,8 +53,7 @@ StandardGraph::StandardGraph(graph_opts opt_params)
     else
     {
         // Check that the DB directory exists
-        std::filesystem::path dirname = db_dir + "/" + db_name;
-        if (std::filesystem::exists(dirname))
+        if (CommonUtil::check_dir_exists(db_dir + "/" + db_name))
         {
             __restore_from_db(db_dir + "/" + db_name);
         }
@@ -69,12 +68,8 @@ void StandardGraph::create_new_graph()
 {
     int ret;
     // Create new directory for WT DB
-    std::filesystem::path dirname = db_dir + "/" + db_name;
-    if (std::filesystem::exists(dirname))
-    {
-        filesystem::remove_all(dirname); // remove if exists;
-    }
-    std::filesystem::create_directories(dirname);
+    std::string dirname = db_dir + "/" + db_name;
+    CommonUtil::create_dir(dirname);
 
     // open connection to WT
     if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), &conn) < 0)

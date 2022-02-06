@@ -83,6 +83,11 @@ typedef struct adjlist
 class CommonUtil
 {
 public:
+    static void create_dir(std::string path);
+    static void remove_dir(std::string path);
+
+    static bool check_dir_exists(std::string path);
+
     static void set_table(WT_SESSION *session, std::string prefix,
                           std::vector<std::string> columns, std::string key_fmt,
                           std::string val_fmt);
@@ -126,6 +131,9 @@ public:
     static std::string pack_int_vector_std(std::vector<int> to_pack, size_t *size);
     static std::vector<int> unpack_int_vector_std(std::string packed_str);
 
+    static char *pack_int_vector_wti(WT_SESSION *session, std::vector<int> to_pack, size_t *size);
+    static std::vector<int> unpack_int_vector_wti(WT_SESSION *session, size_t size, char *packed_str);
+
     // WT Session and Cursor wrangling operations
     static int open_cursor(WT_SESSION *session, WT_CURSOR **cursor,
                            std::string uri, WT_CURSOR *to_dup,
@@ -148,7 +156,7 @@ public:
     static std::vector<int> unpack_vector_int(WT_SESSION *, WT_ITEM packed, std::string format);
 
     static WT_ITEM pack_items(WT_SESSION *session, std::string fmt, ...);
-    static std::variant<int, std::string> unpack_items(WT_SESSION *session, std::string fmt, WT_ITEM packed);
+    //static std::variant<int, std::string> unpack_items(WT_SESSION *session, std::string fmt, WT_ITEM packed);
 };
 
 #endif

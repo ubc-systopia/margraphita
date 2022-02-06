@@ -11,8 +11,8 @@
 #include "adj_list.h"
 #include "edgekey.h"
 #include "command_line.h"
-#include "logger.h"
-
+#include <iostream>
+#include <fstream>
 /**
  * This runs the BFS on the graph using src as the starting node.  
  */

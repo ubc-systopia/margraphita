@@ -12,8 +12,8 @@
 #include "adj_list.h"
 #include "edgekey.h"
 #include "command_line.h"
-#include "logger.h"
-
+#include <iostream>
+#include <fstream>
 /**
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts
  */
