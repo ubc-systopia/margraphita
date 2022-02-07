@@ -64,7 +64,7 @@ void CommonUtil::create_dir(std::string path)
     std::experimental::filesystem::create_directories(dirname);
 #endif
 #ifdef LINUX
-    stdfilesystem::path dirname = path;
+    std::filesystem::path dirname = path;
     if (std::filesystem::exists(dirname))
     {
         std::filesystem::remove_all(dirname); // remove if exists;
