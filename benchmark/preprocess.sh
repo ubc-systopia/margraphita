@@ -3,13 +3,14 @@ set -e
 set -x
 
 usage() { 
-echo "Usage: $0 [-f <dataset path> -o <output path> -m <dataset name> -n<edge count> -e<edge count> -t <type> -i"  
+echo "Usage: $0 [-f <dataset path> -o <output path> -m <dataset name> -n<edge count> -e<edge count> -t <type> -i -l <log_dir>"  
 echo "Dataset path : the absolute path to the dataset that is being inserted."
 echo "Output path: absolute path to the **directory** that should contain the output
 files"
 echo "Dataset name : used to construct the DB name and to name the output files"
 echo "type is one of std, ekey, adj. Use all for all types of tables"
 echo "i - if this flag is passed, indices are created."
+echo "l - save log file in the passed log_dir instead of the PWD"
 echo "if cit-Patents is in ~/datasets/cit-Patents/cit-Patents.txt"
 echo " -f ~/datasets/cit-Patents/cit-Patents.txt"
 echo " -o ~/datasets/cit-Patents"
@@ -18,12 +19,16 @@ echo " -t std"
 exit 1;}
 
 index_create=0
+RESULT=$(pwd)
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
 while getopts "f:o:m:e:n:t:i" o; do
     case "${o}" in
         (f)
             filename=${OPTARG%/}
+            ;;
+        (l)
+            $RESULT=${OPTARG%/}
             ;;
         (o)
             output=${OPTARG%/}
@@ -113,25 +118,28 @@ fi
 
 # #Now insert into the database
 # # touch insert_time.txt
- echo "#Inserting ${dataset}" >> insert_time.txt
- echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> insert_time.txt
- echo "#${dataset}:" >> insert_time.txt
- echo "#${dataset}:" >> insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -r >> insert_log.txt
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} >> insert_log.txt
+mkdir -p $RESULT
+
+echo "#Inserting ${dataset}" >> insert_time.txt
+echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> ${RESULT}/insert_time.txt
+echo "#${dataset}:" >> ${RESULT}/insert_time.txt
+echo "#${dataset}:" >> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
 
 if [ $index_create -eq 1 ]
 then
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l std -x &> insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_d_$./{dataset}  -b PR -a ${output} -s ${dataset} -d -l std -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l std -x &> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_d_$./{dataset}  -b PR -a ${output} -s ${dataset} -d -l std -x &> ${RESULT}/insert_log.txt
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l adj -x &> insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l adj -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l adj -x &> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l adj -x &> ${RESULT}/insert_log.txt
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ekey -x &> insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ekey -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ekey -x &> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ekey -x &> ${RESULT}/insert_log.txt
 
 fi
 # echo -ne '\007'

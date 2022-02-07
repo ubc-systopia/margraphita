@@ -47,15 +47,15 @@ typedef struct time_info
     time_info(int _val) : insert_time(_val), read_time(_val), num_inserted(_val){};
 } time_info;
 
-void print_time_csvline(std::string db_name, std::string db_path, time_info *edget, time_info *nodet)
+void print_time_csvline(std::string db_name, std::string db_path, time_info *edget, time_info *nodet, bool is_readopt, std::string logfile_name)
 {
     std::ofstream log_file;
-    log_file.open("new_kron_insert.csv", std::fstream::app);
-    log_file << "db_name,db_path, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
+    log_file.open(logfile_name, std::fstream::app);
+    log_file << "db_name, db_path, is_readopt, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
     log_file
         << db_name << ","
         << db_path << ","
-        << db_name << ","
+        << is_readopt << ","
         << nodet->num_inserted << ","
         << edget->num_inserted << ","
         << edget->read_time << ","
@@ -292,9 +292,11 @@ int main(int argc, char *argv[])
     std::string db_name;
     std::string db_path;
     std::string type_opt;
+    std::string logfile;
     static struct option long_opts[] = {
         {"db", required_argument, 0, 'd'},
         {"path", required_argument, 0, 'p'},
+        {"log", required_argument, 0, 'l'},
         {"edges", required_argument, 0, 'e'},
         {"nodes", required_argument, 0, 'n'},
         {"file", required_argument, 0, 'f'},
@@ -304,7 +306,7 @@ int main(int argc, char *argv[])
     int option_idx = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "d:p:e:n:f:t:ru", long_opts, &option_idx)) != -1)
+    while ((c = getopt_long(argc, argv, "d:p:l:e:n:f:t:ru", long_opts, &option_idx)) != -1)
     {
         switch (c)
         {
@@ -313,6 +315,9 @@ int main(int argc, char *argv[])
             break;
         case 'p':
             db_path = optarg;
+            break;
+        case 'l':
+            logfile = optarg;
             break;
         case 'e':
             num_edges = atol(optarg);
@@ -420,12 +425,8 @@ int main(int argc, char *argv[])
         edge_times->num_inserted += this_thread_time->num_inserted;
         edge_times->read_time += this_thread_time->read_time;
     }
-    std::cout << " total inserted edges from threads = " << edge_times->num_inserted << " num_edges = " << num_edges << std::endl;
-    std::cout << "average time in insert_edges " << edge_times->insert_time / NUM_THREADS << std::endl;
-    std::cout << "average read time in insert_edges " << edge_times->read_time / NUM_THREADS << std::endl;
     auto end = std::chrono::steady_clock::now();
-
-    std::cout << " Total time to insert edges from outside was " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+    std::cout << " Total time to insert edges was " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
     //Now insert nodes;
     start = std::chrono::steady_clock::now();
@@ -443,12 +444,23 @@ int main(int argc, char *argv[])
         node_times->read_time += this_thread_time->read_time;
     }
     end = std::chrono::steady_clock::now();
-    std::cout << " total inserted nodes from threads = " << node_times->num_inserted << " num_nodes = " << num_nodes << std::endl;
-    std::cout << "average time in insert_nodes " << node_times->insert_time / NUM_THREADS << std::endl;
-    std::cout << "average read time in insert_nodes " << node_times->read_time / NUM_THREADS << std::endl;
-    std::cout << " nodes inserted in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+    std::cout << " Total time to insert nodes was " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    print_time_csvline(db_name, db_path, edge_times, node_times);
+    //Adjust for threads
+    node_times->insert_time = node_times->insert_time / NUM_THREADS;
+    node_times->read_time = node_times->read_time / NUM_THREADS;
+    edge_times->insert_time = edge_times->insert_time / NUM_THREADS;
+    edge_times->read_time = edge_times->read_time / NUM_THREADS;
+
+    std::cout << "total inserted edges = " << edge_times->num_inserted << " num_edges = " << num_edges << std::endl;
+    std::cout << "time to insert edges " << edge_times->insert_time << std::endl;
+    std::cout << "time to read edges " << edge_times->read_time << std::endl;
+
+    std::cout << "total inserted nodes  = " << node_times->num_inserted << " num_nodes = " << num_nodes << std::endl;
+    std::cout << "time to insert_nodes " << node_times->insert_time << std::endl;
+    std::cout << "time to read nodes " << node_times->read_time << std::endl;
+
+    print_time_csvline(db_name, db_path, edge_times, node_times, read_optimized, logfile);
 
     if (type_opt.compare("all") == 0 || type_opt.compare("std") == 0)
     {
