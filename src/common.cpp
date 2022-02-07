@@ -59,7 +59,7 @@ void CommonUtil::create_dir(std::string path)
     std::experimental::filesystem::path dirname = path;
     if (std::experimental::filesystem::exists(dirname))
     {
-        filesystem::remove_all(dirname); // remove if exists;
+        std::experimental::filesystem::remove_all(dirname); // remove if exists;
     }
     std::experimental::filesystem::create_directories(dirname);
 #endif
@@ -86,8 +86,7 @@ void CommonUtil::remove_dir(std::string path)
 bool CommonUtil::check_dir_exists(std::string path)
 {
 #ifdef MACOSX
-    std::experimental::filesystem::path dirname = db_dir + "/" + db_name;
-    if (std::experimental::filesystem::exists(dirname))
+    if (std::experimental::filesystem::exists(path))
     {
         return true;
     }
@@ -97,8 +96,7 @@ bool CommonUtil::check_dir_exists(std::string path)
     }
 #endif
 #ifdef LINUX
-    std::filesystem::path dirname = db_dir + "/" + db_name;
-    if (std::filesystem::exists(dirname))
+    if (std::filesystem::exists(path))
     {
         return true;
     }
@@ -922,7 +920,7 @@ std::vector<int> CommonUtil::unpack_int_vector_wti(WT_SESSION *session, size_t s
 
     int vec_size = (int)size / sizeof(int);
     for (int i = 0; i < vec_size; i++)
-        unpacked_vec.push_back(((long *)unpacked.data)[i]);
+        unpacked_vec.push_back(((int *)unpacked.data)[i]);
     return unpacked_vec;
 }
 

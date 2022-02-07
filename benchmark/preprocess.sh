@@ -51,6 +51,12 @@ done
 
 NUM_THREADS=10
 NUM_FILES=10
+NUM_LINES=$(wc -l ${filename} | cut -d' '  -f2)
+if [[ $OSTYPE == 'darwin'* ]]; then
+  TIME_CMD=/usr/local/bin/gtime
+else
+  TIME_CMD=/usr/bin/time
+fi
 
 ##remove all lines that begin with a comment
 sort --parallel=$NUM_THREADS -k 1,2 ${filename} | parallel --pipe sed '/^#/d' > ${output}/${dataset}_sorted.txt
@@ -59,11 +65,26 @@ mv ${output}/${dataset}_sorted.txt ${filename} #overwrite the original file
 # with the sorted, no comment version
 
 # ##Split the edges file
-split --number=l/$NUM_FILES ${filename} "${output}/${dataset}_edges"
+if [[ $OSTYPE == "darwin"* ]]; then
+    split -l `expr $NUM_LINES / $NUM_FILES` ${filename} "${output}/${dataset}_edges"
+elif [[ $OSTYPE == 'linux-gnu'* ]]; then
+    split --number=l/$NUM_FILES ${filename} "${output}/${dataset}_edges"
+else
+    echo "unknown platform $OSTYPE"
+    exit 1
+fi
+
 
 #Create a nodes file
 sed -e 's/\t/\n/g; s/\r//g' ${filename} | sort -u --parallel=$NUM_THREADS > ${output}/${dataset}_nodes
-split --number=l/$NUM_FILES ${output}/${dataset}_nodes ${output}/${dataset}_nodes
+if [[ $OSTYPE == 'darwin'* ]]; then
+    split -l `expr $NUM_LINES / $NUM_FILES` ${filename} "${output}/${dataset}_nodes"
+elif [[ $OSTYPE == 'linux-gnu'* ]]; then
+    split --number=l/$NUM_FILES ${output}/${dataset}_nodes ${output}/${dataset}_nodes
+else
+    echo "unknown platform $OSTYPE"
+    exit 1
+fi
 
 #Now create an empty DBs for all three representations for  insertion
 #Using pagerank for this. Too lazy to do any better :(
@@ -96,21 +117,21 @@ fi
  echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> insert_time.txt
  echo "#${dataset}:" >> insert_time.txt
  echo "#${dataset}:" >> insert_log.txt
-/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -r &>> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -r >> insert_log.txt
 
-/usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} &>> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} >> insert_log.txt
 
 if [ $index_create -eq 1 ]
 then
 
-usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l std -x &> insert_log.txt
-usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_d_$./{dataset}  -b PR -a ${output} -s ${dataset} -d -l std -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l std -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_d_$./{dataset}  -b PR -a ${output} -s ${dataset} -d -l std -x &> insert_log.txt
 
-usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l adj -x &> insert_log.txt
-usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l adj -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l adj -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l adj -x &> insert_log.txt
 
-usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ekey -x &> insert_log.txt
-usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ekey -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ekey -x &> insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ekey -x &> insert_log.txt
 
 fi
 # echo -ne '\007'

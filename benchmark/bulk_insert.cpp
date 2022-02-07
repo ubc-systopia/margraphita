@@ -239,8 +239,9 @@ void *insert_node(void *arg)
                 size_t size;
                 try
                 {
-                    std::string packed_inlist = CommonUtil::pack_int_vector_std(in_adjlist.at(to_insert.id), &size);
-                    adj_incur->set_value(adj_incur, to_insert.in_degree, packed_inlist.c_str());
+                    // std::string packed_inlist = CommonUtil::pack_int_vector_std(in_adjlist.at(to_insert.id), &size);
+                    char *packed = CommonUtil::pack_int_vector_wti(adj_sess, in_adjlist.at(to_insert.id), &size);
+                    adj_incur->set_value(adj_incur, to_insert.in_degree, packed);
                 }
                 catch (const std::out_of_range &oor)
                 {
@@ -249,8 +250,9 @@ void *insert_node(void *arg)
 
                 try
                 {
-                    std::string packed_outlist = CommonUtil::pack_int_vector_std(out_adjlist.at(to_insert.id), &size);
-                    adj_outcur->set_value(adj_outcur, to_insert.out_degree, packed_outlist.c_str());
+                    //std::string packed_outlist = CommonUtil::pack_int_vector_std(out_adjlist.at(to_insert.id), &size);
+                    char *packed = CommonUtil::pack_int_vector_wti(adj_sess, out_adjlist.at(to_insert.id), &size);
+                    adj_outcur->set_value(adj_outcur, to_insert.out_degree, packed);
                 }
                 catch (const std::out_of_range &oor)
                 {
