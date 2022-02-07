@@ -10,7 +10,7 @@ git commit -a
 
 
 #Now create the log directory
-commit_id=`git rev-parse HEAD`
+commit_id=`git rev-parse --short HEAD`
 
 #create directory where the scripts will insert logs
 dir="${HOME}/scratch/margraphita/outputs/${commit_id}"

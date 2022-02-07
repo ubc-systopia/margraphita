@@ -22,13 +22,13 @@ index_create=0
 RESULT=$(pwd)
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
-while getopts "f:o:m:e:n:t:i" o; do
+while getopts "f:l:o:m:e:n:t:i" o; do
     case "${o}" in
         (f)
             filename=${OPTARG%/}
             ;;
         (l)
-            $RESULT=${OPTARG%/}
+            RESULT=${OPTARG%/}
             ;;
         (o)
             output=${OPTARG%/}

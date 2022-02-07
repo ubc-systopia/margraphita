@@ -47,14 +47,15 @@ typedef struct time_info
     time_info(int _val) : insert_time(_val), read_time(_val), num_inserted(_val){};
 } time_info;
 
-void print_time_csvline(std::string db_name, std::string db_path, time_info *edget, time_info *nodet, bool is_readopt, std::string logfile_name)
+void print_time_csvline(std::string db_name, std::string db_path, time_info *edget, time_info *nodet, bool is_readopt, std::string logfile_name, std::string type)
 {
     std::ofstream log_file;
     log_file.open(logfile_name, std::fstream::app);
-    log_file << "db_name, db_path, is_readopt, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
+    log_file << "db_name, db_path, type, is_readopt, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
     log_file
         << db_name << ","
         << db_path << ","
+        << type << ","
         << is_readopt << ","
         << nodet->num_inserted << ","
         << edget->num_inserted << ","
@@ -460,7 +461,7 @@ int main(int argc, char *argv[])
     std::cout << "time to insert_nodes " << node_times->insert_time << std::endl;
     std::cout << "time to read nodes " << node_times->read_time << std::endl;
 
-    print_time_csvline(db_name, db_path, edge_times, node_times, read_optimized, logfile);
+    print_time_csvline(db_name, db_path, edge_times, node_times, read_optimized, logfile, type_opt);
 
     if (type_opt.compare("all") == 0 || type_opt.compare("std") == 0)
     {

@@ -8,10 +8,10 @@ usage() {
 log_dir=$(pwd)
 
 if [ -z "$*" ]; then echo "No log dir provided. Using cwd."; fi
-while getopts "l" o; do
+while getopts ":l:" o; do
     case "${o}" in
         (l)
-            log_dir=${OPTARG%/}
+            log_dir=${OPTARG}
             ;;
         (*)
             usage
