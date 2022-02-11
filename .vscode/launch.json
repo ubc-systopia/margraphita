@@ -5,10 +5,34 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "test_packing",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/Users/Puneet89/scratch/margraphita/build/test/test_packing",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+        {
+            "name": "test_adjlist",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/Users/Puneet89/scratch/margraphita/build/test/test_adj_list",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+        {
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/puneet/scratch/margraphita/build/test/test",
+            "program": "/home/puneet/scratch/margraphita/build/test/test_adj_list",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

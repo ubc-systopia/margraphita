@@ -19,45 +19,45 @@ public:
     void create_new_graph();
     void init_cursors();
 
-    void add_node(node &to_insert);
-    void add_node(int &to_insert, std::vector<int> &inlist, std::vector<int> &outlist);
-    bool has_node(int &node_id);
-    node get_node(int &node_id);
-    void delete_node(int &node_id);
+    void add_node(node to_insert);
+    void add_node(int to_insert, std::vector<int> &inlist, std::vector<int> &outlist);
+    bool has_node(int node_id);
+    node get_node(int node_id);
+    void delete_node(int node_id);
     node get_random_node();
-    int get_in_degree(int &node_id);
-    int get_out_degree(int &node_id);
+    int get_in_degree(int node_id);
+    int get_out_degree(int node_id);
     std::vector<node> get_nodes();
 
     int get_num_nodes();
     int get_num_edges();
 
-    void add_edge(edge &to_insert, bool is_bulk);
-    bool has_edge(int &src_id, int &dst_id);
-    int get_edge_weight(int &src_id, int &dst_id);
-    void delete_edge(int &src_id, int &dst_id);
-    void update_edge_weight(int &src_id, int &dst_id, int &edge_weight);
+    void add_edge(edge to_insert, bool is_bulk);
+    bool has_edge(int src_id, int dst_id);
+    int get_edge_weight(int src_id, int dst_id);
+    void delete_edge(int src_id, int dst_id);
+    void update_edge_weight(int src_id, int dst_id, int edge_weight);
 
-    void add_adjlist(WT_CURSOR *cursor, int &node_id);
-    void add_adjlist(WT_CURSOR *cursor, int &node_id, std::vector<int> &list);
-    void delete_adjlist(WT_CURSOR *cursor, int &node_id);
-    void delete_node_from_adjlists(int &node_id);
-    std::vector<int> get_adjlist(WT_CURSOR *cursor, int &node_id);
-    void add_to_adjlists(WT_CURSOR *cursor, int &node_id, int &to_insert);
-    void delete_from_adjlists(WT_CURSOR *cursor, int &node_id, int &to_delete);
+    void add_adjlist(WT_CURSOR *cursor, int node_id);
+    void add_adjlist(WT_CURSOR *cursor, int node_id, std::vector<int> &list);
+    void delete_adjlist(WT_CURSOR *cursor, int node_id);
+    void delete_node_from_adjlists(int node_id);
+    std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id);
+    void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert);
+    void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete);
 
-    void delete_related_edges_and_adjlists(int &node_id);
+    void delete_related_edges_and_adjlists(int node_id);
 
-    void update_node_degree(WT_CURSOR *cursor, int &node_id, int &in_degree,
-                            int &out_degree);
-    edge get_edge(int &src_id, int &dst_id);
+    void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
+                            int out_degree);
+    edge get_edge(int src_id, int dst_id);
     // void update_edge(int src_id, int dst_id, char *new_attrs); <-not needed.
     // skip.
     std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(int &node_id);
-    std::vector<node> get_out_nodes(int &node_id);
-    std::vector<edge> get_in_edges(int &node_id);
-    std::vector<node> get_in_nodes(int &node_id);
+    std::vector<edge> get_out_edges(int node_id);
+    std::vector<node> get_out_nodes(int node_id);
+    std::vector<edge> get_in_edges(int node_id);
+    std::vector<node> get_in_nodes(int node_id);
     //! void set_node_data(int node_id, int idx, string data);
     //! Do we need get all weights of in/out degree from a node
     std::string get_node_data(int node_id, int idx);
@@ -68,6 +68,7 @@ public:
     // Metadata operations:
     void insert_metadata(const string &key, const char *value);
     string get_metadata(const string &key); //
+    void dump_tables();
     void close();
 
     WT_CURSOR *get_node_cursor();
@@ -102,7 +103,7 @@ private:
     string edge_key_format = "II"; // SRC DST in the edge table
     string edge_value_format = ""; // Make I if weighted , x otherwise
     string adjlist_key_format = "I";
-    string adjlist_value_format = "IS";
+    string adjlist_value_format = "Iu"; //This HAS to be u. S does not work. s needs the number.
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;

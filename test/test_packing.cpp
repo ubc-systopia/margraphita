@@ -62,8 +62,8 @@ int main()
         return dist(mersenne_engine);
     };
 
-    vector<int> vec(10000);
-    generate(begin(vec), end(vec), gen);
+    vector<int> vec;
+    //generate(begin(vec), end(vec), gen);
 
     // for (long x : vec)
     //     cout << x << endl;

@@ -768,7 +768,7 @@ void CommonUtil::dump_adjlist(adjlist to_print)
     {
         std::cout << n << " ";
     }
-    std::cout << std::endl;
+    std::cout << "}" << std::endl;
 }
 
 /*

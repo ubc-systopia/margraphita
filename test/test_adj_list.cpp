@@ -149,6 +149,7 @@ void test_add_edge(AdjList graph, bool is_directed)
     assert(got.id == 6);
 
     //Now check if the adjlists were updated
+    graph.dump_tables();
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
     in_adj_cur->set_key(in_adj_cur, test_id2);
     assert(in_adj_cur->search(in_adj_cur) == 0);
@@ -247,7 +248,7 @@ void test_get_in_edges(AdjList graph)
 void test_get_out_nodes(AdjList graph)
 {
     INFO();
-    int test_id1 = 3, test_id2 = 4, test_id3 = 1500;
+    int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
     std::vector<node> nodes = graph.get_out_nodes(test_id1);
     assert(nodes.size() == 2);
     assert(nodes.at(0).id == SampleGraph::node2.id); // edge(1->2)
@@ -422,11 +423,12 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
 int main()
 {
     graph_opts opts;
-    opts.create_new = false;
+    opts.create_new = true;
     opts.optimize_create = false;
     opts.is_directed = true;
     opts.read_optimize = true;
     opts.is_weighted = true;
+    opts.db_dir = "./db";
     opts.db_name = "test_adj";
 
     AdjList graph = AdjList(opts);
@@ -434,6 +436,10 @@ int main()
     test_get_nodes(graph);
     test_get_node(graph);
     test_add_edge(graph, opts.is_directed);
+    /*
+    test_add_fail should fail if create_new is false
+    add_edge->add_to_adjlists assumes no duplicate edges.
+    */
     test_get_edge(graph);
     test_get_out_edges(graph);
     test_get_out_edges(graph);
@@ -441,6 +447,8 @@ int main()
     test_get_out_nodes(graph);
     test_get_in_nodes(graph);
     test_get_in_degree(graph);
+    // tearDown(graph);
+    // return 0;
     test_delete_node(graph, opts.is_directed);
     test_delete_isolated_node(graph, opts.is_directed);
 
