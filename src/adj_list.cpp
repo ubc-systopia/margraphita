@@ -611,6 +611,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     {
         return; // we have already added adjlists while adding nodes.
     }
+    //! This assumes that there are no duplicate edges.
     add_to_adjlists(out_adjlist_cursor, to_insert.src_id, to_insert.dst_id);
     add_to_adjlists(in_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
     if (!is_directed)
