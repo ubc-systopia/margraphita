@@ -13,16 +13,17 @@ using namespace std;
 class StandardGraph
 {
 public:
-    StandardGraph(graph_opts opt_params);
+    StandardGraph(graph_opts &opt_params);
     StandardGraph();
 
     void create_new_graph();
     void add_node(node to_insert);
     bool has_node(int node_id);
-    bool has_edge(int src_id, int dst_id);
-    int get_edge_id(int src_id, int dst_id);
+    bool has_edge(int src_id, int dst_id, edge *found);
     int get_num_nodes();
     int get_num_edges();
+    void set_num_nodes(int numNodes);
+    void set_num_edges(int numEdges);
     node get_node(int node_id);
     node get_random_node();
     void delete_node(int node_id);
@@ -35,7 +36,6 @@ public:
     void delete_edge(int src_id, int dst_id);
     void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
                             int out_degree);
-    edge get_edge(int src_id, int dst_id);
     void update_edge_weight(int src_id, int dst_id, int edge_weight);
     // void update_edge(int src_id, int dst_id, char *new_attrs); <-not needed.
     // skip.
@@ -73,15 +73,18 @@ private:
     std::string db_dir;
 
     //structure of the graph
-    int edge_id;
+
     int node_attr_size = 0; // set on checking the list len
 
     vector<string> node_columns = {ID}; //Always there :)
-    vector<string> edge_columns = {ID, SRC, DST};
+    vector<string> edge_columns = {SRC, DST};
     string node_value_format;
     string node_key_format = "I";
-    string edge_key_format = "I";
-    string edge_value_format = "II";
+    string edge_key_format = "II";
+    string edge_value_format = ""; //I if weighted or b if unweighted.
+
+    string node_count = "nNodes";
+    string edge_count = "nEdges";
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
@@ -92,8 +95,8 @@ private:
     WT_CURSOR *metadata_cursor = NULL;
 
     void __node_to_record(WT_CURSOR *cursor, node to_insert);
-    node __record_to_node(WT_CURSOR *cursor);
-    edge __record_to_edge(WT_CURSOR *cursor);
+    void __record_to_node(WT_CURSOR *cursor, node *found);
+    void __record_to_edge(WT_CURSOR *cursor, edge *found);
     void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx);
 
     // Internal cursor methods

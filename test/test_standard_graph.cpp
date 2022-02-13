@@ -61,40 +61,40 @@ void test_node_delete(StandardGraph graph, bool is_directed)
     assert(graph.has_node(to_delete.id) == false);
 
     //check if the edges have been deleted
+    edge test;
     if (is_directed)
     {
         assert(graph.has_edge(SampleGraph::edge1.src_id,
-                              SampleGraph::edge1.dst_id) == false);
+                              SampleGraph::edge1.dst_id, &test) == false);
         assert(graph.has_edge(SampleGraph::edge3.src_id,
-                              SampleGraph::edge3.dst_id) == false);
+                              SampleGraph::edge3.dst_id, &test) == false);
     }
     else
     {
         //edge from 1->2
         assert(graph.has_edge(SampleGraph::edge1.src_id,
-                              SampleGraph::edge1.dst_id) == false);
+                              SampleGraph::edge1.dst_id, &test) == false);
         //edge from 2->1
         assert(graph.has_edge(SampleGraph::edge1.dst_id,
-                              SampleGraph::edge1.src_id) == false);
+                              SampleGraph::edge1.src_id, &test) == false);
         //edge from 2->3
         assert(graph.has_edge(SampleGraph::edge3.src_id,
-                              SampleGraph::edge3.dst_id) == false);
+                              SampleGraph::edge3.dst_id, &test) == false);
         //edge from 3->2
         assert(graph.has_edge(SampleGraph::edge3.dst_id,
-                              SampleGraph::edge3.src_id) == false);
+                              SampleGraph::edge3.src_id, &test) == false);
     }
 }
 
 void test_get_edge_id(StandardGraph graph)
 {
     INFO();
-    int eid1 = graph.get_edge_id(1, 2); //Edge ID 1
-    int eid2 = graph.get_edge_id(1, 3); //Edge ID 2
-    int eid3 = graph.get_edge_id(2, 3); //Edge ID 3
+    edge e;
+    assert(graph.has_edge(1, 2, &e) == true); //Edge ID 1
+    assert(graph.has_edge(1, 3, &e) == true); //Edge ID 2
+    assert(graph.has_edge(2, 3, &e) == true); //Edge ID 3
 
-    assert(eid1 == 1);
-    assert(eid2 == 2);
-    assert(eid3 == 3);
+    assert(graph.has_edge(10, 11, &e) == false); //non-existent edge
 }
 
 void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
@@ -223,7 +223,9 @@ void test_get_edges(StandardGraph graph, bool is_directed)
 {
 
     INFO();
-    CommonUtil::dump_edge(graph.get_edge(1, 2));
+    edge found;
+    graph.has_edge(1, 2, &found);
+    CommonUtil::dump_edge(found);
 
     vector<edge> edges = graph.get_edges();
 
@@ -236,69 +238,6 @@ void test_get_edges(StandardGraph graph, bool is_directed)
         assert(edges.size() == 3);
     }
 }
-
-// std::string create_intvec_format_new(std::vector<int> to_pack,
-//                                      size_t *total_size)
-// {
-//     std::string fmt = "I";
-//     *total_size = sizeof(uint32_t);
-
-//     for (int x : to_pack)
-//     {
-//         fmt = fmt + 'i';
-//         *total_size = *total_size + sizeof(int32_t);
-//     }
-//     return fmt;
-// }
-
-// char *pack_int_vector_wt_new(std::vector<int> to_pack, WT_SESSION *session,
-//                              size_t *size, std::string *fmt)
-// {
-
-//     size_t _size = 0;
-//     std::string format = create_intvec_format_new(to_pack, &_size);
-
-//     char *buffer = (char *)malloc((_size) * sizeof(int));
-//     WT_PACK_STREAM *psp;
-
-//     (void)wiredtiger_pack_start(session, format.c_str(), buffer, *size, &psp);
-//     for (int x : to_pack)
-//     {
-//         (void)wiredtiger_pack_int(psp, x);
-//     }
-//     *fmt = format;
-//     *size = _size;
-//     return buffer;
-// }
-
-// std::vector<int> unpack_int_vector_wt_new(const char *to_unpack, WT_SESSION *session, string format, size_t size)
-// {
-//     std::vector<int> unpacked_vector;
-//     WT_PACK_STREAM *psp;
-
-//     (void)wiredtiger_unpack_start(session, format.c_str(), to_unpack, size, &psp);
-//     for (uint i = 0; i < format.length(); i++)
-//     {
-//         int64_t res;
-//         (void)wiredtiger_unpack_int(psp, &res);
-//         unpacked_vector.push_back(res);
-//     }
-//     return unpacked_vector;
-// }
-
-// void test_int_pack()
-// {
-//     string testname = "Integer Vector Packing";
-//     int ret = 0;
-
-//     vector<int> test = {1, 2, 3, 4, 55, 66, 77, 888, 999};
-//     size_t size;
-//     string format;
-//     char *buffer = pack_int_vector_wt_new(test, session, &size, &format);
-//     vector<int> result = unpack_int_vector_wt_new(buffer, session, format, size);
-
-//     assert(result == test);
-// }
 
 void print_delim()
 {
@@ -316,17 +255,14 @@ int main()
     //opts.is_directed = false;
     //opts.read_optimize = false;
     opts.read_optimize = true;
-    opts.is_weighted = false;
+    opts.is_weighted = true;
     opts.db_name = "test_std";
+    opts.db_dir = "./db";
 
     //Test std_graph setup
     StandardGraph graph = StandardGraph(opts);
-    create_init_nodes(graph, opts.is_directed);
-    test_get_nodes(graph);
-    //tearDown(graph);
-    //exit(0);
 
-    //create_init_nodes(graph, opts.is_directed);
+    create_init_nodes(graph, opts.is_directed);
     print_delim();
 
     //Test num_get_nodes and num_get_edges
@@ -377,10 +313,6 @@ int main()
 
     //Test std_graph teardown
     tearDown(graph);
-
-    //test common util packing and unpacking features.
-    // test_stringvec_packing();
-    // test_intvec_packing();
 
     return 0;
 }
