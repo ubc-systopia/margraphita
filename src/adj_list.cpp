@@ -511,8 +511,6 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id, std::vector<int> &list
     cursor->set_key(cursor, node_id);
 
     // Now, initialize the in/out degree to 0 and adjlist to empty list
-    size_t size = 0;
-    //std::string packed_list = CommonUtil::pack_int_vector_std(list, &size);m
     WT_ITEM item;
     item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
     cursor->set_value(cursor, list.size(), item); // serialize the vector and send ""
@@ -817,12 +815,9 @@ int AdjList::get_out_degree(int node_id)
  */
 void AdjList::__record_to_adjlist(WT_CURSOR *cursor, adjlist *found)
 {
-    char *packed_vec;
     int degree;
     WT_ITEM item;
     cursor->get_value(cursor, &degree, &item);
-    //std::string str(packed_vec);
-    //found->edgelist = CommonUtil::unpack_int_vector_std(str);
     found->edgelist = CommonUtil::unpack_int_vector_wti(session, item.size, (char *)item.data);
     if (degree == 1 && found->edgelist.size() == 0)
     {
@@ -919,7 +914,6 @@ std::vector<edge> AdjList::get_edges()
 {
     std::vector<edge> edgelist;
     WT_CURSOR *e_cursor = get_edge_cursor();
-    int ret = 0;
     while (e_cursor->next(e_cursor) == 0)
     {
         edge found;
@@ -978,9 +972,7 @@ edge AdjList::get_edge(int src_id, int dst_id)
  */
 bool AdjList::has_edge(int src_id, int dst_id)
 {
-    edge found = {0};
     int ret = 0;
-    bool val;
 
     WT_CURSOR *e_cursor = get_edge_cursor();
     e_cursor->set_key(e_cursor, src_id, dst_id);
@@ -1002,12 +994,10 @@ int AdjList::get_edge_weight(int src_id, int dst_id)
     {
         throw GraphException("Aborting. Trying to get weight for an unweighted graph");
     }
-    edge found = {0};
-    int ret = 0;
 
     WT_CURSOR *e_cursor = get_edge_cursor();
     e_cursor->set_key(e_cursor, src_id, dst_id);
-    ret = e_cursor->search(e_cursor);
+    int ret = e_cursor->search(e_cursor);
     if (ret != 0)
     {
         throw GraphException("There is no edge between " + std::to_string(src_id) + " and " + std::to_string(dst_id));
@@ -1053,7 +1043,6 @@ void AdjList::update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree, 
  */
 std::vector<node> AdjList::get_out_nodes(int node_id)
 {
-    int ret = 0;
     std::vector<node> out_nodes;
     WT_CURSOR *outadj_cursor = get_out_adjlist_cursor();
     WT_CURSOR *n_cursor = get_node_cursor();
@@ -1123,7 +1112,6 @@ std::vector<edge> AdjList::get_out_edges(int node_id)
 std::vector<node> AdjList::get_in_nodes(int node_id)
 {
     std::vector<node> in_nodes;
-    int ret = 0;
     WT_CURSOR *inadj_cursor = get_in_adjlist_cursor();
     WT_CURSOR *n_cursor = get_node_cursor();
 
@@ -1388,7 +1376,6 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete
     adjlist found;
     found.node_id = node_id;
     __record_to_adjlist(cursor, &found);
-    std::vector<int>::iterator adjlist_new_end;
     for (int i = 0; i < found.edgelist.size(); i++)
     {
         if (found.edgelist.at(i) == to_delete)
@@ -1474,7 +1461,6 @@ void AdjList::delete_node_from_adjlists(int node_id)
 void AdjList::delete_related_edges_and_adjlists(int node_id)
 {
     //initialize all the cursors
-    int ret;
     WT_CURSOR *e_cursor, *inadj_cursor, *outadj_cursor = nullptr;
     e_cursor = get_edge_cursor();
     inadj_cursor = get_in_adjlist_cursor();
@@ -1584,7 +1570,6 @@ WT_CURSOR *AdjList::get_node_iter()
 
 node AdjList::get_next_node(WT_CURSOR *n_cur)
 {
-    int ret = 0;
     node found = {0};
     if (n_cur->next(n_cur) == 0)
     {
@@ -1605,7 +1590,6 @@ WT_CURSOR *AdjList::get_edge_iter()
 
 edge AdjList::get_next_edge(WT_CURSOR *e_cur)
 {
-    int ret = 0;
     edge found = {-1};
     if (e_cur->next(e_cur) == 0)
     {

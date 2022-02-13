@@ -68,7 +68,6 @@ typedef struct edge
 
 typedef struct edge_index
 {
-    int edge_id;
     int src_id;
     int dst_id;
 } edge_index;
