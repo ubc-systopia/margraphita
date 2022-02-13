@@ -5,6 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "test_std",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/Users/Puneet89/scratch/margraphita/build/test/test_standard_graph",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+        {
             "name": "test_packing",
             "type": "cppdbg",
             "request": "launch",
