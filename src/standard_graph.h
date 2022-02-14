@@ -44,8 +44,6 @@ public:
     std::vector<node> get_out_nodes(int node_id);
     std::vector<edge> get_in_edges(int node_id);
     std::vector<node> get_in_nodes(int node_id);
-    void set_node_data(int node_id, int idx, string data);
-    std::string get_node_data(int node_id, int idx);
     WT_CURSOR *get_node_iter();
     node get_next_node(WT_CURSOR *n_iter);
     WT_CURSOR *get_edge_iter();
@@ -93,6 +91,12 @@ private:
     WT_CURSOR *src_index_cursor = NULL;
     WT_CURSOR *dst_index_cursor = NULL;
     WT_CURSOR *metadata_cursor = NULL;
+
+    WT_CURSOR *get_node_cursor();
+    WT_CURSOR *get_edge_cursor();
+    WT_CURSOR *get_src_idx_cursor();
+    WT_CURSOR *get_dst_idx_cursor();
+    WT_CURSOR *get_src_dst_idx_cursor();
 
     void __node_to_record(WT_CURSOR *cursor, node to_insert);
     void __record_to_node(WT_CURSOR *cursor, node *found);
