@@ -490,7 +490,7 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
 
     // Now, initialize the in/out degree to 0 and adjlist to empty list
     WT_ITEM item = {.data = {}, .size = 0}; //todo: check
-    cursor->set_value(cursor, 0, item);     // serialize the vector and send ""
+    cursor->set_value(cursor, 0, &item);    // serialize the vector and send ""
     ret = cursor->insert(cursor);
     if (ret != 0)
     {
