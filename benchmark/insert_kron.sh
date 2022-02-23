@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
 source paths.sh
-if [ -z "$KRON_GRAPHS_PATH" ]
+if [ -z "$KRON_GRAPHS_PATH" ] || [ -z "$DB_DIR" ]
 then
     echo "Please set paths in BUILD_DIR/benchmarks/paths.sh"
     exit -1
@@ -41,7 +41,7 @@ for ((scale=10; scale <=27; scale ++ )); do
     for type in "${TYPES[@]}"
     do
         echo " Now inserting scale $scale, saved in $dirname/$filename" >> ${log_file}
-        ./preprocess.sh -f "${dirname}/${filename}" -o "${dirname}" -m "s${scale}_e8" -n $n_nodes -e $n_edges -t $type -l $log_dir &> ${log_file}
+        ./preprocess.sh -f "${dirname}/${filename}" -o "${DB_DIR}" -m "s${scale}_e8" -n $n_nodes -e $n_edges -t $type -l $log_dir &> ${log_file}
          echo "---------------------------------------------" >> ${log_file}
     done
 
