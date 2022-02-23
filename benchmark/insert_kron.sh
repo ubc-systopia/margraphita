@@ -1,5 +1,12 @@
 #!/bin/bash
 set -x
+source paths.sh
+if [ -z "$KRON_GRAPHS_PATH" ]
+then
+    echo "Please set paths in BUILD_DIR/benchmarks/paths.sh"
+    exit -1
+fi
+
 usage() {
     echo "Usage: $0 -l log_dir "
     echo "If not provided, cwd is used."
@@ -27,7 +34,7 @@ for ((scale=10; scale <=27; scale ++ )); do
     n_nodes=$(bc <<<"2^$scale")
 	
     filename="graph_s${scale}_e8"
-	dirname="/ssd_graph/s${scale}_e8"
+	dirname="${KRON_GRAPHS_PATH}/s${scale}_e8"
 
     date >> ${log_file}
 
