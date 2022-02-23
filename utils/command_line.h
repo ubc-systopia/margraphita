@@ -15,6 +15,7 @@ protected:
     std::vector<std::string> help_strings_;
 
     std::string db_name;
+    std::string db_path; // This contains the path to the db dir.
     std::string graph_type;
     std::string benchmark;
     std::string dataset;
@@ -24,8 +25,6 @@ protected:
     bool weighted = false;
     bool optimized_create = false;
     bool exit_on_create = false;
-
-    std::string db_path; //This contains the path to the db dir.
 
     void add_help_message(char opt, std::string opt_arg, std::string text)
     {
@@ -39,7 +38,7 @@ public:
     {
         add_help_message('m', "db_ name", "Name of the WT DB");
         add_help_message('b', "benchmark", "Which benchmark to run -- PR, BFS, CC, TC");
-        add_help_message('a', "path", "DB directory");
+        add_help_message('a', "db_path", "DB directory");
         add_help_message('s', "s", "the name of the dataset being used");
         add_help_message('n', "new", "create new DB (defalt = true");
         add_help_message('o', "create_optimized", "if set, then indices are not created while inserting. Default false.");
@@ -167,7 +166,7 @@ public:
 
 class PageRankOpts : public CmdLineApp
 {
-    double _tolerance; //used for PR
+    double _tolerance; // used for PR
     int _iterations;   // Used for PR
     bool create_indices = false;
 
