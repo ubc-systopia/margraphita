@@ -2,17 +2,18 @@
 set -e
 set -x
 
+source paths.sh
+
 usage() { 
-echo "Usage: $0 [-f <dataset path> -o <output path> -m <dataset name> -n<edge count> -e<edge count> -t <type> -i -l <log_dir>"  
-echo "Dataset path : the absolute path to the dataset that is being inserted."
-echo "Output path: absolute path to the **directory** that should contain the output
+echo "Usage: $0 [-d <graph_dir> -f <graph_filename> -o <output_path> -m <dataset_name> -n<edge count> -e<edge count> -t <type> -i -l <log_dir>"  
+echo "graph_dir, graph_filename: directory where graph_filename is stored"
+echo "output_path: absolute path to the **directory** that should contain the output
 files"
-echo "Dataset name : used to construct the DB name and to name the output files"
+echo "dataset_name : used to construct the DB name and to name the output files"
 echo "type is one of std, ekey, adj. Use all for all types of tables"
 echo "i - if this flag is passed, indices are created."
 echo "l - save log file in the passed log_dir instead of the PWD"
 echo "if cit-Patents is in ~/datasets/cit-Patents/cit-Patents.txt"
-echo " -f ~/datasets/cit-Patents/cit-Patents.txt"
 echo " -o ~/datasets/cit-Patents"
 echo " -m cit-Patents"
 echo " -t std"
@@ -22,10 +23,13 @@ index_create=0
 RESULT=$(pwd)
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
-while getopts "f:l:o:m:e:n:t:i" o; do
+while getopts "d:f:l:o:m:e:n:t:i" o; do
     case "${o}" in
+        (d)
+            graph_dir=${OPTARG%/}
+            ;;
         (f)
-            filename=${OPTARG%/}
+            graph=${OPTARG%/}
             ;;
         (l)
             RESULT=${OPTARG%/}
@@ -56,24 +60,28 @@ done
 
 NUM_THREADS=10
 NUM_FILES=10
-NUM_LINES=$(wc -l ${filename} | cut -d' '  -f2)
+
 if [[ $OSTYPE == 'darwin'* ]]; then
   TIME_CMD=/usr/local/bin/gtime
+  NUM_LINES=$(wc -l ${graph} | cut -d' '  -f5) #This is likely wrong. Please test.
 else
   TIME_CMD=/usr/bin/time
+  NUM_LINES=$(wc -l ${graph} | cut -d' '  -f1)
 fi
 
+
+
 ##remove all lines that begin with a comment
-sort --parallel=$NUM_THREADS -k 1,2 ${filename} | parallel --pipe sed '/^#/d' > ${output}/${dataset}_sorted.txt
-mv ${filename} ${filename}_orig
-mv ${output}/${dataset}_sorted.txt ${filename} #overwrite the original file
+sort --parallel=$NUM_THREADS -k 1,2 ${graph} | parallel --pipe sed '/^#/d' > ${graph}_sorted.txt
+mv ${graph} ${graph}_orig
+mv ${graph}_sorted.txt ${graph} #overwrite the original file
 # with the sorted, no comment version
 
 # ##Split the edges file
 if [[ $OSTYPE == "darwin"* ]]; then
-    split -l `expr $NUM_LINES / $NUM_FILES` ${filename} "${output}/${dataset}_edges"
+    split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_edges"
 elif [[ $OSTYPE == 'linux-gnu'* ]]; then
-    split --number=l/$NUM_FILES ${filename} "${output}/${dataset}_edges"
+    split --number=l/$NUM_FILES ${graph} "${graph}_edges"
 else
     echo "unknown platform $OSTYPE"
     exit 1
@@ -81,11 +89,11 @@ fi
 
 
 #Create a nodes file
-sed -e 's/\t/\n/g; s/\r//g' ${filename} | sort -u --parallel=$NUM_THREADS > ${output}/${dataset}_nodes
+sed -e 's/\t/\n/g; s/\r//g' ${graph} | sort -u --parallel=$NUM_THREADS > ${graph}_nodes
 if [[ $OSTYPE == 'darwin'* ]]; then
-    split -l `expr $NUM_LINES / $NUM_FILES` ${filename} "${output}/${dataset}_nodes"
+    split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_nodes"
 elif [[ $OSTYPE == 'linux-gnu'* ]]; then
-    split --number=l/$NUM_FILES ${output}/${dataset}_nodes ${output}/${dataset}_nodes
+    split --number=l/$NUM_FILES ${graph}_nodes ${graph}_nodes
 else
     echo "unknown platform $OSTYPE"
     exit 1
@@ -125,9 +133,9 @@ echo "#Inserting ${dataset}" >> insert_time.txt
 echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> ${RESULT}/insert_time.txt
 echo "#${dataset}:" >> ${RESULT}/insert_time.txt
 echo "#${dataset}:" >> ${RESULT}/insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${output}/${dataset} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
 
 if [ $index_create -eq 1 ]
 then

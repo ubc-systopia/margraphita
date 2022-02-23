@@ -32,16 +32,16 @@ TYPES=( "std" "adj" "ekey" )
 for ((scale=10; scale <=27; scale ++ )); do
 	n_edges=$(bc <<<"8*2^$scale")
     n_nodes=$(bc <<<"2^$scale")
-	
-    filename="graph_s${scale}_e8"
-	dirname="${KRON_GRAPHS_PATH}/s${scale}_e8"
-
     date >> ${log_file}
+    
+    dataset="s${scale}_e8"
+    graph_dir="${KRON_GRAPHS_PATH}/${dataset}"
+    graph="${KRON_GRAPHS_PATH}/${dataset}/graph_${dataset}"
 
     for type in "${TYPES[@]}"
     do
-        echo " Now inserting scale $scale, saved in $dirname/$filename" >> ${log_file}
-        ./preprocess.sh -f "${dirname}/${filename}" -o "${DB_DIR}" -m "s${scale}_e8" -n $n_nodes -e $n_edges -t $type -l $log_dir &> ${log_file}
+        echo " Now inserting scale $scale, saved in $graph" >> ${log_file}
+        ./preprocess.sh -d "${graph_dir}" -f "${graph}" -o "${DB_DIR}" -m $dataset -n $n_nodes -e $n_edges -t $type -l $log_dir &> ${log_file}
          echo "---------------------------------------------" >> ${log_file}
     done
 
