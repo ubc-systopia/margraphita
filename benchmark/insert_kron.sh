@@ -8,17 +8,23 @@ then
 fi
 
 usage() {
-    echo "Usage: $0 -l log_dir "
+    echo "Usage: $0 -l log_dir -p"
     echo "If not provided, cwd is used."
+    echo "if provided, -p indicates that the graphs have already been preprocessed. We go directly to bulk insert."
     exit 1;
 }
+
 log_dir=$(pwd)
+preprocess=1
 
 if [ -z "$*" ]; then echo "No log dir provided. Using cwd."; fi
-while getopts ":l:" o; do
+while getopts ":l:p:" o; do
     case "${o}" in
         (l)
             log_dir=${OPTARG}
+            ;;
+        (p)
+            preprocess=0
             ;;
         (*)
             usage
@@ -41,7 +47,7 @@ for ((scale=10; scale <=27; scale ++ )); do
     for type in "${TYPES[@]}"
     do
         echo " Now inserting scale $scale, saved in $graph" >> ${log_file}
-        ./preprocess.sh -d "${graph_dir}" -f "${graph}" -o "${DB_DIR}" -m $dataset -n $n_nodes -e $n_edges -t $type -l $log_dir &> ${log_file}
+        ./preprocess.sh -d "${graph_dir}" -f "${graph}" -o "${DB_DIR}" -m $dataset -n $n_nodes -e $n_edges -t $type -l $log_dir -p $preprocess &> ${log_file}
          echo "---------------------------------------------" >> ${log_file}
     done
 

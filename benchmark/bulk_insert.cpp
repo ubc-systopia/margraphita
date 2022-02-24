@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include "bulk_insert.h"
 #include "reader.h"
+#include <sys/stat.h>
 
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
 double num_edges;
@@ -51,10 +52,17 @@ void print_time_csvline(std::string db_name, std::string db_path, time_info *edg
 {
     std::ofstream log_file;
     log_file.open(logfile_name, std::fstream::app);
-    log_file << "db_name, db_path, type, is_readopt, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
+
+    struct stat st;
+    stat(logfile_name.c_str(), &st);
+    if (st.st_size == 0)
+    {
+        log_file << "db_name, db_path, type, is_readopt, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
+    }
+
     log_file
         << db_name << ","
-        << db_path << ","
+        << db_path << "/" << db_name << ","
         << type << ","
         << is_readopt << ","
         << nodet->num_inserted << ","

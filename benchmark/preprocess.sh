@@ -5,13 +5,14 @@ set -x
 source paths.sh
 
 usage() { 
-echo "Usage: $0 [-d <graph_dir> -f <graph_filename> -o <output_path> -m <dataset_name> -n<edge count> -e<edge count> -t <type> -i -l <log_dir>"  
+echo "Usage: $0 [-d <graph_dir> -f <graph_filename> -o <output_path> -m <dataset_name> -n<edge count> -e<edge count> -t <type> -i -p -l <log_dir>"  
 echo "graph_dir, graph_filename: directory where graph_filename is stored"
 echo "output_path: absolute path to the **directory** that should contain the output
 files"
 echo "dataset_name : used to construct the DB name and to name the output files"
 echo "type is one of std, ekey, adj. Use all for all types of tables"
 echo "i - if this flag is passed, indices are created."
+echo "p - if this flag is passed we skip to bulk insert directly"
 echo "l - save log file in the passed log_dir instead of the PWD"
 echo "if cit-Patents is in ~/datasets/cit-Patents/cit-Patents.txt"
 echo " -o ~/datasets/cit-Patents"
@@ -21,9 +22,10 @@ exit 1;}
 
 index_create=0
 RESULT=$(pwd)
+preprocess=1
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
-while getopts "d:f:l:o:m:e:n:t:i" o; do
+while getopts "d:f:l:o:m:e:n:t:pi" o; do
     case "${o}" in
         (d)
             graph_dir=${OPTARG%/}
@@ -45,6 +47,9 @@ while getopts "d:f:l:o:m:e:n:t:i" o; do
             ;;
         (n)
             nodecnt=${OPTARG}
+            ;;
+        (p)
+            preprocess=0
             ;;
         (t)
             type=${OPTARG}
@@ -70,33 +75,35 @@ else
 fi
 
 
+if [ $preprocess -eq 1 ]
+then
+    ##remove all lines that begin with a comment
+    sort --parallel=$NUM_THREADS -k 1,2 ${graph} | parallel --pipe sed '/^#/d' > ${graph}_sorted.txt
+    mv ${graph} ${graph}_orig
+    mv ${graph}_sorted.txt ${graph} #overwrite the original file
+    # with the sorted, no comment version
 
-##remove all lines that begin with a comment
-sort --parallel=$NUM_THREADS -k 1,2 ${graph} | parallel --pipe sed '/^#/d' > ${graph}_sorted.txt
-mv ${graph} ${graph}_orig
-mv ${graph}_sorted.txt ${graph} #overwrite the original file
-# with the sorted, no comment version
-
-# ##Split the edges file
-if [[ $OSTYPE == "darwin"* ]]; then
-    split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_edges"
-elif [[ $OSTYPE == 'linux-gnu'* ]]; then
-    split --number=l/$NUM_FILES ${graph} "${graph}_edges"
-else
-    echo "unknown platform $OSTYPE"
-    exit 1
-fi
+    # ##Split the edges file
+    if [[ $OSTYPE == "darwin"* ]]; then
+        split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_edges"
+    elif [[ $OSTYPE == 'linux-gnu'* ]]; then
+        split --number=l/$NUM_FILES ${graph} "${graph}_edges"
+    else
+        echo "unknown platform $OSTYPE"
+        exit 1
+    fi
 
 
-#Create a nodes file
-sed -e 's/\t/\n/g; s/\r//g' ${graph} | sort -u --parallel=$NUM_THREADS > ${graph}_nodes
-if [[ $OSTYPE == 'darwin'* ]]; then
-    split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_nodes"
-elif [[ $OSTYPE == 'linux-gnu'* ]]; then
-    split --number=l/$NUM_FILES ${graph}_nodes ${graph}_nodes
-else
-    echo "unknown platform $OSTYPE"
-    exit 1
+    #Create a nodes file
+    sed -e 's/\t/\n/g; s/\r//g' ${graph} | sort -u --parallel=$NUM_THREADS > ${graph}_nodes
+    if [[ $OSTYPE == 'darwin'* ]]; then
+        split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_nodes"
+    elif [[ $OSTYPE == 'linux-gnu'* ]]; then
+        split --number=l/$NUM_FILES ${graph}_nodes ${graph}_nodes
+    else
+        echo "unknown platform $OSTYPE"
+        exit 1
+    fi
 fi
 
 #Now create an empty DBs for all three representations for  insertion
