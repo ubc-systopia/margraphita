@@ -8,23 +8,34 @@ then
 fi
 
 usage() {
-    echo "Usage: $0 -l log_dir -p"
+    echo "Usage: $0 -l log_dir -p -b -i"
     echo "If not provided, cwd is used."
-    echo "if provided, -p indicates that the graphs have already been preprocessed. We go directly to bulk insert."
+    echo "if provided, -p indicates that the graphs have already been preprocessed. We skip the preprocessing step"
+    echo "if provided, -b indicates that the graphs have been inserted and we are only interested in index creation "
+    echo "-i if passed, create indices"
     exit 1;
 }
 
 log_dir=$(pwd)
 preprocess=1
+bulk_load=1
+index_create=0
 
 if [ -z "$*" ]; then echo "No log dir provided. Using cwd."; fi
-while getopts ":l:p:" o; do
+while getopts ":lpbi" o; do
     case "${o}" in
         (l)
             log_dir=${OPTARG}
             ;;
         (p)
             preprocess=0
+            ;;
+        (b)
+            bulk_load=0
+            echo "found"
+            ;;
+        (i)
+            index_create=1
             ;;
         (*)
             usage
@@ -47,7 +58,7 @@ for ((scale=10; scale <=27; scale ++ )); do
     for type in "${TYPES[@]}"
     do
         echo " Now inserting scale $scale, saved in $graph" >> ${log_file}
-        ./preprocess.sh -d "${graph_dir}" -f "${graph}" -o "${DB_DIR}" -m $dataset -n $n_nodes -e $n_edges -t $type -l $log_dir -p $preprocess &> ${log_file}
+        ./preprocess.sh -d "${graph_dir}" -f "${graph}" -o "${DB_DIR}/${dataset}" -m $dataset -n $n_nodes -e $n_edges -t $type -l $log_dir -p $preprocess -b $bulk_load -i $index_create &> ${log_file}
          echo "---------------------------------------------" >> ${log_file}
     done
 

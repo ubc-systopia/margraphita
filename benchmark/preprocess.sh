@@ -14,6 +14,7 @@ echo "type is one of std, ekey, adj. Use all for all types of tables"
 echo "i - if this flag is passed, indices are created."
 echo "p - if this flag is passed we skip to bulk insert directly"
 echo "l - save log file in the passed log_dir instead of the PWD"
+echo "b - if this flag is passed, we skip insertion"
 echo "if cit-Patents is in ~/datasets/cit-Patents/cit-Patents.txt"
 echo " -o ~/datasets/cit-Patents"
 echo " -m cit-Patents"
@@ -23,9 +24,10 @@ exit 1;}
 index_create=0
 RESULT=$(pwd)
 preprocess=1
+insert=1
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
-while getopts "d:f:l:o:m:e:n:t:pi" o; do
+while getopts "d:f:l:o:m:e:n:t:p:i:b:" o; do
     case "${o}" in
         (d)
             graph_dir=${OPTARG%/}
@@ -49,13 +51,16 @@ while getopts "d:f:l:o:m:e:n:t:pi" o; do
             nodecnt=${OPTARG}
             ;;
         (p)
-            preprocess=0
+            preprocess=${OPTARG}
             ;;
         (t)
             type=${OPTARG}
             ;;
         (i)
-            index_create=1
+            index_create=${OPTARG}
+            ;;
+        (b)
+            insert=${OPTARG}
             ;;
         (*)
             usage
@@ -106,6 +111,9 @@ then
     fi
 fi
 
+if [ $insert -eq 1 ]
+then
+
 #Now create an empty DBs for all three representations for  insertion
 #Using pagerank for this. Too lazy to do any better :(
 # Here rd in the DB Name indicates the r(read optimize) and d(directed) flags 
@@ -143,6 +151,8 @@ echo "#${dataset}:" >> ${RESULT}/insert_log.txt
 $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
 
 $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+
+fi
 
 if [ $index_create -eq 1 ]
 then
