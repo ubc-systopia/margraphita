@@ -156,17 +156,20 @@ fi
 
 if [ $index_create -eq 1 ]
 then
+    if [[ $type == "std" || $type == "ekey" ]]
+    then
+	    $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ${type}_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ${type} -x &> ${RESULT}/insert_log.txt
+	    $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ${type}_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ${type} -x &> ${RESULT}/insert_log.txt
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l std -x &> ${RESULT}/insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m std_d_$./{dataset}  -b PR -a ${output} -s ${dataset} -d -l std -x &> ${RESULT}/insert_log.txt
-
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l adj -x &> ${RESULT}/insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l adj -x &> ${RESULT}/insert_log.txt
-
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ekey -x &> ${RESULT}/insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ekey -x &> ${RESULT}/insert_log.txt
-
+    fi
 fi
+# $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l adj -x &> ${RESULT}/insert_log.txt
+# $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l adj -x &> ${RESULT}/insert_log.txt
+
+#$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ekey -x &> ${RESULT}/insert_log.txt
+#$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ekey -x &> ${RESULT}/insert_log.txt
+
+#fi
 # echo -ne '\007'
 # exit 1
 #CIT: -n 3774768 -e 16518948 

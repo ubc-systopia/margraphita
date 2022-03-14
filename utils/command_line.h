@@ -11,20 +11,22 @@ class CmdLineBase
 protected:
     int argc_;
     char **argv_;
-    std::string argstr_ = "m:a:nrdhwl:ob:s:e"; //! Construct this after you finish the rest of this thing
+    std::string argstr_ = "m:a:nrdhwl:ob:s:ef:"; //! Construct this after you finish the rest of this thing
     std::vector<std::string> help_strings_;
 
     std::string db_name;
-    std::string db_path; // This contains the path to the db dir.
     std::string graph_type;
     std::string benchmark;
     std::string dataset;
+    std::string log_dir;
     bool create_new = false;
     bool read_optimize = false;
     bool directed = true;
     bool weighted = false;
     bool optimized_create = false;
     bool exit_on_create = false;
+
+    std::string db_path; //This contains the path to the db dir.
 
     void add_help_message(char opt, std::string opt_arg, std::string text)
     {
@@ -38,7 +40,7 @@ public:
     {
         add_help_message('m', "db_ name", "Name of the WT DB");
         add_help_message('b', "benchmark", "Which benchmark to run -- PR, BFS, CC, TC");
-        add_help_message('a', "db_path", "DB directory");
+        add_help_message('a', "path", "DB directory");
         add_help_message('s', "s", "the name of the dataset being used");
         add_help_message('n', "new", "create new DB (defalt = true");
         add_help_message('o', "create_optimized", "if set, then indices are not created while inserting. Default false.");
@@ -47,7 +49,8 @@ public:
         add_help_message('w', "weighted", "is the graph weighted. default false");
         add_help_message('l', "representation type", "The representation of the graph. Can be one of adjlist, std, edgekey");
         add_help_message('e', "exit_on_create", "Use falg to create the DB and exit");
-        add_help_message('h', "h", "Print this help message");
+        add_help_message('f', "csv logdir", "output dir for log");
+	add_help_message('h', "h", "Print this help message");
     }
 
     bool parse_args()
@@ -89,6 +92,9 @@ public:
         case 'n':
             create_new = true;
             break;
+	case 'f':
+	    log_dir = std::string(opt_arg);
+	    break; 
         case 'w':
             weighted = true;
             break;
@@ -125,6 +131,7 @@ public:
     std::string get_db_path() const { return db_path; }
     std::string get_dataset() const { return dataset; }
     std::string get_benchmark() const { return benchmark; }
+    std::string get_csv_logdir() const { return log_dir; }
     bool is_create_new() const { return create_new; }
     bool is_read_optimize() const { return read_optimize; }
     bool is_directed() const { return directed; }
@@ -166,7 +173,7 @@ public:
 
 class PageRankOpts : public CmdLineApp
 {
-    double _tolerance; // used for PR
+    double _tolerance; //used for PR
     int _iterations;   // Used for PR
     bool create_indices = false;
 
