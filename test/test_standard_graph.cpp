@@ -24,7 +24,7 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
     int edge_cnt = 1;
     for (edge x : SampleGraph::test_edges)
     {
-        graph.add_edge(x);
+        graph.add_edge(x, false);
         edge_cnt++;
     }
 }
@@ -260,7 +260,7 @@ int main()
     opts.db_dir = "./db";
 
     //Test std_graph setup
-    StandardGraph graph = StandardGraph(opts);
+    StandardGraphTester graph = StandardGraphTester(opts);
 
     create_init_nodes(graph, opts.is_directed);
     print_delim();

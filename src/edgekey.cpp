@@ -14,25 +14,24 @@
 using namespace std;
 const std::string GRAPH_PREFIX = "edgekey";
 
-EdgeKey::EdgeKey(){};
+EdgeKey::EdgeKey()
+{
+    throw GraphException("No parameters passed in graph_opts. Exiting now.");
+}
+
 EdgeKey::EdgeKey(graph_opts opt_params)
 {
-    this->create_new = opt_params.create_new;
-    this->read_optimize = opt_params.read_optimize;
-    this->is_directed = opt_params.is_directed;
-    this->is_weighted = opt_params.is_weighted;
-    this->db_name = opt_params.db_name;
-    this->db_dir = opt_params.db_dir;
+    this->opts = opt_params;
 
     try
     {
-        CommonUtil::check_graph_params(opt_params);
+        CommonUtil::check_graph_params(opts);
     }
     catch (GraphException G)
     {
         std::cout << G.what() << std::endl;
     }
-    if (this->create_new)
+    if (opts.create_new)
     {
         create_new_graph();
         if (opt_params.optimize_create == false)
@@ -42,14 +41,14 @@ EdgeKey::EdgeKey(graph_opts opt_params)
     }
     else
     {
-        string dirname = db_dir + "/" + db_name;
+        string dirname = opts.db_dir + "/" + opts.db_name;
         if (CommonUtil::check_dir_exists(dirname))
         {
             __restore_from_db(dirname);
         }
         else
         {
-            throw GraphException("Could not find the expected WT DB directory - " + db_dir + "/" + db_name);
+            throw GraphException("Could not find the expected WT DB directory - " + opts.db_dir + "/" + opts.db_name);
         }
     }
 }
@@ -64,7 +63,7 @@ void EdgeKey::create_new_graph()
 {
     int ret = 0;
     //Create new directory for WT DB
-    std::string dirname = db_dir + "/" + db_name;
+    std::string dirname = opts.db_dir + "/" + opts.db_name;
     CommonUtil::create_dir(dirname);
 
     //open connection to WT DB
@@ -101,22 +100,22 @@ void EdgeKey::create_new_graph()
         exit(-1);
     }
 
-    // DB_NAME
-    insert_metadata(DB_NAME, const_cast<char *>(db_name.c_str()));
+    // opts.db_name
+    insert_metadata(opts.db_name, const_cast<char *>(opts.db_name.c_str()));
 
-    //DB_DIR
-    insert_metadata(DB_DIR, const_cast<char *>(db_dir.c_str()));
+    // opts.db_dir
+    insert_metadata(opts.db_dir, const_cast<char *>(opts.db_dir.c_str()));
 
-    // READ_OPTIMIZE
-    string read_optimized_str = read_optimize ? "true" : "false";
+    // opts.read_optimize
+    string read_optimized_str = opts.read_optimize ? "true" : "false";
     insert_metadata(READ_OPTIMIZE, const_cast<char *>(read_optimized_str.c_str()));
 
-    // IS_DIRECTED
-    string is_directed_str = is_directed ? "true" : "false";
+    // opts.is_directed
+    string is_directed_str = opts.is_directed ? "true" : "false";
     insert_metadata(IS_DIRECTED, const_cast<char *>(is_directed_str.c_str()));
 
-    //IS_WEIGHTED
-    string is_weighted_str = is_weighted ? "true" : "false";
+    // opts.is_weighted
+    string is_weighted_str = opts.is_weighted ? "true" : "false";
     insert_metadata(IS_WEIGHTED, const_cast<char *>(is_weighted_str.c_str()));
     //#endif
 
@@ -293,7 +292,7 @@ void EdgeKey::add_node(node to_insert)
     WT_CURSOR *node_cursor;
     ret = _get_table_cursor(EDGE_TABLE, &node_cursor, false);
     node_cursor->set_key(node_cursor, to_insert.id, -1);
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         string packed = pack_int_to_str(to_insert.in_degree, to_insert.out_degree);
         node_cursor->set_value(node_cursor, packed.c_str());
@@ -386,7 +385,7 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur, WT_CURSOR *e_cur, int nod
             throw GraphException("Failed to remove edge between " + to_string(src) + " and " + to_string(dst));
         }
         //if readoptimize: Get the node to decrement in/out degree
-        if (read_optimize)
+        if (opts.read_optimize)
         {
             node temp;
             if (src != node_id)
@@ -412,7 +411,7 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur, WT_CURSOR *e_cur, int nod
             {
                 throw GraphException("Failed to remove edge between " + to_string(src) + " and " + to_string(dst));
             }
-            if (read_optimize)
+            if (opts.read_optimize)
             {
                 node temp;
                 if (src != node_id)
@@ -434,14 +433,14 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur, WT_CURSOR *e_cur, int nod
 
 /**
  * @brief update the in and out degrees for the node identified by node_id
- * Does nothing if not read_optimize
+ * Does nothing if not opts.read_optimize
  * @param node_id The ID of the node to be updated
  * @param indeg new in_degree
  * @param outdeg new out_degree
  */
 void EdgeKey::update_node_degree(int node_id, int indeg, int outdeg)
 {
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         int ret = 0;
         WT_CURSOR *e_cur = get_edge_cursor();
@@ -461,7 +460,9 @@ void EdgeKey::update_node_degree(int node_id, int indeg, int outdeg)
  * 
  * @param to_insert the edge struct containing info about the edge to insert. 
  */
-void EdgeKey::add_edge(edge to_insert)
+void EdgeKey::add_edge(edge to_insert, bool is_bulk)
+{
+    if (!is_bulk)
 {
     //Check if the src and dst nodes exist.
     if (!has_node(to_insert.src_id))
@@ -477,10 +478,12 @@ void EdgeKey::add_edge(edge to_insert)
         dst.id = to_insert.dst_id;
         add_node(dst);
     }
+    }
+
     //Insert the edge
     WT_CURSOR *e_cur = get_edge_cursor();
     e_cur->set_key(e_cur, to_insert.src_id, to_insert.dst_id);
-    if (is_weighted)
+    if (opts.is_weighted)
     {
         e_cur->set_value(e_cur, std::to_string(to_insert.edge_weight).c_str());
     }
@@ -493,10 +496,10 @@ void EdgeKey::add_edge(edge to_insert)
         throw GraphException("Failed to insert edge between " + std::to_string(to_insert.src_id) + " and " + std::to_string(to_insert.dst_id));
     }
     //insert reverse edge if undirected
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         e_cur->set_key(e_cur, to_insert.dst_id, to_insert.src_id);
-        if (is_weighted)
+        if (opts.is_weighted)
         {
             e_cur->set_value(e_cur, std::to_string(to_insert.edge_weight).c_str());
         }
@@ -509,13 +512,14 @@ void EdgeKey::add_edge(edge to_insert)
             throw GraphException("Failed to insert the reverse edge between " + std::to_string(to_insert.src_id) + " and " + std::to_string(to_insert.dst_id));
         }
     }
-
-    //Update the in/out degrees if read_optimize
-    if (read_optimize)
+    if (!is_bulk)
+    {
+        // Update the in/out degrees if opts.read_optimize
+        if (opts.read_optimize)
     {
         node src = get_node(to_insert.src_id);
         src.out_degree++;
-        if (!is_directed)
+            if (!opts.is_directed)
         {
             src.in_degree++;
         }
@@ -523,49 +527,13 @@ void EdgeKey::add_edge(edge to_insert)
 
         node dst = get_node(to_insert.dst_id);
         dst.in_degree++;
-        if (!is_directed)
+            if (!opts.is_directed)
         {
             dst.out_degree++;
         }
         update_node_degree(dst.id, dst.in_degree, dst.out_degree);
     }
 }
-
-void EdgeKey::bulk_add_edge(int src, int dst, int weight)
-{
-    // No need to Check if the src and dst nodes exist. Inserted already.
-    //Insert the edge
-    WT_CURSOR *e_cur = get_edge_cursor();
-    e_cur->set_key(e_cur, src, dst);
-    if (is_weighted)
-    {
-        e_cur->set_value(e_cur, std::to_string(weight).c_str());
-    }
-    else
-    {
-        e_cur->set_value(e_cur, "");
-    }
-    if (e_cur->insert(e_cur) != 0)
-    {
-        throw GraphException("Failed to insert edge between " + std::to_string(src) + " and " + std::to_string(dst));
-    }
-    //insert reverse edge if undirected
-    if (!is_directed)
-    {
-        e_cur->set_key(e_cur, dst, src);
-        if (is_weighted)
-        {
-            e_cur->set_value(e_cur, std::to_string(weight).c_str());
-        }
-        else
-        {
-            e_cur->set_value(e_cur, "");
-        }
-        if (e_cur->insert(e_cur) != 0)
-        {
-            throw GraphException("Failed to insert the reverse edge between " + std::to_string(src) + " and " + std::to_string(dst));
-        }
-    }
 }
 
 /**
@@ -585,7 +553,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
     }
 
     //delete reverse edge
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         e_cur->set_key(e_cur, dst_id, src_id);
         if (e_cur->remove(e_cur) != 0)
@@ -595,7 +563,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
     }
 
     //update node degrees
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         node src = get_node(src_id);
 
@@ -604,7 +572,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
             src.out_degree--;
         }
 
-        if (!is_directed && src.in_degree > 0)
+        if (!opts.is_directed && src.in_degree > 0)
         {
 
             src.in_degree--;
@@ -616,7 +584,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
         {
             dst.in_degree--;
         }
-        if (!is_directed && dst.out_degree > 0)
+        if (!opts.is_directed && dst.out_degree > 0)
         {
             dst.out_degree--;
         }
@@ -754,13 +722,16 @@ int EdgeKey::get_num_edges()
  */
 int EdgeKey::get_out_degree(int node_id)
 {
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         WT_CURSOR *e_cur = get_edge_cursor();
         e_cur->set_key(e_cur, node_id, -1);
-        e_cur->search(e_cur);
-        node found;
+        node found = {0};
+        if (e_cur->search(e_cur) == 0)
+        {
+            found.id = node_id;
         __record_to_node(e_cur, &found);
+        }
         e_cur->reset(e_cur);
         return found.out_degree;
     }
@@ -811,7 +782,7 @@ int EdgeKey::get_out_degree(int node_id)
  */
 int EdgeKey::get_in_degree(int node_id)
 {
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         WT_CURSOR *e_cur = get_edge_cursor();
         e_cur->set_key(e_cur, node_id, -1);
@@ -868,7 +839,7 @@ std::vector<edge> EdgeKey::get_edges()
         e_cur->get_key(e_cur, &found.src_id, &found.dst_id);
         if (found.dst_id != -1)
         {
-            if (is_weighted)
+            if (opts.is_weighted)
             {
                 __record_to_edge(e_cur, &found);
             }
@@ -1100,44 +1071,44 @@ void EdgeKey::__restore_from_db(string db_name)
         if (strcmp(key, DB_DIR.c_str()) == 0)
         {
 
-            this->db_dir = value; //CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_dir = value; // CommonUtil::unpack_string_wt(value, this->session);
         }
         else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
 
-            this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_name = value; // CommonUtil::unpack_string_wt(value, this->session);
         }
         else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->read_optimize = true;
+                this->opts.read_optimize = true;
             }
             else
             {
-                this->read_optimize = false;
+                this->opts.read_optimize = false;
             }
         }
         else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->is_directed = true;
+                this->opts.is_directed = true;
             }
             else
             {
-                this->is_directed = false;
+                this->opts.is_directed = false;
             }
         }
         else if (strcmp(key, IS_WEIGHTED.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->is_weighted = true;
+                this->opts.is_weighted = true;
             }
             else
             {
-                this->is_weighted = false;
+                this->opts.is_weighted = false;
             }
         }
     }
@@ -1221,8 +1192,8 @@ void EdgeKey::drop_indices()
 /**
  * @brief This function converts the record the cursor points to into a node
  * struct. In this representation, we know that the Value can be :
- * 1. indeg, out_deg for read_optimize node entry
- * 2. "" for non read_optimize node entry
+ * 1. indeg, out_deg for opts.read_optimize node entry
+ * 2. "" for non opts.read_optimize node entry
  * 3. edge_weight for a weighted edge entry
  * 4. "" for an unweighted graph. 
  * 
@@ -1393,7 +1364,7 @@ edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
         e_cur->get_key(e_cur, &found.src_id, &found.dst_id);
         if (found.dst_id != -1)
         {
-            if (is_weighted)
+            if (opts.is_weighted)
             {
                 __record_to_edge(e_cur, &found);
             }

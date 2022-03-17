@@ -149,7 +149,7 @@ void test_add_edge(AdjList graph, bool is_directed)
     assert(got.id == 6);
 
     //Now check if the adjlists were updated
-    graph.dump_tables();
+    // graph.dump_tables();
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
     in_adj_cur->set_key(in_adj_cur, test_id2);
     assert(in_adj_cur->search(in_adj_cur) == 0);

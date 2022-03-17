@@ -39,7 +39,7 @@ void print_csv_info(std::string name, insert_time *info)
     std::string _name = "/home/puneet/scratch/margraphita/outputs/single_threaded_kron_inserts_cpp.csv";
     if (access(_name.c_str(), F_OK) == -1)
     {
-        //The file does not exist yet.
+        // The file does not exist yet.
         FILE.open(_name, ios::out | ios::app);
         FILE << "#name, std_insert, std_index, adj_insert, ekey_insert, ekey_index\n";
     }
@@ -85,8 +85,8 @@ void get_edge_entries(std::vector<edge> &edges, std::string filename, bool is_ad
                 nodes.insert(b);
                 if (is_adj)
                 {
-                    in_adjlist[b].push_back(a);  //insert a in b's in_adjlist
-                    out_adjlist[a].push_back(b); //insert b in a's out_adjlist
+                    in_adjlist[b].push_back(a);  // insert a in b's in_adjlist
+                    out_adjlist[a].push_back(b); // insert b in a's out_adjlist
                 }
 
                 edges.push_back(to_insert);
@@ -168,7 +168,7 @@ int64_t create_init_nodes(Graph graph, std::string filename)
 
     for (edge x : edjlist)
     {
-        graph.bulk_add_edge(x.src_id, x.dst_id, 0);
+        graph.add_edge(x, true);
     }
     auto end = std::chrono::steady_clock::now();
     std::cout << "read+insert in : " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << "\n";

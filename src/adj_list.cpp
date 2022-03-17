@@ -13,23 +13,20 @@
 using namespace std;
 const std::string GRAPH_PREFIX = "adj";
 
-AdjList::AdjList() {}
+AdjList::AdjList()
+{
+    throw GraphException("No parameters passed in graph_opts. Exiting now.");
+}
 
 AdjList::AdjList(graph_opts &opt_params)
 
 {
-    this->create_new = opt_params.create_new;
-    this->read_optimize = opt_params.read_optimize;
-    this->is_directed = opt_params.is_directed;
-    this->is_weighted = opt_params.is_weighted;
-    this->db_name = opt_params.db_name;
-    this->db_dir = opt_params.db_dir;
-
+    this->opts = opt_params;
     try
     {
         CommonUtil::check_graph_params(opt_params);
     }
-    catch (GraphException G)
+    catch (GraphException &G)
     {
         std::cout << G.what() << std::endl;
     }
@@ -40,7 +37,7 @@ AdjList::AdjList(graph_opts &opt_params)
     }
     else
     {
-        std::string dirname = db_dir + "/" + db_name;
+        std::string dirname = opts.db_dir + "/" + opts.db_name;
         if (CommonUtil::check_dir_exists(dirname))
         {
             __restore_from_db(dirname);
@@ -171,7 +168,7 @@ void AdjList::create_new_graph()
 {
     int ret;
     // Create new directory for WT DB
-    std::string dirname = db_dir + "/" + db_name;
+    std::string dirname = opts.db_dir + "/" + opts.db_name;
     CommonUtil::create_dir(dirname);
 
     // open connection to WT
@@ -192,8 +189,8 @@ void AdjList::create_new_graph()
 
     // Set up the node table
     // The node entry is of the form: <id>,<in_degree>,<out_degree>
-    // If the graph is read_optimized, add columns and format for in/out degrees
-    if (read_optimize)
+    // If the graph is opts.read_optimized, add columns and format for in/out degrees
+    if (opts.read_optimize)
     {
         node_columns.push_back(IN_DEGREE);
         node_columns.push_back(OUT_DEGREE);
@@ -213,7 +210,7 @@ void AdjList::create_new_graph()
     // ******** Now set up the Edge Table     **************
     // Edge Column Format : <src><dst><weight>
     //Now prepare the edge value format. starts with II for src,dst. Add another I if weighted
-    if (is_weighted)
+    if (opts.is_weighted)
     {
         edge_columns.push_back(WEIGHT);
         edge_value_format += "I";
@@ -257,21 +254,21 @@ void AdjList::create_new_graph()
 
     // DB_NAME
     string db_name_fmt;
-    insert_metadata(DB_NAME, const_cast<char *>(db_name.c_str()));
+    insert_metadata(DB_NAME, const_cast<char *>(opts.db_name.c_str()));
 
     //DB_DIR
-    insert_metadata(DB_DIR, const_cast<char *>(db_dir.c_str()));
+    insert_metadata(DB_DIR, const_cast<char *>(opts.db_dir.c_str()));
 
     // READ_OPTIMIZE
-    string read_optimized_str = read_optimize ? "true" : "false";
+    string read_optimized_str = opts.read_optimize ? "true" : "false";
     insert_metadata(READ_OPTIMIZE, const_cast<char *>(read_optimized_str.c_str()));
 
     // IS_DIRECTED
-    string is_directed_str = is_directed ? "true" : "false";
+    string is_directed_str = opts.is_directed ? "true" : "false";
     insert_metadata(IS_DIRECTED, const_cast<char *>(is_directed_str.c_str()));
 
-    //IS_WEIGHTED
-    string is_weighted_str = is_weighted ? "true" : "false";
+    // is_weighted
+    string is_weighted_str = opts.is_weighted ? "true" : "false";
     insert_metadata(IS_WEIGHTED, const_cast<char *>(is_weighted_str.c_str()));
     //#endif
 
@@ -296,44 +293,44 @@ void AdjList::__restore_from_db(string dbname)
         if (strcmp(key, DB_DIR.c_str()) == 0)
         {
 
-            this->db_dir = value; //CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_dir = value; // CommonUtil::unpack_string_wt(value, this->session);
         }
         else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
 
-            this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_name = value; // CommonUtil::unpack_string_wt(value, this->session);
         }
         else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->read_optimize = true;
+                this->opts.read_optimize = true;
             }
             else
             {
-                this->read_optimize = false;
+                this->opts.read_optimize = false;
             }
         }
         else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->is_directed = true;
+                this->opts.is_directed = true;
             }
             else
             {
-                this->is_directed = false;
+                this->opts.is_directed = false;
             }
         }
         else if (strcmp(key, IS_WEIGHTED.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->is_weighted = true;
+                this->opts.is_weighted = true;
             }
             else
             {
-                this->is_weighted = false;
+                this->opts.is_weighted = false;
             }
         }
     }
@@ -401,7 +398,7 @@ void AdjList::init_cursors()
 /**
  * @brief The information that gets persisted to WT is of the form:
  * <node_id>,in_degree,out_degree.
- * in_degree and out_degree are persisted if read_optimize is true. ints
+ * in_degree and out_degree are persisted if opts.read_optimize is true. ints
  *
  *
  * @param to_insert
@@ -410,24 +407,24 @@ void AdjList::init_cursors()
 void AdjList::add_node(node to_insert)
 {
     int ret = 0;
-    WT_CURSOR *n_cursor, *in_adj_cur, *out_adj_cur = nullptr;
+    WT_CURSOR *in_adj_cur, *out_adj_cur, *n_cur = nullptr;
 
-    n_cursor = get_node_cursor();
     in_adj_cur = get_in_adjlist_cursor();
     out_adj_cur = get_out_adjlist_cursor();
+    n_cur = get_node_cursor();
 
-    node_cursor->set_key(node_cursor, to_insert.id);
+    n_cur->set_key(n_cur, to_insert.id);
 
-    if (read_optimize)
+    if (opts.read_optimize)
     {
-        node_cursor->set_value(node_cursor, 0, 0);
+        n_cur->set_value(n_cur, 0, 0);
     }
     else
     {
-        node_cursor->set_value(node_cursor, "");
+        n_cur->set_value(n_cur, "");
     }
 
-    ret = node_cursor->insert(node_cursor);
+    ret = n_cur->insert(n_cur);
 
     if (ret != 0)
     {
@@ -442,24 +439,24 @@ void AdjList::add_node(node to_insert)
 void AdjList::add_node(int to_insert, std::vector<int> &inlist, std::vector<int> &outlist)
 {
     int ret = 0;
-    WT_CURSOR *n_cursor, *in_adj_cur, *out_adj_cur = nullptr;
+    WT_CURSOR *in_adj_cur, *out_adj_cur, *n_cur = nullptr;
 
-    n_cursor = get_node_cursor();
     in_adj_cur = get_in_adjlist_cursor();
     out_adj_cur = get_out_adjlist_cursor();
+    n_cur = get_node_cursor();
 
-    node_cursor->set_key(node_cursor, to_insert);
+    n_cur->set_key(n_cur, to_insert);
 
-    if (read_optimize)
+    if (opts.read_optimize)
     {
-        node_cursor->set_value(node_cursor, inlist.size(), outlist.size());
+        n_cur->set_value(n_cur, inlist.size(), outlist.size());
     }
     else
     {
-        node_cursor->set_value(node_cursor, "");
+        n_cur->set_value(n_cur, "");
     }
 
-    ret = node_cursor->insert(node_cursor);
+    ret = n_cur->insert(n_cur);
 
     if (ret != 0)
     {
@@ -513,7 +510,7 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id, std::vector<int> &list
     // Now, initialize the in/out degree to 0 and adjlist to empty list
     WT_ITEM item;
     item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
-    cursor->set_value(cursor, list.size(), item); // serialize the vector and send ""
+    cursor->set_value(cursor, list.size(), &item); // serialize the vector and send ""
 
     ret = cursor->insert(cursor);
     if (ret != 0)
@@ -548,11 +545,6 @@ void AdjList::delete_adjlist(WT_CURSOR *cursor, int node_id)
 void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 {
     int ret = 0;
-    // Update the adj_list table both in and out
-    WT_CURSOR *out_adj_cur, *in_adj_cur = nullptr;
-    out_adj_cur = get_out_adjlist_cursor();
-    in_adj_cur = get_in_adjlist_cursor();
-
     // Add dst and src nodes if they don't exist.
     if (!has_node(to_insert.src_id))
     {
@@ -574,7 +566,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     cursor->set_key(cursor, to_insert.src_id, to_insert.dst_id);
     //cout << "New Edge ID inserted" << endl;
 
-    if (is_weighted)
+    if (opts.is_weighted)
     {
         cursor->set_value(cursor, to_insert.edge_weight);
     }
@@ -591,10 +583,10 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     }
 
     //insert the reverse edge if undirected
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         cursor->set_key(cursor, to_insert.dst_id, to_insert.src_id);
-        if (is_weighted)
+        if (opts.is_weighted)
         {
             cursor->set_value(cursor, to_insert.edge_weight);
         }
@@ -612,14 +604,14 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     //! This assumes that there are no duplicate edges.
     add_to_adjlists(out_adjlist_cursor, to_insert.src_id, to_insert.dst_id);
     add_to_adjlists(in_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         add_to_adjlists(out_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
         add_to_adjlists(in_adjlist_cursor, to_insert.src_id, to_insert.dst_id);
     }
 
-    // If read_optimized is true, we update in/out degreees in the node table.
-    if (this->read_optimize)
+    // If opts.read_optimized is true, we update in/out degreees in the node table.
+    if (this->opts.read_optimize)
     {
         // update in/out degrees for src node in NODE_TABLE
         cursor = get_node_cursor();
@@ -653,7 +645,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 void AdjList::__record_to_node(WT_CURSOR *cursor, int key, node *found)
 {
     found->id = key;
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         cursor->get_value(cursor, &found->in_degree, &found->out_degree);
     }
@@ -732,7 +724,7 @@ int AdjList::get_in_degree(int node_id)
 {
     int ret = 0;
     WT_CURSOR *cursor;
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         cursor = get_node_cursor();
         cursor->set_key(cursor, node_id);
@@ -774,7 +766,7 @@ int AdjList::get_out_degree(int node_id)
     int ret = 0;
     WT_CURSOR *cursor = get_node_cursor();
     cursor->reset(cursor);
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         cursor->set_key(cursor, node_id);
         ret = cursor->search(cursor);
@@ -827,7 +819,7 @@ void AdjList::__record_to_adjlist(WT_CURSOR *cursor, adjlist *found)
     {
         found->degree = degree;
     }
-    assert(found->edgelist.size() == degree);
+    assert(static_cast<int>(found->edgelist.size()) == degree);
 }
 
 void AdjList::__record_to_edge(WT_CURSOR *cursor, edge *found)
@@ -918,7 +910,7 @@ std::vector<edge> AdjList::get_edges()
     {
         edge found;
         e_cursor->get_key(e_cursor, &found.src_id, &found.dst_id);
-        if (is_weighted)
+        if (opts.is_weighted)
         {
             __record_to_edge(e_cursor, &found);
         }
@@ -941,7 +933,7 @@ edge AdjList::get_edge(int src_id, int dst_id)
     edge found = {0};
     found.src_id = src_id;
     found.dst_id = dst_id;
-    if (!is_weighted)
+    if (!opts.is_weighted)
     {
         return found;
     }
@@ -990,7 +982,7 @@ bool AdjList::has_edge(int src_id, int dst_id)
  */
 int AdjList::get_edge_weight(int src_id, int dst_id)
 {
-    if (!this->is_weighted)
+    if (!this->opts.is_weighted)
     {
         throw GraphException("Aborting. Trying to get weight for an unweighted graph");
     }
@@ -1187,7 +1179,7 @@ void AdjList::delete_edge(int src_id, int dst_id)
     }
 
     //delete (dst_id, src_id) from edge table if undirected
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         e_cursor->set_key(e_cursor, dst_id, src_id);
         if ((e_cursor->remove(e_cursor)) != 0)
@@ -1202,14 +1194,14 @@ void AdjList::delete_edge(int src_id, int dst_id)
     delete_from_adjlists(in_adjlist_cursor, dst_id, src_id);
 
     //remove reverse from adj lists if undirected
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         delete_from_adjlists(in_adjlist_cursor, src_id, dst_id);
         delete_from_adjlists(out_adjlist_cursor, dst_id, src_id);
     }
 
-    //if read_optimized -- update in/out degrees in the node table
-    if (read_optimize)
+    // if opts.read_optimized -- update in/out degrees in the node table
+    if (opts.read_optimize)
     {
         WT_CURSOR *n_cursor = get_node_cursor();
         if (n_cursor == nullptr)
@@ -1229,7 +1221,7 @@ void AdjList::delete_edge(int src_id, int dst_id)
         node found = {0};
         __record_to_node(n_cursor, src_id, &found);
         found.out_degree--;
-        if (!is_directed)
+        if (!opts.is_directed)
         {
             found.in_degree--;
         }
@@ -1243,7 +1235,7 @@ void AdjList::delete_edge(int src_id, int dst_id)
         }
         __record_to_node(n_cursor, dst_id, &found);
         found.in_degree--;
-        if (!is_directed)
+        if (!opts.is_directed)
         {
             found.out_degree--;
         }
@@ -1262,7 +1254,7 @@ void AdjList::__node_to_record(WT_CURSOR *cursor, node to_insert)
     {
         throw GraphException("Failed to find a node with node_id " + to_string(to_insert.id));
     }
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         cursor->set_value(cursor, to_insert.in_degree, to_insert.out_degree);
     }
@@ -1287,7 +1279,7 @@ void AdjList::__node_to_record(WT_CURSOR *cursor, node to_insert)
  */
 void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
 {
-    if (!is_weighted)
+    if (!opts.is_weighted)
     {
         throw GraphException("Trying to insert weight for an unweighted graph");
     }
@@ -1594,7 +1586,7 @@ edge AdjList::get_next_edge(WT_CURSOR *e_cur)
     if (e_cur->next(e_cur) == 0)
     {
         e_cur->get_key(e_cur, &found.src_id, &found.dst_id);
-        if (is_weighted)
+        if (opts.is_weighted)
         {
             __record_to_edge(e_cur, &found);
         }

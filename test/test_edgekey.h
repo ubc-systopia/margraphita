@@ -12,6 +12,14 @@ WT_CURSOR *cursor;
 WT_SESSION *session;
 const char *home;
 
+class EdgeKeyTester : public EdgeKey
+{
+public:
+    EdgeKeyTester(graph_opts create_opts) : EdgeKey(create_opts)
+    {
+    }
+};
+
 void tearDown(EdgeKey graph);
 void create_init_nodes(EdgeKey graph);
 void test_node_add(EdgeKey graph);

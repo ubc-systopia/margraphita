@@ -134,7 +134,7 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, s
         {
             int index = hashfn(n.id) % N;
             float sum = 0.0f;
-            vector<node> in_nodes = graph.get_in_nodes(n.id);
+            vector<node> in_nodes = graph.get_in_nodes(n.id); // <-- make this just list of node_ids to avoid looking up node table
 
             for (node in : in_nodes)
             {

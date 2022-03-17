@@ -29,7 +29,7 @@ void create_init_nodes(EdgeKey graph, bool is_directed)
 
     for (edge x : SampleGraph::test_edges)
     {
-        graph.add_edge(x);
+        graph.add_edge(x, false);
         edge_cnt++;
     }
 }
@@ -79,7 +79,7 @@ void test_add_edge(EdgeKey graph, bool is_directed)
                       .src_id = 5,
                       .dst_id = 6,
                       .edge_weight = 333}; // node 300 and 400 dont exist yet so we must also check if the nodes get created
-    graph.add_edge(to_insert);
+    graph.add_edge(to_insert, false);
     edge found = graph.get_edge(5, 6);
     CommonUtil::dump_edge(found);
     assert(found.src_id == 5);
@@ -103,7 +103,6 @@ void test_add_edge(EdgeKey graph, bool is_directed)
     WT_CURSOR *e_cur = graph.get_edge_cursor();
     e_cur->set_key(e_cur, 5, -1);
     assert(e_cur->search(e_cur) == 0);
-    e_cur->close(e_cur);
     assert(graph.get_out_degree(5) == 1);
     assert(graph.get_in_degree(6) == 1);
 
@@ -311,8 +310,9 @@ int main()
     opts.read_optimize = true;
     opts.is_weighted = true;
     opts.db_name = "test_eKey";
+    opts.db_dir = "./db";
 
-    EdgeKey graph = EdgeKey(opts);
+    EdgeKeyTester graph = EdgeKeyTester(opts);
     create_init_nodes(graph, opts.is_directed);
 
     test_get_node(graph);
