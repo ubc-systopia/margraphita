@@ -11,13 +11,14 @@ class CmdLineBase
 protected:
     int argc_;
     char **argv_;
-    std::string argstr_ = "m:a:nrdhwl:ob:s:e"; //! Construct this after you finish the rest of this thing
+    std::string argstr_ = "m:a:nrdhwl:ob:s:ef:"; //! Construct this after you finish the rest of this thing
     std::vector<std::string> help_strings_;
 
     std::string db_name;
     std::string graph_type;
     std::string benchmark;
     std::string dataset;
+    std::string log_dir;
     bool create_new = false;
     bool read_optimize = false;
     bool directed = true;
@@ -48,7 +49,8 @@ public:
         add_help_message('w', "weighted", "is the graph weighted. default false");
         add_help_message('l', "representation type", "The representation of the graph. Can be one of adjlist, std, edgekey");
         add_help_message('e', "exit_on_create", "Use falg to create the DB and exit");
-        add_help_message('h', "h", "Print this help message");
+        add_help_message('f', "csv logdir", "output dir for log");
+	add_help_message('h', "h", "Print this help message");
     }
 
     bool parse_args()
@@ -90,6 +92,9 @@ public:
         case 'n':
             create_new = true;
             break;
+	case 'f':
+	    log_dir = std::string(opt_arg);
+	    break; 
         case 'w':
             weighted = true;
             break;
@@ -126,6 +131,7 @@ public:
     std::string get_db_path() const { return db_path; }
     std::string get_dataset() const { return dataset; }
     std::string get_benchmark() const { return benchmark; }
+    std::string get_csv_logdir() const { return log_dir; }
     bool is_create_new() const { return create_new; }
     bool is_read_optimize() const { return read_optimize; }
     bool is_directed() const { return directed; }

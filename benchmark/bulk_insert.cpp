@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include "bulk_insert.h"
 #include "reader.h"
+#include <sys/stat.h>
 
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
 double num_edges;
@@ -51,10 +52,17 @@ void print_time_csvline(std::string db_name, std::string db_path, time_info *edg
 {
     std::ofstream log_file;
     log_file.open(logfile_name, std::fstream::app);
-    log_file << "db_name, db_path, type, is_readopt, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
+
+    struct stat st;
+    stat(logfile_name.c_str(), &st);
+    if (st.st_size == 0)
+    {
+        log_file << "db_name, db_path, type, is_readopt, num_nodes, num_edges, t_e_read, t_e_insert, t_n_read, t_n_insert\n";
+    }
+
     log_file
         << db_name << ","
-        << db_path << ","
+        << db_path << "/" << db_name << ","
         << type << ","
         << is_readopt << ","
         << nodet->num_inserted << ","
@@ -234,30 +242,33 @@ void *insert_node(void *arg)
 
                 adj_cur->insert(adj_cur);
 
-                //Now insert into in and out tables.
+                // Now insert into in and out tables.
                 adj_incur->set_key(adj_incur, to_insert.id);
                 adj_outcur->set_key(adj_outcur, to_insert.id);
-                size_t size;
+                // size_t size;
                 try
                 {
-                    // std::string packed_inlist = CommonUtil::pack_int_vector_std(in_adjlist.at(to_insert.id), &size);
-                    char *packed = CommonUtil::pack_int_vector_wti(adj_sess, in_adjlist.at(to_insert.id), &size);
-                    adj_incur->set_value(adj_incur, to_insert.in_degree, packed);
+                    WT_ITEM item;
+                    item.data = CommonUtil::pack_int_vector_wti(adj_sess, in_adjlist.at(to_insert.id), &item.size);
+                    adj_incur->set_value(adj_incur, to_insert.in_degree, &item);
                 }
                 catch (const std::out_of_range &oor)
                 {
-                    adj_incur->set_value(adj_incur, 0, "");
+                    WT_ITEM item = {.data = {}, .size = 0}; // todo: check
+                    adj_incur->set_value(adj_incur, 0, &item);
                 }
 
                 try
                 {
-                    //std::string packed_outlist = CommonUtil::pack_int_vector_std(out_adjlist.at(to_insert.id), &size);
-                    char *packed = CommonUtil::pack_int_vector_wti(adj_sess, out_adjlist.at(to_insert.id), &size);
-                    adj_outcur->set_value(adj_outcur, to_insert.out_degree, packed);
+                    // std::string packed_outlist = CommonUtil::pack_int_vector_std(out_adjlist.at(to_insert.id), &size);
+                    WT_ITEM item;
+                    item.data = CommonUtil::pack_int_vector_wti(adj_sess, out_adjlist.at(to_insert.id), &item.size);
+                    adj_outcur->set_value(adj_outcur, to_insert.out_degree, &item);
                 }
                 catch (const std::out_of_range &oor)
                 {
-                    adj_outcur->set_value(adj_outcur, 0, "");
+                    WT_ITEM item = {.data = {}, .size = 0};
+                    adj_outcur->set_value(adj_outcur, 0, &item);
                 }
 
                 adj_incur->insert(adj_incur);
@@ -372,7 +383,7 @@ int main(int argc, char *argv[])
     }
 
     std::string _db_name;
-    //open std connection
+    // open std connection
     if (type_opt.compare("all") == 0 || type_opt.compare("std") == 0)
     {
         _db_name = db_path + "/std_" + middle + "_" + db_name;
@@ -383,7 +394,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    //open adjlist connection
+    // open adjlist connection
     if (type_opt.compare("all") == 0 || type_opt.compare("adj") == 0)
     {
         _db_name = db_path + "/adj_" + middle + "_" + db_name;
@@ -394,7 +405,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    //open ekey connection
+    // open ekey connection
     if (type_opt.compare("all") == 0 || type_opt.compare("ekey") == 0)
     {
         _db_name = db_path + "/ekey_" + middle + "_" + db_name;
@@ -408,8 +419,8 @@ int main(int argc, char *argv[])
     int i;
     pthread_t threads[NUM_THREADS];
 
-    //Insert Edges First;
-    //std::cout << "id \t filename \t starting index\t ending idx\t size" << std::endl;
+    // Insert Edges First;
+    // std::cout << "id \t filename \t starting index\t ending idx\t size" << std::endl;
     auto start = std::chrono::steady_clock::now();
     for (i = 0; i < NUM_THREADS; i++)
     {
@@ -429,7 +440,7 @@ int main(int argc, char *argv[])
     auto end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert edges was " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    //Now insert nodes;
+    // Now insert nodes;
     start = std::chrono::steady_clock::now();
     for (i = 0; i < NUM_THREADS; i++)
     {
@@ -447,7 +458,7 @@ int main(int argc, char *argv[])
     end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert nodes was " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
 
-    //Adjust for threads
+    // Adjust for threads
     node_times->insert_time = node_times->insert_time / NUM_THREADS;
     node_times->read_time = node_times->read_time / NUM_THREADS;
     edge_times->insert_time = edge_times->insert_time / NUM_THREADS;

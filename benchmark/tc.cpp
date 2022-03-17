@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+
 /**
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts
  */
@@ -28,10 +29,10 @@ typedef struct tc_info
     tc_info(int _val) : cycle_count(_val), trust_count(_val), trust_time(_val), cycle_time(_val){};
 } tc_info;
 
-void print_csv_info(std::string name, tc_info &info)
+void print_csv_info(std::string name, tc_info &info, std::string csv_logdir)
 {
     fstream FILE;
-    std::string _name = "/home/puneet/scratch/margraphita/outputs/" + name + "_tc.csv";
+    std::string _name = csv_logdir + "/" + name + "_tc.csv";
     if (access(_name.c_str(), F_OK) == -1)
     {
         //The file does not exist yet.
@@ -185,6 +186,7 @@ int main(int argc, char *argv[])
     }
 
     graph_opts opts;
+    std::string csv_logdir;
     opts.create_new = tc_cli.is_create_new();
     opts.is_directed = tc_cli.is_directed();
     opts.read_optimize = tc_cli.is_read_optimize();
@@ -192,7 +194,7 @@ int main(int argc, char *argv[])
     opts.optimize_create = tc_cli.is_create_optimized();
     opts.db_name = tc_cli.get_db_name();
     opts.db_dir = tc_cli.get_db_path();
-
+    csv_logdir = tc_cli.get_csv_logdir(); 
     int num_trials = 1;
 
     if (tc_cli.get_graph_type() == "std")
@@ -200,7 +202,7 @@ int main(int argc, char *argv[])
         auto start = std::chrono::steady_clock::now();
         StandardGraph graph(opts);
         auto end = std::chrono::steady_clock::now();
-        std::cout << "Graph loaded in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
+        std::cout << "Graph loaded in " << std::chrono::duration_cast<chrono::microseconds>(end - start).count() << std::endl;
 
         for (int i = 0; i < num_trials; i++)
         {
@@ -222,7 +224,7 @@ int main(int argc, char *argv[])
             std::cout << "Cycle TriangleCounting  completed in : " << info.cycle_time << std::endl;
             std::cout << "Cycle Triangles count = " << info.cycle_count << std::endl;
 
-            print_csv_info(opts.db_name, info);
+            print_csv_info(opts.db_name, info, csv_logdir);
         }
     }
     if (tc_cli.get_graph_type() == "adj")
@@ -250,7 +252,7 @@ int main(int argc, char *argv[])
             info.cycle_time = std::chrono::duration_cast<chrono::microseconds>(end - start).count();
             std::cout << "Cycle Triangle Counting  completed in : " << info.cycle_time << std::endl;
             std::cout << "Cycle Triangles count = " << info.cycle_count << std::endl;
-            print_csv_info(opts.db_name, info);
+            print_csv_info(opts.db_name, info, csv_logdir);
         }
     }
 
@@ -279,7 +281,7 @@ int main(int argc, char *argv[])
             info.cycle_time = std::chrono::duration_cast<chrono::microseconds>(end - start).count();
             std::cout << "Cycle TriangleCounting  completed in : " << info.cycle_time << std::endl;
             std::cout << "Cycle Triangles count = " << info.cycle_count << std::endl;
-            print_csv_info(opts.db_name, info);
+            print_csv_info(opts.db_name, info, csv_logdir);
         }
     }
 }

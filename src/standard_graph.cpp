@@ -13,32 +13,28 @@
 using namespace std;
 const std::string GRAPH_PREFIX = "std";
 
-StandardGraph::StandardGraph() {}
+StandardGraph::StandardGraph()
+{
+    throw GraphException("No parameters passed in graph_opts. Exiting now.");
+}
 
 StandardGraph::StandardGraph(graph_opts &opt_params)
-
 {
-    this->create_new = opt_params.create_new;
-    this->read_optimize = opt_params.read_optimize;
-    this->is_directed = opt_params.is_directed;
-    this->is_weighted = opt_params.is_weighted;
-    this->optimize_create = opt_params.optimize_create;
-    this->db_name = opt_params.db_name;
-    this->db_dir = opt_params.db_dir;
+    opts = opt_params;
 
     try
     {
-        CommonUtil::check_graph_params(opt_params);
+        CommonUtil::check_graph_params(opts);
     }
-    catch (GraphException G)
+    catch (GraphException &G)
     {
         std::cout << G.what() << std::endl;
     }
 
-    if (opt_params.create_new)
+    if (opts.create_new)
     {
         create_new_graph();
-        if (opt_params.optimize_create == false)
+        if (opts.optimize_create == false)
         {
             /**
        *  Create indices with graph.
@@ -53,7 +49,7 @@ StandardGraph::StandardGraph(graph_opts &opt_params)
     else
     {
         // Check that the DB directory exists
-        std::string dirname = db_dir + "/" + db_name;
+        std::string dirname = opts.db_dir + "/" + opts.db_name;
         if (CommonUtil::check_dir_exists(dirname))
         {
             __restore_from_db(dirname);
@@ -69,7 +65,7 @@ void StandardGraph::create_new_graph()
 {
     int ret;
     // Create new directory for WT DB
-    std::string dirname = db_dir + "/" + db_name;
+    std::string dirname = opts.db_dir + "/" + opts.db_name;
     CommonUtil::create_dir(dirname);
 
     // open connection to WT
@@ -86,8 +82,8 @@ void StandardGraph::create_new_graph()
 
     // Set up the node table
     // The node entry is of the form: <id>,<in_degree><out_degree>
-    // If the graph is read_optimized, add columns and format for in/out degrees
-    if (read_optimize)
+    // If the graph is opts.read_optimized, add columns and format for in/out degrees
+    if (opts.read_optimize)
     {
 
         node_columns.push_back(IN_DEGREE);
@@ -108,7 +104,7 @@ void StandardGraph::create_new_graph()
     // ******** Now set up the Edge Table     **************
     // Edge Column Format : <src><dst><weight>
     //Now prepare the edge value format. starts with II for src,dst. Add another I if weighted
-    if (is_weighted)
+    if (opts.is_weighted)
     {
         edge_columns.push_back(WEIGHT);
         edge_value_format += "I";
@@ -135,42 +131,40 @@ void StandardGraph::create_new_graph()
         fprintf(stderr, "Failed to create the metadata table ");
     }
 
-    // DB_NAME
-    //string db_name_fmt;
-    // char *db_name_packed =
-    //     CommonUtil::pack_string_wt(db_name, session, &db_name_fmt);
-    // insert_metadata(DB_NAME, db_name_fmt, db_name_packed);
-    insert_metadata(DB_NAME, "S", const_cast<char *>(db_name.c_str()));
+    // opts.DB_NAME
+    // string opts.db_name_fmt;
+    // char *opts.db_name_packed =
+    //     CommonUtil::pack_string_wt(opts.db_name, session, &opts.db_name_fmt);
+    // insert_metadata(opts.DB_NAME, opts.db_name_fmt, opts.db_name_packed);
+    insert_metadata(DB_NAME, "S", const_cast<char *>(opts.db_name.c_str()));
 
-    //DB_DIR
-    insert_metadata(DB_DIR, "S", const_cast<char *>(db_dir.c_str()));
+    // opts.db_dir
+    insert_metadata(opts.db_dir, "S", const_cast<char *>(opts.db_dir.c_str()));
 
-    // READ_OPTIMIZE
-    string is_read_optimized_str = read_optimize ? "true" : "false";
+    // opts.READ_OPTIMIZE
+    string is_read_optimized_str = opts.read_optimize ? "true" : "false";
     insert_metadata(READ_OPTIMIZE, "S",
                     const_cast<char *>(is_read_optimized_str.c_str()));
 
     // IS_DIRECTED
-    string is_directed_str = is_directed ? "true" : "false";
+    string is_directed_str = opts.is_directed ? "true" : "false";
     insert_metadata(IS_DIRECTED, "S", const_cast<char *>(is_directed_str.c_str()));
 
-    //IS_WEIGHTED
-    string is_weighted_str = is_weighted ? "true" : "false";
+    // opts.IS_WEIGHTED
+    string is_weighted_str = opts.is_weighted ? "true" : "false";
     insert_metadata(IS_WEIGHTED, "S", const_cast<char *>(is_weighted_str.c_str()));
 
     //NUM_NODES = 0
     insert_metadata(node_count, "S", const_cast<char *>(std::to_string(0).c_str()));
-    //                CommonUtil::pack_int_wt(0, session));
 
     //NUM_EDGES = 0
     insert_metadata(edge_count, "S", const_cast<char *>(std::to_string(0).c_str()));
-    //CommonUtil::pack_int_wt(0, session));
 }
 
-WT_CONNECTION *StandardGraph::get_conn()
-{
-    return this->conn;
-}
+// WT_CONNECTION *StandardGraph::get_conn()
+// {
+//     return this->conn;
+// }
 
 /**
  * @brief This private function inserts metadata values into the metadata
@@ -285,7 +279,7 @@ int StandardGraph::_get_index_cursor(std::string table_name,
  * @brief This function is used to restore the graph configs from the saved
  *  attrs in the METADATA table.
  *
- * @param db_name
+ * @param opts.db_name
  */
 void StandardGraph::__restore_from_db(std::string db_name)
 {
@@ -302,47 +296,47 @@ void StandardGraph::__restore_from_db(std::string db_name)
         ret = cursor->get_key(cursor, &key);
         ret = cursor->get_value(cursor, &value);
 
-        if (strcmp(key, DB_DIR.c_str()) == 0)
+        if (strcmp(key, opts.db_dir.c_str()) == 0)
         {
 
-            this->db_dir = value; //CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_dir = value; // CommonUtil::unpack_string_wt(value, this->session);
         }
         else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
 
-            this->db_name = value; //CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_name = value; // CommonUtil::unpack_string_wt(value, this->session);
         }
         else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->read_optimize = true;
+                this->opts.read_optimize = true;
             }
             else
             {
-                this->read_optimize = false;
+                this->opts.read_optimize = false;
             }
         }
         else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->is_directed = true;
+                this->opts.is_directed = true;
             }
             else
             {
-                this->is_directed = false;
+                this->opts.is_directed = false;
             }
         }
         else if (strcmp(key, IS_WEIGHTED.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
             {
-                this->is_weighted = true;
+                this->opts.is_weighted = true;
             }
             else
             {
-                this->is_weighted = false;
+                this->opts.is_weighted = false;
             }
         }
     }
@@ -446,7 +440,7 @@ void StandardGraph::close()
  * <node_id>,<attr1>..<attrN>,data0,data1,in_degree,out_degree
  * attrs are persisted if has_node_attrs is true
  * data0,data1 are strings. use std::to_string for others.
- * in_degree and out_degree are persisted if read_optimize is true. ints
+ * in_degree and out_degree are persisted if opts.read_optimize is true. ints
  *
  *
  * @param to_insert
@@ -460,7 +454,7 @@ void StandardGraph::add_node(node to_insert)
     }
     node_cursor->set_key(node_cursor, to_insert.id);
 
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         node_cursor->set_value(node_cursor, to_insert.in_degree, to_insert.out_degree);
     }
@@ -683,7 +677,7 @@ void StandardGraph::__node_to_record(WT_CURSOR *cursor, node to_insert)
     }
 
     // Now get the cursor value
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         cursor->set_value(cursor, to_insert.in_degree,
                           to_insert.out_degree);
@@ -703,7 +697,7 @@ void StandardGraph::__node_to_record(WT_CURSOR *cursor, node to_insert)
 
 int StandardGraph::get_in_degree(int node_id)
 {
-    if (this->read_optimize)
+    if (this->opts.read_optimize)
     {
         node found = get_node(node_id);
         return found.in_degree;
@@ -747,7 +741,7 @@ int StandardGraph::get_in_degree(int node_id)
 
 int StandardGraph::get_out_degree(int node_id)
 {
-    if (read_optimize)
+    if (opts.read_optimize)
     {
         node found = get_node(node_id);
         return found.out_degree;
@@ -828,7 +822,7 @@ void StandardGraph::__record_to_node(WT_CURSOR *cursor, node *found)
     found->in_degree = 0;
     found->out_degree = 0;
 
-    if (this->read_optimize)
+    if (this->opts.read_optimize)
     {
         cursor->get_value(cursor, &found->in_degree,
                           &found->out_degree);
@@ -851,10 +845,14 @@ void StandardGraph::__read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
  * 
  * @param to_insert The edge struct containing the edge to be inserted.
  */
-void StandardGraph::add_edge(edge to_insert)
+void StandardGraph::add_edge(edge to_insert, bool is_bulk)
 {
-    // Add dst and src nodes if they don't exist.
     WT_CURSOR *e_cursor, *n_cursor;
+    if (!is_bulk)
+    {
+
+        // Add dst and src nodes if they don't exist.
+
     if (!has_node(to_insert.src_id))
     {
         node src = {0};
@@ -867,12 +865,12 @@ void StandardGraph::add_edge(edge to_insert)
         dst.id = to_insert.dst_id;
         add_node(dst);
     }
-
+    }
     int ret;
     e_cursor = get_edge_cursor();
     e_cursor->set_key(e_cursor, to_insert.src_id, to_insert.dst_id);
 
-    if (is_weighted)
+    if (opts.is_weighted)
     {
         e_cursor->set_value(e_cursor, to_insert.edge_weight);
     }
@@ -890,8 +888,11 @@ void StandardGraph::add_edge(edge to_insert)
 
     set_num_edges(get_num_edges() + 1);
 
-    // If read_optimized is true, we update in/out degreees in the node table.
-    if (this->read_optimize)
+    if (!is_bulk)
+    {
+
+        // If opts.read_optimized is true, we update in/out degreees in the node table.
+        if (this->opts.read_optimize)
     {
         // update in/out degrees for src node in NODE_TABLE
         n_cursor = get_node_cursor();
@@ -918,31 +919,6 @@ void StandardGraph::add_edge(edge to_insert)
         update_node_degree(n_cursor, found.id, found.in_degree, found.out_degree);
     }
 }
-
-void StandardGraph::bulk_add_edge(int src, int dst, int weight)
-{
-    // We have already added the src and dst
-
-    WT_CURSOR *cursor = get_edge_cursor();
-    int ret;
-
-    cursor->set_key(cursor, src, dst);
-    if (is_weighted)
-    {
-        cursor->set_value(cursor, src, dst, weight);
-    }
-    else
-    {
-        cursor->set_value(cursor, src, dst, 0);
-    }
-    ret = cursor->insert(cursor);
-    if (ret != 0)
-    {
-        throw GraphException("Failed to insert edge (" +
-                             to_string(src) + "," +
-                             to_string(dst));
-    }
-    set_num_edges(get_num_edges() + 1);
 }
 
 void StandardGraph::delete_edge(int src_id, int dst_id)
@@ -962,7 +938,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     CommonUtil::check_return(ret, "Failed to delete edge (" + to_string(src_id) +
                                       "," + to_string(dst_id));
     // Delete reverse edge if the graph is undirected.
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         if (!has_edge(dst_id, src_id, &e_found))
         {
@@ -988,8 +964,8 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     // Assert that the out degree and later on in degree are > 0.
     // If not then raise an exceptiion, because we shouldn't have deleted an edge where src/dst have
     // degree 0.
-    if ((is_directed and n_found.out_degree == 0) or
-        ((!is_directed) and ((n_found.out_degree == 0) or (n_found.in_degree == 0))))
+    if ((opts.is_directed and n_found.out_degree == 0) or
+        ((!opts.is_directed) and ((n_found.out_degree == 0) or (n_found.in_degree == 0))))
     {
         throw GraphException("Deleted an edge between src nodeid: " +
                              to_string(src_id) + "," +
@@ -998,7 +974,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     }
 
     n_found.out_degree = n_found.out_degree - 1;
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         n_found.in_degree = n_found.in_degree - 1;
     }
@@ -1010,8 +986,8 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     n_cursor->search(n_cursor);
     __record_to_node(n_cursor, &n_found);
 
-    if ((is_directed and n_found.in_degree == 0) or
-        ((!is_directed) and (n_found.out_degree == 0) and (n_found.in_degree == 0)))
+    if ((opts.is_directed and n_found.in_degree == 0) or
+        ((!opts.is_directed) and (n_found.out_degree == 0) and (n_found.in_degree == 0)))
     {
         throw GraphException("Deleted an edge between src nodeid: " +
                              to_string(src_id) + "," +
@@ -1019,7 +995,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
                              to_string(dst_id));
     }
     n_found.in_degree = n_found.in_degree - 1;
-    if (!is_directed)
+    if (!opts.is_directed)
     {
         n_found.out_degree = n_found.out_degree - 1;
     }
