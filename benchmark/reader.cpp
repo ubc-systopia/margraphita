@@ -31,14 +31,14 @@ namespace reader
                     std::stringstream s_stream(tp);
                     s_stream >> a;
                     s_stream >> b;
-                    edge to_insert;
+                    edge to_insert = {0};
                     to_insert.src_id = a;
                     to_insert.dst_id = b;
 
                     edges.push_back(to_insert);
                     lock.lock();
-                    in_adjlist[b].push_back(a);  //insert a in b's in_adjlist
-                    out_adjlist[a].push_back(b); //insert b in a's out_adjlist
+                    in_adjlist[b].push_back(a);  // insert a in b's in_adjlist
+                    out_adjlist[a].push_back(b); // insert b in a's out_adjlist
                     lock.unlock();
                 }
             }

@@ -104,8 +104,8 @@ void *insert_edge_thread(void *arg)
 
             for (edge e : edjlist)
             {
-                cursor->set_key(cursor, start_idx);
-                cursor->set_value(cursor, e.src_id, e.dst_id, 0);
+                cursor->set_key(cursor, e.src_id, e.dst_id);
+                cursor->set_value(cursor, e.edge_weight);
                 cursor->insert(cursor);
                 start_idx++;
             }
