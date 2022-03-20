@@ -21,8 +21,7 @@ preprocess=1
 bulk_load=1
 index_create=0
 
-if [ -z "$*" ]; then echo "No log dir provided. Using cwd."; fi
-while getopts ":lpbi" o; do
+while getopts ":l:pbi" o; do
     case "${o}" in
         (l)
             log_dir=${OPTARG}
@@ -42,6 +41,7 @@ while getopts ":lpbi" o; do
             ;;
     esac
 done
+if [ $OPTIND -eq 1 ]; then echo "No options were passed. Using ${log_dir} as log dir."; fi
 log_file=${log_dir}/kron_insert.txt
 
 TYPES=( "std" "adj" "ekey" )
