@@ -37,12 +37,12 @@ StandardGraph::StandardGraph(graph_opts &opt_params)
         if (opts.optimize_create == false)
         {
             /**
-       *  Create indices with graph.
-       * NOTE: If user opts to optimize graph creation, then they're
-       * responsible for calling create_indices() AFTER all the
-       * nodes/edges have been added to graph.
-       * This is done to improve performance of bulk-loading.
-       */
+             *  Create indices with graph.
+             * NOTE: If user opts to optimize graph creation, then they're
+             * responsible for calling create_indices() AFTER all the
+             * nodes/edges have been added to graph.
+             * This is done to improve performance of bulk-loading.
+             */
             create_indices();
         }
     }
@@ -92,18 +92,18 @@ void StandardGraph::create_new_graph()
     }
     else
     {
-        node_columns.push_back("na"); //have to do this because the column count must match.
-        node_value_format = "s";      //1 byte fixed length char[] to hold ""
+        node_columns.push_back("na"); // have to do this because the column count must match.
+        node_value_format = "s";      // 1 byte fixed length char[] to hold ""
     }
     // Now Create the Node Table
-    //!What happens when the table is not read-optimized? I store "" <-ok?
+    //! What happens when the table is not read-optimized? I store "" <-ok?
 
     CommonUtil::set_table(session, NODE_TABLE, node_columns, node_key_format,
                           node_value_format);
 
     // ******** Now set up the Edge Table     **************
     // Edge Column Format : <src><dst><weight>
-    //Now prepare the edge value format. starts with II for src,dst. Add another I if weighted
+    // Now prepare the edge value format. starts with II for src,dst. Add another I if weighted
     if (opts.is_weighted)
     {
         edge_columns.push_back(WEIGHT);
@@ -154,10 +154,10 @@ void StandardGraph::create_new_graph()
     string is_weighted_str = opts.is_weighted ? "true" : "false";
     insert_metadata(IS_WEIGHTED, "S", const_cast<char *>(is_weighted_str.c_str()));
 
-    //NUM_NODES = 0
+    // NUM_NODES = 0
     insert_metadata(node_count, "S", const_cast<char *>(std::to_string(0).c_str()));
 
-    //NUM_EDGES = 0
+    // NUM_EDGES = 0
     insert_metadata(edge_count, "S", const_cast<char *>(std::to_string(0).c_str()));
 }
 
@@ -169,7 +169,7 @@ void StandardGraph::create_new_graph()
 /**
  * @brief This private function inserts metadata values into the metadata
  * table. The fields are self explanatory.
- * 
+ *
  */
 void StandardGraph::insert_metadata(string key, string value_format,
                                     char *value)
@@ -376,7 +376,7 @@ void StandardGraph::create_indices()
     string edge_table_index_str, edge_table_index_conf_str;
     edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_DST_INDEX;
     edge_table_index_conf_str = "columns=(" + SRC + "," + DST + ")";
-    //THere is likely a util fucntion for this
+    // THere is likely a util fucntion for this
     if ((ret = session->create(session, edge_table_index_str.c_str(),
                                edge_table_index_conf_str.c_str())) > 0)
     {
@@ -427,8 +427,8 @@ void StandardGraph::drop_indices()
 
 /**
  * @brief This function is used to close the graph. It persists the last used
- * edge_id in the metadata table, and then closes the graph connection. 
- * 
+ * edge_id in the metadata table, and then closes the graph connection.
+ *
  */
 void StandardGraph::close()
 {
@@ -541,14 +541,14 @@ bool StandardGraph::has_edge(int src_id, int dst_id, edge *found)
 /**
  * There can be three designs around storing and retrieving the numEdges and numNodes:
  * 1. Don't explicitly store num_nodes and num_edges anywhere and count on calling this func
- * 2. Keep numNodes and numEdges in a metadata table and update them on ins/deletions. 
- *    I think this method will slow down insertions, however, it is guaranteed to go about 
- *    as fast as the WT lock-less consistency guarantee. 
+ * 2. Keep numNodes and numEdges in a metadata table and update them on ins/deletions.
+ *    I think this method will slow down insertions, however, it is guaranteed to go about
+ *    as fast as the WT lock-less consistency guarantee.
  * 3. Keep this as a thread local variable and reconcile at the end. I think this is what
- *    I will do for the bulk insert method.  
+ *    I will do for the bulk insert method.
  */
 
-//I think this should be part of the metadata.
+// I think this should be part of the metadata.
 int StandardGraph::get_num_nodes()
 {
     string found = get_metadata(node_count);
@@ -586,7 +586,7 @@ node StandardGraph::get_node(int node_id)
         throw GraphException("Could not find a node with nodeId " +
                              std::to_string(node_id));
     }
-    __record_to_node(cursor, &found);
+    CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
     found.id = node_id;
     return found;
 }
@@ -609,7 +609,7 @@ node StandardGraph::get_random_node()
     }
     int id;
     random_node_cursor->get_key(random_node_cursor, &id);
-    __record_to_node(this->random_node_cursor, &found);
+    CommonUtil::__record_to_node(this->random_node_cursor, &found, opts.read_optimize);
     found.id = id;
     return found;
 }
@@ -619,7 +619,7 @@ node StandardGraph::get_random_node()
  *
  * @param node_id
  */
-//!read again
+//! read again
 // TODO(puneet):
 void StandardGraph::delete_node(int node_id)
 {
@@ -633,7 +633,7 @@ void StandardGraph::delete_node(int node_id)
             throw GraphException("Could not get a cursor to the node table");
         }
     }
-    //Delete incoming and outgoing edges
+    // Delete incoming and outgoing edges
     vector<edge> incoming_edges = get_in_edges(node_id);
     vector<edge> outgoing_edges = get_out_edges(node_id);
 
@@ -653,45 +653,6 @@ void StandardGraph::delete_node(int node_id)
     if (ret != 0)
     {
         throw GraphException("Could not delete node with ID " + to_string(node_id));
-    }
-}
-
-/**
- * @brief This fucntion updates a node with the given attribute vector.
- * This function assumes that only the node attributes are updated here.
- * Node data is modified using get/set_node_data() and degrees are modified
- * automatically on edge insertions/deletions.
- * @param node_id The Node ID to be updated
- * @param new_attrs The new node attribute vector.
- */
-void StandardGraph::__node_to_record(WT_CURSOR *cursor, node to_insert)
-{
-
-    cursor->set_key(cursor, to_insert.id);
-    int search_ret = cursor->search(cursor);
-
-    if (search_ret != 0)
-    {
-        throw GraphException("Failed to find a node with node_id = " +
-                             to_string(to_insert.id));
-    }
-
-    // Now get the cursor value
-    if (opts.read_optimize)
-    {
-        cursor->set_value(cursor, to_insert.in_degree,
-                          to_insert.out_degree);
-    }
-    else
-    {
-        cursor->set_value(cursor, "");
-    }
-    int ret = cursor->update(cursor);
-
-    if (ret != 0)
-    {
-        throw GraphException("Failed to update node_id = " +
-                             to_string(to_insert.id));
     }
 }
 
@@ -791,7 +752,7 @@ int StandardGraph::get_out_degree(int node_id)
 
 /**
  * @brief get all nodes in the nodes table
- * 
+ *
  * @return std::vector<node> the vector of all nodes in the node table
  */
 std::vector<node> StandardGraph::get_nodes()
@@ -801,8 +762,8 @@ std::vector<node> StandardGraph::get_nodes()
     WT_CURSOR *cursor = get_node_cursor();
     while ((ret = cursor->next(cursor) == 0))
     {
-        node item;
-        __record_to_node(cursor, &item);
+        node item{0};
+        CommonUtil::__record_to_node(cursor, &item, opts.read_optimize);
         cursor->get_key(cursor, &item.id);
 
         nodes.push_back(item);
@@ -811,38 +772,8 @@ std::vector<node> StandardGraph::get_nodes()
 }
 
 /**
- * @brief This function reads the record currently being pointed to by the
- * cursor, and returns the 
- * 
- * @param cursor 
- * @return node 
- */
-void StandardGraph::__record_to_node(WT_CURSOR *cursor, node *found)
-{
-    found->in_degree = 0;
-    found->out_degree = 0;
-
-    if (this->opts.read_optimize)
-    {
-        cursor->get_value(cursor, &found->in_degree,
-                          &found->out_degree);
-    }
-}
-
-void StandardGraph::__record_to_edge(WT_CURSOR *cursor, edge *found)
-{
-    cursor->get_value(cursor, &found->edge_weight);
-}
-
-void StandardGraph::__read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
-{
-
-    idx_cursor->get_value(idx_cursor, &e_idx->src_id, &e_idx->dst_id);
-}
-
-/**
  * @brief Insert an edge into the edge table
- * 
+ *
  * @param to_insert The edge struct containing the edge to be inserted.
  */
 void StandardGraph::add_edge(edge to_insert, bool is_bulk)
@@ -853,18 +784,18 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
 
         // Add dst and src nodes if they don't exist.
 
-    if (!has_node(to_insert.src_id))
-    {
-        node src = {0};
-        src.id = to_insert.src_id;
-        add_node(src);
-    }
-    if (!has_node(to_insert.dst_id))
-    {
-        node dst = {0};
-        dst.id = to_insert.dst_id;
-        add_node(dst);
-    }
+        if (!has_node(to_insert.src_id))
+        {
+            node src = {0};
+            src.id = to_insert.src_id;
+            add_node(src);
+        }
+        if (!has_node(to_insert.dst_id))
+        {
+            node dst = {0};
+            dst.id = to_insert.dst_id;
+            add_node(dst);
+        }
     }
     int ret;
     e_cursor = get_edge_cursor();
@@ -893,32 +824,32 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
 
         // If opts.read_optimized is true, we update in/out degreees in the node table.
         if (this->opts.read_optimize)
-    {
-        // update in/out degrees for src node in NODE_TABLE
-        n_cursor = get_node_cursor();
-
-        n_cursor->set_key(n_cursor, to_insert.src_id);
-        if (n_cursor->search(n_cursor) != 0)
         {
-            throw GraphException("Could not find a node with ID " + to_string(to_insert.src_id));
-        }
-        node found;
-        __record_to_node(n_cursor, &found);
-        found.id = to_insert.src_id;
-        found.out_degree = found.out_degree + 1;
-        update_node_degree(n_cursor, found.id, found.in_degree,
-                           found.out_degree); //! pass the cursor to this function
+            // update in/out degrees for src node in NODE_TABLE
+            n_cursor = get_node_cursor();
 
-        // update in/out degrees for the dst node in the NODE_TABLE
-        n_cursor->reset(n_cursor);
-        n_cursor->set_key(n_cursor, to_insert.dst_id);
-        n_cursor->search(n_cursor);
-        __record_to_node(n_cursor, &found);
-        found.id = to_insert.dst_id;
-        found.in_degree = found.in_degree + 1;
-        update_node_degree(n_cursor, found.id, found.in_degree, found.out_degree);
+            n_cursor->set_key(n_cursor, to_insert.src_id);
+            if (n_cursor->search(n_cursor) != 0)
+            {
+                throw GraphException("Could not find a node with ID " + to_string(to_insert.src_id));
+            }
+            node found;
+            CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
+            found.id = to_insert.src_id;
+            found.out_degree = found.out_degree + 1;
+            update_node_degree(n_cursor, found.id, found.in_degree,
+                               found.out_degree); //! pass the cursor to this function
+
+            // update in/out degrees for the dst node in the NODE_TABLE
+            n_cursor->reset(n_cursor);
+            n_cursor->set_key(n_cursor, to_insert.dst_id);
+            n_cursor->search(n_cursor);
+            CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
+            found.id = to_insert.dst_id;
+            found.in_degree = found.in_degree + 1;
+            update_node_degree(n_cursor, found.id, found.in_degree, found.out_degree);
+        }
     }
-}
 }
 
 void StandardGraph::delete_edge(int src_id, int dst_id)
@@ -959,7 +890,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
     n_cursor->set_key(n_cursor, n_found.id);
     n_cursor->search(n_cursor);
-    __record_to_node(n_cursor, &n_found);
+    CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
 
     // Assert that the out degree and later on in degree are > 0.
     // If not then raise an exceptiion, because we shouldn't have deleted an edge where src/dst have
@@ -984,7 +915,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
     n_cursor->set_key(n_cursor, n_found.id);
     n_cursor->search(n_cursor);
-    __record_to_node(n_cursor, &n_found);
+    CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
 
     if ((opts.is_directed and n_found.in_degree == 0) or
         ((!opts.is_directed) and (n_found.out_degree == 0) and (n_found.in_degree == 0)))
@@ -1020,12 +951,12 @@ void StandardGraph::update_node_degree(WT_CURSOR *cursor, int node_id,
     found.out_degree = out_degree;
     found.id = node_id;
 
-    __node_to_record(cursor, found);
+    CommonUtil::__node_to_record(cursor, found, opts.read_optimize);
 }
 
 /**
  * @brief Get all edges in the edge table
- * 
+ *
  * @return std::vector<edge> the vector containing all edges in the edge table
  */
 std::vector<edge> StandardGraph::get_edges()
@@ -1036,7 +967,7 @@ std::vector<edge> StandardGraph::get_edges()
     while ((ret = cursor->next(cursor) == 0))
     {
         edge found;
-        __record_to_edge(cursor, &found);
+        CommonUtil::__record_to_edge(cursor, &found);
         edges.push_back(found);
     }
 
@@ -1045,7 +976,7 @@ std::vector<edge> StandardGraph::get_edges()
 
 /**
  * @brief This function returns a vector of outgoing edges from node_id
- * 
+ *
  * @param node_id the ID of the node whose out edges are being searched
  * @return std::vector<edge> vector of out edges found
  */
@@ -1063,11 +994,11 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id)
     if (cursor->search(cursor) == 0)
     {
         edge found;
-        __read_from_edge_idx(cursor, &found);
+        CommonUtil::__read_from_edge_idx(cursor, &found);
         edges.push_back(found);
         while (cursor->next(cursor) == 0)
         {
-            __read_from_edge_idx(cursor, &found);
+            CommonUtil::__read_from_edge_idx(cursor, &found);
             if (found.src_id == node_id)
             {
                 edges.push_back(found);
@@ -1082,10 +1013,10 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id)
 }
 
 /**
- * @brief This function is used to get all the nodes that have an incoming edge 
+ * @brief This function is used to get all the nodes that have an incoming edge
  * from node_id
- * @param node_id the node for which out edges are being searched 
- * @return vector<node> The vector of out nodes 
+ * @param node_id the node for which out edges are being searched
+ * @return vector<node> The vector of out nodes
  */
 vector<node> StandardGraph::get_out_nodes(int node_id)
 {
@@ -1104,7 +1035,7 @@ vector<node> StandardGraph::get_out_nodes(int node_id)
             if (ret == 0)
             {
                 node found_dst;
-                __record_to_node(cursor, &found_dst);
+                CommonUtil::__record_to_node(cursor, &found_dst, opts.read_optimize);
                 found_dst.id = out_edge.dst_id;
                 nodes.push_back(found_dst);
             }
@@ -1115,9 +1046,9 @@ vector<node> StandardGraph::get_out_nodes(int node_id)
 
 /**
  * @brief This is used to get in edges to the node_id.
- * 
- * @param node_id 
- * @return vector<edge> 
+ *
+ * @param node_id
+ * @return vector<edge>
  */
 vector<edge> StandardGraph::get_in_edges(int node_id)
 {
@@ -1142,11 +1073,11 @@ vector<edge> StandardGraph::get_in_edges(int node_id)
     {
 
         edge found;
-        __read_from_edge_idx(dst_index_cursor, &found);
+        CommonUtil::__read_from_edge_idx(dst_index_cursor, &found);
         edges.push_back(found);
         while (dst_index_cursor->next(dst_index_cursor) == 0)
         {
-            __read_from_edge_idx(dst_index_cursor, &found);
+            CommonUtil::__read_from_edge_idx(dst_index_cursor, &found);
             if (found.dst_id == node_id)
             {
                 edges.push_back(found);
@@ -1163,7 +1094,7 @@ vector<edge> StandardGraph::get_in_edges(int node_id)
 /**
  * @brief This function is used to get the list of nodes that have edges to
  * node_id
- * 
+ *
  * @param node_id for identifying the node to search
  * @return vector<node> set of nodes that have edges to node_id
  */
@@ -1181,11 +1112,11 @@ vector<node> StandardGraph::get_in_nodes(int node_id)
     {
 
         edge found;
-        __read_from_edge_idx(cursor, &found);
+        CommonUtil::__read_from_edge_idx(cursor, &found);
         nodes.push_back(get_node(found.src_id));
         while (cursor->next(cursor) == 0)
         {
-            __read_from_edge_idx(cursor, &found);
+            CommonUtil::__read_from_edge_idx(cursor, &found);
             if (found.dst_id == node_id)
             {
                 nodes.push_back(get_node(found.src_id));
@@ -1272,10 +1203,10 @@ WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
  * @brief This is a function that I am using to test how search using cursors
  * works. It returns a cursor pointing to the first entry where the condition is
  * true and you can call next() on the cursor to get all records that match the
- * condition -- Break when the condition is not true anymore.  
- * 
- * @param node_id 
- * @return vector<edge> 
+ * condition -- Break when the condition is not true anymore.
+ *
+ * @param node_id
+ * @return vector<edge>
  */
 
 WT_CURSOR *StandardGraph::get_node_iter()
@@ -1288,7 +1219,7 @@ node StandardGraph::get_next_node(WT_CURSOR *n_iter)
     node found = {-1};
     if (n_iter->next(n_iter) == 0)
     {
-        __record_to_node(n_iter, &found);
+        CommonUtil::__record_to_node(n_iter, &found, opts.read_optimize);
         n_iter->get_key(n_iter, &found.id);
     }
 
@@ -1304,7 +1235,7 @@ edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
     if (e_iter->next(e_iter) == 0)
     {
         edge found;
-        __record_to_edge(e_iter, &found);
+        CommonUtil::__record_to_edge(e_iter, &found);
         e_iter->get_key(e_iter, &found.src_id, &found.dst_id);
         return found;
     }
@@ -1330,11 +1261,11 @@ vector<edge> StandardGraph::test_cursor_iter(int node_id)
     {
 
         edge found;
-        __read_from_edge_idx(cursor, &found);
+        CommonUtil::__read_from_edge_idx(cursor, &found);
         edges.push_back(found);
         while (cursor->next(cursor) == 0)
         {
-            __read_from_edge_idx(cursor, &found);
+            CommonUtil::__read_from_edge_idx(cursor, &found);
             edges.push_back(found);
         }
     }

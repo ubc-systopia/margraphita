@@ -134,10 +134,10 @@ void CommonUtil::set_table(WT_SESSION *session, std::string prefix,
 }
 
 /**
- * @brief This function is used to construct the default values based on format 
- * string.  
- * 
- * @param fmt This is the format string. 
+ * @brief This function is used to construct the default values based on format
+ * string.
+ *
+ * @param fmt This is the format string.
  * @return std::vector<int> This is a vector that contains the default values for format types that are represented as ints. (0)
  */
 std::vector<int>
@@ -161,10 +161,10 @@ CommonUtil::get_default_nonstring_attrs(std::string fmt)
 }
 
 /**
- * @brief This function is used to construct the default values based on format 
- * string.  
- * 
- * @param fmt This is the format string. 
+ * @brief This function is used to construct the default values based on format
+ * string.
+ *
+ * @param fmt This is the format string.
  * @return std::vector<std::string> This is a vector that contains the default values for format types that are represented as strings. ("")
  */
 std::vector<std::string>
@@ -196,7 +196,7 @@ void CommonUtil::check_graph_params(graph_opts params)
 {
     std::vector<std::string> missing_params;
 
-    //TODO: this needs to be updated
+    // TODO: this needs to be updated
     if (missing_params.size() > 0)
     {
         std::vector<std::string>::iterator missing_param_ptr;
@@ -229,10 +229,10 @@ std::string CommonUtil::create_string_format(std::vector<std::string> to_pack,
     for (std::string item : to_pack)
     {
 
-        fmt = fmt + 'S';                    //std::to_string(item.length()) + 'S';
-        *total_size += (item.length() + 1); //for \0
+        fmt = fmt + 'S';                    // std::to_string(item.length()) + 'S';
+        *total_size += (item.length() + 1); // for \0
     }
-    *total_size += (fmt.length() + 1 + sizeof(int) + 1); //Add the size of the first element + \0 + size of int + another \0
+    *total_size += (fmt.length() + 1 + sizeof(int) + 1); // Add the size of the first element + \0 + size of int + another \0
     return fmt;
 }
 
@@ -305,7 +305,7 @@ char *CommonUtil::pack_string_vector_wt(std::vector<std::string> to_pack,
  * @brief This function is the alternative way to pack a string vector.
  * Basically, construct one giant string out of all elements that is delimited
  * by "__". This might be potentially faster than WT. <-- timing tests needed
- * 
+ *
  */
 std::string CommonUtil::pack_string_vector_std(std::vector<std::string> to_pack,
                                                size_t *size)
@@ -537,7 +537,7 @@ char *CommonUtil::pack_string_wt(std::string to_pack, WT_SESSION *session,
     std::string format = "S";
     size_t size;
     wiredtiger_struct_size(session, &size, "S", to_pack.c_str());
-    //std::cout << "\n size needed is : " << size << std::endl;
+    // std::cout << "\n size needed is : " << size << std::endl;
 
     char *buffer = (char *)malloc(size);
 
@@ -779,13 +779,13 @@ void CommonUtil::dump_adjlist(adjlist to_print)
 
 /**
  * @brief This function is used to pack a vector of strings into a buffer held
- * by in WT_ITEM buffer. 
- * 
+ * by in WT_ITEM buffer.
+ *
  * @param session session to WT DB
  * @param to_pack the vector to pack
  * @param fmt this is a string* pointer that is set in this function to hold the
  * format descriptor of the vector.
- * @return WT_ITEM 
+ * @return WT_ITEM
  */
 WT_ITEM CommonUtil::pack_vector_string(WT_SESSION *session, std::vector<std::string> to_pack, std::string *fmt)
 {
@@ -809,11 +809,11 @@ WT_ITEM CommonUtil::pack_vector_string(WT_SESSION *session, std::vector<std::str
 
 /**
  * @brief Pack a vector of integers into a buffer held in WT_ITEM
- * 
+ *
  * @param session session to the WT DB
  * @param to_pack the vector to pack
  * @param fmt format string will hold the vector description. This is set from this function.
- * @return WT_ITEM 
+ * @return WT_ITEM
  */
 WT_ITEM CommonUtil::pack_vector_int(WT_SESSION *session, std::vector<int> to_pack, std::string *fmt)
 {
@@ -839,16 +839,16 @@ WT_ITEM CommonUtil::pack_vector_int(WT_SESSION *session, std::vector<int> to_pac
 }
 
 /**
- * @brief This function accepts a variadic input to wrap into a WT_ITEM buffer. 
- * 
+ * @brief This function accepts a variadic input to wrap into a WT_ITEM buffer.
+ *
  * @param session session to the WT DB
  * @param fmt the format string that describes the variadic input
  * @param ... All the items that need to be packed. Strings should be passed as char*
- * @return WT_ITEM The struct containing the packed buffer. 
+ * @return WT_ITEM The struct containing the packed buffer.
  */
 WT_ITEM CommonUtil::pack_items(WT_SESSION *session, std::string fmt, ...)
 {
-    size_t size = 0; //!This will cause error in malloc for databuf
+    size_t size = 0; //! This will cause error in malloc for databuf
     WT_ITEM packed;
     char *data_buf = (char *)malloc(size * sizeof(char));
     const char *format = fmt.c_str();
@@ -899,7 +899,7 @@ std::vector<int> CommonUtil::unpack_vector_int(WT_SESSION *session, WT_ITEM pack
  * 2. unpack_int_vector
  * 3. pack_string_vector
  * 4. unpack_string_vector
- * 
+ *
  */
 
 /**

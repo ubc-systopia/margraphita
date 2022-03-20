@@ -10,8 +10,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <wiredtiger.h>
+#include "graph_exception.h"
 
-//These are the string constants
+// These are the string constants
 extern const std::string METADATA;
 extern const std::string DB_NAME;
 extern const std::string DB_DIR;
@@ -36,7 +37,7 @@ extern const std::string EDGE_TABLE;
 extern const std::string SRC_INDEX;
 extern const std::string DST_INDEX;
 extern const std::string SRC_DST_INDEX;
-//specific to AdjList implementation
+// specific to AdjList implementation
 extern const std::string IN_ADJLIST;  // New
 extern const std::string OUT_ADJLIST; // New
 
@@ -72,12 +73,31 @@ typedef struct edge_index
     int dst_id;
 } edge_index;
 
+typedef struct edge_index key_pair;
+
 typedef struct adjlist
 {
     int node_id;
     int degree;
     std::vector<int> edgelist;
 } adjlist;
+
+class table_iterator
+{
+protected:
+    WT_CURSOR *cursor = nullptr;
+    WT_SESSION *session = nullptr;
+    void init(WT_CURSOR *cursor_, WT_SESSION *sess_)
+    {
+        cursor = cursor_;
+        session = sess_;
+    }
+    virtual void set_key(key_pair key) = 0;
+
+public:
+    virtual void get_values() = 0;
+    void next() { cursor->next(cursor); };
+};
 
 class CommonUtil
 {
@@ -147,7 +167,7 @@ public:
     static void dump_edge(edge to_print);
     static void dump_adjlist(adjlist to_print);
 
-    //Experimental WT_ITEM packing interface
+    // Experimental WT_ITEM packing interface
     static WT_ITEM pack_vector_string(WT_SESSION *session, std::vector<std::string> to_pack, std::string *fmt);
     static std::vector<std::string> unpack_vector_string(WT_SESSION *session, WT_ITEM packed, std::string format);
 
@@ -155,7 +175,120 @@ public:
     static std::vector<int> unpack_vector_int(WT_SESSION *, WT_ITEM packed, std::string format);
 
     static WT_ITEM pack_items(WT_SESSION *session, std::string fmt, ...);
-    //static std::variant<int, std::string> unpack_items(WT_SESSION *session, std::string fmt, WT_ITEM packed);
+
+    /********************************************************************************************
+     *            Serialization/ Deserialization methods common to all representations           *
+     ********************************************************************************************/
+
+    /**
+     * @brief This fucntion updates a node with the given attribute vector.
+     * This function assumes that only the node attributes are updated here.
+     * Node data is modified using get/set_node_data() and degrees are modified
+     * automatically on edge insertions/deletions.
+     * @param node_id The Node ID to be updated
+     * @param new_attrs The new node attribute vector.
+     */
+    inline static void __node_to_record(WT_CURSOR *cursor, node to_insert, bool read_optimize)
+    {
+        // cursor cannot be null
+        cursor->set_key(cursor, to_insert.id);
+        if (cursor->search(cursor) != 0)
+        {
+            throw GraphException("Failed to find a node with node_id " + std::to_string(to_insert.id));
+        }
+        if (read_optimize)
+        {
+            cursor->set_value(cursor, to_insert.in_degree, to_insert.out_degree);
+        }
+        else
+        {
+            cursor->set_value(cursor, "");
+        }
+        if (cursor->update(cursor) != 0)
+        {
+            throw GraphException("Failed to update node_id " + std::to_string(to_insert.id));
+        }
+    }
+
+    /**
+     * @brief This function reads the record currently being pointed to by the
+     * cursor, and returns the
+     * @param cursor
+     * @return node
+     */
+    inline static void __record_to_node(WT_CURSOR *cursor, node *found, bool read_optimize)
+    {
+        found->in_degree = 0;
+        found->out_degree = 0;
+
+        if (read_optimize)
+        {
+            cursor->get_value(cursor, &found->in_degree,
+                              &found->out_degree);
+        }
+    }
+
+    inline static void __record_to_edge(WT_CURSOR *cursor, edge *found)
+    {
+        if (cursor->get_value(cursor, &found->edge_weight) != 0)
+        {
+            throw GraphException("Could not get the value from the edge table");
+        }
+    }
+
+    inline static void __read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
+    {
+        idx_cursor->get_value(idx_cursor, &e_idx->src_id, &e_idx->dst_id);
+    }
+
+    /**
+     * @brief This function accepts a cursor to the adjlist table and an adjlist
+     * sturct to insert.
+     * @param cursor A cursor to the in/out adjlist table
+     * @param to_insert The adjlist struct to be inserted into the table pointed to
+     * by the cursor.
+     * @throws GraphException If insertion into the table fails
+     */
+    inline static void __adjlist_to_record(WT_SESSION *session, WT_CURSOR *cursor, adjlist to_insert)
+    {
+        cursor->reset(cursor);
+        cursor->set_key(cursor, to_insert.node_id);
+        size_t size;
+        WT_ITEM item;
+        char *buf = CommonUtil::pack_int_vector_wti(session, to_insert.edgelist, &size);
+        item.data = buf;
+        item.size = size;
+
+        cursor->set_value(cursor, to_insert.degree, &item);
+        int ret = cursor->insert(cursor);
+        if (ret != 0)
+        {
+            throw GraphException("Could not insert adjlist for " + std::to_string(to_insert.node_id) + " into the adjlist table");
+        }
+    }
+
+    /**
+     * @brief This function converts the record the cursor passed points to into a
+     * adjlist struct
+     *
+     * @param cursor the cursor set to the record which needs to be read
+     * @return adjlist the found adjlist struct.
+     */
+    inline static void __record_to_adjlist(WT_SESSION *session, WT_CURSOR *cursor, adjlist *found)
+    {
+        int degree;
+        WT_ITEM item;
+        cursor->get_value(cursor, &degree, &item);
+        found->edgelist = CommonUtil::unpack_int_vector_wti(session, item.size, (char *)item.data);
+        if (degree == 1 && found->edgelist.size() == 0)
+        {
+            found->degree = 0;
+        }
+        else
+        {
+            found->degree = degree;
+        }
+    }
 };
 
 #endif

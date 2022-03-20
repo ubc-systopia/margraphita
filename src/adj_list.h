@@ -39,9 +39,9 @@ public:
     void close();
     std::string get_db_name() const { return opts.db_name; };
     std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id);
+    // out_nbd_cursor get_outnbd_cursor();
+    // in_nbd_cursor get_innbd_cursor();
 
-    // void update_edge(int src_id, int dst_id, char *new_attrs); <-not needed.
-    // skip.
     int get_edge_weight(int src_id, int dst_id);                      // todo <-- is this implemented?
     void update_edge_weight(int src_id, int dst_id, int edge_weight); // todo <-- is this implemented?
 
@@ -60,11 +60,11 @@ private:
     WT_SESSION *session;
     graph_opts opts;
 
-    //structure of the graph
+    // structure of the graph
     int edge_id;
     int node_attr_size = 0; // set on checking the list len
 
-    vector<string> node_columns = {ID}; //Always there :)
+    vector<string> node_columns = {ID}; // Always there :)
     vector<string> edge_columns = {SRC, DST};
     vector<string> in_adjlist_columns = {ID, IN_DEGREE, IN_ADJLIST};
     vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
@@ -74,7 +74,7 @@ private:
     string edge_key_format = "II"; // SRC DST in the edge table
     string edge_value_format = ""; // Make I if weighted , x otherwise
     string adjlist_key_format = "I";
-    string adjlist_value_format = "Iu"; //This HAS to be u. S does not work. s needs the number.
+    string adjlist_value_format = "Iu"; // This HAS to be u. S does not work. s needs the number.
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
@@ -82,14 +82,6 @@ private:
     WT_CURSOR *in_adjlist_cursor = NULL;
     WT_CURSOR *out_adjlist_cursor = NULL;
     WT_CURSOR *metadata_cursor = NULL;
-
-    // Serialization methods:
-    inline void __node_to_record(WT_CURSOR *cursor, node to_insert);
-    inline void __record_to_node(WT_CURSOR *cursor, int key, node *found);
-    inline void __record_to_edge(WT_CURSOR *cursor, edge *found);
-    inline void __record_to_adjlist(WT_CURSOR *cursor, adjlist *found);
-    inline void __adjlist_to_record(WT_CURSOR *cursor, adjlist to_insert);
-    inline void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx);
 
     // AdjList specific internal methods:
     int _get_table_cursor(const string &table, WT_CURSOR **cursor, bool is_random);
@@ -112,4 +104,33 @@ private:
     void dump_tables();
 };
 
+// class in_nbd_cursor : public table_iterator
+// {
+//     in_nbd_cursor(WT_CURSOR *cur, WT_SESSION *sess)
+//     {
+//         init(cur, sess);
+//     }
+
+//     void set_key(key_pair key)
+//     {
+//         cursor->set_key(cursor, key.dst_id); // In neighbourhood
+//     }
+
+//     void get_values() //! This is code duplication. Move this to common.h
+//     {
+//     }
+// };
+
+// class out_nbd_cursor : public table_iterator
+// {
+// };
+
+/**
+ * iterator design:
+ *
+ * In the application, we need access to in and out neighbouhoods.
+ * Ideally, we need an iterator class, on object of which can be returned to the app
+ * these objects should have set_key(src, dst) and std::vector<int> get_value()
+ *
+ */
 #endif

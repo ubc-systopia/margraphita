@@ -68,21 +68,21 @@ protected:
     WT_CURSOR *metadata_cursor = NULL;
 
     // structure of the graph
-    vector<string> node_columns = {ID}; //Always there :)
+    vector<string> node_columns = {ID}; // Always there :)
     vector<string> edge_columns = {SRC, DST};
     string node_value_format;
     string node_key_format = "I";
     string edge_key_format = "II";
-    string edge_value_format = ""; //I if weighted or b if unweighted.
+    string edge_value_format = ""; // I if weighted or b if unweighted.
 
     string node_count = "nNodes";
     string edge_count = "nEdges";
 
-    // Serialization methods
-    void __node_to_record(WT_CURSOR *cursor, node to_insert);
-    void __record_to_node(WT_CURSOR *cursor, node *found);
-    void __record_to_edge(WT_CURSOR *cursor, edge *found);
-    void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx);
+    // // Serialization methods
+    // void __node_to_record(WT_CURSOR *cursor, node to_insert);
+    // void __record_to_node(WT_CURSOR *cursor, node *found);
+    // void __record_to_edge(WT_CURSOR *cursor, edge *found);
+    // void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx);
 
     // Internal methods
     int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random);
