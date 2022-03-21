@@ -19,7 +19,7 @@ void create_init_nodes(AdjList graph, bool is_directed)
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
-        assert(SampleGraph::test_edges.size() == 6); //checking if directed edges got created and stored in test_edges
+        assert(SampleGraph::test_edges.size() == 6); // checking if directed edges got created and stored in test_edges
     }
     int edge_cnt = 1;
     for (node n : SampleGraph::test_nodes)
@@ -54,7 +54,7 @@ void test_node_add(AdjList graph, bool read_optimize)
         assert(found.in_degree == 0);
         assert(found.out_degree == 0);
     }
-    //Check the adjlists
+    // Check the adjlists
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
     in_adj_cur->set_key(in_adj_cur, 11);
     int ret = in_adj_cur->search(in_adj_cur);
@@ -72,7 +72,7 @@ void test_get_node(AdjList graph)
     int test_id1 = 1, test_id2 = -1;
     node found = graph.get_node(test_id1);
     assert(found.id == 1);
-    //now get a node that does not exist
+    // now get a node that does not exist
     found = graph.get_node(test_id2);
     assert(found.id == 0);
     found = graph.get_random_node();
@@ -104,7 +104,7 @@ void test_get_adjlist(AdjList graph, int node_id)
     WT_CURSOR *out_adj_cur = graph.get_out_adjlist_cursor();
     for (int al : graph.get_adjlist(in_adj_cur, node_id))
     {
-        //TODO: I don't know what would be a good testase here.
+        // TODO: I don't know what would be a good testase here.
     }
 }
 
@@ -116,7 +116,7 @@ void test_get_edge(AdjList graph)
     assert(found.dst_id == SampleGraph::edge1.dst_id);
     assert(found.edge_weight == SampleGraph::edge1.edge_weight);
 
-    //Now get a non-existent edge
+    // Now get a non-existent edge
     int test_id1 = 222, test_id2 = 333;
     found = graph.get_edge(test_id1, test_id2);
     assert(found.src_id == 0);
@@ -142,14 +142,14 @@ void test_add_edge(AdjList graph, bool is_directed)
         assert(found.edge_weight == 333);
     }
 
-    //Check if the nodes were created.
+    // Check if the nodes were created.
     node got = graph.get_node(test_id1);
     assert(got.id == 5);
     got = graph.get_node(test_id2);
     assert(got.id == 6);
 
-    //Now check if the adjlists were updated
-    // graph.dump_tables();
+    // Now check if the adjlists were updated
+    //  graph.dump_tables();
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
     in_adj_cur->set_key(in_adj_cur, test_id2);
     assert(in_adj_cur->search(in_adj_cur) == 0);
@@ -189,18 +189,18 @@ void test_get_out_edges(AdjList graph)
     int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
     std::vector<edge> edges = graph.get_out_edges(test_id1);
     assert(edges.size() == 2);
-    //compare edge0
+    // compare edge0
     assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
     assert(edges.at(0).dst_id == SampleGraph::edge1.dst_id);
-    //compare edge1
+    // compare edge1
     assert(edges.at(1).src_id == SampleGraph::edge2.src_id);
     assert(edges.at(1).dst_id == SampleGraph::edge2.dst_id);
 
-    //Now test for a node that has no out edge
+    // Now test for a node that has no out edge
     edges = graph.get_out_edges(test_id2);
     assert(edges.size() == 0);
 
-    //Now try getting out edges for a node that does not exist
+    // Now try getting out edges for a node that does not exist
     bool assert_fail = false;
     try
     {
@@ -220,18 +220,18 @@ void test_get_in_edges(AdjList graph)
     int test_id1 = 3, test_id2 = 4, test_id3 = 1500;
     std::vector<edge> edges = graph.get_in_edges(test_id1);
     assert(edges.size() == 2);
-    //Check edge0
+    // Check edge0
     assert(edges.at(0).src_id == SampleGraph::edge2.src_id);
     assert(edges.at(0).dst_id == SampleGraph::edge2.dst_id);
-    //Check edge1
+    // Check edge1
     assert(edges.at(1).src_id == SampleGraph::edge3.src_id);
     assert(edges.at(1).dst_id == SampleGraph::edge3.dst_id);
 
-    //now test for a node that has no in-edge
+    // now test for a node that has no in-edge
     edges = graph.get_in_edges(test_id2);
     assert(edges.size() == 0);
 
-    //Now try getting in edges for a node that does not exist.
+    // Now try getting in edges for a node that does not exist.
     bool assert_fail = false;
     try
     {
@@ -254,11 +254,11 @@ void test_get_out_nodes(AdjList graph)
     assert(nodes.at(0).id == SampleGraph::node2.id); // edge(1->2)
     assert(nodes.at(1).id == SampleGraph::node3.id); // edge(1->3)
 
-    //test for a node that has no out-edge
+    // test for a node that has no out-edge
     nodes = graph.get_out_nodes(test_id2);
     assert(nodes.size() == 0);
 
-    //test for a node that does not exist
+    // test for a node that does not exist
     bool assert_fail = false;
     try
     {
@@ -281,11 +281,11 @@ void test_get_in_nodes(AdjList graph)
     assert(nodes.at(0).id == SampleGraph::node1.id);
     assert(nodes.at(1).id == SampleGraph::node2.id);
 
-    //test for a node that has no in_edge
+    // test for a node that has no in_edge
     nodes = graph.get_in_nodes(test_id2);
     assert(nodes.size() == 0);
 
-    //test for a node that does not exist
+    // test for a node that does not exist
     bool assert_fail = false;
     try
     {
@@ -302,7 +302,7 @@ void test_get_in_nodes(AdjList graph)
 void test_get_in_degree(AdjList graph)
 {
     INFO();
-    //check in_degree for node3
+    // check in_degree for node3
     int test_id = 3;
     int deg = graph.get_in_degree(test_id);
     assert(deg == 2);
@@ -316,19 +316,19 @@ void test_delete_node(AdjList graph, bool is_directed)
     WT_CURSOR *adj_out_cur = graph.get_out_adjlist_cursor();
     WT_CURSOR *adj_in_cur = graph.get_in_adjlist_cursor();
 
-    //Verify node2 exists
+    // Verify node2 exists
     n_cursor->set_key(n_cursor, SampleGraph::node2.id);
     int ret = n_cursor->search(n_cursor);
     assert(ret == 0);
     n_cursor->reset(n_cursor);
 
-    //Delete node2 and verify it was actually deleted
+    // Delete node2 and verify it was actually deleted
     graph.delete_node(SampleGraph::node2.id);
     n_cursor->set_key(n_cursor, SampleGraph::node2.id);
     ret = n_cursor->search(n_cursor);
     assert(ret != 0);
 
-    //Verify node2's adjacency lists are deleted
+    // Verify node2's adjacency lists are deleted
     adj_out_cur->set_key(adj_out_cur, SampleGraph::node2.id);
     ret = adj_out_cur->search(adj_out_cur);
     assert(ret != 0);
@@ -336,13 +336,13 @@ void test_delete_node(AdjList graph, bool is_directed)
     ret = adj_in_cur->search(adj_in_cur);
     assert(ret != 0);
 
-    //check that edge(2,3) is deleted
+    // check that edge(2,3) is deleted
     e_cursor->set_key(e_cursor, 2, 3);
     assert(e_cursor->search(e_cursor) != 0);
-    //check that edge(1,2) is deleted
+    // check that edge(1,2) is deleted
     e_cursor->set_key(e_cursor, 1, 2);
     assert(e_cursor->search(e_cursor) != 0);
-    //Now delete the reverse edges for undirected graph
+    // Now delete the reverse edges for undirected graph
     if (is_directed)
     {
         e_cursor->set_key(e_cursor, 3, 2);
@@ -350,18 +350,18 @@ void test_delete_node(AdjList graph, bool is_directed)
         e_cursor->set_key(e_cursor, 2, 1);
         assert(e_cursor->search(e_cursor) != 0);
     }
-    //Verify that node 2 is deleted from adjlist of node1 and node3
+    // Verify that node 2 is deleted from adjlist of node1 and node3
     adj_out_cur->reset(adj_out_cur);
     for (int dst : graph.get_adjlist(adj_out_cur, SampleGraph::node1.id))
     {
-        assert(dst != SampleGraph::node2.id); //node2 should have been deleted
+        assert(dst != SampleGraph::node2.id); // node2 should have been deleted
     }
 
     adj_in_cur->reset(adj_in_cur);
     for (int src : graph.get_adjlist(adj_in_cur, SampleGraph::node3.id))
     {
-        assert(src != SampleGraph::node2.id); //node 2 should have been
-                                              // deleted from this too
+        assert(src != SampleGraph::node2.id); // node 2 should have been
+                                              //  deleted from this too
     }
 }
 
@@ -373,19 +373,19 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     WT_CURSOR *adj_out_cur = graph.get_out_adjlist_cursor();
     WT_CURSOR *adj_in_cur = graph.get_in_adjlist_cursor();
 
-    //Verify node4 exists
+    // Verify node4 exists
     n_cursor->set_key(n_cursor, SampleGraph::node4.id);
     int ret = n_cursor->search(n_cursor);
     assert(ret == 0);
     n_cursor->reset(n_cursor);
 
-    //Delete node4 and verify it was actually deleted
+    // Delete node4 and verify it was actually deleted
     graph.delete_node(SampleGraph::node4.id);
     n_cursor->set_key(n_cursor, SampleGraph::node4.id);
     ret = n_cursor->search(n_cursor);
     assert(ret != 0);
 
-    //Verify node4's adjacency lists are deleted
+    // Verify node4's adjacency lists are deleted
     adj_out_cur->set_key(adj_out_cur, SampleGraph::node4.id);
     ret = adj_out_cur->search(adj_out_cur);
     assert(ret != 0);
@@ -393,7 +393,7 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     ret = adj_in_cur->search(adj_in_cur);
     assert(ret != 0);
 
-    //Check no edge has node4 in source or dst
+    // Check no edge has node4 in source or dst
     std::vector<edge> edges = graph.get_edges();
     for (edge e : edges)
     {
@@ -401,8 +401,8 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
         assert(e.dst_id != SampleGraph::node4.id);
     }
 
-    //Now check if node4 is present in in/out_adj_list of any of the remaining
-    //nodes;
+    // Now check if node4 is present in in/out_adj_list of any of the remaining
+    // nodes;
     std::vector<int> remaining_nodes = {1, 3};
 
     for (int n : remaining_nodes)
@@ -410,14 +410,52 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
         adj_out_cur->reset(adj_out_cur);
         for (int dst : graph.get_adjlist(adj_out_cur, n))
         {
-            assert(dst != SampleGraph::node4.id); //node4 should not exist here
+            assert(dst != SampleGraph::node4.id); // node4 should not exist here
         }
         adj_in_cur->reset(adj_in_cur);
         for (int src : graph.get_adjlist(adj_in_cur, n))
         {
-            assert(src != SampleGraph::node4.id); //node 4 should not exist here
+            assert(src != SampleGraph::node4.id); // node 4 should not exist here
         }
     }
+}
+
+void test_InCursor(AdjList graph)
+{
+    INFO();
+    AdjIterator::InCursor in_cursor = graph.get_innbd_cursor();
+    adjlist found = {0};
+    do
+    {
+        in_cursor.next(&found);
+        if (found.node_id != -1)
+        {
+            CommonUtil::dump_adjlist(found);
+        }
+        else
+        {
+            break;
+        }
+    } while (found.node_id != -1);
+}
+
+void test_OutCursor(AdjList graph)
+{
+    INFO();
+    AdjIterator::OutCursor out_cursor = graph.get_outnbd_cursor();
+    adjlist found;
+    do
+    {
+        out_cursor.next(&found);
+        if (found.node_id != -1)
+        {
+            CommonUtil::dump_adjlist(found);
+        }
+        else
+        {
+            break;
+        }
+    } while (found.node_id != -1);
 }
 
 int main()
@@ -451,6 +489,9 @@ int main()
     // return 0;
     test_delete_node(graph, opts.is_directed);
     test_delete_isolated_node(graph, opts.is_directed);
+
+    test_InCursor(graph);
+    test_OutCursor(graph);
 
     tearDown(graph);
 }

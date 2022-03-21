@@ -1386,6 +1386,16 @@ void AdjList::delete_related_edges_and_adjlists(int node_id)
     cout << std::endl;
 }
 
+AdjIterator::OutCursor AdjList::get_outnbd_cursor()
+{
+    return AdjIterator::OutCursor(get_out_adjlist_cursor(), session);
+}
+
+AdjIterator::InCursor AdjList::get_innbd_cursor()
+{
+    return AdjIterator::InCursor(get_in_adjlist_cursor(), session);
+}
+
 /*
 Get test cursors
 */

@@ -9,6 +9,105 @@
 #include <wiredtiger.h>
 
 using namespace std;
+namespace AdjIterator
+{
+
+    class InCursor : public table_iterator
+    {
+    public:
+        InCursor(WT_CURSOR *cur, WT_SESSION *sess)
+        {
+            init(cur, sess);
+        }
+
+        void set_key(key_pair key)
+        {
+            cursor->set_key(cursor, key.dst_id); // In neighbourhood
+        }
+
+        void next(adjlist *found)
+        {
+            if (cursor->next(cursor) == 0)
+            {
+                CommonUtil::__record_to_adjlist(session, cursor, found);
+                cursor->get_key(cursor, &found->node_id);
+            }
+            else
+            {
+                found->node_id = -1;
+            }
+        }
+
+        void next(adjlist *found, key_pair keys) override
+        {
+            if (cursor->next(cursor) == 0)
+            {
+                cursor->get_key(cursor, &found->node_id);
+                if (found->node_id == keys.dst_id)
+                {
+                    CommonUtil::__record_to_adjlist(session, cursor, found);
+                }
+                else
+                {
+                    found->node_id = -1;
+                    cursor->reset(cursor);
+                }
+            }
+            else
+            {
+                found->node_id = -1; // check for nullptr in application program.
+            }
+        }
+    };
+
+    class OutCursor : public table_iterator
+    {
+    public:
+        OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+        {
+            init(cur, sess);
+        }
+
+        void set_key(key_pair key)
+        {
+            cursor->set_key(cursor, key.src_id); // Out neighbourhood.
+        }
+
+        void next(adjlist *found)
+        {
+            if (cursor->next(cursor) == 0)
+            {
+                CommonUtil::__record_to_adjlist(session, cursor, found);
+                cursor->get_key(cursor, &found->node_id);
+            }
+            else
+            {
+                found->node_id = -1;
+            }
+        }
+
+        void next(adjlist *found, key_pair keys) override
+        {
+            if (cursor->next(cursor) == 0)
+            {
+                cursor->get_key(cursor, &found->node_id);
+                if (found->node_id == keys.src_id)
+                {
+                    CommonUtil::__record_to_adjlist(session, cursor, found);
+                }
+                else
+                {
+                    found->node_id = -1;
+                    cursor->reset(cursor);
+                }
+            }
+            else
+            {
+                found->node_id = -1;
+            }
+        }
+    };
+};
 
 class AdjList
 {
@@ -39,8 +138,8 @@ public:
     void close();
     std::string get_db_name() const { return opts.db_name; };
     std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id);
-    // out_nbd_cursor get_outnbd_cursor();
-    // in_nbd_cursor get_innbd_cursor();
+    AdjIterator::OutCursor get_outnbd_cursor();
+    AdjIterator::InCursor get_innbd_cursor();
 
     int get_edge_weight(int src_id, int dst_id);                      // todo <-- is this implemented?
     void update_edge_weight(int src_id, int dst_id, int edge_weight); // todo <-- is this implemented?
@@ -82,6 +181,8 @@ private:
     WT_CURSOR *in_adjlist_cursor = NULL;
     WT_CURSOR *out_adjlist_cursor = NULL;
     WT_CURSOR *metadata_cursor = NULL;
+    // AdjIterator::InCursor in_cursor;
+    // AdjIterator::OutCursor out_cursor;
 
     // AdjList specific internal methods:
     int _get_table_cursor(const string &table, WT_CURSOR **cursor, bool is_random);
@@ -103,27 +204,6 @@ private:
     void __restore_from_db(string db_name);
     void dump_tables();
 };
-
-// class in_nbd_cursor : public table_iterator
-// {
-//     in_nbd_cursor(WT_CURSOR *cur, WT_SESSION *sess)
-//     {
-//         init(cur, sess);
-//     }
-
-//     void set_key(key_pair key)
-//     {
-//         cursor->set_key(cursor, key.dst_id); // In neighbourhood
-//     }
-
-//     void get_values() //! This is code duplication. Move this to common.h
-//     {
-//     }
-// };
-
-// class out_nbd_cursor : public table_iterator
-// {
-// };
 
 /**
  * iterator design:

@@ -95,8 +95,7 @@ protected:
     virtual void set_key(key_pair key) = 0;
 
 public:
-    virtual void get_values() = 0;
-    void next() { cursor->next(cursor); };
+    virtual void next(adjlist *found, key_pair keys) = 0;
 };
 
 class CommonUtil
