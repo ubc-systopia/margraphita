@@ -753,10 +753,15 @@ void CommonUtil::dump_node(node to_print)
 
 void CommonUtil::dump_edge(edge to_print)
 {
-    std::cout << "Edge ID is: \t" << to_print.id << std::endl;
     std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
     std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
     std::cout << "Weight is:\t" << to_print.edge_weight << std::endl;
+}
+
+void CommonUtil::dump_edge_index(edge_index to_print)
+{
+    std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
+    std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
 }
 
 void CommonUtil::dump_adjlist(adjlist to_print)

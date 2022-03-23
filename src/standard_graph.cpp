@@ -991,6 +991,10 @@ std::vector<edge> StandardGraph::get_out_edges(int node_id)
     WT_CURSOR *cursor = get_src_idx_cursor();
     cursor->reset(cursor);
     cursor->set_key(cursor, node_id);
+
+    int temp = -1;
+    cursor->get_key(cursor, &temp);
+
     if (cursor->search(cursor) == 0)
     {
         edge found;
@@ -1173,6 +1177,7 @@ WT_CURSOR *StandardGraph::get_src_idx_cursor()
 
     return src_index_cursor;
 }
+
 WT_CURSOR *StandardGraph::get_dst_idx_cursor()
 {
     string projection = "(" + SRC + "," + DST + ")";
@@ -1197,6 +1202,17 @@ WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
     }
 
     return src_dst_index_cursor;
+}
+
+StdIterator::OutCursor StandardGraph::get_outnbd_cursor()
+{
+    return StdIterator::OutCursor(get_src_idx_cursor(), session);
+}
+
+StdIterator::InCursor StandardGraph::get_innbd_cursor()
+{
+
+    return StdIterator::InCursor(get_dst_idx_cursor(), session);
 }
 
 /**

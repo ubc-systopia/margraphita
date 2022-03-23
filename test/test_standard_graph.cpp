@@ -245,6 +245,81 @@ void print_delim()
          << "--------------------" << endl;
 }
 
+void test_InCursor(StandardGraph graph)
+{
+    INFO();
+    StdIterator::InCursor in_cursor = graph.get_innbd_cursor();
+    adjlist found = {0};
+    while (in_cursor.has_more() > 0)
+    {
+        in_cursor.next(&found);
+        if (found.node_id != -1)
+        {
+            CommonUtil::dump_adjlist(found);
+            found = {0};
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    in_cursor.reset();
+
+    key_pair kp = {.src_id = 0, .dst_id = 3};
+    in_cursor.next(&found, kp);
+    assert(found.node_id == 3);
+    assert(found.edgelist.size() == 1); // size is 1 after deleting node 2; 2 if not deleted
+}
+
+void test_OutCursor(StandardGraph graph)
+{
+    INFO();
+    StdIterator::OutCursor out_cursor = graph.get_outnbd_cursor();
+    adjlist found = {0};
+    while (out_cursor.has_more() > 0)
+    {
+        out_cursor.next(&found);
+        if (found.node_id != -1)
+        {
+            CommonUtil::dump_adjlist(found);
+            found = {0};
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    out_cursor.reset();
+    key_pair kp = {.src_id = 1, .dst_id = 0};
+    out_cursor.next(&found, kp);
+    assert(found.node_id == 1);
+    assert(found.edgelist.size() == 1);
+}
+
+void test_index_cursor(StandardGraph graph)
+{
+    WT_CURSOR *srccur = graph.get_src_idx_cursor();
+    WT_CURSOR *dstcur = graph.get_dst_idx_cursor();
+
+    srccur->reset(srccur);
+    dstcur->reset(dstcur);
+    edge found = {0};
+
+    while (srccur->next(srccur) == 0)
+    {
+        CommonUtil::__read_from_edge_idx(srccur, &found);
+        CommonUtil::dump_edge(found);
+    }
+    print_delim();
+    while (dstcur->next(dstcur) == 0)
+    {
+        CommonUtil::__read_from_edge_idx(dstcur, &found);
+        CommonUtil::dump_edge(found);
+    }
+}
+
 int main()
 {
 
@@ -264,6 +339,8 @@ int main()
 
     create_init_nodes(graph, opts.is_directed);
     print_delim();
+
+    test_index_cursor(graph);
 
     //Test num_get_nodes and num_get_edges
 
@@ -310,6 +387,9 @@ int main()
 
     //Test deleting a node
     test_node_delete(graph, opts.is_directed);
+
+    test_InCursor(graph);
+    test_OutCursor(graph);
 
     //Test std_graph teardown
     tearDown(graph);

@@ -9,6 +9,203 @@
 #include <wiredtiger.h>
 
 using namespace std;
+namespace StdIterator
+{
+    class InCursor : public table_iterator
+    {
+    private:
+        bool is_first = true;
+        int has_next = 1;
+        int prev_node;
+        int cur_node;
+
+    public:
+        InCursor(WT_CURSOR *beg_cur, WT_SESSION *sess)
+        {
+            init(beg_cur, sess);
+        }
+        void set_key(key_pair key)
+        {
+            cursor->set_key(cursor, key.dst_id); // In Nbd
+        }
+
+        // Return the next node in the graph. This function calls the cursor on dst column
+        void next(adjlist *found)
+        {
+            edge idx;
+            int ret = 0;
+            while ((ret = cursor->next(cursor)) == 0)
+            {
+                cursor->get_key(cursor, &cur_node);
+                if (is_first)
+                {
+                    prev_node = cur_node;
+                    is_first = false;
+                }
+
+                CommonUtil::__read_from_edge_idx(cursor, &idx);
+                if (prev_node == idx.dst_id)
+                {
+                    found->degree++;
+                    found->edgelist.push_back(idx.src_id); // in nbd;
+                    found->node_id = idx.dst_id;
+                }
+                else // We have moved to the next node id.
+                {
+                    cursor->prev(cursor);
+                    is_first = true;
+                    break;
+                }
+            }
+            if (ret != 0)
+            {
+                has_next = 0;
+            }
+        }
+
+        void reset()
+        {
+            cursor->reset(cursor);
+            is_first = true;
+            has_next = 1;
+            prev_node = cur_node = 0;
+        }
+
+        int has_more()
+        {
+            return has_next;
+        };
+
+        void next(adjlist *found, key_pair key)
+        {
+            edge idx;
+            cursor->reset(cursor);
+            cursor->set_key(cursor, key.dst_id);
+            int ret = 0;
+            if (cursor->search(cursor) == 0 && has_next > 0)
+            {
+                int iter_key;
+                do
+                {
+                    CommonUtil::__read_from_edge_idx(cursor, &idx);
+                    found->edgelist.push_back(idx.src_id);
+                    found->degree++;
+                    found->node_id = key.dst_id;
+                    // now check if the next key is still the same as the one we want
+                    ret = cursor->next(cursor);
+                    if (ret != 0)
+                    {
+                        has_next = 0;
+                        return;
+                    }
+                    cursor->get_key(cursor, &iter_key);
+                } while (iter_key == key.dst_id);
+            }
+            else
+            {
+                found->node_id = -1;
+                cursor->reset(cursor);
+            }
+        }
+    };
+
+    class OutCursor : public table_iterator
+    {
+    private:
+        bool is_first = true;
+        int has_next = 1;
+        int prev_node;
+        int cur_node;
+
+    public:
+        OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+        {
+            init(cur, sess);
+        }
+        void set_key(key_pair key)
+        {
+            cursor->set_key(cursor, key.src_id); // out Nbd
+        }
+
+        // This calls the next method on the src_index cursor
+        void next(adjlist *found) //! Make this a reference not a pointer to use move semantics
+        {
+            edge idx;
+            int ret = 0;
+            while ((ret = cursor->next(cursor)) == 0)
+            {
+                cursor->get_key(cursor, &cur_node);
+                if (is_first)
+                {
+                    prev_node = cur_node;
+                    is_first = false;
+                }
+                CommonUtil ::__read_from_edge_idx(cursor, &idx);
+                if (prev_node == idx.src_id)
+                {
+                    found->degree++;
+                    found->edgelist.push_back(idx.dst_id);
+                    found->node_id = idx.src_id;
+                }
+                else
+                {
+                    cursor->prev(cursor);
+                    is_first = true;
+                    break;
+                }
+            }
+
+            if (ret != 0)
+            {
+                has_next = 0;
+            }
+        }
+
+        void reset()
+        {
+            cursor->reset(cursor);
+            is_first = true;
+            has_next = 1;
+            prev_node = cur_node = 0;
+        }
+
+        int has_more()
+        {
+            return has_next;
+        };
+
+        void next(adjlist *found, key_pair key)
+        {
+            edge idx;
+            cursor->set_key(cursor, key.src_id);
+            int ret = 0;
+            if (cursor->search(cursor) == 0 && has_next > 0)
+            {
+                int iter_key;
+                do
+                {
+                    CommonUtil::__read_from_edge_idx(cursor, &idx);
+                    found->edgelist.push_back(idx.dst_id);
+                    found->degree++;
+                    found->node_id = key.src_id;
+                    // check if the next key is the same as the one we are currently looking for.
+                    ret = cursor->next(cursor);
+                    if (ret != 0)
+                    {
+                        has_next = 0;
+                        return;
+                    }
+                    cursor->get_key(cursor, &iter_key);
+                } while (iter_key == key.src_id);
+            }
+            else
+            {
+                found->node_id = -1;
+                cursor->reset(cursor);
+            }
+        }
+    };
+};
 
 class StandardGraph
 {
@@ -41,6 +238,9 @@ public:
     void close();
     std::string get_db_name() const { return opts.db_name; };
     void create_indices();
+
+    StdIterator::OutCursor get_outnbd_cursor();
+    StdIterator::InCursor get_innbd_cursor();
 
     // internal cursor methods
     //! Check if these should be public

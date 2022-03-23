@@ -165,6 +165,7 @@ public:
     static void dump_node(node to_print);
     static void dump_edge(edge to_print);
     static void dump_adjlist(adjlist to_print);
+    static void dump_edge_index(edge_index to_print);
 
     // Experimental WT_ITEM packing interface
     static WT_ITEM pack_vector_string(WT_SESSION *session, std::vector<std::string> to_pack, std::string *fmt);

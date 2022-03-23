@@ -40,22 +40,18 @@ namespace AdjIterator
 
         void next(adjlist *found, key_pair keys) override
         {
-            if (cursor->next(cursor) == 0)
-            {
-                cursor->get_key(cursor, &found->node_id);
-                if (found->node_id == keys.dst_id)
+            cursor->set_key(cursor, keys.dst_id);
+            if (cursor->search(cursor) == 0)
                 {
+
                     CommonUtil::__record_to_adjlist(session, cursor, found);
-                }
-                else
-                {
-                    found->node_id = -1;
+                found->node_id = keys.dst_id;
                     cursor->reset(cursor);
-                }
             }
             else
             {
-                found->node_id = -1; // check for nullptr in application program.
+                found->node_id = -1; // check for out-of-band values in application program.
+                cursor->reset(cursor);
             }
         }
     };
