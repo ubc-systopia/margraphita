@@ -62,11 +62,11 @@ EdgeKey::EdgeKey(graph_opts opt_params)
 void EdgeKey::create_new_graph()
 {
     int ret = 0;
-    //Create new directory for WT DB
+    // Create new directory for WT DB
     std::string dirname = opts.db_dir + "/" + opts.db_name;
     CommonUtil::create_dir(dirname);
 
-    //open connection to WT DB
+    // open connection to WT DB
     ret = CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), &conn);
     if (ret != 0)
     {
@@ -77,16 +77,16 @@ void EdgeKey::create_new_graph()
     {
         exit(-1);
     }
-    //Set up the edge table
-    //Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
-    //Edge Column Format: iiS
+    // Set up the edge table
+    // Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
+    // Edge Column Format: iiS
 
     CommonUtil::set_table(session, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
 
-    //Set up the Metadata table
-    //This does not change across implementations.
-    //value_format:string (S)
-    //key_format: string (S)
+    // Set up the Metadata table
+    // This does not change across implementations.
+    // value_format:string (S)
+    // key_format: string (S)
     string metadata_table_name = "table:" + string(METADATA);
     if ((ret = session->create(session, metadata_table_name.c_str(),
                                "key_format=S,value_format=S")) > 0)
@@ -206,7 +206,7 @@ void EdgeKey::insert_metadata(string key, char *value)
 
 /**
  * @brief get the node identified by node_id
- * 
+ *
  * @param node_id the Node ID
  * @return node the node struct containing the node
  */
@@ -218,7 +218,7 @@ node EdgeKey::get_node(int node_id)
     if (cursor->search(cursor) == 0)
     {
         found.id = node_id;
-        __record_to_node(cursor, &found);
+        CommonUtil::__record_to_node_ekey(cursor, &found);
     }
     return found;
 }
@@ -229,7 +229,7 @@ node EdgeKey::get_node(int node_id)
  * since the number of nodes is much smaller than the number of edges, it is
  * unlikely that calling next() on the cursor will yield a node. It is much more
  * efficient to return the node record of the src node of the edge we encounter.
- * 
+ *
  * @return node random node we find
  */
 node EdgeKey::get_random_node()
@@ -252,8 +252,8 @@ node EdgeKey::get_random_node()
         }
         if (dst == -1)
         {
-            //random_cur->set_key(random_cur, src, dst);
-            __record_to_node(random_cur, &rando);
+            // random_cur->set_key(random_cur, src, dst);
+            CommonUtil::__record_to_node_ekey(random_cur, &rando);
             rando.id = src;
             break;
         }
@@ -271,8 +271,8 @@ node EdgeKey::get_random_node()
             }
             if (dst == -1)
             {
-                //random_cur->set_key(random_cur, src, dst);
-                __record_to_node(random_cur, &rando);
+                // random_cur->set_key(random_cur, src, dst);
+                CommonUtil::__record_to_node_ekey(random_cur, &rando);
                 rando.id = src;
                 break;
             }
@@ -283,7 +283,7 @@ node EdgeKey::get_random_node()
 
 /**
  * @brief This function adds a node to the edge table.
- * 
+ *
  * @param to_insert the node to be inserted into the edge table
  */
 void EdgeKey::add_node(node to_insert)
@@ -294,7 +294,7 @@ void EdgeKey::add_node(node to_insert)
     node_cursor->set_key(node_cursor, to_insert.id, -1);
     if (opts.read_optimize)
     {
-        string packed = pack_int_to_str(to_insert.in_degree, to_insert.out_degree);
+        string packed = CommonUtil::pack_int_to_str(to_insert.in_degree, to_insert.out_degree);
         node_cursor->set_value(node_cursor, packed.c_str());
     }
     else
@@ -309,7 +309,7 @@ void EdgeKey::add_node(node to_insert)
 
 /**
  * @brief returns true if a node with id node_id exists in the edge table
- * 
+ *
  * @param node_id the ID to look for
  * @return true / false depending on if node_id is found or not
  */
@@ -331,7 +331,7 @@ bool EdgeKey::has_node(int node_id)
 
 /**
  * @brief returns true if there is an edge found between src_id and dst_id nodes
- * 
+ *
  * @param src_id source node for the edge to search
  * @param dst_id destinatino node for the edge to search
  * @return true/false id edge was found or not
@@ -384,7 +384,7 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur, WT_CURSOR *e_cur, int nod
         {
             throw GraphException("Failed to remove edge between " + to_string(src) + " and " + to_string(dst));
         }
-        //if readoptimize: Get the node to decrement in/out degree
+        // if readoptimize: Get the node to decrement in/out degree
         if (opts.read_optimize)
         {
             node temp;
@@ -446,7 +446,7 @@ void EdgeKey::update_node_degree(int node_id, int indeg, int outdeg)
         WT_CURSOR *e_cur = get_edge_cursor();
 
         e_cur->set_key(e_cur, node_id, -1);
-        string val = pack_int_to_str(indeg, outdeg);
+        string val = CommonUtil::pack_int_to_str(indeg, outdeg);
         e_cur->set_value(e_cur, val.c_str());
         if (e_cur->insert(e_cur) != 0)
         {
@@ -457,30 +457,28 @@ void EdgeKey::update_node_degree(int node_id, int indeg, int outdeg)
 
 /**
  * @brief This function adds the edge passed as param
- * 
- * @param to_insert the edge struct containing info about the edge to insert. 
+ *
+ * @param to_insert the edge struct containing info about the edge to insert.
  */
 void EdgeKey::add_edge(edge to_insert, bool is_bulk)
 {
     if (!is_bulk)
-{
-    //Check if the src and dst nodes exist.
-    if (!has_node(to_insert.src_id))
     {
-        node src;
-        src.id = to_insert.src_id;
-        add_node(src);
+        // Check if the src and dst nodes exist.
+        if (!has_node(to_insert.src_id))
+        {
+            node src{.id = to_insert.src_id};
+            add_node(src);
+        }
+
+        if (!has_node(to_insert.dst_id))
+        {
+            node dst{.id = to_insert.dst_id};
+            add_node(dst);
+        }
     }
 
-    if (!has_node(to_insert.dst_id))
-    {
-        node dst;
-        dst.id = to_insert.dst_id;
-        add_node(dst);
-    }
-    }
-
-    //Insert the edge
+    // Insert the edge
     WT_CURSOR *e_cur = get_edge_cursor();
     e_cur->set_key(e_cur, to_insert.src_id, to_insert.dst_id);
     if (opts.is_weighted)
@@ -495,7 +493,7 @@ void EdgeKey::add_edge(edge to_insert, bool is_bulk)
     {
         throw GraphException("Failed to insert edge between " + std::to_string(to_insert.src_id) + " and " + std::to_string(to_insert.dst_id));
     }
-    //insert reverse edge if undirected
+    // insert reverse edge if undirected
     if (!opts.is_directed)
     {
         e_cur->set_key(e_cur, to_insert.dst_id, to_insert.src_id);
@@ -516,35 +514,35 @@ void EdgeKey::add_edge(edge to_insert, bool is_bulk)
     {
         // Update the in/out degrees if opts.read_optimize
         if (opts.read_optimize)
-    {
-        node src = get_node(to_insert.src_id);
-        src.out_degree++;
-            if (!opts.is_directed)
         {
-            src.in_degree++;
-        }
-        update_node_degree(src.id, src.in_degree, src.out_degree);
+            node src = get_node(to_insert.src_id);
+            src.out_degree++;
+            if (!opts.is_directed)
+            {
+                src.in_degree++;
+            }
+            update_node_degree(src.id, src.in_degree, src.out_degree);
 
-        node dst = get_node(to_insert.dst_id);
-        dst.in_degree++;
+            node dst = get_node(to_insert.dst_id);
+            dst.in_degree++;
             if (!opts.is_directed)
-        {
-            dst.out_degree++;
+            {
+                dst.out_degree++;
+            }
+            update_node_degree(dst.id, dst.in_degree, dst.out_degree);
         }
-        update_node_degree(dst.id, dst.in_degree, dst.out_degree);
     }
-}
 }
 
 /**
  * @brief Delete the edge identified by (src_id, dst_id)
- * 
+ *
  * @param src_id Source node ID for the edge to be deleted
  * @param dst_id Dst node ID for the edge to be deleted
  */
 void EdgeKey::delete_edge(int src_id, int dst_id)
 {
-    //delete edge
+    // delete edge
     WT_CURSOR *e_cur = get_edge_cursor();
     e_cur->set_key(e_cur, src_id, dst_id);
     if (e_cur->remove(e_cur) != 0)
@@ -552,7 +550,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
         throw GraphException("Failed to delete the edge between " + std::to_string(src_id) + " and " + std::to_string(dst_id));
     }
 
-    //delete reverse edge
+    // delete reverse edge
     if (!opts.is_directed)
     {
         e_cur->set_key(e_cur, dst_id, src_id);
@@ -562,7 +560,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
         }
     }
 
-    //update node degrees
+    // update node degrees
     if (opts.read_optimize)
     {
         node src = get_node(src_id);
@@ -594,7 +592,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
 
 /**
  * @brief Get the edge identified by (src_id, dst_id)
- * 
+ *
  * @param src_id source node_id
  * @param dst_id destination node_id
  * @return edge the edge object found
@@ -608,7 +606,7 @@ edge EdgeKey::get_edge(int src_id, int dst_id)
     {
         found.src_id = src_id;
         found.dst_id = dst_id;
-        __record_to_edge(e_cur, &found);
+        CommonUtil::__record_to_edge_ekey(e_cur, &found);
         return found;
     }
     else
@@ -619,8 +617,8 @@ edge EdgeKey::get_edge(int src_id, int dst_id)
 
 /**
  * @brief Get all nodes in the table
- * 
- * @return std::vector<node> the list containing all nodes. 
+ *
+ * @return std::vector<node> the list containing all nodes.
  */
 std::vector<node> EdgeKey::get_nodes()
 {
@@ -634,13 +632,12 @@ std::vector<node> EdgeKey::get_nodes()
     {
         int node_id, temp;
         dst_cur->get_value(dst_cur, &node_id, &temp);
-        assert(temp == -1); //this should be true
+        assert(temp == -1); // this should be true
         e_cur->set_key(e_cur, node_id, -1);
         if (e_cur->search(e_cur) == 0)
         {
-            node found;
-            found.id = node_id;
-            __record_to_node(e_cur, &found);
+            node found{.id = node_id};
+            CommonUtil::__record_to_node_ekey(e_cur, &found);
             nodes.push_back(found);
         }
 
@@ -652,9 +649,8 @@ std::vector<node> EdgeKey::get_nodes()
                 e_cur->set_key(e_cur, node_id, -1);
                 if (e_cur->search(e_cur) == 0)
                 {
-                    node found;
-                    found.id = node_id;
-                    __record_to_node(e_cur, &found);
+                    node found{.id = node_id};
+                    CommonUtil::__record_to_node_ekey(e_cur, &found);
                     nodes.push_back(found);
                 }
             }
@@ -672,14 +668,14 @@ std::vector<node> EdgeKey::get_nodes()
 /**
  * @brief This sets the value of the passed int references to hold the number of
  * nodes and edges present in the table.
- * 
+ *
  * @param node_count Arg to hold the number of nodes
- * @param edge_count Arg to hold the number of edges. 
+ * @param edge_count Arg to hold the number of edges.
  */
-//TODO: Possible optimization: store the value of node and edge counts in the
-//metadata table while calling close(). Restore the global node and edge counts
-//value on restore from DB. Then add and delete operations modify this global
-//value. This function is wasteful.
+// TODO: Possible optimization: store the value of node and edge counts in the
+// metadata table while calling close(). Restore the global node and edge counts
+// value on restore from DB. Then add and delete operations modify this global
+// value. This function is wasteful.
 int EdgeKey::get_num_nodes()
 {
     int node_count = 0;
@@ -716,7 +712,7 @@ int EdgeKey::get_num_edges()
 
 /**
  * @brief get the out_degree of the node that has ID = node_id
- * 
+ *
  * @param node_id ID of the node whose out degree is sought
  * @return int outdegree of node with ID node_id
  */
@@ -730,7 +726,7 @@ int EdgeKey::get_out_degree(int node_id)
         if (e_cur->search(e_cur) == 0)
         {
             found.id = node_id;
-        __record_to_node(e_cur, &found);
+            CommonUtil::__record_to_node_ekey(e_cur, &found);
         }
         e_cur->reset(e_cur);
         return found.out_degree;
@@ -776,9 +772,9 @@ int EdgeKey::get_out_degree(int node_id)
 
 /**
  * @brief Returns the in_degree for the node with ID node_id
- * 
+ *
  * @param node_id the ID of the node whose in_degree is sought
- * @return int the indegree found/computed. 
+ * @return int the indegree found/computed.
  */
 int EdgeKey::get_in_degree(int node_id)
 {
@@ -788,7 +784,7 @@ int EdgeKey::get_in_degree(int node_id)
         e_cur->set_key(e_cur, node_id, -1);
         e_cur->search(e_cur);
         node found;
-        __record_to_node(e_cur, &found);
+        CommonUtil::__record_to_node_ekey(e_cur, &found);
         e_cur->reset(e_cur);
         return found.in_degree;
     }
@@ -825,7 +821,7 @@ int EdgeKey::get_in_degree(int node_id)
 
 /**
  * @brief Get a list of all edges in the table
- * 
+ *
  * @return std::vector<edge> the list of all edges
  */
 std::vector<edge> EdgeKey::get_edges()
@@ -841,7 +837,7 @@ std::vector<edge> EdgeKey::get_edges()
         {
             if (opts.is_weighted)
             {
-                __record_to_edge(e_cur, &found);
+                CommonUtil::__record_to_edge_ekey(e_cur, &found);
             }
             edges.push_back(found);
         }
@@ -851,10 +847,10 @@ std::vector<edge> EdgeKey::get_edges()
 }
 
 /**
- * @brief Get all edges that have node_id 
- * 
- * @param node_id 
- * @return std::vector<edge> 
+ * @brief Get all edges that have node_id
+ *
+ * @param node_id
+ * @return std::vector<edge>
  */
 std::vector<edge> EdgeKey::get_out_edges(int node_id)
 {
@@ -889,15 +885,12 @@ std::vector<edge> EdgeKey::get_out_edges(int node_id)
                 e_cur->set_key(e_cur, src_id, dst_id);
                 if (e_cur->search(e_cur) == 0)
                 {
-                    edge found;
-                    found.dst_id = dst_id;
-                    found.src_id = src_id;
-                    __record_to_edge(e_cur, &found);
+                    edge found{.src_id = src_id, .dst_id = dst_id};
+                    CommonUtil::__record_to_edge_ekey(e_cur, &found);
                     out_edges.push_back(found);
                 }
             }
-
-        } while (src_id == node_id && src_cur->next(src_cur) == 0 && flag <= 1); //flag check ensures that if the first entry we hit was (node_id, -1), we try to look for the next entry the cursor points to to see if it has a (node_id, <dst>) entry.
+        } while (src_id == node_id && src_cur->next(src_cur) == 0 && flag <= 1); // flag check ensures that if the first entry we hit was (node_id, -1), we try to look for the next entry the cursor points to to see if it has a (node_id, <dst>) entry.
     }
     e_cur->reset(e_cur);
     src_cur->reset(src_cur);
@@ -906,9 +899,9 @@ std::vector<edge> EdgeKey::get_out_edges(int node_id)
 
 /**
  * @brief Returns a list containing all nodes that have an incoming edge from node_id
- * 
+ *
  * @param node_id Node ID of the node who's out nodes are sought.
- * @return std::vector<node> 
+ * @return std::vector<node>
  */
 std::vector<node> EdgeKey::get_out_nodes(int node_id)
 {
@@ -929,7 +922,7 @@ std::vector<node> EdgeKey::get_out_nodes(int node_id)
         do
         {
             src_cur->get_value(src_cur, &src, &dst);
-            //don't need to check if src == node_id because search_ret was 0
+            // don't need to check if src == node_id because search_ret was 0
             if (src != node_id)
             {
                 break;
@@ -943,13 +936,12 @@ std::vector<node> EdgeKey::get_out_nodes(int node_id)
                 e_cur->set_key(e_cur, dst, -1);
                 if (e_cur->search(e_cur) == 0)
                 {
-                    node found;
-                    found.id = dst;
-                    __record_to_node(e_cur, &found);
+                    node found{.id = dst};
+                    CommonUtil::__record_to_node_ekey(e_cur, &found);
                     out_nodes.push_back(found);
                 }
             }
-        } while (src == node_id && src_cur->next(src_cur) == 0 && flag <= 1); //flag check ensures that if the first entry we hit was (node_id, -1), we try to look for the next entry the cursor points to to see if it has a (node_id, <dst>) entry.
+        } while (src == node_id && src_cur->next(src_cur) == 0 && flag <= 1); // flag check ensures that if the first entry we hit was (node_id, -1), we try to look for the next entry the cursor points to to see if it has a (node_id, <dst>) entry.
     }
     e_cur->reset(e_cur);
     src_cur->reset(src_cur);
@@ -958,9 +950,9 @@ std::vector<node> EdgeKey::get_out_nodes(int node_id)
 
 /**
  * @brief Get a list of all edges that have node_id as the destination
- * 
+ *
  * @param node_id the id of the node whose in_edges are sought
- * @return std::vector<edge> 
+ * @return std::vector<edge>
  */
 std::vector<edge> EdgeKey::get_in_edges(int node_id)
 {
@@ -984,10 +976,8 @@ std::vector<edge> EdgeKey::get_in_edges(int node_id)
             e_cur->set_key(e_cur, src_id, dst_id);
             if (e_cur->search(e_cur) == 0)
             {
-                edge found;
-                found.src_id = src_id;
-                found.dst_id = dst_id;
-                __record_to_edge(e_cur, &found);
+                edge found{.src_id = src_id, .dst_id = dst_id};
+                CommonUtil::__record_to_edge_ekey(e_cur, &found);
                 in_edges.push_back(found);
             }
             dst_cur->next(dst_cur);
@@ -1001,9 +991,9 @@ std::vector<edge> EdgeKey::get_in_edges(int node_id)
 
 /**
  * @brief Get a list of all nodes that have an outgoing edge to node_id
- * 
- * @param node_id the node whose in_nodes are sought. 
- * @return std::vector<node> 
+ *
+ * @param node_id the node whose in_nodes are sought.
+ * @return std::vector<node>
  */
 std::vector<node> EdgeKey::get_in_nodes(int node_id)
 {
@@ -1029,9 +1019,8 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
             e_cur->set_key(e_cur, src_id, -1);
             if (e_cur->search(e_cur) == 0)
             {
-                node found;
-                found.id = src_id;
-                __record_to_node(e_cur, &found);
+                node found{.id = src_id};
+                CommonUtil::__record_to_node_ekey(e_cur, &found);
                 in_nodes.push_back(found);
             }
             if (dst_cur->next(dst_cur) == 0)
@@ -1053,7 +1042,7 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
     return in_nodes;
 }
 
-//Close, restore from DB, create/drop indices
+// Close, restore from DB, create/drop indices
 void EdgeKey::__restore_from_db(string db_name)
 {
     int ret = CommonUtil::open_connection(const_cast<char *>(db_name.c_str()), &conn);
@@ -1119,12 +1108,12 @@ void EdgeKey::__restore_from_db(string db_name)
  * @brief Creates the indices on the SRC and the DST column of the edge table.
  * These are not (and should not be) used for inserting data into the edge
  * table if write_optimize is on. Once the data has been inserted, the
- * create_indices function must be called separately. 
- * 
+ * create_indices function must be called separately.
+ *
  * This function requires exclusive access to the table on which it operates.
  * If there are any open cursors, or if the table has any other operation
  * ongoing, WT throws a Resource Busy error.
- * 
+ *
  */
 void EdgeKey::create_indices()
 {
@@ -1141,7 +1130,7 @@ void EdgeKey::create_indices()
         CommonUtil::close_cursor(dst_idx_cursor);
     }
     int ret = 0;
-    //Index on SRC column of edge table
+    // Index on SRC column of edge table
     string edge_table_idx, edge_table_idx_conf;
     edge_table_idx = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
     edge_table_idx_conf = "columns=(" + SRC + ")";
@@ -1150,18 +1139,14 @@ void EdgeKey::create_indices()
         throw GraphException("Failed to create SRC_INDEX on the edge table");
     }
 
-    //Index on the DST column of the edge table
+    // Index on the DST column of the edge table
     edge_table_idx = "index:" + EDGE_TABLE + ":" + DST_INDEX;
     edge_table_idx_conf = "columns=(" + DST + ")";
     if (session->create(session, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
     {
         throw GraphException("Failed to create an index on the DST column of the edge table");
     }
-} /**
- * changing the src index column from SRC to SRC, DST
- * and dst index column from DST to DST,SRC 
- */
-
+}
 /**
  * @brief Drops the indices not required for adding edges.
  * Used for optimized bulk loading: User should call drop_indices() before
@@ -1178,60 +1163,16 @@ void EdgeKey::drop_indices()
     CommonUtil::close_cursor(src_idx_cursor);
     CommonUtil::close_cursor(dst_idx_cursor);
 
-    //drop SRC index
+    // drop SRC index
     string uri = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
     session->drop(session, uri.c_str(), NULL);
 
-    //drop the DST index
+    // drop the DST index
     uri = "index:" + EDGE_TABLE + ":" + DST_INDEX;
     session->drop(session, uri.c_str(), NULL);
 }
 
-//Get and Set data from/to an edge table cursor
-
-/**
- * @brief This function converts the record the cursor points to into a node
- * struct. In this representation, we know that the Value can be :
- * 1. indeg, out_deg for opts.read_optimize node entry
- * 2. "" for non opts.read_optimize node entry
- * 3. edge_weight for a weighted edge entry
- * 4. "" for an unweighted graph. 
- * 
- * Seeing this, it is wasteful to have a serialization/deserialization call. 
- * Save -1 for any of these entries that don't exist.
- * @param cur the pointer -- already pointing to the record to extract
- * @param found the node to insert the in and outdegrees for. 
- */
-void EdgeKey::__record_to_node(WT_CURSOR *cur, node *found)
-{
-    char *packed_vec;
-    int ret = cur->get_value(cur, &packed_vec);
-    if (ret != 0)
-    {
-        throw GraphException("in here");
-    }
-    std::string str(packed_vec);
-    int a, b;
-    extract_from_string(packed_vec, &a, &b);
-    found->in_degree = a;
-    found->out_degree = b;
-}
-
-void EdgeKey::__record_to_edge(WT_CURSOR *cur, edge *found)
-{
-    char *packed_vec;
-    int ret = cur->get_value(cur, &packed_vec);
-    if (ret != 0)
-    {
-        throw GraphException("in here");
-    }
-    std::string str(packed_vec);
-    int a, b;
-    extract_from_string(str, &a, &b);
-    found->edge_weight = a;
-}
-
-//Session/Connection/Cursor operations
+// Session/Connection/Cursor operations
 
 void EdgeKey::close()
 {
@@ -1244,8 +1185,8 @@ void EdgeKey::close()
  *
  * @param table_name The name of the table on which the index is to be created.
  * @param idx_name The name of the index
- * @param projection The columns that are to be included in the index. This is
- * in the format "(col1,col2,..)"
+ * @param projection The columns that are to be included in the get_value. This is
+ * in the format "(col1,col2,..)" and appended to the index name.
  * @param cursor This is the cursor variable that needs to be set.
  * @return 0 if the index could be set
  */
@@ -1310,19 +1251,15 @@ WT_CURSOR *EdgeKey::get_dst_idx_cur()
     return dst_idx_cursor;
 }
 
-//Because we know that there can only be two. By design.
-void EdgeKey::extract_from_string(string packed_str, int *a, int *b)
+EKeyIterator::OutCursor EdgeKey::get_outnbd_cursor()
 {
-    std::stringstream strstream(packed_str);
-    strstream >> *a >> *b;
-    return;
+    return EKeyIterator::OutCursor(get_src_idx_cur(), session);
 }
 
-string EdgeKey::pack_int_to_str(int a, int b)
+EKeyIterator::InCursor EdgeKey::get_innbd_cursor()
 {
-    std::stringstream sstream;
-    sstream << a << " " << b;
-    return sstream.str();
+
+    return EKeyIterator::InCursor(get_dst_idx_cur(), session);
 }
 
 WT_CURSOR *EdgeKey::get_node_iter()
@@ -1339,13 +1276,13 @@ node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
     {
         int node_id, temp;
         dst_cur->get_value(dst_cur, &node_id, &temp);
-        assert(temp == -1); //this should be true
+        assert(temp == -1); // this should be true
         e_cur->set_key(e_cur, node_id, -1);
         if (e_cur->search(e_cur) == 0)
         {
 
             found.id = node_id;
-            __record_to_node(e_cur, &found);
+            CommonUtil::__record_to_node_ekey(e_cur, &found);
         }
     }
     return found;
@@ -1366,7 +1303,7 @@ edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
         {
             if (opts.is_weighted)
             {
-                __record_to_edge(e_cur, &found);
+                CommonUtil::__record_to_edge_ekey(e_cur, &found);
             }
             break;
         }

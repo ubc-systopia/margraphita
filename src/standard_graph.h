@@ -14,8 +14,6 @@ namespace StdIterator
     class InCursor : public table_iterator
     {
     private:
-        bool is_first = true;
-        int has_next = 1;
         int prev_node;
         int cur_node;
 
@@ -59,7 +57,7 @@ namespace StdIterator
             }
             if (ret != 0)
             {
-                has_next = 0;
+                has_next = false;
             }
         }
 
@@ -67,11 +65,11 @@ namespace StdIterator
         {
             cursor->reset(cursor);
             is_first = true;
-            has_next = 1;
+            has_next = true;
             prev_node = cur_node = 0;
         }
 
-        int has_more()
+        bool has_more()
         {
             return has_next;
         };
@@ -82,7 +80,7 @@ namespace StdIterator
             cursor->reset(cursor);
             cursor->set_key(cursor, key.dst_id);
             int ret = 0;
-            if (cursor->search(cursor) == 0 && has_next > 0)
+            if (cursor->search(cursor) == 0 && has_next)
             {
                 int iter_key;
                 do
@@ -95,7 +93,7 @@ namespace StdIterator
                     ret = cursor->next(cursor);
                     if (ret != 0)
                     {
-                        has_next = 0;
+                        has_next = false;
                         return;
                     }
                     cursor->get_key(cursor, &iter_key);
@@ -112,8 +110,6 @@ namespace StdIterator
     class OutCursor : public table_iterator
     {
     private:
-        bool is_first = true;
-        int has_next = 1;
         int prev_node;
         int cur_node;
 
@@ -157,7 +153,7 @@ namespace StdIterator
 
             if (ret != 0)
             {
-                has_next = 0;
+                has_next = false;
             }
         }
 
@@ -165,11 +161,11 @@ namespace StdIterator
         {
             cursor->reset(cursor);
             is_first = true;
-            has_next = 1;
+            has_next = true;
             prev_node = cur_node = 0;
         }
 
-        int has_more()
+        bool has_more()
         {
             return has_next;
         };
@@ -179,7 +175,7 @@ namespace StdIterator
             edge idx;
             cursor->set_key(cursor, key.src_id);
             int ret = 0;
-            if (cursor->search(cursor) == 0 && has_next > 0)
+            if (cursor->search(cursor) == 0 && has_next)
             {
                 int iter_key;
                 do
@@ -192,7 +188,7 @@ namespace StdIterator
                     ret = cursor->next(cursor);
                     if (ret != 0)
                     {
-                        has_next = 0;
+                        has_next = false;
                         return;
                     }
                     cursor->get_key(cursor, &iter_key);

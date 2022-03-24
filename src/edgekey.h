@@ -9,6 +9,228 @@
 #include <wiredtiger.h>
 
 using namespace std;
+namespace EKeyIterator
+{
+    class InCursor : public table_iterator
+    {
+    private:
+        int prev_dst;
+        int prev_node = 0;
+        int cur_node = 0;
+
+    public:
+        InCursor(WT_CURSOR *beg_cur, WT_SESSION *sess)
+        {
+            init(beg_cur, sess);
+        }
+        void set_key(key_pair key)
+        {
+            cursor->set_key(cursor, key.dst_id); // In Nbd
+        }
+
+        bool has_more()
+        {
+            return has_next;
+        }
+
+        void reset()
+        {
+            cursor->reset(cursor);
+            is_first = true;
+            has_next = true;
+        }
+        void next(adjlist *found)
+        {
+            int ret = 0;
+            int prev_node, cur_node = 0;
+            while ((ret = cursor->next(cursor)) == 0)
+            {
+                int src, dst = 0;
+                cursor->get_key(cursor, &cur_node);
+                if (cur_node == -1)
+                {
+                    continue;
+                }
+                if (is_first)
+                {
+                    prev_node = cur_node;
+                    is_first = false;
+                }
+                cursor->get_value(cursor, &src, &dst);
+                if (prev_node == cur_node)
+                {
+                    found->degree++;
+                    found->edgelist.push_back(src); // in nbd;
+                    found->node_id = dst;
+                }
+                else // We have moved to the next node id.
+                {
+                    cursor->prev(cursor);
+                    is_first = true;
+                    break;
+                }
+            }
+            if (ret != 0)
+            {
+                has_next = false;
+            }
+        }
+
+        void next(adjlist *found, key_pair kp)
+        {
+            cursor->set_key(cursor, kp.dst_id);
+            int src = 0, dst = 0;
+            int ret = cursor->search(cursor);
+
+            if ((ret == 0) && (has_next == true))
+            {
+                do
+                {
+                    int temp = 0;
+                    cursor->get_value(cursor, &src, &dst);
+                    cursor->get_key(cursor, &temp);
+                    if (dst == kp.dst_id)
+                    {
+                        found->degree++;
+                        found->edgelist.push_back(src);
+                        found->node_id = dst;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                } while (cursor->next(cursor) == 0);
+            }
+            else
+            {
+                has_next = false;
+                found->node_id = kp.dst_id;
+                found->degree = 0;
+                found->edgelist = {};
+            }
+        }
+    };
+
+    class OutCursor : public table_iterator
+    {
+    private:
+        int prev_dst;
+        int prev_node = 0;
+        int cur_node = 0;
+
+    public:
+        OutCursor(WT_CURSOR *beg_cur, WT_SESSION *sess)
+        {
+            init(beg_cur, sess);
+        }
+        void set_key(key_pair key)
+        {
+            cursor->set_key(cursor, key.dst_id); // In Nbd
+        }
+        bool has_more()
+        {
+            return has_next;
+        }
+
+        void reset()
+        {
+            cursor->reset(cursor);
+            is_first = true;
+            has_next = true;
+        }
+        void next(adjlist *found)
+        {
+            int ret = 0;
+
+            while ((ret = cursor->next(cursor)) == 0)
+            {
+                int src, dst = 0;
+                cursor->get_key(cursor, &cur_node);
+                cursor->get_value(cursor, &src, &dst);
+
+                if (dst == -1 && is_first)
+                {
+                    is_first = false;
+                    prev_node = cur_node;
+                    prev_dst = dst;
+                    continue;
+                }
+                if (dst != -1 && (prev_node == cur_node))
+                {
+                    found->degree++;
+                    found->edgelist.push_back(dst);
+                    prev_dst = dst;
+
+                    found->node_id = src;
+                }
+                else if (dst == -1 && (prev_node != cur_node))
+                {
+                    // handle nodes with no out edges
+                    if (prev_dst == -1)
+                    {
+                        // the previous_node had no out edges
+                        found->degree = 0;
+                        found->edgelist = {};
+                        found->node_id = prev_node;
+                        prev_node = cur_node;
+                        return;
+                    }
+                    cursor->prev(cursor);
+                    is_first = true;
+                    break;
+                }
+            }
+            if (ret != 0)
+            {
+                found->degree = 0;
+                found->edgelist = {};
+                found->node_id = cur_node;
+                has_next = false;
+            }
+        }
+
+        void next(adjlist *found, key_pair kp)
+        {
+            cursor->set_key(cursor, kp.src_id);
+            int src = 0, dst = 0;
+            int ret = cursor->search(cursor);
+
+            if ((ret == 0) && (has_next == true))
+            {
+                do
+                {
+                    int temp = 0;
+                    cursor->get_value(cursor, &src, &dst);
+                    cursor->get_key(cursor, &temp);
+                    if (src == kp.src_id)
+                    {
+                        if (dst != -1)
+                        {
+                            found->degree++;
+                            found->edgelist.push_back(dst);
+                            found->node_id = src;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                } while (cursor->next(cursor) == 0);
+            }
+            else
+            {
+                found->degree = 0;
+                found->edgelist = {};
+                found->node_id = kp.src_id;
+                has_next = false;
+            }
+        }
+    };
+};
 
 class EdgeKey
 {
@@ -41,6 +263,9 @@ public:
     std::string get_db_name() const { return opts.db_name; };
 
     void create_indices();
+
+    EKeyIterator::OutCursor get_outnbd_cursor();
+    EKeyIterator::InCursor get_innbd_cursor();
     // internal cursor operations:
     void init_cursors(); // todo <-- implement this
     WT_CURSOR *get_edge_cursor();
@@ -53,16 +278,16 @@ private:
     WT_CONNECTION *conn;
     WT_SESSION *session;
 
-    //Cursors
+    // Cursors
     WT_CURSOR *edge_cursor = nullptr;
     WT_CURSOR *metadata_cursor = nullptr;
     WT_CURSOR *src_idx_cursor = nullptr;
     WT_CURSOR *dst_idx_cursor = nullptr;
 
-    //structure of the graph
+    // structure of the graph
     vector<string> edge_columns = {SRC, DST, ATTR};
     string edge_key_format = "ii";  // SRC DST
-    string edge_value_format = "S"; //Packed binary
+    string edge_value_format = "S"; // Packed binary
 
     // internal methods
     void delete_related_edges(WT_CURSOR *idx_cursor, WT_CURSOR *edge_cur, int node_id);
@@ -75,12 +300,6 @@ private:
                           std::string projection,
                           WT_CURSOR **cursor);
     void drop_indices();
-
-    // Serialization Methods
-    void __record_to_node(WT_CURSOR *cur, node *found);
-    void __record_to_edge(WT_CURSOR *cur, edge *found);
-    void extract_from_string(string packed_str, int *a, int *b);
-    string pack_int_to_str(int a, int b);
 
     // metadata and restore operations
     void insert_metadata(string key, char *value);

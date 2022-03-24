@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <sstream>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -87,6 +88,8 @@ class table_iterator
 protected:
     WT_CURSOR *cursor = nullptr;
     WT_SESSION *session = nullptr;
+    bool is_first = true;
+    bool has_next = true;
     void init(WT_CURSOR *cursor_, WT_SESSION *sess_)
     {
         cursor = cursor_;
@@ -288,6 +291,63 @@ public:
         {
             found->degree = degree;
         }
+    }
+    // Because we know that there can only be two. By design.
+    inline static void extract_from_string(std::string packed_str, int *a, int *b)
+    {
+        std::stringstream strstream(packed_str);
+        strstream >> *a >> *b;
+        return;
+    }
+
+    inline static std::string pack_int_to_str(int a, int b)
+    {
+        std::stringstream sstream;
+        sstream << a << " " << b;
+        return sstream.str();
+    }
+    // Get and Set data from/to an edge table cursor
+
+    /**
+     * @brief This function converts the record the cursor points to into a node
+     * struct. In this representation, we know that the Value can be :
+     * 1. indeg, out_deg for opts.read_optimize node entry
+     * 2. "" for non opts.read_optimize node entry
+     * 3. edge_weight for a weighted edge entry
+     * 4. "" for an unweighted graph.
+     *
+     * Seeing this, it is wasteful to have a serialization/deserialization call.
+     * Save -1 for any of these entries that don't exist.
+     * @param cur the pointer -- already pointing to the record to extract
+     * @param found the node to insert the in and outdegrees for.
+     */
+    inline static void __record_to_node_ekey(WT_CURSOR *cur, node *found)
+    {
+        char *packed_vec;
+        int ret = cur->get_value(cur, &packed_vec);
+        if (ret != 0)
+        {
+            throw GraphException("in here");
+        }
+        std::string str(packed_vec);
+        int a, b;
+        extract_from_string(packed_vec, &a, &b);
+        found->in_degree = a;
+        found->out_degree = b;
+    }
+
+    inline static void __record_to_edge_ekey(WT_CURSOR *cur, edge *found)
+    {
+        char *packed_vec;
+        int ret = cur->get_value(cur, &packed_vec);
+        if (ret != 0)
+        {
+            throw GraphException("in here");
+        }
+        std::string str(packed_vec);
+        int a, b;
+        extract_from_string(str, &a, &b);
+        found->edge_weight = a;
     }
 };
 

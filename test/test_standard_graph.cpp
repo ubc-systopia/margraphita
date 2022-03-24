@@ -19,7 +19,7 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
-        assert(SampleGraph::test_edges.size() == 6); //checking if directed edges got created and stored in test_edges
+        assert(SampleGraph::test_edges.size() == 6); // checking if directed edges got created and stored in test_edges
     }
     int edge_cnt = 1;
     for (edge x : SampleGraph::test_edges)
@@ -57,10 +57,10 @@ void test_node_delete(StandardGraph graph, bool is_directed)
     node to_delete = SampleGraph::node2;
     graph.delete_node(to_delete.id);
 
-    //check that the node has been deleted
+    // check that the node has been deleted
     assert(graph.has_node(to_delete.id) == false);
 
-    //check if the edges have been deleted
+    // check if the edges have been deleted
     edge test;
     if (is_directed)
     {
@@ -71,16 +71,16 @@ void test_node_delete(StandardGraph graph, bool is_directed)
     }
     else
     {
-        //edge from 1->2
+        // edge from 1->2
         assert(graph.has_edge(SampleGraph::edge1.src_id,
                               SampleGraph::edge1.dst_id, &test) == false);
-        //edge from 2->1
+        // edge from 2->1
         assert(graph.has_edge(SampleGraph::edge1.dst_id,
                               SampleGraph::edge1.src_id, &test) == false);
-        //edge from 2->3
+        // edge from 2->3
         assert(graph.has_edge(SampleGraph::edge3.src_id,
                               SampleGraph::edge3.dst_id, &test) == false);
-        //edge from 3->2
+        // edge from 3->2
         assert(graph.has_edge(SampleGraph::edge3.dst_id,
                               SampleGraph::edge3.src_id, &test) == false);
     }
@@ -90,11 +90,11 @@ void test_get_edge_id(StandardGraph graph)
 {
     INFO();
     edge e;
-    assert(graph.has_edge(1, 2, &e) == true); //Edge ID 1
-    assert(graph.has_edge(1, 3, &e) == true); //Edge ID 2
-    assert(graph.has_edge(2, 3, &e) == true); //Edge ID 3
+    assert(graph.has_edge(1, 2, &e) == true); // Edge ID 1
+    assert(graph.has_edge(1, 3, &e) == true); // Edge ID 2
+    assert(graph.has_edge(2, 3, &e) == true); // Edge ID 3
 
-    assert(graph.has_edge(10, 11, &e) == false); //non-existent edge
+    assert(graph.has_edge(10, 11, &e) == false); // non-existent edge
 }
 
 void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
@@ -250,7 +250,7 @@ void test_InCursor(StandardGraph graph)
     INFO();
     StdIterator::InCursor in_cursor = graph.get_innbd_cursor();
     adjlist found = {0};
-    while (in_cursor.has_more() > 0)
+    while (in_cursor.has_more())
     {
         in_cursor.next(&found);
         if (found.node_id != -1)
@@ -277,7 +277,7 @@ void test_OutCursor(StandardGraph graph)
     INFO();
     StdIterator::OutCursor out_cursor = graph.get_outnbd_cursor();
     adjlist found = {0};
-    while (out_cursor.has_more() > 0)
+    while (out_cursor.has_more())
     {
         out_cursor.next(&found);
         if (found.node_id != -1)
@@ -327,14 +327,14 @@ int main()
     opts.create_new = true;
     opts.optimize_create = false;
     opts.is_directed = true;
-    //opts.is_directed = false;
-    //opts.read_optimize = false;
+    // opts.is_directed = false;
+    // opts.read_optimize = false;
     opts.read_optimize = true;
     opts.is_weighted = true;
     opts.db_name = "test_std";
     opts.db_dir = "./db";
 
-    //Test std_graph setup
+    // Test std_graph setup
     StandardGraphTester graph = StandardGraphTester(opts);
 
     create_init_nodes(graph, opts.is_directed);
@@ -342,32 +342,32 @@ int main()
 
     test_index_cursor(graph);
 
-    //Test num_get_nodes and num_get_edges
+    // Test num_get_nodes and num_get_edges
 
     test_get_num_nodes_and_edges(graph, opts.is_directed);
     print_delim();
 
-    //Test get_node()
+    // Test get_node()
     test_get_node(graph);
     print_delim();
 
-    //Test get_in_degree()
+    // Test get_in_degree()
     test_get_in_degree(graph, opts.is_directed);
     print_delim();
 
-    //Test get_out_degree()
+    // Test get_out_degree()
     test_get_out_degree(graph, opts.is_directed);
     print_delim();
 
-    //test get_nodes()
+    // test get_nodes()
     test_get_nodes(graph);
     print_delim();
 
-    //Test adding a node
+    // Test adding a node
     test_node_add(graph, opts.read_optimize);
     print_delim();
 
-    //test get_edge_id()
+    // test get_edge_id()
     test_get_edge_id(graph);
     print_delim();
 
@@ -375,23 +375,23 @@ int main()
     test_get_edges(graph, opts.is_directed);
     print_delim();
 
-    //test_cursor(graph);
+    // test_cursor(graph);
 
-    //test get_in_nodes_and_edges
+    // test get_in_nodes_and_edges
     test_get_in_nodes_and_edges(graph, opts.is_directed);
     print_delim();
 
-    //test get_out_nodes_and_edges
+    // test get_out_nodes_and_edges
     test_get_out_nodes_and_edges(graph, opts.is_directed);
     print_delim();
 
-    //Test deleting a node
+    // Test deleting a node
     test_node_delete(graph, opts.is_directed);
 
     test_InCursor(graph);
     test_OutCursor(graph);
 
-    //Test std_graph teardown
+    // Test std_graph teardown
     tearDown(graph);
 
     return 0;
