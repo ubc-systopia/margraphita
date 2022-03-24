@@ -69,7 +69,7 @@ void StandardGraph::create_new_graph()
     CommonUtil::create_dir(dirname);
 
     // open connection to WT
-    if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), &conn) < 0)
+    if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), opts.conn_config, &conn) < 0)
     {
         exit(-1);
     };
@@ -284,7 +284,7 @@ int StandardGraph::_get_index_cursor(std::string table_name,
 void StandardGraph::__restore_from_db(std::string db_name)
 {
 
-    int ret = CommonUtil::open_connection(strdup(db_name.c_str()), &conn);
+    int ret = CommonUtil::open_connection(strdup(db_name.c_str()), opts.conn_config, &conn);
     WT_CURSOR *cursor = nullptr;
 
     ret = CommonUtil::open_session(conn, &session);

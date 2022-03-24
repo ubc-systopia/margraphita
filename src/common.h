@@ -51,6 +51,7 @@ struct graph_opts
     std::string db_name;
     std::string db_dir;
     bool optimize_create; // directs when the index should be created
+    std::string conn_config;
 };
 
 typedef struct node
@@ -162,7 +163,7 @@ public:
     static int close_cursor(WT_CURSOR *cursor);
     static int close_session(WT_SESSION *session);
     static int close_connection(WT_CONNECTION *conn);
-    static int open_connection(char *db_name, WT_CONNECTION **conn);
+    static int open_connection(char *db_name, std::string config, WT_CONNECTION **conn);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
     static void check_return(int retval, std::string mesg);
     static void dump_node(node to_print);

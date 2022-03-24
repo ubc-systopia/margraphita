@@ -67,7 +67,7 @@ void EdgeKey::create_new_graph()
     CommonUtil::create_dir(dirname);
 
     // open connection to WT DB
-    ret = CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), &conn);
+    ret = CommonUtil::open_connection(const_cast<char *>(dirname.c_str()), opts.conn_config, &conn);
     if (ret != 0)
     {
         throw GraphException("Could not open a connection to the DB" + string(wiredtiger_strerror(ret)));
@@ -1045,7 +1045,7 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
 // Close, restore from DB, create/drop indices
 void EdgeKey::__restore_from_db(string db_name)
 {
-    int ret = CommonUtil::open_connection(const_cast<char *>(db_name.c_str()), &conn);
+    int ret = CommonUtil::open_connection(const_cast<char *>(db_name.c_str()), opts.conn_config, &conn);
     WT_CURSOR *cursor = nullptr;
 
     ret = CommonUtil::open_session(conn, &session);

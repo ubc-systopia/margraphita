@@ -333,6 +333,7 @@ int main()
     opts.is_weighted = true;
     opts.db_name = "test_std";
     opts.db_dir = "./db";
+    opts.conn_config = "cache_size=10GB";
 
     // Test std_graph setup
     StandardGraphTester graph = StandardGraphTester(opts);

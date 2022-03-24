@@ -8,4 +8,5 @@ GRAPCHI_PATH= #Path to graphchi directory
 # KRON_GEN_PATH=/home/puneet/scratch/PaRMAT/Release/PaRMAT #path to the kron generator binary
 # KRON_GRAPHS_PATH=/drives/hdd_main #Directory where you want to store the kron graphs
 # DB_DIR=/home/puneet/scratch/margraphita/db
-# GRAPCHI_PATH= #Path to graphchi directory
+# PROFILE_PATH=/home/puneet/scratch/margraphita/profile/
+# RELEASE_PATH=/home/puneet/scratch/margraphita/release/

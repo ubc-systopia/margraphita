@@ -360,6 +360,7 @@ int main()
     opts.is_weighted = true;
     opts.db_name = "test_eKey";
     opts.db_dir = "./db";
+    opts.conn_config = "cache_size=10GB";
 
     EdgeKeyTester graph = EdgeKeyTester(opts);
     create_init_nodes(graph, opts.is_directed);

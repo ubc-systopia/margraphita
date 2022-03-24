@@ -85,7 +85,8 @@
         "mutex": "cpp",
         "stack": "cpp",
         "any": "cpp",
-        "condition_variable": "cpp"
+        "condition_variable": "cpp",
+        "future": "cpp"
     },
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "cmake.configureOnOpen": false,

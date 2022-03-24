@@ -468,6 +468,7 @@ int main()
     opts.is_weighted = true;
     opts.db_dir = "./db";
     opts.db_name = "test_adj";
+    opts.conn_config = "cache_size=10GB";
 
     AdjList graph = AdjList(opts);
     create_init_nodes(graph, opts.is_directed);

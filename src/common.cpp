@@ -705,9 +705,23 @@ int CommonUtil::close_connection(WT_CONNECTION *conn)
     return 0;
 }
 
-int CommonUtil::open_connection(char *db_name, WT_CONNECTION **conn)
+int CommonUtil::open_connection(char *db_name, std::string conn_config, WT_CONNECTION **conn)
 {
-    if (wiredtiger_open(db_name, NULL, "create", conn) != 0)
+    char config[1024] = "create";
+    // add the config string
+
+#ifdef STAT
+    if (conn_config.length() > 0)
+    {
+        conn_config += ",";
+    }
+    conn_config += "statistics=(all),statistics_log=(json=true)";
+#endif
+    if (conn_config.size() != 0)
+    {
+        sprintf(config + strlen("create"), ",%s", conn_config.c_str());
+    }
+    if (wiredtiger_open(db_name, NULL, config, conn) != 0)
     {
         fprintf(stderr, "Failed to open connection\n");
         return (-1);
