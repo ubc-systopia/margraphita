@@ -715,7 +715,7 @@ int CommonUtil::open_connection(char *db_name, std::string conn_config, WT_CONNE
     {
         conn_config += ",";
     }
-    conn_config += "statistics=(all),statistics_log=(json=true)";
+    conn_config += "statistics=(\"all\"),statistics_log=(wait=0,on_close=true)";
 #endif
     if (conn_config.size() != 0)
     {
