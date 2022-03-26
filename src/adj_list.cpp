@@ -175,7 +175,7 @@ void AdjList::create_new_graph()
 
     // open connection to WT
     if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
-                                    const_cast<char *>(opts.stat_log.c_str()),
+                                    opts.stat_log,
                                     opts.conn_config,
                                     &conn) < 0)
     {
@@ -297,11 +297,10 @@ void AdjList::create_new_graph()
 
 void AdjList::__restore_from_db(string dbname)
 {
-    int ret =
-        CommonUtil::open_connection(const_cast<char *>(dbname.c_str()),
-                                    const_cast<char *>(opts.stat_log.c_str()),
-                                    opts.conn_config,
-                                    &conn);
+    int ret = CommonUtil::open_connection(const_cast<char *>(dbname.c_str()),
+                                          opts.stat_log,
+                                          opts.conn_config,
+                                          &conn);
     ret = CommonUtil::open_session(conn, &session);
     // Initialize all cursors
     init_cursors();

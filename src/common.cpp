@@ -725,7 +725,7 @@ int CommonUtil::close_connection(WT_CONNECTION *conn)
 }
 
 int CommonUtil::open_connection(char *db_name,
-                                char *log_dir,
+                                std::string log_dir,
                                 std::string conn_config,
                                 WT_CONNECTION **conn)
 {
@@ -737,7 +737,9 @@ int CommonUtil::open_connection(char *db_name,
     {
         conn_config += ",";
     }
-    conn_config += "statistics=(\"all\"),statistics_log=(wait=0,on_close=true)";
+    conn_config +=
+        "statistics=(\"all\"),statistics_log=(wait=0,on_close=true,path=\"" +
+        log_dir + "\")";
 #endif
     if (conn_config.size() != 0)
     {

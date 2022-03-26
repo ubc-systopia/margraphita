@@ -471,7 +471,7 @@ int main()
     opts.db_dir = "./db";
     opts.db_name = "test_adj";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = "/home/puneet/scratch/margraphita/wt_stats/test_adj.log";
+    opts.stat_log = "/home/puneet/scratch/margraphita/profile/test";
 
     AdjList graph = AdjList(opts);
     create_init_nodes(graph, opts.is_directed);

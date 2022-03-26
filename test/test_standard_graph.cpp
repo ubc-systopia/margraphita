@@ -330,7 +330,7 @@ int main()
     opts.db_name = "test_std";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = "/home/puneet/scratch/margraphita/wt_stats/test_std.log";
+    opts.stat_log = "/home/puneet/scratch/margraphita/profile/test";
 
     // Test std_graph setup
     StandardGraphTester graph = StandardGraphTester(opts);

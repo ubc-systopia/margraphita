@@ -186,7 +186,7 @@ class CommonUtil
     static int close_session(WT_SESSION *session);
     static int close_connection(WT_CONNECTION *conn);
     static int open_connection(char *db_name,
-                               char *logdir,
+                               std::string logdir,
                                std::string config,
                                WT_CONNECTION **conn);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);

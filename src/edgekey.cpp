@@ -71,7 +71,7 @@ void EdgeKey::create_new_graph()
 
     // open connection to WT DB
     ret = CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
-                                      const_cast<char *>(opts.stat_log.c_str()),
+                                      opts.stat_log,
                                       opts.conn_config,
                                       &conn);
     if (ret != 0)
@@ -1085,11 +1085,10 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
 // Close, restore from DB, create/drop indices
 void EdgeKey::__restore_from_db(string db_name)
 {
-    int ret =
-        CommonUtil::open_connection(const_cast<char *>(db_name.c_str()),
-                                    const_cast<char *>(opts.stat_log.c_str()),
-                                    opts.c,
-                                    &conn);
+    int ret = CommonUtil::open_connection(const_cast<char *>(db_name.c_str()),
+                                          opts.stat_log,
+                                          opts.conn_config,
+                                          &conn);
     WT_CURSOR *cursor = nullptr;
 
     ret = CommonUtil::open_session(conn, &session);
