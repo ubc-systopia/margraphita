@@ -1,12 +1,13 @@
+#include "test_edgekey.h"
+
+#include <cassert>
+
 #include "common.h"
 #include "graph_exception.h"
 #include "sample_graph.h"
-#include <cassert>
-#include "test_edgekey.h"
 
 #define delim "--------------"
-#define INFO() \
-    fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
+#define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 
 void create_init_nodes(EdgeKey graph, bool is_directed)
 {
@@ -19,7 +20,9 @@ void create_init_nodes(EdgeKey graph, bool is_directed)
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
-        assert(SampleGraph::test_edges.size() == 6); // checking if directed edges got created and stored in test_edges
+        assert(SampleGraph::test_edges.size() ==
+               6);  // checking if directed edges got created and stored in
+                    // test_edges
     }
     int edge_cnt = 1;
     for (node n : SampleGraph::test_nodes)
@@ -49,10 +52,7 @@ void test_get_node(EdgeKey graph)
 void test_node_add(EdgeKey graph, bool read_optimize)
 {
     INFO();
-    node new_node = {
-        .id = 11,
-        .in_degree = 0,
-        .out_degree = 0};
+    node new_node = {.id = 11, .in_degree = 0, .out_degree = 0};
     graph.add_node(new_node);
     node found = graph.get_node(new_node.id);
     assert(new_node.id == found.id);
@@ -75,10 +75,12 @@ void test_get_nodes(EdgeKey graph)
 void test_add_edge(EdgeKey graph, bool is_directed)
 {
     INFO();
-    edge to_insert = {.id = 0,
-                      .src_id = 5,
-                      .dst_id = 6,
-                      .edge_weight = 333}; // node 300 and 400 dont exist yet so we must also check if the nodes get created
+    edge to_insert = {
+        .id = 0,
+        .src_id = 5,
+        .dst_id = 6,
+        .edge_weight = 333};  // node 300 and 400 dont exist yet so we must also
+                              // check if the nodes get created
     graph.add_edge(to_insert, false);
     edge found = graph.get_edge(5, 6);
     CommonUtil::dump_edge(found);
@@ -121,7 +123,8 @@ void test_add_edge(EdgeKey graph, bool is_directed)
 void test_get_edge(EdgeKey graph)
 {
     INFO();
-    edge found = graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
+    edge found =
+        graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
     assert(found.src_id == SampleGraph::edge1.src_id);
     assert(found.dst_id == SampleGraph::edge1.dst_id);
     assert(found.edge_weight == SampleGraph::edge1.edge_weight);
@@ -168,8 +171,8 @@ void test_get_out_nodes(EdgeKey graph)
     INFO();
     std::vector<node> nodes = graph.get_out_nodes(1);
     assert(nodes.size() == 2);
-    assert(nodes.at(0).id == SampleGraph::node2.id); // edge(1->2)
-    assert(nodes.at(1).id == SampleGraph::node3.id); // edge(1->3)
+    assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
+    assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
 
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(4);
@@ -296,10 +299,7 @@ void test_get_in_and_out_degree(EdgeKey graph)
     assert(outdeg == 2);
 }
 
-void tearDown(EdgeKey graph)
-{
-    graph.close();
-}
+void tearDown(EdgeKey graph) { graph.close(); }
 
 void test_InCursor(EdgeKey graph)
 {
@@ -361,6 +361,7 @@ int main()
     opts.db_name = "test_eKey";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
+    opts.stat_log = "/home/puneet/scratch/margraphita/wt_stats/test_ekey.log";
 
     EdgeKeyTester graph = EdgeKeyTester(opts);
     create_init_nodes(graph, opts.is_directed);

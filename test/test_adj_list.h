@@ -1,11 +1,12 @@
 #ifndef TEST_ADJ
 #define TEST_ADJ
 
+#include <cassert>
+
+#include "adj_list.h"
 #include "common.h"
 #include "graph_exception.h"
-#include "adj_list.h"
 #include "sample_graph.h"
-#include <cassert>
 
 WT_CONNECTION *conn;
 WT_CURSOR *cursor;
@@ -14,10 +15,8 @@ const char *home;
 
 class AdjListTester : public AdjList
 {
-public:
-    AdjListTester(graph_opts create_opts) : AdjList(create_opts)
-    {
-    }
+   public:
+    AdjListTester(graph_opts create_opts) : AdjList(create_opts) {}
 };
 
 void tearDown(AdjList graph);

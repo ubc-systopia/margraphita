@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(graphapi    VERSION 1.0 
+project(graphapi    VERSION 1.0
                     DESCRIPTION "C++ GraphAPI for WiredTiger"
                     LANGUAGES CXX)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -16,7 +16,7 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
       MESSAGE("Enabling statistics")
       add_compile_definitions(STAT)
     endif()
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fno-inline-functions")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g  -fno-inline-functions -fno-omit-frame-pointer")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
     SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
     IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")

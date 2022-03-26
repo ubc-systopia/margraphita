@@ -1,22 +1,23 @@
-#include <vector>
-#include <string>
-#include "common.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <set>
-#include "graph_exception.h"
-#include "standard_graph.h"
-#include "adj_list.h"
-#include "edgekey.h"
-#include "command_line.h"
-#include <cassert>
-#include <chrono>
 #include <unistd.h>
 
+#include <cassert>
+#include <chrono>
+#include <fstream>
+#include <iostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "adj_list.h"
+#include "command_line.h"
+#include "common.h"
+#include "edgekey.h"
+#include "graph_exception.h"
+#include "standard_graph.h"
+
 #define delim "--------------"
-#define INFO() \
-    fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
+#define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 #define quote(x) #x
 
 std::unordered_map<int, std::vector<int>> in_adjlist;
@@ -30,35 +31,42 @@ typedef struct insert_time
     int64_t adj_insert;
     int64_t ekey_insert;
     int64_t ekey_index;
-    insert_time(int _val) : std_insert(_val), std_index(_val), adj_insert(_val), ekey_index(_val), ekey_insert(_val){};
+    insert_time(int _val)
+        : std_insert(_val),
+          std_index(_val),
+          adj_insert(_val),
+          ekey_index(_val),
+          ekey_insert(_val){};
 } insert_time;
 
 void print_csv_info(std::string name, insert_time *info)
 {
     fstream FILE;
-    std::string _name = "/home/puneet/scratch/margraphita/outputs/single_threaded_kron_inserts_cpp.csv";
+    std::string _name =
+        "/home/puneet/scratch/margraphita/outputs/"
+        "single_threaded_kron_inserts_cpp.csv";
     if (access(_name.c_str(), F_OK) == -1)
     {
         // The file does not exist yet.
         FILE.open(_name, ios::out | ios::app);
-        FILE << "#name, std_insert, std_index, adj_insert, ekey_insert, ekey_index\n";
+        FILE << "#name, std_insert, std_index, adj_insert, ekey_insert, "
+                "ekey_index\n";
     }
     else
     {
         FILE.open(_name, ios::out | ios::app);
     }
 
-    FILE << name << ","
-         << info->std_insert << ","
-         << info->std_index << ","
-         << info->adj_insert << ","
-         << info->ekey_insert << ","
+    FILE << name << "," << info->std_insert << "," << info->std_index << ","
+         << info->adj_insert << "," << info->ekey_insert << ","
          << info->ekey_index << "\n";
 
     FILE.close();
 }
 
-void get_edge_entries(std::vector<edge> &edges, std::string filename, bool is_adj)
+void get_edge_entries(std::vector<edge> &edges,
+                      std::string filename,
+                      bool is_adj)
 {
     std::ifstream newfile(filename);
 
@@ -67,7 +75,8 @@ void get_edge_entries(std::vector<edge> &edges, std::string filename, bool is_ad
         std::string tp;
         while (getline(newfile, tp))
         {
-            if ((tp.compare(0, 1, "#") == 0) or (tp.compare(0, 1, "%") == 0) or (tp.empty()))
+            if ((tp.compare(0, 1, "#") == 0) or (tp.compare(0, 1, "%") == 0) or
+                (tp.empty()))
             {
                 continue;
             }
@@ -85,8 +94,8 @@ void get_edge_entries(std::vector<edge> &edges, std::string filename, bool is_ad
                 nodes.insert(b);
                 if (is_adj)
                 {
-                    in_adjlist[b].push_back(a);  // insert a in b's in_adjlist
-                    out_adjlist[a].push_back(b); // insert b in a's out_adjlist
+                    in_adjlist[b].push_back(a);   // insert a in b's in_adjlist
+                    out_adjlist[a].push_back(b);  // insert b in a's out_adjlist
                 }
 
                 edges.push_back(to_insert);
@@ -132,8 +141,13 @@ int64_t insert_adj(AdjList graph, std::string filename)
         graph.add_edge(x, true);
     }
     auto end = std::chrono::steady_clock::now();
-    std::cout << "read+insert in : " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << "\n";
-    return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "read+insert in : "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end -
+                                                                       start)
+                     .count()
+              << "\n";
+    return std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+        .count();
 }
 
 template <typename Graph>
@@ -171,8 +185,13 @@ int64_t create_init_nodes(Graph graph, std::string filename)
         graph.add_edge(x, true);
     }
     auto end = std::chrono::steady_clock::now();
-    std::cout << "read+insert in : " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << "\n";
-    return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "read+insert in : "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end -
+                                                                       start)
+                     .count()
+              << "\n";
+    return std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+        .count();
 }
 
 template <typename Graph>
@@ -193,12 +212,13 @@ int main(int argc, char **argv)
     // int i = atoi(argv[1]); // to accept i from script
     for (int i = 10; i < 21; i++)
     {
-
         insert_time *info = new insert_time(0);
         std::string db_name = "test_s" + std::to_string(i) + "_e8";
-        // std::string filename = "/home/puneet/gen_graphs/s" + std::to_string(i) + "_e8" + "/graph_s" + std::to_string(i) + "_e8";
+        // std::string filename = "/home/puneet/gen_graphs/s" +
+        // std::to_string(i) + "_e8" + "/graph_s" + std::to_string(i) + "_e8";
 
-        std::string filename = "/home/puneet/gen_graphs/graph_s" + std::to_string(i) + "_e8";
+        std::string filename =
+            "/home/puneet/gen_graphs/graph_s" + std::to_string(i) + "_e8";
 
         opts.db_name = db_name + "_std";
         opts.create_new = true;
@@ -207,7 +227,9 @@ int main(int argc, char **argv)
         auto start = std::chrono::steady_clock::now();
         graph1.create_indices();
         auto end = std::chrono::steady_clock::now();
-        info->std_index = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        info->std_index =
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+                .count();
         tearDown(graph1);
         print_csv_info("s" + std::to_string(i), info);
 
@@ -226,7 +248,9 @@ int main(int argc, char **argv)
         // start = std::chrono::steady_clock::now();
         // graph3.create_indices();
         // end = std::chrono::steady_clock::now();
-        // info->ekey_index = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        // info->ekey_index =
+        // std::chrono::duration_cast<std::chrono::microseconds>(end -
+        // start).count();
 
         // tearDown(_graph3);
         print_csv_info("s" + std::to_string(i), info);

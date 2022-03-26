@@ -1,11 +1,12 @@
 #ifndef TEST_ADJ
 #define TEST_ADJ
 
-#include "common.h"
-#include "graph_exception.h"
-#include "edgekey.h"
-#include "sample_graph.h"
 #include <cassert>
+
+#include "common.h"
+#include "edgekey.h"
+#include "graph_exception.h"
+#include "sample_graph.h"
 
 WT_CONNECTION *conn;
 WT_CURSOR *cursor;
@@ -14,10 +15,8 @@ const char *home;
 
 class EdgeKeyTester : public EdgeKey
 {
-public:
-    EdgeKeyTester(graph_opts create_opts) : EdgeKey(create_opts)
-    {
-    }
+   public:
+    EdgeKeyTester(graph_opts create_opts) : EdgeKey(create_opts) {}
 };
 
 void tearDown(EdgeKey graph);

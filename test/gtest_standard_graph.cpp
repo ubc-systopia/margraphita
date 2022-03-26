@@ -1,8 +1,9 @@
+#include <cassert>
+
 #include "common.h"
 #include "graph_exception.h"
-#include "standard_graph.h"
-#include <cassert>
 #include "gtest/gtest.h"
+#include "standard_graph.h"
 
 // WT_CONNECTION *conn;
 // WT_CURSOR *cursor;
@@ -20,14 +21,15 @@ bool is_directed = false;
 //   {
 //     opts.create_new = true;
 //     opts.node_value_columns = {"attr"};
-//     opts.node_value_format = "S"; //<- This should be S because we only save string converted ints. This shall remain so until I learn generics
+//     opts.node_value_format = "S"; //<- This should be S because we only save
+//     string converted ints. This shall remain so until I learn generics
 //     opts.edge_value_columns = {"w1", "w2"};
 //     opts.edge_value_format = "SS"; //<- Again, we save only strings
 //     opts.optimize_create = false;
 
 //     graph = StandardGraph(opts.create_new, read_optimize,
 //                           is_directed, "test_std", opts);
-    
+
 //   }
 
 //   opt_args opts;
@@ -53,7 +55,7 @@ bool is_directed = false;
 
 // TEST_F(StandardGraphTest, StdGraphDeleteNode)
 // {
-    
+
 // }
 
 // int main(int argc, char **argv)

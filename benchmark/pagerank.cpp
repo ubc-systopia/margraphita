@@ -1,22 +1,24 @@
-#include <stdio.h>
-#include <vector>
 #include <math.h>
-#include <chrono>
-#include <unistd.h>
-#include <cassert>
-#include "common.h"
-#include "graph_exception.h"
-#include "standard_graph.h"
-#include "adj_list.h"
-#include "edgekey.h"
+#include <stdio.h>
 #include <sys/mman.h>
+#include <unistd.h>
+
+#include <cassert>
+#include <chrono>
+#include <vector>
+
+#include "adj_list.h"
 #include "command_line.h"
+#include "common.h"
+#include "edgekey.h"
+#include "graph_exception.h"
 #include "reader.h"
+#include "standard_graph.h"
 
 using namespace std;
 const float dampness = 0.85;
 std::hash<int> hashfn;
-int N = 1610612741; // Hash bucket size
+int N = 1610612741;  // Hash bucket size
 int p_cur = 0;
 int p_next = 1;
 typedef struct pr_map
@@ -25,15 +27,19 @@ typedef struct pr_map
     float p_rank[2];
 } pr_map;
 
-pr_map *ptr; // pointer to mmap region
+pr_map *ptr;  // pointer to mmap region
 // float *pr_cur, *pr_next;
 
 void init_pr_map(std::vector<node> &nodes)
 {
-
     int size = nodes.size();
     // cout << size;
-    ptr = (pr_map *)mmap(NULL, sizeof(pr_map) * N, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+    ptr = (pr_map *)mmap(NULL,
+                         sizeof(pr_map) * N,
+                         PROT_READ | PROT_WRITE,
+                         MAP_PRIVATE | MAP_ANONYMOUS,
+                         0,
+                         0);
 
     float init_val = 1.0f / size;
 
@@ -63,12 +69,11 @@ void print_map(std::vector<node> &nodes)
     FILE.close();
 }
 
-void delete_map()
-{
-    munmap(ptr, sizeof(pr_map) * N);
-}
+void delete_map() { munmap(ptr, sizeof(pr_map) * N); }
 
-void print_to_csv(std::string name, std::vector<int64_t> &times, std::string csv_logdir)
+void print_to_csv(std::string name,
+                  std::vector<int64_t> &times,
+                  std::string csv_logdir)
 {
     fstream FILE;
     std::string _name = csv_logdir + "/" + name + "_pr.csv";
@@ -101,17 +106,24 @@ void print_to_csv(std::string name, std::vector<int64_t> &times, std::string csv
 }
 
 template <typename Graph>
-void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, string csv_logdir)
+void pagerank(Graph &graph,
+              graph_opts opts,
+              int iterations,
+              double tolerance,
+              string csv_logdir)
 {
-
     int num_nodes = graph.get_num_nodes();
     auto start = chrono::steady_clock::now();
     std::vector<node> nodes = graph.get_nodes();
     init_pr_map(nodes);
     std::vector<int64_t> times;
     auto end = chrono::steady_clock::now();
-    cout << "Loading the nodes and constructing the map took " << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
-    times.push_back(chrono::duration_cast<chrono::microseconds>(end - start).count());
+    cout << "Loading the nodes and constructing the map took "
+         << to_string(chrono::duration_cast<chrono::microseconds>(end - start)
+                          .count())
+         << endl;
+    times.push_back(
+        chrono::duration_cast<chrono::microseconds>(end - start).count());
 
     // ofstream FILE;
     // FILE.open("nodes_info.txt", ios::out | ios::ate);
@@ -134,7 +146,9 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, s
         {
             int index = hashfn(n.id) % N;
             float sum = 0.0f;
-            vector<node> in_nodes = graph.get_in_nodes(n.id); // <-- make this just list of node_ids to avoid looking up node table
+            vector<node> in_nodes = graph.get_in_nodes(
+                n.id);  // <-- make this just list of node_ids to avoid looking
+                        // up node table
 
             for (node in : in_nodes)
             {
@@ -149,8 +163,13 @@ void pagerank(Graph &graph, graph_opts opts, int iterations, double tolerance, s
         p_next = 1 - p_next;
 
         auto end = chrono::steady_clock::now();
-        cout << "Iter " << iter_count << "took \t" << to_string(chrono::duration_cast<chrono::microseconds>(end - start).count()) << endl;
-        times.push_back(chrono::duration_cast<chrono::microseconds>(end - start).count());
+        cout << "Iter " << iter_count << "took \t"
+             << to_string(
+                    chrono::duration_cast<chrono::microseconds>(end - start)
+                        .count())
+             << endl;
+        times.push_back(
+            chrono::duration_cast<chrono::microseconds>(end - start).count());
     }
     print_to_csv(opts.db_name, times, csv_logdir);
     print_map(nodes);
@@ -179,80 +198,98 @@ int main(int argc, char *argv[])
 
     if (pr_cli.get_graph_type() == "std")
     {
-
         auto start = chrono::steady_clock::now();
 
         StandardGraph graph(opts);
-        if (pr_cli.is_exit_on_create()) // Exit after creating the db
+        if (pr_cli.is_exit_on_create())  // Exit after creating the db
         {
             graph.close();
             exit(0);
         }
         auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        cout << "Graph loaded in "
+             << chrono::duration_cast<chrono::microseconds>(end - start).count()
+             << endl;
 
         if (pr_cli.is_index_create())
         {
-
             start = chrono::steady_clock::now();
             graph.create_indices();
             end = chrono::steady_clock::now();
-            cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+            cout << "Indices created in "
+                 << chrono::duration_cast<chrono::microseconds>(end - start)
+                        .count()
+                 << endl;
             graph.close();
             exit(0);
         }
 
         // Now run PR
         start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
+        pagerank(
+            graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
         end = chrono::steady_clock::now();
-        cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        cout << "PR  completed in : "
+             << chrono::duration_cast<chrono::microseconds>(end - start).count()
+             << endl;
         graph.close();
     }
     else if (pr_cli.get_graph_type() == "adj")
     {
         auto start = chrono::steady_clock::now();
         AdjList graph(opts);
-        if (pr_cli.is_exit_on_create()) // Exit after creating the db
+        if (pr_cli.is_exit_on_create())  // Exit after creating the db
         {
             exit(0);
         }
         auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        cout << "Graph loaded in "
+             << chrono::duration_cast<chrono::microseconds>(end - start).count()
+             << endl;
         // Now run PR
         start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
+        pagerank(
+            graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
         end = chrono::steady_clock::now();
-        cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        cout << "PR  completed in : "
+             << chrono::duration_cast<chrono::microseconds>(end - start).count()
+             << endl;
         graph.close();
     }
     else if (pr_cli.get_graph_type() == "ekey")
     {
         auto start = chrono::steady_clock::now();
         EdgeKey graph(opts);
-        if (pr_cli.is_exit_on_create()) // Exit after creating the db
+        if (pr_cli.is_exit_on_create())  // Exit after creating the db
         {
             exit(0);
         }
         auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        cout << "Graph loaded in "
+             << chrono::duration_cast<chrono::microseconds>(end - start).count()
+             << endl;
 
         if (pr_cli.is_index_create())
         {
-
             start = chrono::steady_clock::now();
             graph.create_indices();
             end = chrono::steady_clock::now();
-            cout << "Indices created in " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+            cout << "Indices created in "
+                 << chrono::duration_cast<chrono::microseconds>(end - start)
+                        .count()
+                 << endl;
             graph.close();
             exit(0);
         }
 
         // Now run PR
         start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
+        pagerank(
+            graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
         end = chrono::steady_clock::now();
-        cout << "PR  completed in : " << chrono::duration_cast<chrono::microseconds>(end - start).count() << endl;
+        cout << "PR  completed in : "
+             << chrono::duration_cast<chrono::microseconds>(end - start).count()
+             << endl;
         graph.close();
     }
     else

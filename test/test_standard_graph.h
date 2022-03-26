@@ -1,11 +1,12 @@
 #ifndef TEST_STD
 #define TEST_STD
 
+#include <cassert>
+
 #include "common.h"
 #include "graph_exception.h"
-#include "standard_graph.h"
 #include "sample_graph.h"
-#include <cassert>
+#include "standard_graph.h"
 
 WT_CONNECTION *conn;
 WT_CURSOR *cursor;
@@ -14,10 +15,8 @@ const char *home;
 
 class StandardGraphTester : public StandardGraph
 {
-public:
-    StandardGraphTester(graph_opts opts) : StandardGraph(opts)
-    {
-    }
+   public:
+    StandardGraphTester(graph_opts opts) : StandardGraph(opts) {}
 };
 
 void tearDown(StandardGraph graph);

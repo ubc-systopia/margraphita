@@ -1,19 +1,19 @@
 #ifndef BULK_INSERT_H
 #define BULK_INSERT_H
+#include <getopt.h>
+#include <math.h>
+#include <time.h>
+#include <unistd.h>
+
+#include <atomic>
+#include <chrono>
+#include <iostream>
+#include <thread>
+#include <unordered_map>
+#include <vector>
+
 #include "common.h"
 #include "reader.h"
-#include <thread>
-#include <atomic>
-
-#include <unistd.h>
-#include <vector>
-#include <unordered_map>
-#include <iostream>
-#include <time.h>
-#include <math.h>
-#include <getopt.h>
-#include <chrono>
-#include <unistd.h>
 
 #define NUM_THREADS 10
 

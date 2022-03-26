@@ -1,19 +1,19 @@
 
-#include "common.h"
-#include "graph_exception.h"
+#include <wiredtiger.h>
+
 #include <algorithm>
-#include <cstring>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <string>
-#include <cstring>
-#include <cassert>
 #include <unordered_map>
-#include <wiredtiger.h>
+
+#include "common.h"
+#include "graph_exception.h"
 
 class GraphBase
 {
-public:
+   public:
     GraphBase(graph_opts opts);
     GraphBase();
     void insert_metadata(std::string key, char *value);
@@ -24,7 +24,9 @@ public:
     void add_node(node to_insert);
     bool has_node(int node_id);
     void delete_node(int node_id);
-    void delete_related_edges(WT_CURSOR *idx_cursor, WT_CURSOR *edge_cur, int node_id);
+    void delete_related_edges(WT_CURSOR *idx_cursor,
+                              WT_CURSOR *edge_cur,
+                              int node_id);
     void update_node_degree(int node_id, int indeg, int outdeg);
     void add_edge(edge to_insert);
     void bulk_add_edge(int src, int dst, int weight);
@@ -53,15 +55,19 @@ public:
     void close_all_cursors();
     std::string get_db_name() const { return opts.db_name; };
 
-protected:
+   protected:
     WT_CONNECTION *conn;
     WT_SESSION *session;
     // create params
     graph_opts opts;
 
-    int _get_table_cursor(std::string table, WT_CURSOR **cursor, bool is_random);
-    int _get_index_cursor(std::string table_name, std::string idx_name,
-                          std::string projection, WT_CURSOR **cursor);
+    int _get_table_cursor(std::string table,
+                          WT_CURSOR **cursor,
+                          bool is_random);
+    int _get_index_cursor(std::string table_name,
+                          std::string idx_name,
+                          std::string projection,
+                          WT_CURSOR **cursor);
     void __restore_from_db(std::string db_name);
 
     void drop_indices();

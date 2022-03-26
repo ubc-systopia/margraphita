@@ -1,118 +1,116 @@
 #ifndef ADJ_LIST
 #define ADJ_LIST
 
-#include "common.h"
-#include "graph_exception.h"
+#include <wiredtiger.h>
+
 #include <iostream>
 #include <string>
 #include <unordered_map>
-#include <wiredtiger.h>
+
+#include "common.h"
+#include "graph_exception.h"
 
 using namespace std;
 namespace AdjIterator
 {
 
-    class InCursor : public table_iterator
+class InCursor : public table_iterator
+{
+   public:
+    InCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+
+    void set_key(key_pair key)
     {
-    public:
-        InCursor(WT_CURSOR *cur, WT_SESSION *sess)
-        {
-            init(cur, sess);
-        }
+        cursor->set_key(cursor, key.dst_id);  // In neighbourhood
+    }
 
-        void set_key(key_pair key)
+    void next(adjlist *found)
+    {
+        if (cursor->next(cursor) == 0)
         {
-            cursor->set_key(cursor, key.dst_id); // In neighbourhood
+            CommonUtil::__record_to_adjlist(session, cursor, found);
+            cursor->get_key(cursor, &found->node_id);
         }
-
-        void next(adjlist *found)
+        else
         {
-            if (cursor->next(cursor) == 0)
+            found->node_id = -1;
+        }
+    }
+
+    void next(adjlist *found, key_pair keys) override
+    {
+        cursor->set_key(cursor, keys.dst_id);
+        if (cursor->search(cursor) == 0)
+        {
+            CommonUtil::__record_to_adjlist(session, cursor, found);
+            found->node_id = keys.dst_id;
+            cursor->reset(cursor);
+        }
+        else
+        {
+            found->node_id =
+                -1;  // check for out-of-band values in application program.
+            cursor->reset(cursor);
+        }
+    }
+};
+
+class OutCursor : public table_iterator
+{
+   public:
+    OutCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+
+    void set_key(key_pair key)
+    {
+        cursor->set_key(cursor, key.src_id);  // Out neighbourhood.
+    }
+
+    void next(adjlist *found)
+    {
+        if (cursor->next(cursor) == 0)
+        {
+            CommonUtil::__record_to_adjlist(session, cursor, found);
+            cursor->get_key(cursor, &found->node_id);
+        }
+        else
+        {
+            found->node_id = -1;
+        }
+    }
+
+    void next(adjlist *found, key_pair keys) override
+    {
+        if (cursor->next(cursor) == 0)
+        {
+            cursor->get_key(cursor, &found->node_id);
+            if (found->node_id == keys.src_id)
             {
                 CommonUtil::__record_to_adjlist(session, cursor, found);
-                cursor->get_key(cursor, &found->node_id);
             }
             else
             {
                 found->node_id = -1;
-            }
-        }
-
-        void next(adjlist *found, key_pair keys) override
-        {
-            cursor->set_key(cursor, keys.dst_id);
-            if (cursor->search(cursor) == 0)
-                {
-
-                    CommonUtil::__record_to_adjlist(session, cursor, found);
-                found->node_id = keys.dst_id;
-                    cursor->reset(cursor);
-            }
-            else
-            {
-                found->node_id = -1; // check for out-of-band values in application program.
                 cursor->reset(cursor);
             }
         }
-    };
-
-    class OutCursor : public table_iterator
-    {
-    public:
-        OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+        else
         {
-            init(cur, sess);
+            found->node_id = -1;
         }
-
-        void set_key(key_pair key)
-        {
-            cursor->set_key(cursor, key.src_id); // Out neighbourhood.
-        }
-
-        void next(adjlist *found)
-        {
-            if (cursor->next(cursor) == 0)
-            {
-                CommonUtil::__record_to_adjlist(session, cursor, found);
-                cursor->get_key(cursor, &found->node_id);
-            }
-            else
-            {
-                found->node_id = -1;
-            }
-        }
-
-        void next(adjlist *found, key_pair keys) override
-        {
-            if (cursor->next(cursor) == 0)
-            {
-                cursor->get_key(cursor, &found->node_id);
-                if (found->node_id == keys.src_id)
-                {
-                    CommonUtil::__record_to_adjlist(session, cursor, found);
-                }
-                else
-                {
-                    found->node_id = -1;
-                    cursor->reset(cursor);
-                }
-            }
-            else
-            {
-                found->node_id = -1;
-            }
-        }
-    };
+    }
 };
+};  // namespace AdjIterator
 
 class AdjList
 {
-public:
+   public:
     AdjList(graph_opts &opt_params);
     AdjList();
     void create_new_graph();
     void add_node(node to_insert);
-    void add_node(int to_insert, std::vector<int> &inlist, std::vector<int> &outlist);
+    void add_node(int to_insert,
+                  std::vector<int> &inlist,
+                  std::vector<int> &outlist);
     bool has_node(int node_id);
     node get_node(int node_id);
     void delete_node(int node_id);
@@ -137,8 +135,11 @@ public:
     AdjIterator::OutCursor get_outnbd_cursor();
     AdjIterator::InCursor get_innbd_cursor();
 
-    int get_edge_weight(int src_id, int dst_id);                      // todo <-- is this implemented?
-    void update_edge_weight(int src_id, int dst_id, int edge_weight); // todo <-- is this implemented?
+    int get_edge_weight(int src_id,
+                        int dst_id);  // todo <-- is this implemented?
+    void update_edge_weight(int src_id,
+                            int dst_id,
+                            int edge_weight);  // todo <-- is this implemented?
 
     // internal cursor operations:
     //! Check if these should be public:
@@ -150,26 +151,27 @@ public:
     WT_CURSOR *get_edge_iter();
     WT_CURSOR *get_node_iter();
 
-private:
+   private:
     WT_CONNECTION *conn;
     WT_SESSION *session;
     graph_opts opts;
 
     // structure of the graph
     int edge_id;
-    int node_attr_size = 0; // set on checking the list len
+    int node_attr_size = 0;  // set on checking the list len
 
-    vector<string> node_columns = {ID}; // Always there :)
+    vector<string> node_columns = {ID};  // Always there :)
     vector<string> edge_columns = {SRC, DST};
     vector<string> in_adjlist_columns = {ID, IN_DEGREE, IN_ADJLIST};
     vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
 
     string node_value_format;
     string node_key_format = "I";
-    string edge_key_format = "II"; // SRC DST in the edge table
-    string edge_value_format = ""; // Make I if weighted , x otherwise
+    string edge_key_format = "II";  // SRC DST in the edge table
+    string edge_value_format = "";  // Make I if weighted , x otherwise
     string adjlist_key_format = "I";
-    string adjlist_value_format = "Iu"; // This HAS to be u. S does not work. s needs the number.
+    string adjlist_value_format =
+        "Iu";  // This HAS to be u. S does not work. s needs the number.
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
@@ -181,8 +183,12 @@ private:
     // AdjIterator::OutCursor out_cursor;
 
     // AdjList specific internal methods:
-    int _get_table_cursor(const string &table, WT_CURSOR **cursor, bool is_random);
-    void update_node_degree(WT_CURSOR *cursor, int node_id, int in_degree,
+    int _get_table_cursor(const string &table,
+                          WT_CURSOR **cursor,
+                          bool is_random);
+    void update_node_degree(WT_CURSOR *cursor,
+                            int node_id,
+                            int in_degree,
                             int out_degree);
     node get_next_node(WT_CURSOR *n_cur);
     edge get_next_edge(WT_CURSOR *e_cur);
@@ -205,8 +211,9 @@ private:
  * iterator design:
  *
  * In the application, we need access to in and out neighbouhoods.
- * Ideally, we need an iterator class, on object of which can be returned to the app
- * these objects should have set_key(src, dst) and std::vector<int> get_value()
+ * Ideally, we need an iterator class, on object of which can be returned to the
+ * app these objects should have set_key(src, dst) and std::vector<int>
+ * get_value()
  *
  */
 #endif

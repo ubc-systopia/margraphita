@@ -1,20 +1,27 @@
+#include <stdlib.h>
+#include <wiredtiger.h>
+
+#include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
+#include <iterator>
+#include <random>
 #include <string>
 #include <vector>
-#include <random>
-#include <algorithm>
-#include <iterator>
-#include <wiredtiger.h>
-#include <stdlib.h>
-#include <chrono>
 using namespace std;
 static const char *db_name = "test";
 
-static char *pack_int_vector_wti(WT_SESSION *session, std::vector<int> to_pack, size_t *size);
-static std::vector<int> unpack_int_vector_wti(WT_SESSION *session, size_t size, std::string packed_str);
+static char *pack_int_vector_wti(WT_SESSION *session,
+                                 std::vector<int> to_pack,
+                                 size_t *size);
+static std::vector<int> unpack_int_vector_wti(WT_SESSION *session,
+                                              size_t size,
+                                              std::string packed_str);
 
-std::vector<int> unpack_int_vector_wti(WT_SESSION *session, size_t size, char *packed_str)
+std::vector<int> unpack_int_vector_wti(WT_SESSION *session,
+                                       size_t size,
+                                       char *packed_str)
 {
     WT_PACK_STREAM *psp;
     WT_ITEM unpacked;
@@ -30,7 +37,9 @@ std::vector<int> unpack_int_vector_wti(WT_SESSION *session, size_t size, char *p
     return unpacked_vec;
 }
 
-char *pack_int_vector_wti(WT_SESSION *session, std::vector<int> to_pack, size_t *size)
+char *pack_int_vector_wti(WT_SESSION *session,
+                          std::vector<int> to_pack,
+                          size_t *size)
 {
     WT_PACK_STREAM *psp;
     WT_ITEM item;
@@ -38,8 +47,7 @@ char *pack_int_vector_wti(WT_SESSION *session, std::vector<int> to_pack, size_t 
     item.size = sizeof(int) * to_pack.size();
 
     void *pack_buf = malloc(sizeof(int) * to_pack.size());
-    int ret = wiredtiger_pack_start(session, "u", pack_buf,
-                                    item.size, &psp);
+    int ret = wiredtiger_pack_start(session, "u", pack_buf, item.size, &psp);
 
     wiredtiger_pack_item(psp, &item);
     wiredtiger_pack_close(psp, size);
@@ -54,16 +62,13 @@ int main()
 
     random_device rnd_device;
     // Specify the engine and distribution.
-    mt19937 mersenne_engine{rnd_device()}; // Generates random integers
+    mt19937 mersenne_engine{rnd_device()};  // Generates random integers
     uniform_int_distribution<long> dist{2147483647, 3147483647};
 
-    auto gen = [&dist, &mersenne_engine]()
-    {
-        return dist(mersenne_engine);
-    };
+    auto gen = [&dist, &mersenne_engine]() { return dist(mersenne_engine); };
 
     vector<int> vec;
-    //generate(begin(vec), end(vec), gen);
+    // generate(begin(vec), end(vec), gen);
 
     // for (long x : vec)
     //     cout << x << endl;
@@ -75,8 +80,9 @@ int main()
     conn->open_session(conn, NULL, NULL, &session);
 
     /*
-    This is a definitely a problem with the API -- as an application developer, I need to know the size 
-    of the buffer needed to hold the packed array before I pack it. 
+    This is a definitely a problem with the API -- as an application developer,
+    I need to know the size of the buffer needed to hold the packed array before
+    I pack it.
     */
     auto start = std::chrono::steady_clock::now();
     // WT_PACK_STREAM *psp, *psp1;
@@ -98,9 +104,12 @@ int main()
 
     auto end = std::chrono::steady_clock::now();
     std::cout << "packed in : "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+              << std::chrono::duration_cast<std::chrono::microseconds>(end -
+                                                                       start)
+                     .count()
               << "\n";
-    std::cout << "Size used = " << size << "; Size of long " << sizeof(int) << "; size of vec " << vec.size() << "\n";
+    std::cout << "Size used = " << size << "; Size of long " << sizeof(int)
+              << "; size of vec " << vec.size() << "\n";
 
     start = std::chrono::steady_clock::now();
 
@@ -112,7 +121,8 @@ int main()
     // wiredtiger_unpack_item(psp1, &unpacked);
     // wiredtiger_pack_close(psp1, &used);
 
-    // std::cout << "size_val : " << size_val << "\nbuf_size: " << unpacked.size << "\nused = " << used;
+    // std::cout << "size_val : " << size_val << "\nbuf_size: " << unpacked.size
+    // << "\nused = " << used;
 
     // std::vector<long> unpacked_vec;
     // for (int i = 0; i < vec.size(); i++)
@@ -125,6 +135,8 @@ int main()
 
     vec == unpacked_vec ? std::cout << "true" : std::cout << "false";
     std::cout << "unpacked in : "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+              << std::chrono::duration_cast<std::chrono::microseconds>(end -
+                                                                       start)
+                     .count()
               << "\n";
 }

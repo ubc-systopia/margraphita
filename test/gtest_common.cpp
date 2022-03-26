@@ -1,12 +1,13 @@
+#include <algorithm>
+#include <cassert>
+#include <functional>
+#include <iterator>
+#include <random>
+
 #include "common.h"
 #include "graph_exception.h"
-#include "standard_graph.h"
-#include <cassert>
 #include "gtest/gtest.h"
-#include <random>
-#include <algorithm>
-#include <iterator>
-#include <functional>
+#include "standard_graph.h"
 
 WT_CONNECTION *conn;
 WT_CURSOR *cursor;
@@ -35,15 +36,25 @@ TEST(CommonTest, TestPackStringVector)
     string testname = "String Vector Packing";
     int ret = 0;
 
-    vector<string> test = {"hello", "world", "this", "is", "test", "string", "packing"
-                                                                             "0.00",
-                           "0.00", "last"};
+    vector<string> test = {"hello",
+                           "world",
+                           "this",
+                           "is",
+                           "test",
+                           "string",
+                           "packing"
+                           "0.00",
+                           "0.00",
+                           "last"};
 
     size_t size;
     string format;
-    char *buffer = CommonUtil::pack_string_vector_wt(test, session, &size, &format);
-    vector<string> result = CommonUtil::unpack_string_vector_wt(buffer, session);
-    ASSERT_EQ(result, test) << " Packed string vector matches unpacked string vector";
+    char *buffer =
+        CommonUtil::pack_string_vector_wt(test, session, &size, &format);
+    vector<string> result =
+        CommonUtil::unpack_string_vector_wt(buffer, session);
+    ASSERT_EQ(result, test)
+        << " Packed string vector matches unpacked string vector";
     __close();
 }
 
@@ -61,7 +72,8 @@ TEST(CommonTest, TestPackIntVector)
 
     size_t size;
     string format;
-    char *buffer = CommonUtil::pack_int_vector_wt(test, session, &size, &format);
+    char *buffer =
+        CommonUtil::pack_int_vector_wt(test, session, &size, &format);
     vector<int> result = CommonUtil::unpack_int_vector_wt(buffer, session);
 
     ASSERT_EQ(result, test) << " Packed Int Vector matches unpacked Int Vector";
@@ -78,7 +90,8 @@ TEST(CommonTest, TestPackString)
     char *buffer = CommonUtil::pack_string_wt(test_string, session, &format);
     string result_string = CommonUtil::unpack_string_wt(buffer, session);
 
-    ASSERT_EQ(result_string, test_string) << "Packed string and unpacked strings match";
+    ASSERT_EQ(result_string, test_string)
+        << "Packed string and unpacked strings match";
     __close();
 }
 TEST(CommonTest, TestPackStringVectorStd)
@@ -87,13 +100,23 @@ TEST(CommonTest, TestPackStringVectorStd)
     string testname = "String Vector Packing";
     int ret = 0;
 
-    vector<string> test = {"hello", "world", "this", "is", "test", "string", "packing", "0.00", "0.00", "last"};
+    vector<string> test = {"hello",
+                           "world",
+                           "this",
+                           "is",
+                           "test",
+                           "string",
+                           "packing",
+                           "0.00",
+                           "0.00",
+                           "last"};
 
     size_t size;
     string format;
     string buffer = CommonUtil::pack_string_vector_std(test, &size);
     vector<string> result = CommonUtil::unpack_string_vector_std(buffer);
-    ASSERT_EQ(result, test) << " Packed string vector matches unpacked string vector";
+    ASSERT_EQ(result, test)
+        << " Packed string vector matches unpacked string vector";
     __close();
 }
 

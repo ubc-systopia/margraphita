@@ -91,6 +91,5 @@
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "cmake.configureOnOpen": false,
     "editor.wordWrap": "wordWrapColumn",
-    "C_Cpp.clang_format_style": "Visual Studio",
     "editor.formatOnSave": true
-}
+
