@@ -361,7 +361,7 @@ int main()
     opts.db_name = "test_eKey";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = "/home/puneet/scratch/margraphita/profile/test/";
+    opts.stat_log = "/home/puneet/scratch/margraphita/profile/test";
 
     EdgeKeyTester graph = EdgeKeyTester(opts);
     create_init_nodes(graph, opts.is_directed);
