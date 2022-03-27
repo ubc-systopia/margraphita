@@ -2,7 +2,7 @@
 set -x
 set -e
 
-source paths.sh
+source ../../paths.sh
 usage() {
 echo "Usage: $0 [-d log_dir"
 echo "log_dir : the absolute path to the directory where the benchmark results will be stored"
@@ -38,9 +38,9 @@ mkdir -p ${RESULT}/pr
 mkdir -p ${RESULT}/tc
 mkdir -p ${RESULT}/bfs
 
-for ((scale=11; scale <=20; scale ++ )); do
-    DATASETS+=( "s${scale}_e8" )
-done
+# for ((scale=11; scale <=20; scale ++ )); do
+#     DATASETS+=( "s${scale}_e8" )
+# done
 
 run_pagerank()
 {
@@ -48,14 +48,19 @@ for ds in "${DATASETS[@]}"
 do
     for type in "${TYPES[@]}"
     do
-        for trials in $(seq 1 10) #5 runs.
+        ##Regular run
+        for trials in $(seq 1 8) #5 runs.
         do
-        # PR does 10 iterations internally. I am doing 5 iterations of the whole
-        # run.
+
         echo  "--------------------------------"  >>  ${RESULT}/pr/${ds}.txt
         date +"%c" >> ${RESULT}/pr/${ds}.txt
-        ./pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001 &>> ${RESULT}/pr/${ds}.txt
+        ${RELEASE_PATH}/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001 &>> ${RESULT}/pr/${ds}.txt
         done
+
+        #Run to collect WT_STATS
+        ${PROFILE_PATH}/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001
+        #Run with perf
+        perf record -a --call-graph fp -o${RESULT}/pr/${type}_rd_${ds}_perf.dat ${STATS_PATH}/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001
     done
 done
 }
@@ -69,8 +74,15 @@ do
     # The bfs binary handles running the tests 10 times for 10 different random nodes. 
     echo  "--------------------------------" >> ${RESULT}/bfs/${ds}.txt
     date +"%c" >> ${RESULT}/bfs/${ds}.txt
-    ./bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type &>> ${RESULT}/bfs/${type}_rd_${ds}.txt
+    ${RELEASE_PATH}/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type &>> ${RESULT}/bfs/${type}_rd_${ds}.txt
+
+    #Run to collect WT_STATS
+    ${PROFILE_PATH}/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type &>> ${RESULT}/bfs/${type}_rd_${ds}.txt
+
+    #Run with perf
+    perf record -a --call-graph fp -o${RESULT}/pr/${type}_rd_${ds}_perf.dat ${STATS_PATH}/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type
     done
+    
 done
 }
 
@@ -80,12 +92,18 @@ for type in "${TYPES[@]}"
 do
     for ds in "${DATASETS[@]}"
     do
-        for trials in $(seq 1 10)
+        for trials in $(seq 1 8)
         do
         echo  "--------------------------------"  >> ${RESULT}/tc/${ds}.txt
         date +"%c" >> ${RESULT}/tc/${ds}.txt
-        ./tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
+        ${RELEASE_PATH}/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
         done
+
+        #Run to collect WT_STATS
+        ${PROFILE_PATH}/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
+
+        #Run with perf
+        perf record -a --call-graph fp -o${RESULT}/pr/${type}_rd_${ds}_perf.dat ${STATS_PATH}/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type
     done
 done
 }

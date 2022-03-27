@@ -402,11 +402,20 @@ int main(int argc, char *argv[])
     }
 
     std::string _db_name;
+    std::string conn_config = "create,cache_size=10GB";
+#ifdef STAT
+    std::string stat_config =
+        "statistics=(all),statistics_log=(wait=0,on_close=true";
+    conn_config += "," + stat_config;
+#endif
     // open std connection
     if (type_opt.compare("all") == 0 || type_opt.compare("std") == 0)
     {
         _db_name = db_path + "/std_" + middle + "_" + db_name;
-        if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_std) != 0)
+        if (wiredtiger_open(_db_name.c_str(),
+                            NULL,
+                            const_cast<char *>(conn_config.c_str()),
+                            &conn_std) != 0)
         {
             std::cout << "Could not open the DB: " << _db_name;
             exit(1);
@@ -417,7 +426,10 @@ int main(int argc, char *argv[])
     if (type_opt.compare("all") == 0 || type_opt.compare("adj") == 0)
     {
         _db_name = db_path + "/adj_" + middle + "_" + db_name;
-        if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_adj) != 0)
+        if (wiredtiger_open(_db_name.c_str(),
+                            NULL,
+                            const_cast<char *>(conn_config.c_str()),
+                            &conn_adj) != 0)
         {
             std::cout << "Could not open the DB: " << _db_name;
             exit(1);
@@ -428,7 +440,10 @@ int main(int argc, char *argv[])
     if (type_opt.compare("all") == 0 || type_opt.compare("ekey") == 0)
     {
         _db_name = db_path + "/ekey_" + middle + "_" + db_name;
-        if (wiredtiger_open(_db_name.c_str(), NULL, "create", &conn_ekey) != 0)
+        if (wiredtiger_open(_db_name.c_str(),
+                            NULL,
+                            const_cast<char *>(conn_config.c_str()),
+                            &conn_ekey) != 0)
         {
             std::cout << "Could not open the DB: " << _db_name;
             exit(1);

@@ -10,7 +10,9 @@ graph_api
 src/db/
 cscope.out
 tags
-build/
+build/profile/
+build/release/
+build/wt_stats/
 debug/
 .DS_Store
 mt_test/

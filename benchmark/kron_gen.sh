@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-source paths.sh
+source ../../paths.sh
 
 if [ -z "$KRON_GRAPHS_PATH"] || [-z "$KRON_GEN"] || [-z $KRON_GEN_PATH ]
 then

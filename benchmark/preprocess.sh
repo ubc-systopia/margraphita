@@ -2,7 +2,7 @@
 set -e
 set -x
 
-source paths.sh
+source ../../paths.sh
 
 usage() { 
 echo "Usage: $0 [-d <graph_dir> -f <graph_filename> -o <output_path> -m <dataset_name> -n<edge count> -e<edge count> -t <type> -i -p -l <log_dir>"  

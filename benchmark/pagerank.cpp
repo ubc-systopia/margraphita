@@ -178,7 +178,6 @@ void pagerank(Graph &graph,
 
 int main(int argc, char *argv[])
 {
-    std::string csv_logdir;
     cout << "Running PageRank" << endl;
     PageRankOpts pr_cli(argc, argv, 1e-4, 10);
     if (!pr_cli.parse_args())
@@ -192,14 +191,14 @@ int main(int argc, char *argv[])
     opts.read_optimize = pr_cli.is_read_optimize();
     opts.is_weighted = pr_cli.is_weighted();
     opts.optimize_create = pr_cli.is_create_optimized();
-    opts.db_name = pr_cli.get_db_name();
+    opts.db_name = pr_cli.get_db_name();  //${type}_rd_${ds}
     opts.db_dir = pr_cli.get_db_path();
-    csv_logdir = pr_cli.get_csv_logdir();
+    std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
+    opts.stat_log = pr_log + "/" + opts.db_name;
 
     if (pr_cli.get_graph_type() == "std")
     {
         auto start = chrono::steady_clock::now();
-
         StandardGraph graph(opts);
         if (pr_cli.is_exit_on_create())  // Exit after creating the db
         {
@@ -226,8 +225,7 @@ int main(int argc, char *argv[])
 
         // Now run PR
         start = chrono::steady_clock::now();
-        pagerank(
-            graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
         end = chrono::steady_clock::now();
         cout << "PR  completed in : "
              << chrono::duration_cast<chrono::microseconds>(end - start).count()
@@ -248,8 +246,7 @@ int main(int argc, char *argv[])
              << endl;
         // Now run PR
         start = chrono::steady_clock::now();
-        pagerank(
-            graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
         end = chrono::steady_clock::now();
         cout << "PR  completed in : "
              << chrono::duration_cast<chrono::microseconds>(end - start).count()
@@ -284,8 +281,7 @@ int main(int argc, char *argv[])
 
         // Now run PR
         start = chrono::steady_clock::now();
-        pagerank(
-            graph, opts, pr_cli.iterations(), pr_cli.tolerance(), csv_logdir);
+        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
         end = chrono::steady_clock::now();
         cout << "PR  completed in : "
              << chrono::duration_cast<chrono::microseconds>(end - start).count()

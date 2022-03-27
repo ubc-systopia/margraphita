@@ -125,15 +125,15 @@ int main(int argc, char *argv[])
     }
 
     graph_opts opts;
-    std::string csv_logdir;
     opts.create_new = bfs_cli.is_create_new();
     opts.is_directed = bfs_cli.is_directed();
     opts.read_optimize = bfs_cli.is_read_optimize();
     opts.is_weighted = bfs_cli.is_weighted();
     opts.optimize_create = bfs_cli.is_create_optimized();
-    opts.db_name = bfs_cli.get_db_name();
+    opts.db_name = bfs_cli.get_db_name();  //${type}_rd_${ds}
     opts.db_dir = bfs_cli.get_db_path();
-    csv_logdir = bfs_cli.get_csv_logdir();
+    std::string bfs_log = bfs_cli.get_logdir();  //$RESULT/$bmark
+    opts.stat_log = bfs_log + "/" + opts.db_name;
 
     if (bfs_cli.get_graph_type() == "std")
     {
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
                            start_vertex,
                            bfs_run,
                            time_from_outside,
-                           csv_logdir);
+                           bfs_log);
         }
         graph.close();
     }
@@ -174,7 +174,6 @@ int main(int argc, char *argv[])
     if (bfs_cli.get_graph_type() == "adj")
     {
         auto start = chrono::steady_clock::now();
-
         AdjList graph(opts);
         auto end = chrono::steady_clock::now();
         std::cout
@@ -204,7 +203,7 @@ int main(int argc, char *argv[])
                            start_vertex,
                            bfs_run,
                            time_from_outside,
-                           csv_logdir);
+                           bfs_log);
         }
         graph.close();
     }
@@ -212,7 +211,6 @@ int main(int argc, char *argv[])
     if (bfs_cli.get_graph_type() == "ekey")
     {
         auto start = chrono::steady_clock::now();
-
         EdgeKey graph(opts);
         auto end = chrono::steady_clock::now();
         std::cout
@@ -232,7 +230,11 @@ int main(int argc, char *argv[])
         starts)
 
         */
-        for (int i = 0; i < bfs_cli.get_num_trials(); i++)
+        int num_trials = bfs_cli.get_num_trials();
+#ifdef STAT
+        num_trials = 1;  // We want only one run with stats collection
+#endif
+        for (int i = 0; i < num_trials; i++)
         {
             int start_vertex = bfs_cli.start_vertex();
             if (start_vertex == -1)
@@ -252,7 +254,7 @@ int main(int argc, char *argv[])
                            start_vertex,
                            bfs_run,
                            time_from_outside,
-                           csv_logdir);
+                           bfs_log);
         }
         graph.close();
     }

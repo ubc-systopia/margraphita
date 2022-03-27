@@ -149,7 +149,7 @@ class CmdLineBase
     std::string get_db_path() const { return db_path; }
     std::string get_dataset() const { return dataset; }
     std::string get_benchmark() const { return benchmark; }
-    std::string get_csv_logdir() const { return log_dir; }
+    std::string get_logdir() const { return log_dir; }
     bool is_create_new() const { return create_new; }
     bool is_read_optimize() const { return read_optimize; }
     bool is_directed() const { return directed; }

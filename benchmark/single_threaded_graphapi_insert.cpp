@@ -39,12 +39,10 @@ typedef struct insert_time
           ekey_insert(_val){};
 } insert_time;
 
-void print_csv_info(std::string name, insert_time *info)
+void print_csv_info(std::string log_dir, std::string name, insert_time *info)
 {
     fstream FILE;
-    std::string _name =
-        "/home/puneet/scratch/margraphita/outputs/"
-        "single_threaded_kron_inserts_cpp.csv";
+    std::string _name = log_dir + "/single_threaded_kron_inserts_cpp.csv";
     if (access(_name.c_str(), F_OK) == -1)
     {
         // The file does not exist yet.
@@ -209,19 +207,30 @@ int main(int argc, char **argv)
     opts.read_optimize = true;
     opts.is_weighted = false;
     opts.db_dir = "./db";
+    std::string log_dir;
+    if (argc == 1)
+    {
+        log_dir =
+            "/home/puneet/scratch/margraphita/outputs/single_thread_insert";
+    }
+    else
+    {
+        log_dir = argv[1];
+    }
+
     // int i = atoi(argv[1]); // to accept i from script
     for (int i = 10; i < 21; i++)
     {
         insert_time *info = new insert_time(0);
         std::string db_name = "test_s" + std::to_string(i) + "_e8";
-        // std::string filename = "/home/puneet/gen_graphs/s" +
-        // std::to_string(i) + "_e8" + "/graph_s" + std::to_string(i) + "_e8";
-
-        std::string filename =
-            "/home/puneet/gen_graphs/graph_s" + std::to_string(i) + "_e8";
-
         opts.db_name = db_name + "_std";
         opts.create_new = true;
+
+        std::string filename = "/drives/hdd_main/s" + std::to_string(i) +
+                               "_e8" + "/graph_s" + std::to_string(i) + "_e8";
+
+        opts.stat_log = log_dir + "/std/s" + std::to_string(i);
+        // cout << "std " << opts.db_name << " " << opts.stat_log << endl;
         StandardGraph graph1 = StandardGraph(opts);
         info->std_insert = create_init_nodes(graph1, filename);
         auto start = std::chrono::steady_clock::now();
@@ -231,28 +240,28 @@ int main(int argc, char **argv)
             std::chrono::duration_cast<std::chrono::microseconds>(end - start)
                 .count();
         tearDown(graph1);
-        print_csv_info("s" + std::to_string(i), info);
+        print_csv_info(log_dir, "s" + std::to_string(i), info);
 
         opts.db_name = db_name + "_adj";
+        opts.stat_log = log_dir + "/adj/s" + std::to_string(i);
+        // cout << "adj " << opts.db_name << " " << opts.stat_log << endl;
         AdjList graph2 = AdjList(opts);
         info->adj_insert = insert_adj(graph2, filename);
         tearDown(graph2);
-        print_csv_info("s" + std::to_string(i), info);
+        print_csv_info(log_dir, "s" + std::to_string(i), info);
 
         opts.db_name = db_name + "_ekey";
+        opts.stat_log = log_dir + "/ekey/s" + std::to_string(i);
+        // cout << "ekey " << opts.db_name << " " << opts.stat_log << endl;
         EdgeKey graph3 = EdgeKey(opts);
         info->ekey_insert = create_init_nodes(graph3, filename);
         tearDown(graph3);
-        // opts.create_new = false;
-        // EdgeKey _graph3 = EdgeKey(opts);
-        // start = std::chrono::steady_clock::now();
-        // graph3.create_indices();
-        // end = std::chrono::steady_clock::now();
-        // info->ekey_index =
-        // std::chrono::duration_cast<std::chrono::microseconds>(end -
-        // start).count();
-
-        // tearDown(_graph3);
-        print_csv_info("s" + std::to_string(i), info);
+        start = std::chrono::steady_clock::now();
+        graph1.create_indices();
+        end = std::chrono::steady_clock::now();
+        info->ekey_index =
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+                .count();
+        print_csv_info(log_dir, "s" + std::to_string(i), info);
     }
 }

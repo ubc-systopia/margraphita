@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-source paths.sh
+source ../../paths.sh
 if [ -z "$KRON_GRAPHS_PATH" ] || [ -z "$DB_DIR" ]
 then
     echo "Please set paths in BUILD_DIR/benchmarks/paths.sh"
