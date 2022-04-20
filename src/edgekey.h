@@ -201,6 +201,7 @@ class OutCursor : public table_iterator
         }
     }
 };
+}  // namespace EKeyIterator
 
 /**
  * @brief This class is used to iterate over the nodes of a graph.
@@ -412,6 +413,8 @@ class EdgeKey : public GraphBase
     vector<string> edge_columns = {SRC, DST, ATTR};
     string edge_key_format = "qq";   // SRC DST
     string edge_value_format = "S";  // Packed binary
+    string node_count = "nNodes";
+    string edge_count = "nEdges";
 
     // internal methods
     void delete_related_edges(WT_CURSOR *idx_cursor,

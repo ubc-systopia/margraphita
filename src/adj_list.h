@@ -33,7 +33,14 @@ class InCursor : public table_iterator
         }
     }
 
-    void next(adjlist *found, node_id_t key)
+    void reset()
+    {
+        cursor->reset(cursor);
+        is_first = true;
+        has_next = true;
+    }
+
+    void next(adjlist *found, key_pair keys) override
     {
         cursor->set_key(cursor, key);
         if (cursor->search(cursor) == 0)
@@ -70,7 +77,14 @@ class OutCursor : public table_iterator
         }
     }
 
-    void next(adjlist *found, node_id_t key)
+    void reset()
+    {
+        cursor->reset(cursor);
+        is_first = true;
+        has_next = true;
+    }
+
+    void next(adjlist *found, key_pair keys) override
     {
         if (cursor->next(cursor) == 0)
         {
@@ -92,6 +106,7 @@ class OutCursor : public table_iterator
         }
     }
 };
+}  // namespace AdjIterator
 
 class NodeCursor : public table_iterator
 {
@@ -283,6 +298,8 @@ class AdjList : public GraphBase
     string adjlist_key_format = "q";
     string adjlist_value_format =
         "Iu";  // This HAS to be u. S does not work. s needs the number.
+    string node_count = "nNodes";
+    string edge_count = "nEdges";
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
