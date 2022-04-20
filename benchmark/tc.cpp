@@ -186,6 +186,7 @@ int main(int argc, char *argv[])
     opts.db_dir = tc_cli.get_db_path();
     std::string tc_log = tc_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = tc_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
     int num_trials = 1;
 
     if (tc_cli.get_graph_type() == "std")

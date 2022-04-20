@@ -183,6 +183,7 @@ int main(int argc, char *argv[])
     opts.db_dir = pr_cli.get_db_path();
     std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = pr_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // pr_cli.get_conn_config();
 
     if (pr_cli.get_graph_type() != "std" && pr_cli.get_graph_type() != "adj" &&
         pr_cli.get_graph_type() != "ekey")

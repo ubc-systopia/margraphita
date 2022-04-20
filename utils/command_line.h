@@ -17,6 +17,7 @@ class CmdLineBase
     std::string argstr_ =
         "m:a:nrdhwl:ob:s:ef:";  //! Construct this after you finish the rest of
                                 //! this thing
+    //"m:a:nrdhwl:ob:s:ef:z";
     std::vector<std::string> help_strings_;
 
     std::string db_name;
@@ -30,6 +31,7 @@ class CmdLineBase
     bool weighted = false;
     bool optimized_create = false;
     bool exit_on_create = false;
+    std::string conn_config;
 
     std::string db_path;  // This contains the path to the db dir.
 
@@ -68,6 +70,7 @@ class CmdLineBase
             'e', "exit_on_create", "Use falg to create the DB and exit");
         add_help_message('f', "csv logdir", "output dir for log");
         add_help_message('h', "h", "Print this help message");
+        add_help_message('z', "conn_config", "connection config");
     }
 
     bool parse_args()
@@ -137,6 +140,9 @@ class CmdLineBase
             case 'b':
                 benchmark = std::string(opt_arg);
                 break;
+            case 'z':
+                conn_config = std::string(opt_arg);
+                break;
         }
     }
 
@@ -158,6 +164,7 @@ class CmdLineBase
     bool is_weighted() const { return weighted; }
     bool is_create_optimized() const { return optimized_create; }
     bool is_exit_on_create() const { return exit_on_create; }
+    // std::string get_conn_config() const { return conn_config; }
 };
 
 class CmdLineApp : public CmdLineBase

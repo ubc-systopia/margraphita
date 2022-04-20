@@ -16,6 +16,7 @@
 #include "edgekey.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
+#include "times.h"
 
 /**
  * This runs the BFS on the graph using src as the starting node.
@@ -134,6 +135,7 @@ int main(int argc, char *argv[])
     opts.db_dir = bfs_cli.get_db_path();
     std::string bfs_log = bfs_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = bfs_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // bfs_cli.get_conn_config();
 
     if (bfs_cli.get_graph_type() == "std")
     {
