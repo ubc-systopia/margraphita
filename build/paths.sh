@@ -3,6 +3,7 @@ KRON_GEN_PATH=/home/puneet/scratch/PaRMAT/Release/PaRMAT #path to the kron gener
 KRON_GRAPHS_PATH=/drives/hdd_main #Directory where you want to store the kron graphs
 DB_DIR=/home/puneet/scratch/margraphita/db
 PROFILE_PATH=/home/puneet/scratch/margraphita/build/profile
+PERF_OUT_DIR=/drives/hdd_main/perf_logs
 RELEASE_PATH=/home/puneet/scratch/margraphita/build/release
 STATS_PATH=/home/puneet/scratch/margraphita/build/wt_stats
 
