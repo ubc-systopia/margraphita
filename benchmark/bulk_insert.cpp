@@ -1,14 +1,14 @@
 #include "common.h"
 //#include "mio.hpp"
-#include <atomic>
-#include <thread>
-//#include <pthread.h>
 #include <getopt.h>
 #include <math.h>
+#include <omp.h>
+#include <pthread.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <unordered_map>
@@ -21,7 +21,6 @@ WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
 double num_edges;
 double num_nodes;
 std::string dataset;
-int edge_per_part, node_per_part;
 int read_optimized = 0;
 int is_directed = 1;
 
@@ -76,9 +75,9 @@ void print_time_csvline(std::string db_name,
     log_file.close();
 }
 
-void *insert_edge_thread(void *arg)
+time_info *insert_edge_thread(int _tid)
 {
-    int tid = *(int *)arg;
+    int tid = _tid;  //*(int *)arg;
     std::string filename = dataset + "_edges";
     char c = (char)(97 + tid);
     filename.push_back('a');
@@ -98,7 +97,6 @@ void *insert_edge_thread(void *arg)
     start = std::chrono::steady_clock::now();
     for (std::string type : types)
     {
-        int start_idx = (edge_per_part * tid) + 1;
         if (type == "std")
         {
             conn_std->open_session(conn_std, NULL, NULL, &session);
@@ -109,7 +107,6 @@ void *insert_edge_thread(void *arg)
                 cursor->set_key(cursor, e.src_id, e.dst_id);
                 cursor->set_value(cursor, e.edge_weight);
                 cursor->insert(cursor);
-                start_idx++;
             }
 
             cursor->close(cursor);
@@ -125,7 +122,6 @@ void *insert_edge_thread(void *arg)
                 cursor->set_key(cursor, e.src_id, e.dst_id);
                 cursor->set_value(cursor, 0);
                 cursor->insert(cursor);
-                start_idx++;
             }
             cursor->close(cursor);
             session->close(session, NULL);
@@ -140,7 +136,6 @@ void *insert_edge_thread(void *arg)
                 cursor->set_key(cursor, e.src_id, e.dst_id);
                 cursor->set_value(cursor, "");
                 cursor->insert(cursor);
-                start_idx++;
             }
             cursor->close(cursor);
             session->close(session, NULL);
@@ -150,14 +145,12 @@ void *insert_edge_thread(void *arg)
     info->insert_time =
         std::chrono::duration_cast<std::chrono::microseconds>(end - start)
             .count();
-    delete (int *)arg;
-
-    return (void *)(info);
+    return info;
 }
 
-void *insert_node(void *arg)
+time_info *insert_node(int _tid)
 {
-    int tid = *(int *)arg;
+    int tid = _tid;  //*(int *)arg;
     std::string filename = dataset + "_nodes";
     char c = (char)(97 + tid);
     filename.push_back('a');
@@ -309,9 +302,9 @@ void *insert_node(void *arg)
         }
     }
 
-    delete (int *)arg;
+    // delete (int *)arg;
 
-    return (void *)(info);
+    return info;
 }
 
 int main(int argc, char *argv[])
@@ -388,8 +381,6 @@ int main(int argc, char *argv[])
                 exit(0);
         }
     }
-    edge_per_part = ceil(num_edges / NUM_THREADS);
-    node_per_part = ceil(num_nodes / NUM_THREADS);
 
     std::string middle;
     if (read_optimized)
@@ -451,27 +442,20 @@ int main(int argc, char *argv[])
     }
 
     int i;
-    pthread_t threads[NUM_THREADS];
+    // pthread_t threads[NUM_THREADS];
 
-    // Insert Edges First;
-    // std::cout << "id \t filename \t starting index\t ending idx\t size" <<
-    // std::endl;
     auto start = std::chrono::steady_clock::now();
-    for (i = 0; i < NUM_THREADS; i++)
-    {
-        pthread_create(&threads[i], NULL, insert_edge_thread, new int(i));
-    }
     time_info *edge_times = new time_info(0);
     time_info *node_times = new time_info(0);
-    for (i = 0; i < NUM_THREADS; i++)
+#pragma omp parallel for num_threads(NUM_THREADS)
+    for (int i = 0; i < NUM_THREADS; i++)
     {
-        void *found;
-        pthread_join(threads[i], &found);
-        time_info *this_thread_time = (time_info *)found;
+        time_info *this_thread_time = insert_edge_thread(i);
         edge_times->insert_time += this_thread_time->insert_time;
         edge_times->num_inserted += this_thread_time->num_inserted;
         edge_times->read_time += this_thread_time->read_time;
     }
+
     auto end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert edges was "
               << std::chrono::duration_cast<std::chrono::microseconds>(end -
@@ -481,22 +465,15 @@ int main(int argc, char *argv[])
 
     // Now insert nodes;
     start = std::chrono::steady_clock::now();
-    for (i = 0; i < NUM_THREADS; i++)
+#pragma omp parallel for num_threads(NUM_THREADS)
+    for (int i = 0; i < NUM_THREADS; i++)
     {
-        pthread_create(&threads[i],
-                       NULL,
-                       insert_node,
-                       new int(i));  // (void *)(prefix.at(i).c_str()));
-    }
-    for (i = 0; i < NUM_THREADS; i++)
-    {
-        void *found;
-        pthread_join(threads[i], &found);
-        time_info *this_thread_time = (time_info *)found;
+        time_info *this_thread_time = insert_node(i);
         node_times->insert_time += this_thread_time->insert_time;
         node_times->num_inserted += this_thread_time->num_inserted;
         node_times->read_time += this_thread_time->read_time;
     }
+
     end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert nodes was "
               << std::chrono::duration_cast<std::chrono::microseconds>(end -

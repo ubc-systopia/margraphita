@@ -272,7 +272,7 @@ void test_InCursor(StandardGraph graph)
 void test_OutCursor(StandardGraph graph)
 {
     INFO();
-    StdIterator::OutCursor out_cursor = graph.get_outnbd_cursor();
+    auto out_cursor = graph.get_outnbd_cursor();
     adjlist found = {0};
     while (out_cursor.has_more())
     {

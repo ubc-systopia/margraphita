@@ -13,7 +13,6 @@
 using namespace std;
 namespace AdjIterator
 {
-
 class InCursor : public table_iterator
 {
    public:
@@ -34,7 +33,15 @@ class InCursor : public table_iterator
         else
         {
             found->node_id = -1;
+            has_next = false;
         }
+    }
+
+    void reset()
+    {
+        cursor->reset(cursor);
+        is_first = true;
+        has_next = true;
     }
 
     void next(adjlist *found, key_pair keys) override
@@ -48,9 +55,9 @@ class InCursor : public table_iterator
         }
         else
         {
-            found->node_id =
-                -1;  // check for out-of-band values in application program.
-            cursor->reset(cursor);
+            found->node_id = -1;
+            // check for out-of-band values in application program.
+            has_next = false;
         }
     }
 };
@@ -75,7 +82,15 @@ class OutCursor : public table_iterator
         else
         {
             found->node_id = -1;
+            has_next = false;
         }
+    }
+
+    void reset()
+    {
+        cursor->reset(cursor);
+        is_first = true;
+        has_next = true;
     }
 
     void next(adjlist *found, key_pair keys) override
@@ -90,16 +105,17 @@ class OutCursor : public table_iterator
             else
             {
                 found->node_id = -1;
-                cursor->reset(cursor);
+                has_next = false;
             }
         }
         else
         {
             found->node_id = -1;
+            has_next = false;
         }
     }
 };
-};  // namespace AdjIterator
+}  // namespace AdjIterator
 
 class AdjList
 {
@@ -120,6 +136,8 @@ class AdjList
     std::vector<node> get_nodes();
     int get_num_nodes();
     int get_num_edges();
+    void set_num_nodes(int num_nodes);
+    void set_num_edges(int num_edges);
     void add_edge(edge to_insert, bool is_bulk);
     bool has_edge(int src_id, int dst_id);
     void delete_edge(int src_id, int dst_id);
@@ -172,6 +190,8 @@ class AdjList
     string adjlist_key_format = "I";
     string adjlist_value_format =
         "Iu";  // This HAS to be u. S does not work. s needs the number.
+    string node_count = "nNodes";
+    string edge_count = "nEdges";
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;

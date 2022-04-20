@@ -111,32 +111,58 @@ bool AdjList::has_node(int node_id)
 
 int AdjList::get_num_nodes()
 {
-    int ret = 0;
-    WT_CURSOR *cursor = nullptr;
-    ret = _get_table_cursor(NODE_TABLE, &cursor, false);
-
-    int count = 0;
-    while ((ret = cursor->next(cursor)) == 0)
+    string found = get_metadata(node_count);
+    if (found.empty() ||
+        stoi(found) == 0)  // It's likely that the count has not been set in the
+                           // metadata table
     {
-        count += 1;
+        int ret = 0;
+        WT_CURSOR *cursor = nullptr;
+        ret = _get_table_cursor(NODE_TABLE, &cursor, false);
+
+        int count = 0;
+        while ((ret = cursor->next(cursor)) == 0)
+        {
+            count += 1;
+        }
+        set_num_nodes(count);
+        return count;
     }
-    // cursor->close(cursor);
-    return count;
+    return stoi(found);
 }
 
 int AdjList::get_num_edges()
 {
-    int ret = 0;
-    WT_CURSOR *cursor = nullptr;
-    ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
-
-    int count = 0;
-    while ((ret = cursor->next(cursor)) == 0)
+    string found = get_metadata(edge_count);
+    if (found.empty() ||
+        stoi(found) == 0)  // It's likely that the count has not
+                           // been set in the metadata table
     {
-        count += 1;
+        int ret = 0;
+        WT_CURSOR *cursor = nullptr;
+        ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
+
+        int count = 0;
+        while ((ret = cursor->next(cursor)) == 0)
+        {
+            count += 1;
+        }
+        set_num_edges(count);
+        return count;
     }
-    // cursor->close(cursor);
-    return count;
+    return stoi(found);
+}
+
+void AdjList::set_num_nodes(int numNodes)
+{
+    return insert_metadata(
+        node_count, const_cast<char *>(std::to_string(numNodes).c_str()));
+}
+
+void AdjList::set_num_edges(int numEdges)
+{
+    return insert_metadata(
+        edge_count, const_cast<char *>(std::to_string(numEdges).c_str()));
 }
 
 //#if 0
@@ -467,6 +493,7 @@ void AdjList::add_node(node to_insert)
     // Now add the adjlist entires
     add_adjlist(in_adj_cur, to_insert.id);
     add_adjlist(out_adj_cur, to_insert.id);
+    set_num_nodes(get_num_nodes() + 1);
 }
 
 void AdjList::add_node(int to_insert,
@@ -620,7 +647,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
                              to_string(to_insert.src_id) + "," +
                              to_string(to_insert.dst_id));
     }
-
+    set_num_edges(get_num_edges() + 1);
     // insert the reverse edge if undirected
     if (!opts.is_directed)
     {
@@ -633,6 +660,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         {
             cursor->set_value(cursor, 0);
         }
+        set_num_edges(get_num_edges() + 1);
         cursor->reset(cursor);
     }
     // cursor->close(cursor);
@@ -1182,6 +1210,7 @@ void AdjList::delete_edge(int src_id, int dst_id)
                              std::to_string(dst_id) + ")");
     }
 
+    set_num_edges(get_num_edges() - 1);
     // delete (dst_id, src_id) from edge table if undirected
     if (!opts.is_directed)
     {
@@ -1192,6 +1221,7 @@ void AdjList::delete_edge(int src_id, int dst_id)
                                  std::to_string(dst_id) + ", " +
                                  std::to_string(src_id) + ")");
         }
+        set_num_edges(get_num_edges() - 1);
     }
     out_adjlist_cursor->reset(out_adjlist_cursor);
     in_adjlist_cursor->reset(in_adjlist_cursor);

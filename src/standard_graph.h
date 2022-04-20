@@ -225,6 +225,7 @@ class StandardGraph
     std::vector<node> get_out_nodes(int node_id);
     std::vector<edge> get_in_edges(int node_id);
     std::vector<node> get_in_nodes(int node_id);
+    void get_nodes(vector<node> &nodes);
     void close();
     std::string get_db_name() const { return opts.db_name; };
     void create_indices();

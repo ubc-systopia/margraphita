@@ -703,44 +703,65 @@ std::vector<node> EdgeKey::get_nodes()
  * @param node_count Arg to hold the number of nodes
  * @param edge_count Arg to hold the number of edges.
  */
-// TODO: Possible optimization: store the value of node and edge counts in the
-// metadata table while calling close(). Restore the global node and edge counts
-// value on restore from DB. Then add and delete operations modify this global
-// value. This function is wasteful.
 int EdgeKey::get_num_nodes()
 {
-    int node_count = 0;
-    WT_CURSOR *dst_cur = get_dst_idx_cur();
-    while (dst_cur->next(dst_cur) == 0)
+    string found = get_metadata(node_count);
+    if (found.empty() ||
+        stoi(found) == 0)  // It's likely that the count has not been set in the
+                           // metadata table
     {
-        int dst;
-        dst_cur->get_key(dst_cur, &dst);  // dst_cursor key points to dst
-        if (dst == -1)
+        int node_count = 0;
+        WT_CURSOR *dst_cur = get_dst_idx_cur();
+        while (dst_cur->next(dst_cur) == 0)
         {
-            node_count++;
+            int dst;
+            dst_cur->get_key(dst_cur, &dst);  // dst_cursor key points to dst
+            if (dst == -1)
+            {
+                node_count++;
+            }
         }
+        dst_cur->reset(dst_cur);
+        return node_count;
     }
-    dst_cur->reset(dst_cur);
-    return node_count;
+    return stoi(found);
 }
 
 int EdgeKey::get_num_edges()
 {
-    WT_CURSOR *dst_cur = get_dst_idx_cur();
-    int edge_count = 0;
-    while (dst_cur->next(dst_cur) == 0)
+    string found = get_metadata(edge_count);
+    if (found.empty() ||
+        stoi(found) == 0)  // It's likely that the count has not
+                           // been set in the metadata table
     {
-        int dst;
-        dst_cur->get_key(dst_cur, &dst);  // dst_cursor key points to dst
-        if (dst != -1)
+        WT_CURSOR *dst_cur = get_dst_idx_cur();
+        int edge_count = 0;
+        while (dst_cur->next(dst_cur) == 0)
         {
-            edge_count++;
+            int dst;
+            dst_cur->get_key(dst_cur, &dst);  // dst_cursor key points to dst
+            if (dst != -1)
+            {
+                edge_count++;
+            }
         }
+        dst_cur->reset(dst_cur);
+        return edge_count;
     }
-    dst_cur->reset(dst_cur);
-    return edge_count;
+    return stoi(found);
 }
 
+void EdgeKey::set_num_nodes(int num_nodes)
+{
+    insert_metadata(node_count,
+                    const_cast<char *>(std::to_string(num_nodes).c_str()));
+}
+
+void EdgeKey::set_num_edges(int num_edges)
+{
+    insert_metadata(edge_count,
+                    const_cast<char *>(std::to_string(num_edges).c_str()));
+}
 /**
  * @brief get the out_degree of the node that has ID = node_id
  *
@@ -1144,7 +1165,6 @@ void EdgeKey::__restore_from_db(string db_name)
             }
         }
     }
-    cursor->close(cursor);
 }
 
 /**

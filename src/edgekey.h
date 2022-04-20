@@ -220,7 +220,7 @@ class OutCursor : public table_iterator
         }
     }
 };
-};  // namespace EKeyIterator
+}  // namespace EKeyIterator
 
 class EdgeKey
 {
@@ -278,6 +278,8 @@ class EdgeKey
     vector<string> edge_columns = {SRC, DST, ATTR};
     string edge_key_format = "ii";   // SRC DST
     string edge_value_format = "S";  // Packed binary
+    string node_count = "nNodes";
+    string edge_count = "nEdges";
 
     // internal methods
     void delete_related_edges(WT_CURSOR *idx_cursor,
@@ -292,6 +294,8 @@ class EdgeKey
                           std::string projection,
                           WT_CURSOR **cursor);
     void drop_indices();
+    void set_num_nodes(int num_nodes);
+    void set_num_edges(int num_edges);
 
     // metadata and restore operations
     void insert_metadata(string key, char *value);

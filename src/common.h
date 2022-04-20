@@ -105,6 +105,7 @@ class table_iterator
 
    public:
     virtual void next(adjlist *found, key_pair keys) = 0;
+    virtual void reset() = 0;
 };
 
 class CommonUtil

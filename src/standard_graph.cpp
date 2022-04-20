@@ -679,6 +679,7 @@ void StandardGraph::delete_node(int node_id)
         throw GraphException("Could not delete node with ID " +
                              to_string(node_id));
     }
+    set_num_nodes(get_num_nodes() - 1);
 }
 
 int StandardGraph::get_in_degree(int node_id)
@@ -799,6 +800,32 @@ std::vector<node> StandardGraph::get_nodes()
 }
 
 /**
+ * @brief get all nodes in the nodes table
+ * @return std::vector<node> the vector of all nodes in the node table
+ */
+void StandardGraph::get_nodes(vector<node> &nodes)
+{
+    int ret;
+    WT_CURSOR *cursor = get_node_cursor();
+    while ((ret = cursor->next(cursor) == 0))
+    {
+        node item{0};
+        cursor->get_key(cursor, &item.id);
+        if (opts.read_optimize)
+        {
+            cursor->get_value(cursor, &item.in_degree, &item.out_degree);
+        }
+        else
+        {
+            item.in_degree = get_in_degree(item.id);
+            item.out_degree = get_out_degree(item.id);
+        }
+
+        nodes.push_back(item);
+    }
+}
+
+/**
  * @brief Insert an edge into the edge table
  *
  * @param to_insert The edge struct containing the edge to be inserted.
@@ -844,7 +871,7 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
     }
 
     set_num_edges(get_num_edges() + 1);
-
+    // FIXME: This does not handle the undirected scenario
     if (!is_bulk)
     {
         // If opts.read_optimized is true, we update in/out degreees in the node
@@ -900,6 +927,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
     CommonUtil::check_return(ret,
                              "Failed to delete edge (" + to_string(src_id) +
                                  "," + to_string(dst_id));
+    set_num_edges(get_num_edges() - 1);
     // Delete reverse edge if the graph is undirected.
     if (!opts.is_directed)
     {
@@ -912,6 +940,7 @@ void StandardGraph::delete_edge(int src_id, int dst_id)
         CommonUtil::check_return(ret,
                                  "Failed to delete edge (" + to_string(src_id) +
                                      "," + to_string(dst_id));
+        set_num_edges(get_num_edges() - 1);
     }
 
     // Update in/out degrees for the src and dst nodes if the graph is read

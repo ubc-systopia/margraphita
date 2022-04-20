@@ -1,4 +1,5 @@
 #include <math.h>
+#include <omp.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -17,43 +18,79 @@
 
 using namespace std;
 const float dampness = 0.85;
-std::hash<int> hashfn;
-int N = 1610612741;  // Hash bucket size
 int p_cur = 0;
 int p_next = 1;
+
 typedef struct pr_map
 {
     int id;
+    int in_deg;
+    int out_deg;
     float p_rank[2];
+    mutable std::shared_mutex mutex{};
+
 } pr_map;
 
 pr_map *ptr;  // pointer to mmap region
-// float *pr_cur, *pr_next;
 
-void init_pr_map(std::vector<node> &nodes)
+void calculate_node_offsets(int thread_max,
+                            int num_nodes,
+                            int node_offset_array[])
 {
-    int size = nodes.size();
-    // cout << size;
+    int node_offset = 0;
+    for (int i = 0; i < thread_max; i++)
+    {
+        node_offset_array[i] = node_offset;
+        node_offset += num_nodes / thread_max;
+    }
+}
+
+/**
+ * @brief This function takes a single parameter - the number of nodes in the
+ * graph. We then allocate a memory region of size N*sizeof(pr_map) and
+ * initialize the memory region with 1/N.
+ *
+ * @param N
+ */
+void init_pr_map(int N)
+{
     ptr = (pr_map *)mmap(NULL,
                          sizeof(pr_map) * N,
                          PROT_READ | PROT_WRITE,
-                         MAP_PRIVATE | MAP_ANONYMOUS,
-                         0,
-                         0);
-    // since the access pattern is random and because the node id's
-    // non-continuous we cannot do any clever madvise tricks.
-
-    float init_val = 1.0f / size;
-
-    for (node n : nodes)
+                         MAP_SHARED | MAP_ANONYMOUS,
+                         -1,
+                         0);  // Should I make this file-backed?
+    if (ptr == MAP_FAILED)
     {
-        if (ptr[n.id].id == 0)
-        {
-            ptr[n.id].id = n.id;
-            ptr[n.id].p_rank[p_cur] = init_val;
-            ptr[n.id].p_rank[p_next] = 0.0f;
-        }
+        perror("mmap failed");
+        exit(1);
     }
+    int ret =
+        madvise(ptr,
+                sizeof(pr_map) * N,
+                MADV_SEQUENTIAL);  // we are guranteed to read this sequentially
+    if (ret != 0)
+    {
+        fprintf(
+            stderr, "madvise failed with error code: %s\n", strerror(errno));
+        exit(1);
+    }
+    float init_val = 1.0f / N;
+    std::vector<node> nodes(N);
+    graph.get_node_degrees(nodes);
+
+#pragma omp parallel for
+    for (int i = 0; i < N; i++)
+    {
+        ptr[i].id = -1;  // We are not assigning node_id's to the pr_map struct
+                         // at this point.
+        ptr[i].p_rank[0] = init_val;
+        ptr[i].p_rank[1] = 0.0f;
+        ptr[i].in_deg = nodes.at(i).in_deg;
+        ptr[i].out_deg = nodes.at(i).out_deg;
+    }
+    nodes.clear();
+    nodes.shrink_to_fit();  // free up memory. Not guaranteed to be honored.
 }
 
 void print_map(std::vector<node> &nodes)
@@ -103,6 +140,11 @@ void print_to_csv(std::string name,
     FILE.close();
 }
 
+/**
+ * !If we want to parallelize this function, we need per-thread offsets into the
+ * pr_map. init_pr_map would need to be called prior to this function. Extend
+ * PR_map to have a lock.
+ */
 template <typename Graph>
 void pagerank(Graph &graph,
               graph_opts opts,
@@ -110,41 +152,60 @@ void pagerank(Graph &graph,
               double tolerance,
               string csv_logdir)
 {
-    int num_nodes = graph.get_num_nodes();
     auto start = chrono::steady_clock::now();
-    std::vector<node> nodes = graph.get_nodes();
-    init_pr_map(nodes);
-    std::vector<int64_t> times;
+    int num_nodes = graph.get_num_nodes();
+    init_pr_map(num_nodes);
     auto end = chrono::steady_clock::now();
     cout << "Loading the nodes and constructing the map took "
          << to_string(chrono::duration_cast<chrono::microseconds>(end - start)
                           .count())
          << endl;
+
+    std::vector<int64_t> times;
     times.push_back(
         chrono::duration_cast<chrono::microseconds>(end - start).count());
 
     double diff = 1.0;
     int iter_count = 0;
     float constant = (1 - dampness) / num_nodes;
-
+    auto in_cursor = graph.get_innbd_cursor();  // Have to use type inference
+                                                // coz of template
     while (iter_count < iterations)
     {
         auto start = chrono::steady_clock::now();
-        for (node n : nodes)
-        {
-            int index = hashfn(n.id) % N;
-            float sum = 0.0f;
-            vector<node> in_nodes = graph.get_in_nodes(
-                n.id);  // <-- make this just list of node_ids to avoid looking
-                        // up node table
+        int i = 0;
 
-            for (node in : in_nodes)
+        adjlist found = {0};
+        int index = 0;
+        while (in_cursor.has_more())
+        {
+            in_cursor.next(&found);
+            if (found.node_id != -1)
             {
-                sum += (ptr[hashfn(in.id) % N].p_rank[p_cur]) / in.out_degree;
+                if (iter_count == 0)
+                {
+                    ptr[index].id = found.node_id;
+                }
+                float sum = 0.0f;
+                for (int in_node : found.edgelist)
+                {
+                    std::shared_lock<std::shared_mutex> lock(
+                        ptr[in_node].mutex);  // read lock
+                    sum +=
+                        (ptr[in_node].p_rank[p_cur]) / ptr[in_node].out_degree;
+                }
+                std::unique_lock<std::shared_mutex> lock(
+                    ptr[index].mutex);  // write lock
+                ptr[index].p_rank[p_next] = constant + (dampness * sum);
+                index++;
             }
-            ptr[index].p_rank[p_next] = constant + (dampness * sum);
+            else
+            {
+                break;
+            }
         }
         iter_count++;
+        in_cursor.reset();
 
         p_cur = 1 - p_cur;
         p_next = 1 - p_next;
