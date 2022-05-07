@@ -2,7 +2,7 @@
 set -x
 
 # This file is a very simple way to track the changes in benchmark performance with each changeset.
-# I want to use this to track which optimization is actually beneficial to us. 
+# I want to use this to track which optimization is actually beneficial to us.
 
 source paths.sh
 
@@ -10,10 +10,10 @@ source paths.sh
 # git add -u
 # git commit -a
 
-# echo "---------NOW MAKING A RELEASE BUILD------------"
-# mkdir ${RELEASE_PATH}
-# cd ${RELEASE_PATH}
-# cmake ../.. && make -j16
+ echo "---------NOW MAKING A RELEASE BUILD------------"
+ mkdir ${RELEASE_PATH}
+ cd ${RELEASE_PATH}
+ cmake ../.. && make -j16
 
 # echo "---------NOW MAKING A PROFILE BUILD------------"
 
@@ -28,7 +28,7 @@ source paths.sh
 # cmake -DCMAKE_BUILD_TYPE=DEBUG -Dstat=true ../.. && make -j16
 
 # #Now create the log directory
-commit_id=`git rev-parse --short HEAD`
+#commit_id=`git rev-parse --short HEAD`
 
 # #create directory where the scripts will insert logs
 dir="${HOME}/scratch/margraphita/outputs/${commit_id}"
@@ -38,4 +38,4 @@ dir="${HOME}/scratch/margraphita/outputs/${commit_id}"
 # #/bin/bash insert_kron.sh -l ${dir}
 
 # #now pass this commit_id to run_benchmarks.sh
-/bin/bash run_benchmarks.sh -d ${dir}
+#/bin/bash run_benchmarks.sh -d ${dir}

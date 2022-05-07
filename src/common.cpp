@@ -35,6 +35,8 @@ const std::string NODE_DATA = "data";
 const std::string IS_DIRECTED = "is_directed";
 const std::string IS_WEIGHTED = "is_weighted";
 const std::string CREATE_NEW = "create_new";
+const std::string node_count = "nNodes";
+const std::string edge_count = "nEdges";
 
 // Read Optimize columns
 const std::string IN_DEGREE = "in_degree";
@@ -924,6 +926,7 @@ WT_ITEM CommonUtil::pack_items(WT_SESSION *session, std::string fmt, ...)
             wiredtiger_pack_str(pack_stream, val);
         }
     }
+    va_end(args);
     wiredtiger_pack_close(pack_stream, &size);  // get the bytes used.
 
     packed.data = data_buf;

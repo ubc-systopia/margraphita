@@ -6,6 +6,9 @@
 
 #include <cassert>
 #include <chrono>
+#include <cstring>
+#include <mutex>
+#include <shared_mutex>
 #include <vector>
 
 #include "adj_list.h"
@@ -15,8 +18,9 @@
 #include "graph_exception.h"
 #include "reader.h"
 #include "standard_graph.h"
+#include "thread_utils.h"
+#include "times.h"
 
-using namespace std;
 const float dampness = 0.85;
 int p_cur = 0;
 int p_next = 1;
@@ -33,18 +37,6 @@ typedef struct pr_map
 
 pr_map *ptr;  // pointer to mmap region
 
-void calculate_node_offsets(int thread_max,
-                            int num_nodes,
-                            int node_offset_array[])
-{
-    int node_offset = 0;
-    for (int i = 0; i < thread_max; i++)
-    {
-        node_offset_array[i] = node_offset;
-        node_offset += num_nodes / thread_max;
-    }
-}
-
 /**
  * @brief This function takes a single parameter - the number of nodes in the
  * graph. We then allocate a memory region of size N*sizeof(pr_map) and
@@ -52,7 +44,8 @@ void calculate_node_offsets(int thread_max,
  *
  * @param N
  */
-void init_pr_map(int N)
+template <typename Graph>
+void init_pr_map(int N, Graph g)
 {
     ptr = (pr_map *)mmap(NULL,
                          sizeof(pr_map) * N,
@@ -76,8 +69,13 @@ void init_pr_map(int N)
         exit(1);
     }
     float init_val = 1.0f / N;
-    std::vector<node> nodes(N);
-    graph.get_node_degrees(nodes);
+    // std::vector<node> *nodes = new std::vector<node>(N);
+    // g.get_node_degrees(nodes);
+    /*
+    What I want to do here: each thread gets an offset into the nodes range.
+    Based on where they are in the array, we use the cursor->search_near() to
+    get the first valid node_id in that range.
+    */
 
 #pragma omp parallel for
     for (int i = 0; i < N; i++)
@@ -86,11 +84,9 @@ void init_pr_map(int N)
                          // at this point.
         ptr[i].p_rank[0] = init_val;
         ptr[i].p_rank[1] = 0.0f;
-        ptr[i].in_deg = nodes.at(i).in_deg;
-        ptr[i].out_deg = nodes.at(i).out_deg;
+        ptr[i].in_deg = nodes->at(i).in_deg;
+        ptr[i].out_deg = nodes->at(i).out_deg;
     }
-    nodes.clear();
-    nodes.shrink_to_fit();  // free up memory. Not guaranteed to be honored.
 }
 
 void print_map(std::vector<node> &nodes)

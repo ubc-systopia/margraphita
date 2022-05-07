@@ -15,23 +15,8 @@
 using namespace std;
 const std::string GRAPH_PREFIX = "edgekey";
 
-EdgeKey::EdgeKey()
+EdgeKey::EdgeKey(graph_opts opt_params) : GraphBase(opt_params)
 {
-    throw GraphException("No parameters passed in graph_opts. Exiting now.");
-}
-
-EdgeKey::EdgeKey(graph_opts opt_params)
-{
-    this->opts = opt_params;
-
-    try
-    {
-        CommonUtil::check_graph_params(opts);
-    }
-    catch (GraphException G)
-    {
-        std::cout << G.what() << std::endl;
-    }
     if (opts.create_new)
     {
         create_new_graph();
@@ -103,116 +88,57 @@ void EdgeKey::create_new_graph()
         fprintf(stderr, "Failed to create the metadata table ");
     }
 
-    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
+    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, session, false)) !=
+        0)
+    {
+        fprintf(stderr, "Failed to create cursor to the metadata table.");
+        exit(-1);
+    }
+
+    if ((ret = _get_table_cursor(
+             METADATA, &this->metadata_cursor, session, false)) != 0)
     {
         fprintf(stderr, "Failed to create cursor to the metadata table.");
         exit(-1);
     }
 
     // opts.db_name
-    insert_metadata(opts.db_name, const_cast<char *>(opts.db_name.c_str()));
+    insert_metadata(opts.db_name,
+                    const_cast<char *>(opts.db_name.c_str()),
+                    this->metadata_cursor);
 
     // opts.db_dir
-    insert_metadata(opts.db_dir, const_cast<char *>(opts.db_dir.c_str()));
+    insert_metadata(opts.db_dir,
+                    const_cast<char *>(opts.db_dir.c_str()),
+                    this->metadata_cursor);
 
     // opts.read_optimize
     string read_optimized_str = opts.read_optimize ? "true" : "false";
     insert_metadata(READ_OPTIMIZE,
-                    const_cast<char *>(read_optimized_str.c_str()));
+                    const_cast<char *>(read_optimized_str.c_str()),
+                    this->metadata_cursor);
 
     // opts.is_directed
     string is_directed_str = opts.is_directed ? "true" : "false";
-    insert_metadata(IS_DIRECTED, const_cast<char *>(is_directed_str.c_str()));
+    insert_metadata(IS_DIRECTED,
+                    const_cast<char *>(is_directed_str.c_str()),
+                    this->metadata_cursor);
 
     // opts.is_weighted
     string is_weighted_str = opts.is_weighted ? "true" : "false";
-    insert_metadata(IS_WEIGHTED, const_cast<char *>(is_weighted_str.c_str()));
-    //#endif
+    insert_metadata(IS_WEIGHTED,
+                    const_cast<char *>(is_weighted_str.c_str()),
+                    this->metadata_cursor);
 
-    this->metadata_cursor->close(this->metadata_cursor);
-}
+    // NUM_NODES = 0
+    insert_metadata(node_count,
+                    const_cast<char *>(std::to_string(0).c_str()),
+                    this->metadata_cursor);
 
-/**
- * @brief This is the generic function to get a cursor on the table
- *
- * @param table This is the table name for which the cursor is needed.
- * @param cursor This is the pointer that will hold the set cursor.
- * @param is_random This is a bool value to indicate if the cursor must be
- * random.
- * @return 0 if the cursor could be set
- */
-int EdgeKey::_get_table_cursor(string table, WT_CURSOR **cursor, bool is_random)
-{
-    std::string table_name = "table:" + table;
-    const char *config = NULL;
-    if (is_random)
-    {
-        config = "next_random=true";
-    }
-
-    if (int ret = session->open_cursor(
-                      session, table_name.c_str(), NULL, config, cursor) != 0)
-    {
-        fprintf(
-            stderr, "Failed to get table cursor to %s\n", table_name.c_str());
-        return ret;
-    }
-    return 0;
-}
-
-/**
- * @brief Returns the metadata associated with the key param from the METADATA
- * table.
- * Same from standard_graph implementation
- */
-string EdgeKey::get_metadata(string key)
-{
-    int ret = 0;
-    WT_CURSOR *metadata_cursor = nullptr;
-    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
-    {
-        fprintf(stderr, "Failed to create cursor to the metadata table.");
-        exit(-1);
-    }
-
-    metadata_cursor->set_key(metadata_cursor, key.c_str());
-    ret = metadata_cursor->search(metadata_cursor);
-    if (ret != 0)
-    {
-        fprintf(
-            stderr, "Failed to retrieve metadata for the key %s", key.c_str());
-        exit(-1);
-    }
-
-    const char *value;
-    ret = metadata_cursor->get_value(metadata_cursor, &value);
-    metadata_cursor->close(metadata_cursor);
-
-    return string(value);
-}
-
-/**
- * @brief This private function inserts metadata values into the metadata
- * table. The fields are self explanatory.
- * Same from standard_graph implementation.
- */
-void EdgeKey::insert_metadata(string key, char *value)
-{
-    int ret = 0;
-    WT_CURSOR *metadata_cursor = nullptr;
-    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
-    {
-        fprintf(stderr, "Failed to create cursor to the metadata table.");
-        exit(-1);
-    }
-
-    metadata_cursor->set_key(metadata_cursor, key.c_str());
-    metadata_cursor->set_value(metadata_cursor, value);
-    if ((ret = metadata_cursor->insert(metadata_cursor)) != 0)
-    {
-        fprintf(stderr, "failed to insert metadata for key %s", key.c_str());
-    }
-    metadata_cursor->close(metadata_cursor);
+    // NUM_EDGES = 0
+    insert_metadata(edge_count,
+                    const_cast<char *>(std::to_string(0).c_str()),
+                    this->metadata_cursor);
 }
 
 /**
@@ -247,7 +173,7 @@ node EdgeKey::get_random_node()
 {
     node rando = {0};
     WT_CURSOR *random_cur;
-    int ret = _get_table_cursor(EDGE_TABLE, &random_cur, true);
+    int ret = _get_table_cursor(EDGE_TABLE, &random_cur, session, true);
     if (ret != 0)
     {
         throw GraphException("could not get a random cursor to the node table");
@@ -301,7 +227,7 @@ void EdgeKey::add_node(node to_insert)
 {
     int ret = 0;
     WT_CURSOR *node_cursor;
-    ret = _get_table_cursor(EDGE_TABLE, &node_cursor, false);
+    ret = _get_table_cursor(EDGE_TABLE, &node_cursor, session, false);
     node_cursor->set_key(node_cursor, to_insert.id, -1);
     if (opts.read_optimize)
     {
@@ -319,6 +245,7 @@ void EdgeKey::add_node(node to_insert)
                              std::to_string(to_insert.id) +
                              " into the edge table");
     }
+    set_num_nodes(get_num_nodes() + 1, metadata_cursor);
 }
 
 /**
@@ -369,7 +296,7 @@ void EdgeKey::delete_node(int node_id)
     WT_CURSOR *src_cur = get_src_idx_cur();
     WT_CURSOR *dst_cur = get_dst_idx_cur();
 
-    if (_get_table_cursor(EDGE_TABLE, &e_cur, false) != 0)
+    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false) != 0)
     {
         throw GraphException("Failed to get a cursro to the edge table");
     }
@@ -381,6 +308,7 @@ void EdgeKey::delete_node(int node_id)
     }
     delete_related_edges(src_cur, e_cur, node_id);
     delete_related_edges(dst_cur, e_cur, node_id);
+    set_num_nodes(get_num_nodes() - 1, metadata_cursor);
 }
 
 void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
@@ -518,6 +446,7 @@ void EdgeKey::add_edge(edge to_insert, bool is_bulk)
                              std::to_string(to_insert.src_id) + " and " +
                              std::to_string(to_insert.dst_id));
     }
+    set_num_edges(get_num_edges() + 1, metadata_cursor);
     // insert reverse edge if undirected
     if (!opts.is_directed)
     {
@@ -537,6 +466,7 @@ void EdgeKey::add_edge(edge to_insert, bool is_bulk)
                                  std::to_string(to_insert.src_id) + " and " +
                                  std::to_string(to_insert.dst_id));
         }
+        set_num_edges(get_num_edges() + 1, metadata_cursor);
     }
     if (!is_bulk)
     {
@@ -579,7 +509,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
                              std::to_string(src_id) + " and " +
                              std::to_string(dst_id));
     }
-
+    set_num_edges(get_num_edges() - 1, metadata_cursor);
     // delete reverse edge
     if (!opts.is_directed)
     {
@@ -590,6 +520,7 @@ void EdgeKey::delete_edge(int src_id, int dst_id)
                                  std::to_string(src_id) + " and " +
                                  to_string(dst_id));
         }
+        set_num_edges(get_num_edges() - 1, metadata_cursor);
     }
 
     // update node degrees
@@ -697,72 +628,6 @@ std::vector<node> EdgeKey::get_nodes()
 }
 
 /**
- * @brief This sets the value of the passed int references to hold the number of
- * nodes and edges present in the table.
- *
- * @param node_count Arg to hold the number of nodes
- * @param edge_count Arg to hold the number of edges.
- */
-int EdgeKey::get_num_nodes()
-{
-    string found = get_metadata(node_count);
-    if (found.empty() ||
-        stoi(found) == 0)  // It's likely that the count has not been set in the
-                           // metadata table
-    {
-        int node_count = 0;
-        WT_CURSOR *dst_cur = get_dst_idx_cur();
-        while (dst_cur->next(dst_cur) == 0)
-        {
-            int dst;
-            dst_cur->get_key(dst_cur, &dst);  // dst_cursor key points to dst
-            if (dst == -1)
-            {
-                node_count++;
-            }
-        }
-        dst_cur->reset(dst_cur);
-        return node_count;
-    }
-    return stoi(found);
-}
-
-int EdgeKey::get_num_edges()
-{
-    string found = get_metadata(edge_count);
-    if (found.empty() ||
-        stoi(found) == 0)  // It's likely that the count has not
-                           // been set in the metadata table
-    {
-        WT_CURSOR *dst_cur = get_dst_idx_cur();
-        int edge_count = 0;
-        while (dst_cur->next(dst_cur) == 0)
-        {
-            int dst;
-            dst_cur->get_key(dst_cur, &dst);  // dst_cursor key points to dst
-            if (dst != -1)
-            {
-                edge_count++;
-            }
-        }
-        dst_cur->reset(dst_cur);
-        return edge_count;
-    }
-    return stoi(found);
-}
-
-void EdgeKey::set_num_nodes(int num_nodes)
-{
-    insert_metadata(node_count,
-                    const_cast<char *>(std::to_string(num_nodes).c_str()));
-}
-
-void EdgeKey::set_num_edges(int num_edges)
-{
-    insert_metadata(edge_count,
-                    const_cast<char *>(std::to_string(num_edges).c_str()));
-}
-/**
  * @brief get the out_degree of the node that has ID = node_id
  *
  * @param node_id ID of the node whose out degree is sought
@@ -785,7 +650,7 @@ int EdgeKey::get_out_degree(int node_id)
     }
     else
     {
-        int out_deg;
+        int out_deg = 0;
         WT_CURSOR *src_cur = get_src_idx_cur();
         src_cur->set_key(src_cur, node_id);
         if (src_cur->search(src_cur) == 0)
@@ -842,7 +707,7 @@ int EdgeKey::get_in_degree(int node_id)
     }
     else
     {
-        int in_degree;
+        int in_degree = 0;
         WT_CURSOR *dst_cur = get_dst_idx_cur();
         dst_cur->set_key(dst_cur, node_id);
         if (dst_cur->search(dst_cur) == 0)
@@ -1103,70 +968,7 @@ std::vector<node> EdgeKey::get_in_nodes(int node_id)
     return in_nodes;
 }
 
-// Close, restore from DB, create/drop indices
-void EdgeKey::__restore_from_db(string db_name)
-{
-    int ret = CommonUtil::open_connection(const_cast<char *>(db_name.c_str()),
-                                          opts.stat_log,
-                                          opts.conn_config,
-                                          &conn);
-    WT_CURSOR *cursor = nullptr;
-
-    ret = CommonUtil::open_session(conn, &session);
-    const char *key, *value;
-    ret = _get_table_cursor(METADATA, &cursor, false);
-
-    while ((ret = cursor->next(cursor)) == 0)
-    {
-        ret = cursor->get_key(cursor, &key);
-        ret = cursor->get_value(cursor, &value);
-
-        if (strcmp(key, DB_DIR.c_str()) == 0)
-        {
-            this->opts.db_dir =
-                value;  // CommonUtil::unpack_string_wt(value, this->session);
-        }
-        else if (strcmp(key, DB_NAME.c_str()) == 0)
-        {
-            this->opts.db_name =
-                value;  // CommonUtil::unpack_string_wt(value, this->session);
-        }
-        else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
-        {
-            if (strcmp(value, "true") == 0)
-            {
-                this->opts.read_optimize = true;
-            }
-            else
-            {
-                this->opts.read_optimize = false;
-            }
-        }
-        else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
-        {
-            if (strcmp(value, "true") == 0)
-            {
-                this->opts.is_directed = true;
-            }
-            else
-            {
-                this->opts.is_directed = false;
-            }
-        }
-        else if (strcmp(key, IS_WEIGHTED.c_str()) == 0)
-        {
-            if (strcmp(value, "true") == 0)
-            {
-                this->opts.is_weighted = true;
-            }
-            else
-            {
-                this->opts.is_weighted = false;
-            }
-        }
-    }
-}
-
+void EdgeKey::make_indexes() { return create_indices(); }
 /**
  * @brief Creates the indices on the SRC and the DST column of the edge table.
  * These are not (and should not be) used for inserting data into the edge
@@ -1240,41 +1042,6 @@ void EdgeKey::drop_indices()
 
 // Session/Connection/Cursor operations
 
-void EdgeKey::close()
-{
-    CommonUtil::close_session(session);
-    CommonUtil::close_connection(conn);
-}
-
-/**
- * @brief Generic function to create the indexes on a table
- *
- * @param table_name The name of the table on which the index is to be created.
- * @param idx_name The name of the index
- * @param projection The columns that are to be included in the get_value. This
- * is in the format "(col1,col2,..)" and appended to the index name.
- * @param cursor This is the cursor variable that needs to be set.
- * @return 0 if the index could be set
- */
-int EdgeKey::_get_index_cursor(std::string table_name,
-                               std::string idx_name,
-                               std::string projection,
-                               WT_CURSOR **cursor)
-{
-    std::string index_name =
-        "index:" + table_name + ":" + idx_name + projection;
-    if (int ret = session->open_cursor(
-                      session, index_name.c_str(), NULL, NULL, cursor) != 0)
-    {
-        fprintf(stderr,
-                "Failed to open the cursor on the index %s on table %s \n",
-                index_name.c_str(),
-                table_name.c_str());
-        return ret;
-    }
-    return 0;
-}
-
 /*
 Get cursors
 */
@@ -1282,7 +1049,7 @@ WT_CURSOR *EdgeKey::get_edge_cursor()
 {
     if (edge_cursor == nullptr)
     {
-        if (_get_table_cursor(EDGE_TABLE, &edge_cursor, false) != 0)
+        if (_get_table_cursor(EDGE_TABLE, &edge_cursor, session, false) != 0)
         {
             throw GraphException("Could not get a cursor to the Edge table");
         }

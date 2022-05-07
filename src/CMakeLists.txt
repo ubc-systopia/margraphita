@@ -1,5 +1,7 @@
 FILE ( GLOB SOURCES_LIB   "${PATH_SRC}/common.cpp"
                     "${PATH_SRC}/common.h"
+                    "${PATH_SRC}/graph.h"
+                    "${PATH_SRC}/graph.cpp"
                     "${PATH_SRC}/graph_exception.cpp"
                     "${PATH_SRC}/standard_graph.cpp"
                     "${PATH_SRC}/standard_graph.h"
