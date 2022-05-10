@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
         if (pr_cli.is_index_create())
         {
             start = chrono::steady_clock::now();
-            graph.create_indices();
+            graph.make_indexes();
             end = chrono::steady_clock::now();
             cout << "Indices created in "
                  << chrono::duration_cast<chrono::microseconds>(end - start)
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
         if (pr_cli.is_index_create())
         {
             start = chrono::steady_clock::now();
-            graph.create_indices();
+            graph.make_indexes();
             end = chrono::steady_clock::now();
             cout << "Indices created in "
                  << chrono::duration_cast<chrono::microseconds>(end - start)

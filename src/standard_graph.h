@@ -294,19 +294,19 @@ class EdgeCursor : public table_iterator
 
     void next(edge *found)
     {
-        if (cursor->next(cursor) == 0)
-        {
-            cursor->get_key(cursor, &found->src_id, &found->dst_id);
-            if (keys.src_id > -1 && keys.dst_id > -1)  // keys were set
-                CommonUtil::__record_to_edge(cursor, found);
-        }
-        else
-        {
-            found->src_id = -1;
-            found->dst_id = -1;
-            found->edge_weight = -1;
-            has_next = false;
-        }
+        // if (cursor->next(cursor) == 0)
+        // {
+        //     cursor->get_key(cursor, &found->src_id, &found->dst_id);
+        //     if (keys.src_id > -1 && keys.dst_id > -1)  // keys were set
+        //         CommonUtil::__record_to_edge(cursor, found);
+        // }
+        // else
+        // {
+        //     found->src_id = -1;
+        //     found->dst_id = -1;
+        //     found->edge_weight = -1;
+        //     has_next = false;
+        // }
     }
 };
 
