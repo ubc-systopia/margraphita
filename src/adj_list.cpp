@@ -14,24 +14,9 @@
 using namespace std;
 const std::string GRAPH_PREFIX = "adj";
 
-AdjList::AdjList()
-{
-    throw GraphException("No parameters passed in graph_opts. Exiting now.");
-}
-
-AdjList::AdjList(graph_opts &opt_params)
+AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
 
 {
-    this->opts = opt_params;
-    try
-    {
-        CommonUtil::check_graph_params(opt_params);
-    }
-    catch (GraphException &G)
-    {
-        std::cout << G.what() << std::endl;
-    }
-
     if (opt_params.create_new)
     {
         create_new_graph();
@@ -52,38 +37,6 @@ AdjList::AdjList(graph_opts &opt_params)
 }
 
 /**
- * @brief Returns the metadata associated with the key param from the METADATA
- * table.
- * Same from standard_graph implementation
- */
-string AdjList::get_metadata(const string &key)
-{
-    int ret = 0;
-    if (this->metadata_cursor == NULL)
-    {
-        if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
-        {
-            fprintf(stderr, "Failed to create cursor to the metadata table.");
-            exit(-1);
-        }
-    }
-    metadata_cursor->set_key(metadata_cursor, key.c_str());
-    ret = metadata_cursor->search(metadata_cursor);
-    if (ret != 0)
-    {
-        fprintf(
-            stderr, "Failed to retrieve metadata for the key %s", key.c_str());
-        exit(-1);
-    }
-
-    const char *value;
-    ret = metadata_cursor->get_value(metadata_cursor, &value);
-    metadata_cursor->close(metadata_cursor);
-
-    return string(value);
-}
-
-/**
  * @brief This function is used to check if a node identified by node_id exists
  * in the node table.
  *
@@ -95,7 +48,8 @@ bool AdjList::has_node(int node_id)
     int ret = 0;
     if (this->node_cursor == NULL)
     {
-        ret = _get_table_cursor(NODE_TABLE, &(this->node_cursor), false);
+        ret =
+            _get_table_cursor(NODE_TABLE, &(this->node_cursor), session, false);
     }
     this->node_cursor->set_key(this->node_cursor, node_id);
     ret = this->node_cursor->search(this->node_cursor);
@@ -108,63 +62,6 @@ bool AdjList::has_node(int node_id)
         return false;
     }
 }
-
-int AdjList::get_num_nodes()
-{
-    int ret = 0;
-    WT_CURSOR *cursor = nullptr;
-    ret = _get_table_cursor(NODE_TABLE, &cursor, false);
-
-    int count = 0;
-    while ((ret = cursor->next(cursor)) == 0)
-    {
-        count += 1;
-    }
-    // cursor->close(cursor);
-    return count;
-}
-
-int AdjList::get_num_edges()
-{
-    int ret = 0;
-    WT_CURSOR *cursor = nullptr;
-    ret = _get_table_cursor(EDGE_TABLE, &cursor, false);
-
-    int count = 0;
-    while ((ret = cursor->next(cursor)) == 0)
-    {
-        count += 1;
-    }
-    // cursor->close(cursor);
-    return count;
-}
-
-//#if 0
-/**
- * @brief This private function inserts metadata values into the metadata
- * table. The fields are self explanatory.
- * Same from standard_graph implementation.
- */
-void AdjList::insert_metadata(const string &key, const char *value)
-{
-    int ret = 0;
-
-    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
-    {
-        fprintf(stderr, "Failed to create cursor to the metadata table.");
-        exit(-1);
-    }
-
-    this->metadata_cursor->set_key(metadata_cursor, key.c_str());
-    this->metadata_cursor->set_value(metadata_cursor, value);
-    if ((ret = this->metadata_cursor->insert(metadata_cursor)) != 0)
-    {
-        fprintf(stderr, "failed to insert metadata for key %s", key.c_str());
-        // TODO(puneet): Maybe create a GraphException?
-    }
-    // this->metadata_cursor->close(metadata_cursor);
-}
-//#endif
 
 void AdjList::create_new_graph()
 {
@@ -265,7 +162,8 @@ void AdjList::create_new_graph()
         fprintf(stderr, "Failed to create the metadata table ");
     }
 
-    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, false)) != 0)
+    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, session, false)) !=
+        0)
     {
         fprintf(stderr, "Failed to create cursor to the metadata table.");
         exit(-1);
@@ -273,121 +171,43 @@ void AdjList::create_new_graph()
 
     // DB_NAME
     string db_name_fmt;
-    insert_metadata(DB_NAME, const_cast<char *>(opts.db_name.c_str()));
+    insert_metadata(DB_NAME,
+                    const_cast<char *>(opts.db_name.c_str()),
+                    this->metadata_cursor);
 
     // DB_DIR
-    insert_metadata(DB_DIR, const_cast<char *>(opts.db_dir.c_str()));
+    insert_metadata(
+        DB_DIR, const_cast<char *>(opts.db_dir.c_str()), this->metadata_cursor);
 
     // READ_OPTIMIZE
     string read_optimized_str = opts.read_optimize ? "true" : "false";
     insert_metadata(READ_OPTIMIZE,
-                    const_cast<char *>(read_optimized_str.c_str()));
+                    const_cast<char *>(read_optimized_str.c_str()),
+                    this->metadata_cursor);
 
     // IS_DIRECTED
     string is_directed_str = opts.is_directed ? "true" : "false";
-    insert_metadata(IS_DIRECTED, const_cast<char *>(is_directed_str.c_str()));
+    insert_metadata(IS_DIRECTED,
+                    const_cast<char *>(is_directed_str.c_str()),
+                    this->metadata_cursor);
 
     // is_weighted
     string is_weighted_str = opts.is_weighted ? "true" : "false";
-    insert_metadata(IS_WEIGHTED, const_cast<char *>(is_weighted_str.c_str()));
-    //#endif
+    insert_metadata(IS_WEIGHTED,
+                    const_cast<char *>(is_weighted_str.c_str()),
+                    this->metadata_cursor);
+
+    // NUM_NODES = 0
+    insert_metadata(node_count,
+                    const_cast<char *>(std::to_string(0).c_str()),
+                    this->metadata_cursor);
+
+    // NUM_EDGES = 0
+    insert_metadata(edge_count,
+                    const_cast<char *>(std::to_string(0).c_str()),
+                    this->metadata_cursor);
 
     // this->metadata_cursor->close(this->metadata_cursor);
-}
-
-void AdjList::__restore_from_db(string dbname)
-{
-    int ret = CommonUtil::open_connection(const_cast<char *>(dbname.c_str()),
-                                          opts.stat_log,
-                                          opts.conn_config,
-                                          &conn);
-    ret = CommonUtil::open_session(conn, &session);
-    // Initialize all cursors
-    init_cursors();
-    WT_CURSOR *cursor = nullptr;
-    const char *key, *value;
-    ret = _get_table_cursor(METADATA, &cursor, false);
-
-    while ((ret = cursor->next(cursor)) == 0)
-    {
-        ret = cursor->get_key(cursor, &key);
-        ret = cursor->get_value(cursor, &value);
-
-        if (strcmp(key, DB_DIR.c_str()) == 0)
-        {
-            this->opts.db_dir =
-                value;  // CommonUtil::unpack_string_wt(value, this->session);
-        }
-        else if (strcmp(key, DB_NAME.c_str()) == 0)
-        {
-            this->opts.db_name =
-                value;  // CommonUtil::unpack_string_wt(value, this->session);
-        }
-        else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
-        {
-            if (strcmp(value, "true") == 0)
-            {
-                this->opts.read_optimize = true;
-            }
-            else
-            {
-                this->opts.read_optimize = false;
-            }
-        }
-        else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
-        {
-            if (strcmp(value, "true") == 0)
-            {
-                this->opts.is_directed = true;
-            }
-            else
-            {
-                this->opts.is_directed = false;
-            }
-        }
-        else if (strcmp(key, IS_WEIGHTED.c_str()) == 0)
-        {
-            if (strcmp(value, "true") == 0)
-            {
-                this->opts.is_weighted = true;
-            }
-            else
-            {
-                this->opts.is_weighted = false;
-            }
-        }
-    }
-    // cursor->close(cursor);
-}
-/**
- * @brief This is the generic function to get a cursor on the table
- *
- * @param table This is the table name for which the cursor is needed.
- * @param cursor This is the pointer that will hold the set cursor.
- * @param is_random This is a bool value to indicate if the cursor must be
- * random.
- * @return 0 if the cursor could be set
- */
-int AdjList::_get_table_cursor(const string &table,
-                               WT_CURSOR **cursor,
-                               bool is_random)
-{
-    std::string table_name = "table:" + table;
-    const char *config = NULL;
-    if (is_random)
-    {
-        config = "next_random=true";
-    }
-
-    if (int ret = session->open_cursor(
-                      session, table_name.c_str(), NULL, config, cursor) !=
-                  0)  //! APT: Check for cursor close.
-    {
-        fprintf(
-            stderr, "Failed to get table cursor to %s\n", table_name.c_str());
-        return ret;
-    }
-    return 0;
 }
 
 void AdjList::init_cursors()
@@ -396,7 +216,7 @@ void AdjList::init_cursors()
     // node_cursor initialization
     if (node_cursor == nullptr)
     {
-        ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a cursor to the NODE TABLE" +
@@ -406,7 +226,8 @@ void AdjList::init_cursors()
     // out_adjlist_cursors initialization
     if (out_adjlist_cursor == nullptr)
     {
-        ret = _get_table_cursor(OUT_ADJLIST, &out_adjlist_cursor, false);
+        ret =
+            _get_table_cursor(OUT_ADJLIST, &out_adjlist_cursor, session, false);
         if (ret != 0)
         {
             throw GraphException(
@@ -417,7 +238,7 @@ void AdjList::init_cursors()
     // in_adjlist_cursor initialization
     if (in_adjlist_cursor == nullptr)
     {
-        ret = _get_table_cursor(IN_ADJLIST, &in_adjlist_cursor, false);
+        ret = _get_table_cursor(IN_ADJLIST, &in_adjlist_cursor, session, false);
         if (ret != 0)
         {
             throw GraphException(
@@ -467,6 +288,7 @@ void AdjList::add_node(node to_insert)
     // Now add the adjlist entires
     add_adjlist(in_adj_cur, to_insert.id);
     add_adjlist(out_adj_cur, to_insert.id);
+    set_num_nodes(get_num_nodes() + 1, metadata_cursor);
 }
 
 void AdjList::add_node(int to_insert,
@@ -620,7 +442,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
                              to_string(to_insert.src_id) + "," +
                              to_string(to_insert.dst_id));
     }
-
+    set_num_edges(get_num_edges() + 1, metadata_cursor);
     // insert the reverse edge if undirected
     if (!opts.is_directed)
     {
@@ -633,6 +455,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         {
             cursor->set_value(cursor, 0);
         }
+        set_num_edges(get_num_edges() + 1, metadata_cursor);
         cursor->reset(cursor);
     }
     // cursor->close(cursor);
@@ -692,7 +515,7 @@ node AdjList::get_random_node()
 {
     node found = {0};
     WT_CURSOR *cursor;
-    int ret = _get_table_cursor(NODE_TABLE, &cursor, true);
+    int ret = _get_table_cursor(NODE_TABLE, &cursor, session, true);
     if (ret != 0)
     {
         throw GraphException("could not get a random cursor to the node table");
@@ -708,13 +531,6 @@ node AdjList::get_random_node()
     return found;
 }
 
-void AdjList::close()
-{
-    // TODO:check if there is any state that needs to be saved in the metadata
-    // table.
-    CommonUtil::close_connection(conn);
-}
-
 /**
  * @brief Deletes the node_id from the node table and also removes all of its
  * related edges and adjacency list, and node_id's in and out adj lists.
@@ -727,7 +543,7 @@ void AdjList::delete_node(int node_id)
     delete_related_edges_and_adjlists(node_id);
 
     WT_CURSOR *cursor;
-    int ret = _get_table_cursor(NODE_TABLE, &cursor, false);
+    int ret = _get_table_cursor(NODE_TABLE, &cursor, session, false);
     if (ret != 0)
     {
         throw GraphException("Could not get a cursor to the NODE table");
@@ -739,7 +555,7 @@ void AdjList::delete_node(int node_id)
         throw GraphException("failed to delete node with ID " +
                              std::to_string(node_id));
     }
-    cursor->close(cursor);
+    // cursor->close(cursor);
 
     // delete IN_ADJLIST entries
     cursor = get_in_adjlist_cursor();
@@ -1182,6 +998,7 @@ void AdjList::delete_edge(int src_id, int dst_id)
                              std::to_string(dst_id) + ")");
     }
 
+    set_num_edges(get_num_edges() - 1, metadata_cursor);
     // delete (dst_id, src_id) from edge table if undirected
     if (!opts.is_directed)
     {
@@ -1192,6 +1009,7 @@ void AdjList::delete_edge(int src_id, int dst_id)
                                  std::to_string(dst_id) + ", " +
                                  std::to_string(src_id) + ")");
         }
+        set_num_edges(get_num_edges() - 1, metadata_cursor);
     }
     out_adjlist_cursor->reset(out_adjlist_cursor);
     in_adjlist_cursor->reset(in_adjlist_cursor);
@@ -1212,7 +1030,7 @@ void AdjList::delete_edge(int src_id, int dst_id)
         WT_CURSOR *n_cursor = get_node_cursor();
         if (n_cursor == nullptr)
         {
-            ret = _get_table_cursor(NODE_TABLE, &n_cursor, false);
+            ret = _get_table_cursor(NODE_TABLE, &n_cursor, session, false);
             if (ret != 0)
             {
                 throw GraphException(
@@ -1272,7 +1090,7 @@ void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
     int ret = 0;
     if (edge_cursor == nullptr)
     {
-        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a cursor to the edge table");
@@ -1389,7 +1207,7 @@ void AdjList::delete_node_from_adjlists(int node_id)
     std::vector<int> out_edgelist;
 
     WT_CURSOR *in_cursor = nullptr;
-    int ret = _get_table_cursor(IN_ADJLIST, &in_cursor, false);
+    int ret = _get_table_cursor(IN_ADJLIST, &in_cursor, session, false);
     in_cursor->set_key(in_cursor, node_id);
     ret = in_cursor->search(in_cursor);
     if (ret != 0)
@@ -1403,7 +1221,7 @@ void AdjList::delete_node_from_adjlists(int node_id)
     // from its neighbors
 
     WT_CURSOR *out_cursor = nullptr;
-    ret = _get_table_cursor(OUT_ADJLIST, &out_cursor, false);
+    ret = _get_table_cursor(OUT_ADJLIST, &out_cursor, session, false);
 
     for (int neighbor : in_edgelist)
     {
@@ -1480,14 +1298,24 @@ void AdjList::delete_related_edges_and_adjlists(int node_id)
     cout << std::endl;
 }
 
-AdjIterator::OutCursor AdjList::get_outnbd_cursor()
+AdjIterator::OutCursor AdjList::get_outnbd_iter()
 {
     return AdjIterator::OutCursor(get_out_adjlist_cursor(), session);
 }
 
-AdjIterator::InCursor AdjList::get_innbd_cursor()
+AdjIterator::InCursor AdjList::get_innbd_iter()
 {
     return AdjIterator::InCursor(get_in_adjlist_cursor(), session);
+}
+
+AdjIterator::NodeCursor AdjList::get_node_iter()
+{
+    return AdjIterator::NodeCursor(get_node_cursor(), session);
+}
+
+AdjIterator::EdgeCursor AdjList::get_edge_iter()
+{
+    return AdjIterator::EdgeCursor(get_edge_cursor(), session);
 }
 
 /*
@@ -1497,7 +1325,7 @@ WT_CURSOR *AdjList::get_node_cursor()
 {
     if (node_cursor == nullptr)
     {
-        int ret = _get_table_cursor(NODE_TABLE, &node_cursor, false);
+        int ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a test node cursor");
@@ -1511,7 +1339,7 @@ WT_CURSOR *AdjList::get_edge_cursor()
 {
     if (edge_cursor == nullptr)
     {
-        int ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, false);
+        int ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a test edge cursor");
@@ -1532,7 +1360,8 @@ WT_CURSOR *AdjList::get_in_adjlist_cursor()
 {
     if (in_adjlist_cursor == nullptr)
     {
-        int ret = _get_table_cursor(IN_ADJLIST, &in_adjlist_cursor, false);
+        int ret =
+            _get_table_cursor(IN_ADJLIST, &in_adjlist_cursor, session, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a test in_adjlist cursor");
@@ -1553,7 +1382,8 @@ WT_CURSOR *AdjList::get_out_adjlist_cursor()
 {
     if (out_adjlist_cursor == nullptr)
     {
-        int ret = _get_table_cursor(OUT_ADJLIST, &out_adjlist_cursor, false);
+        int ret =
+            _get_table_cursor(OUT_ADJLIST, &out_adjlist_cursor, session, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a test out_adjlist cursor");
@@ -1570,8 +1400,6 @@ WT_CURSOR *AdjList::get_out_adjlist_cursor()
     return out_adjlist_cursor;
 }
 
-WT_CURSOR *AdjList::get_node_iter() { return get_node_cursor(); }
-
 node AdjList::get_next_node(WT_CURSOR *n_cur)
 {
     node found = {0};
@@ -1586,8 +1414,6 @@ node AdjList::get_next_node(WT_CURSOR *n_cur)
     }
     return found;
 }
-
-WT_CURSOR *AdjList::get_edge_iter() { return get_edge_cursor(); }
 
 edge AdjList::get_next_edge(WT_CURSOR *e_cur)
 {

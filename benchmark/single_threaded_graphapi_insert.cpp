@@ -234,7 +234,7 @@ int main(int argc, char **argv)
         StandardGraph graph1 = StandardGraph(opts);
         info->std_insert = create_init_nodes(graph1, filename);
         auto start = std::chrono::steady_clock::now();
-        graph1.create_indices();
+        graph1.make_indexes();
         auto end = std::chrono::steady_clock::now();
         info->std_index =
             std::chrono::duration_cast<std::chrono::microseconds>(end - start)
@@ -257,7 +257,7 @@ int main(int argc, char **argv)
         info->ekey_insert = create_init_nodes(graph3, filename);
         tearDown(graph3);
         start = std::chrono::steady_clock::now();
-        graph1.create_indices();
+        graph1.make_indexes();
         end = std::chrono::steady_clock::now();
         info->ekey_index =
             std::chrono::duration_cast<std::chrono::microseconds>(end - start)

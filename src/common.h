@@ -43,6 +43,8 @@ extern const std::string SRC_DST_INDEX;
 // specific to AdjList implementation
 extern const std::string IN_ADJLIST;   // New
 extern const std::string OUT_ADJLIST;  // New
+extern const std::string node_count;
+extern const std::string edge_count;
 
 struct graph_opts
 {
@@ -56,6 +58,12 @@ struct graph_opts
     std::string conn_config;
     std::string stat_log;
 };
+
+typedef struct wt_conn_info
+{
+    WT_SESSION *session;
+    WT_CURSOR *cursor;
+} wt_conn;
 
 typedef struct node
 {
@@ -82,6 +90,12 @@ typedef struct edge_index
 
 typedef struct edge_index key_pair;
 
+typedef struct key_range
+{
+    int start;
+    int end;
+} key_range;
+
 typedef struct adjlist
 {
     int node_id;
@@ -101,10 +115,19 @@ class table_iterator
         cursor = cursor_;
         session = sess_;
     }
-    virtual void set_key(key_pair key) = 0;
-
+    // TODO: Change this to accept a Graph object reference and the table/index
+    // name for which the cursor is sought. Current design needs the user to
+    // know which table to provide a cursor for. This is guaranteed to cause
+    // bugs.
    public:
-    virtual void next(adjlist *found, key_pair keys) = 0;
+    void set_key(int key) { cursor->set_key(cursor, key); }
+    bool has_more() { return has_next; };
+    virtual void reset()
+    {
+        cursor->reset(cursor);
+        is_first = true;
+        has_next = true;
+    }
 };
 
 class CommonUtil
@@ -381,7 +404,7 @@ class CommonUtil
             throw GraphException("in here");
         }
         std::string str(packed_vec);
-        int a, b;
+        int a = 0, b = 0;
         extract_from_string(packed_vec, &a, &b);
         found->in_degree = a;
         found->out_degree = b;
@@ -396,7 +419,7 @@ class CommonUtil
             throw GraphException("in here");
         }
         std::string str(packed_vec);
-        int a, b;
+        int a = 0, b = 0;
         extract_from_string(str, &a, &b);
         found->edge_weight = a;
     }

@@ -425,7 +425,7 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
 void test_InCursor(AdjList graph)
 {
     INFO();
-    AdjIterator::InCursor in_cursor = graph.get_innbd_cursor();
+    AdjIterator::InCursor in_cursor = graph.get_innbd_iter();
     adjlist found = {0};
     do
     {
@@ -444,7 +444,7 @@ void test_InCursor(AdjList graph)
 void test_OutCursor(AdjList graph)
 {
     INFO();
-    AdjIterator::OutCursor out_cursor = graph.get_outnbd_cursor();
+    AdjIterator::OutCursor out_cursor = graph.get_outnbd_iter();
     adjlist found;
     do
     {

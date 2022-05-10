@@ -8,21 +8,16 @@
 #include <unordered_map>
 
 #include "common.h"
+#include "graph.h"
 #include "graph_exception.h"
 
 using namespace std;
 namespace AdjIterator
 {
-
 class InCursor : public table_iterator
 {
    public:
     InCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
-
-    void set_key(key_pair key)
-    {
-        cursor->set_key(cursor, key.dst_id);  // In neighbourhood
-    }
 
     void next(adjlist *found)
     {
@@ -34,23 +29,24 @@ class InCursor : public table_iterator
         else
         {
             found->node_id = -1;
+            has_next = false;
         }
     }
 
-    void next(adjlist *found, key_pair keys) override
+    void next(adjlist *found, int key)
     {
-        cursor->set_key(cursor, keys.dst_id);
+        cursor->set_key(cursor, key);
         if (cursor->search(cursor) == 0)
         {
             CommonUtil::__record_to_adjlist(session, cursor, found);
-            found->node_id = keys.dst_id;
+            found->node_id = key;
             cursor->reset(cursor);
         }
         else
         {
-            found->node_id =
-                -1;  // check for out-of-band values in application program.
-            cursor->reset(cursor);
+            found->node_id = -1;
+            // check for out-of-band values in application program.
+            has_next = false;
         }
     }
 };
@@ -60,11 +56,6 @@ class OutCursor : public table_iterator
    public:
     OutCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
 
-    void set_key(key_pair key)
-    {
-        cursor->set_key(cursor, key.src_id);  // Out neighbourhood.
-    }
-
     void next(adjlist *found)
     {
         if (cursor->next(cursor) == 0)
@@ -75,37 +66,118 @@ class OutCursor : public table_iterator
         else
         {
             found->node_id = -1;
+            has_next = false;
         }
     }
 
-    void next(adjlist *found, key_pair keys) override
+    void next(adjlist *found, int key)
     {
         if (cursor->next(cursor) == 0)
         {
             cursor->get_key(cursor, &found->node_id);
-            if (found->node_id == keys.src_id)
+            if (found->node_id == key)
             {
                 CommonUtil::__record_to_adjlist(session, cursor, found);
             }
             else
             {
                 found->node_id = -1;
-                cursor->reset(cursor);
+                has_next = false;
             }
         }
         else
         {
             found->node_id = -1;
+            has_next = false;
         }
     }
 };
-};  // namespace AdjIterator
 
-class AdjList
+class NodeCursor : public table_iterator
+{
+   private:
+    key_range keys;
+
+   public:
+    NodeCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+
+    /**
+     * @brief Set the key range object
+     *
+     * @param _keys the key range object. Set the end key to INT_MAX if you want
+     * to get all the nodes from start node.
+     */
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
+
+    // use key_pair to define start and end keys.
+    void next(node *found)
+    {
+        if (cursor->next(cursor) == 0)
+        {
+            int temp_key;
+            cursor->get_key(cursor, &temp_key);
+            if (temp_key > keys.end)
+            {
+                found->id = -1;
+                has_next = false;
+            }
+            else
+            {
+                CommonUtil::__record_to_node(cursor, found, true);
+                found->id = temp_key;
+            }
+        }
+        else
+        {
+            found->id = -1;
+            // check for out-of-band values in application program.
+            has_next = false;
+        }
+    }
+};
+
+class EdgeCursor : public table_iterator
+{
+   private:
+    key_pair keys;
+
+   public:
+    EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+
+    void set_key(int key) = delete;
+    void set_key(key_pair _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.src_id, keys.dst_id);
+    }
+
+    void next(edge *found)
+    {
+        if (cursor->next(cursor) == 0)
+        {
+            cursor->get_key(cursor, &found->src_id, &found->dst_id);
+            CommonUtil::__record_to_edge(cursor, found);
+        }
+        else
+        {
+            found->src_id = -1;
+            found->dst_id = -1;
+            found->edge_weight = -1;
+            has_next = false;
+        }
+    }
+};
+
+}  // namespace AdjIterator
+
+class AdjList : public GraphBase
 {
    public:
     AdjList(graph_opts &opt_params);
-    AdjList();
     void create_new_graph();
     void add_node(node to_insert);
     void add_node(int to_insert,
@@ -118,8 +190,7 @@ class AdjList
     int get_in_degree(int node_id);
     int get_out_degree(int node_id);
     std::vector<node> get_nodes();
-    int get_num_nodes();
-    int get_num_edges();
+
     void add_edge(edge to_insert, bool is_bulk);
     bool has_edge(int src_id, int dst_id);
     void delete_edge(int src_id, int dst_id);
@@ -129,11 +200,12 @@ class AdjList
     std::vector<node> get_out_nodes(int node_id);
     std::vector<edge> get_in_edges(int node_id);
     std::vector<node> get_in_nodes(int node_id);
-    void close();
     std::string get_db_name() const { return opts.db_name; };
     std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id);
-    AdjIterator::OutCursor get_outnbd_cursor();
-    AdjIterator::InCursor get_innbd_cursor();
+    AdjIterator::OutCursor get_outnbd_iter();
+    AdjIterator::InCursor get_innbd_iter();
+    AdjIterator::NodeCursor get_node_iter();
+    AdjIterator::EdgeCursor get_edge_iter();
 
     int get_edge_weight(int src_id,
                         int dst_id);  // todo <-- is this implemented?
@@ -148,14 +220,8 @@ class AdjList
     WT_CURSOR *get_edge_cursor();
     WT_CURSOR *get_in_adjlist_cursor();
     WT_CURSOR *get_out_adjlist_cursor();
-    WT_CURSOR *get_edge_iter();
-    WT_CURSOR *get_node_iter();
 
    private:
-    WT_CONNECTION *conn;
-    WT_SESSION *session;
-    graph_opts opts;
-
     // structure of the graph
     int edge_id;
     int node_attr_size = 0;  // set on checking the list len
@@ -179,17 +245,8 @@ class AdjList
     WT_CURSOR *in_adjlist_cursor = NULL;
     WT_CURSOR *out_adjlist_cursor = NULL;
     WT_CURSOR *metadata_cursor = NULL;
-    // AdjIterator::InCursor in_cursor;
-    // AdjIterator::OutCursor out_cursor;
 
     // AdjList specific internal methods:
-    int _get_table_cursor(const string &table,
-                          WT_CURSOR **cursor,
-                          bool is_random);
-    void update_node_degree(WT_CURSOR *cursor,
-                            int node_id,
-                            int in_degree,
-                            int out_degree);
     node get_next_node(WT_CURSOR *n_cur);
     edge get_next_edge(WT_CURSOR *e_cur);
     void add_adjlist(WT_CURSOR *cursor, int node_id);
@@ -199,12 +256,13 @@ class AdjList
     void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert);
     void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete);
     void delete_related_edges_and_adjlists(int node_id);
+    void update_node_degree(WT_CURSOR *cursor,
+                            int node_id,
+                            int indeg,
+                            int outdeg);
 
-    // Metadata operations:
-    void insert_metadata(const string &key, const char *value);
-    string get_metadata(const string &key);
-    void __restore_from_db(string db_name);
     void dump_tables();
+    void create_indices() { return; }  // here because defined in interface
 };
 
 /**

@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "common.h"
+#include "graph.h"
 #include "graph_exception.h"
 
 using namespace std;
@@ -22,19 +23,8 @@ class InCursor : public table_iterator
 
    public:
     InCursor(WT_CURSOR *beg_cur, WT_SESSION *sess) { init(beg_cur, sess); }
-    void set_key(key_pair key)
-    {
-        cursor->set_key(cursor, key.dst_id);  // In Nbd
-    }
-
     bool has_more() { return has_next; }
 
-    void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-    }
     void next(adjlist *found)
     {
         int ret = 0;
@@ -116,18 +106,9 @@ class OutCursor : public table_iterator
 
    public:
     OutCursor(WT_CURSOR *beg_cur, WT_SESSION *sess) { init(beg_cur, sess); }
-    void set_key(key_pair key)
-    {
-        cursor->set_key(cursor, key.dst_id);  // In Nbd
-    }
+
     bool has_more() { return has_next; }
 
-    void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-    }
     void next(adjlist *found)
     {
         int ret = 0;
@@ -220,14 +201,85 @@ class OutCursor : public table_iterator
         }
     }
 };
-};  // namespace EKeyIterator
 
-class EdgeKey
+/**
+ * @brief This class is used to iterate over the nodes of a graph.
+ * Considering the way we imlpement EdgeKey, this class needs a cursor to the
+ * dst index. FIXIT: We need to change this to make it transparent to the user.
+ */
+
+class NodeIterator : public table_iterator
+{
+   private:
+    key_range keys;
+
+   public:
+    NodeIterator(WT_CURSOR *beg_cur, WT_SESSION *sess)
+    {
+        init(beg_cur, sess);
+        keys = {
+            -1,
+            -1};  // this can't be -1 because it is used as a node identifier
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start, -1);
+    }
+
+    void next(node *found)
+    {
+        int ret = 0;
+        while ((ret = cursor->next(cursor)) == 0)
+        {
+            int src, dst = 0;
+            int cur_node = 0;
+            cursor->get_key(cursor, &cur_node);
+            if (cur_node != 0)
+            {
+                continue;
+            }
+            cursor->get_value(cursor, &src, &dst);
+            if (keys.start > -1 && keys.end > -1)  // keys were set
+            {
+                if (src >= keys.start && src <= keys.end)
+                {
+                    CommonUtil::__record_to_node_ekey(cursor, found);
+                    found->id = src;
+                    return;
+                }
+                else
+                {
+                    has_next = false;
+                    found->id = -1;
+                    found->in_degree = -1;
+                    found->out_degree = -1;
+                }
+            }
+            else
+            {
+                CommonUtil::__record_to_node_ekey(cursor, found);
+                found->id = src;
+                return;
+            }
+        }
+        if (ret != 0)
+        {
+            has_next = false;
+            found->id = -1;
+            found->in_degree = -1;
+            found->out_degree = -1;
+        }
+    }
+};
+
+}  // namespace EKeyIterator
+
+class EdgeKey : public GraphBase
 {
    public:
-    graph_opts opts;
     EdgeKey(graph_opts opt_params);
-    EdgeKey();
     void create_new_graph();
     void add_node(node to_insert);
 
@@ -238,8 +290,6 @@ class EdgeKey
     int get_in_degree(int node_id);
     int get_out_degree(int node_id);
     std::vector<node> get_nodes();
-    int get_num_nodes();
-    int get_num_edges();
     void add_edge(edge to_insert, bool is_bulk);
     bool has_edge(int src_id, int dst_id);
     void delete_edge(int src_id, int dst_id);
@@ -249,10 +299,6 @@ class EdgeKey
     std::vector<node> get_out_nodes(int node_id);
     std::vector<edge> get_in_edges(int node_id);
     std::vector<node> get_in_nodes(int node_id);
-    void close();
-    std::string get_db_name() const { return opts.db_name; };
-
-    void create_indices();
 
     EKeyIterator::OutCursor get_outnbd_cursor();
     EKeyIterator::InCursor get_innbd_cursor();
@@ -263,11 +309,9 @@ class EdgeKey
     WT_CURSOR *get_dst_idx_cur();
     WT_CURSOR *get_node_iter();
     WT_CURSOR *get_edge_iter();
+    void make_indexes();
 
    private:
-    WT_CONNECTION *conn;
-    WT_SESSION *session;
-
     // Cursors
     WT_CURSOR *edge_cursor = nullptr;
     WT_CURSOR *metadata_cursor = nullptr;
@@ -286,18 +330,9 @@ class EdgeKey
     void update_node_degree(int node_id, int indeg, int outdeg);
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
-    int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random);
-    int _get_index_cursor(std::string table_name,
-                          std::string idx_name,
-                          std::string projection,
-                          WT_CURSOR **cursor);
+
+    void create_indices();
     void drop_indices();
-
-    // metadata and restore operations
-    void insert_metadata(string key, char *value);
-    string get_metadata(string key);
-    void __restore_from_db(string db_name);
-
     void close_all_cursors();
 };
 #endif
