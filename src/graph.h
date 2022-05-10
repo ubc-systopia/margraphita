@@ -45,7 +45,7 @@ class GraphBase
     int get_num_edges();
     void set_num_nodes(int num_nodes, WT_CURSOR *cursor);
     void set_num_edges(int num_edges, WT_CURSOR *cursor);
-    virtual void create_indices() = 0;
+    virtual void make_indexes() = 0;
     std::string get_db_name() const { return opts.db_name; };
 
    protected:

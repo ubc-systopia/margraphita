@@ -21,13 +21,6 @@ target_include_directories(bfs PRIVATE ${PATH_SRC})
 target_link_libraries(bfs PUBLIC ${NAME_LIB}
                                         graph_utils)
 
-add_executable(bfs_do bfs_do.cpp)
-INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
-
-target_include_directories(bfs_do PRIVATE ${PATH_SRC})
-target_link_libraries(bfs_do PUBLIC ${NAME_LIB}
-                                        graph_utils)
-
 add_executable(tc tc.cpp)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 
