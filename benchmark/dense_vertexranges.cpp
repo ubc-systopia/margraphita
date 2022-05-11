@@ -1,4 +1,5 @@
 #include <getopt.h>
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -131,7 +132,7 @@ int main(int argc, char *argv[])
         }
     }
 
-#pragma omp parallel for num_threads shared(num_nodes, NUM_THREADS)
+#pragma omp parallel for num_threads(NUM_THREADS) shared(num_nodes)
     for (int i = 0; i < NUM_THREADS; i++)
     {
         int offset = ((i * num_nodes) / NUM_THREADS);
@@ -146,7 +147,7 @@ int main(int argc, char *argv[])
         out << iter->first << " : " << iter->second << std::endl;
     }
 
-#pragma omp parallel for num_threads shared(num_edges, NUM_THREADS)
+#pragma omp parallel for num_threads(NUM_THREADS) shared(num_edges)
     for (int i = 0; i < NUM_THREADS; i++)
     {
         int beg_offset = ((i * num_edges) / NUM_THREADS);
