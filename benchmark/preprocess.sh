@@ -82,29 +82,37 @@ fi
 
 if [ $preprocess -eq 1 ]
 then
+    #### Steps to preprocess the graph #############################################
+    #1. remove the comment lines. 
+    #2 create nodes file. 
+    #3 create new dense edges file. 
+    #4 split the edges file.
+
     ##remove all lines that begin with a comment
     sort --parallel=$NUM_THREADS -k 1,2 -g ${graph} | sed '/^#/d' > ${graph}_sorted.txt
     mv ${graph} ${graph}_orig
     mv ${graph}_sorted.txt ${graph} #overwrite the original file
     # with the sorted, no comment version
-
-    # ##Split the edges file
-    if [[ $OSTYPE == "darwin"* ]]; then
-        split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_edges"
-    elif [[ $OSTYPE == 'linux-gnu'* ]]; then
-        split --number=l/$NUM_FILES ${graph} "${graph}_edges"
-    else
-        echo "unknown platform $OSTYPE"
-        exit 1
-    fi
-
-
+    
     #Create a nodes file
     sed -e 's/\t/\n/g; s/\r//g' ${graph} | sort -u --parallel=$NUM_THREADS > ${graph}_nodes
     if [[ $OSTYPE == 'darwin'* ]]; then
         split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_nodes"
     elif [[ $OSTYPE == 'linux-gnu'* ]]; then
         split --number=l/$NUM_FILES ${graph}_nodes ${graph}_nodes
+    else
+        echo "unknown platform $OSTYPE"
+        exit 1
+    fi
+
+    #remap the graph to the dense vertex set.
+    ${RELEASE_PATH}/benchmark/dense_vertexranges -n ${nodecnt} -e ${edgecnt} -f ${graph}
+ 
+    # ##Split the edges file
+    if [[ $OSTYPE == "darwin"* ]]; then
+        split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_edges"
+    elif [[ $OSTYPE == 'linux-gnu'* ]]; then
+        split --number=l/$NUM_FILES ${graph} "${graph}_edges"
     else
         echo "unknown platform $OSTYPE"
         exit 1

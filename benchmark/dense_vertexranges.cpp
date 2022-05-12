@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <mutex>
@@ -17,6 +18,7 @@
 double num_edges;
 double num_nodes;
 std::string dataset;
+std::string out_dir;
 std::unordered_map<int, int> remap;
 
 typedef std::shared_mutex Lock;
@@ -60,13 +62,10 @@ void construct_vertex_mapping(int line_num)
 }
 void convert_edge_list(int beg_offset, int end_offset, int t_id)
 {
-    std::cout << "tid " << t_id << "; (" << beg_offset << "," << end_offset
-              << ")";
-    std::string filename = dataset;
-    std::ifstream edgefile(filename.c_str());
+    std::ifstream edgefile(dataset.c_str());
 
     char c = (char)(97 + t_id);
-    std::string out_filename;
+    std::string out_filename = dataset + "edges";
     out_filename.push_back('a');
     out_filename.push_back(c);
     std::ofstream outfile(out_filename.c_str());
@@ -97,14 +96,32 @@ void convert_edge_list(int beg_offset, int end_offset, int t_id)
     }
 }
 
+void help()
+{
+    std::cout << "Usage: ./dense_vertexranges --edges <num_edges> --nodes "
+                 "<num_nodes> --file <dataset>"
+              << std::endl;
+    std::cout << "This program will generate a dense vertexrange file for "
+                 "the graph and produce a new graph with this new mapping. "
+                 "This assumes that the nodes file has been created "
+                 "<preprocess.sh does that> "
+              << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
     std::string logfile;
     static struct option long_opts[] = {{"edges", required_argument, 0, 'e'},
                                         {"nodes", required_argument, 0, 'n'},
-                                        {"file", required_argument, 0, 'f'}};
+                                        {"file", required_argument, 0, 'f'},
+                                        {0, 0, 0, 0}};
     int option_idx = 0;
     int c;
+    if (argc < 2)
+    {
+        help();
+        exit(-1);
+    }
 
     while ((c = getopt_long(argc, argv, "e:n:f:", long_opts, &option_idx)) !=
            -1)
@@ -124,11 +141,8 @@ int main(int argc, char *argv[])
             /* missing option argument */
             case '?':
             default:
-                std::cout
-                    << "enter dbname base name(--db), edgecount (--edges), "
-                       "nodecount (--nodes), and dataset file (--file), "
-                       "undirected (--undirected), read_opt (--ropt)";
-                exit(0);
+                help();
+                exit(-1);
         }
     }
 
@@ -139,9 +153,10 @@ int main(int argc, char *argv[])
 
         construct_vertex_mapping(offset);
     }
-    sleep(5);
 
-    std::ofstream out("mapping.txt");
+    std::filesystem::path path(dataset);
+    std::string out_filename = path.parent_path().string() + "/dense_map.txt";
+    std::ofstream out(out_filename.c_str());
     for (auto iter = remap.begin(); iter != remap.end(); ++iter)
     {
         out << iter->first << " : " << iter->second << std::endl;
