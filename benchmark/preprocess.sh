@@ -108,15 +108,15 @@ then
     #remap the graph to the dense vertex set.
     ${RELEASE_PATH}/benchmark/dense_vertexranges -n ${nodecnt} -e ${edgecnt} -f ${graph}
  
-    # ##Split the edges file
-    if [[ $OSTYPE == "darwin"* ]]; then
-        split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_edges"
-    elif [[ $OSTYPE == 'linux-gnu'* ]]; then
-        split --number=l/$NUM_FILES ${graph} "${graph}_edges"
-    else
-        echo "unknown platform $OSTYPE"
-        exit 1
-    fi
+    # # ##Split the edges file
+    # if [[ $OSTYPE == "darwin"* ]]; then
+    #     split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_edges"
+    # elif [[ $OSTYPE == 'linux-gnu'* ]]; then
+    #     split --number=l/$NUM_FILES ${graph} "${graph}_edges"
+    # else
+    #     echo "unknown platform $OSTYPE"
+    #     exit 1
+    # fi
 fi
 
 if [ $insert -eq 1 ]
