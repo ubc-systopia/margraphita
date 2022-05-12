@@ -69,7 +69,7 @@ void convert_edge_list(node_id_t beg_offset,
     std::ifstream edgefile(dataset.c_str());
 
     char c = (char)(97 + t_id);
-    std::string out_filename = dataset + "_edges";
+    std::string out_filename;
     out_filename.push_back('a');
     out_filename.push_back(c);
     std::ofstream outfile(out_filename.c_str());
