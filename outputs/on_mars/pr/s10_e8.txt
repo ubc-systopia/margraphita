@@ -1,0 +1,5 @@
+--------------------------------
+Wed 11 May 2022 03:36:53 PM PDT
+Running PageRank
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/jackgong/margraphita/db/s10_e8/adj_rd_s10_e8

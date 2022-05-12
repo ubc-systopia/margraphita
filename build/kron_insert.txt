@@ -11,7 +11,7 @@
 + RESULT=/home/jackgong/margraphita/build
 + preprocess=1
 + insert=1
-+ '[' -z '-d /home/jackgong/s20_e8 -f /home/jackgong/s20_e8/graph_s20_e8 -o /home/jackgong/margraphita/db/s20_e8 -m s20_e8 -n 1048576 -e 8388608 -t ekey -l /home/jackgong/margraphita/outputs/ -p 1 -b 1 -i 0' ']'
++ '[' -z '-d /home/jackgong/s20_e8 -f /home/jackgong/s20_e8/graph_s20_e8 -o /home/jackgong/margraphita/db/s20_e8 -m s20_e8 -n 1048576 -e 8388608 -t ekey -l /home/jackgong/margraphita/build -p 1 -b 1 -i 0' ']'
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
 + graph_dir=/home/jackgong/s20_e8
@@ -35,7 +35,7 @@
 + type=ekey
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
-+ RESULT=/home/jackgong/margraphita/outputs
++ RESULT=/home/jackgong/margraphita/build
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
 + preprocess=1
@@ -76,12 +76,12 @@
 Running PageRank
 + /home/jackgong/margraphita/build/release/benchmark/pagerank -n -m ekey_d_s20_e8 -b PR -a /home/jackgong/margraphita/db/s20_e8 -s s20_e8 -o -d -l ekey -e
 Running PageRank
-+ mkdir -p /home/jackgong/margraphita/outputs
++ mkdir -p /home/jackgong/margraphita/build
 + echo '#Inserting s20_e8'
 + echo 'Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set'
 + echo '#s20_e8:'
 + echo '#s20_e8:'
-+ /usr/bin/time --format=%C,%e,%U,%S,%F,%M --output-file=insert_time.txt --append /home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv
-+ /usr/bin/time --format=%C,%e,%U,%S,%F,%M --output-file=insert_time.txt --append /home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv
++ /usr/bin/time --format=%C,%e,%U,%S,%F,%M --output-file=insert_time.txt --append /home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv
++ /usr/bin/time --format=%C,%e,%U,%S,%F,%M --output-file=insert_time.txt --append /home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/build/kron_insert.csv
 + '[' 0 -eq 1 ']'
 ---------------------------------------------

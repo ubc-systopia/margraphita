@@ -1,0 +1,306 @@
+#Inserting s10_e8
+Command exited with non-zero status 127
+./bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.00,0.00,0.00,0,1032
+#Inserting s10_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.80,0.80,0.00,0,8688
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.80,0.79,0.00,0,8784
+#Inserting s10_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s10_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.05,1.03,0.01,0,8356
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,0.79,0.79,0.00,0,8144
+#Inserting s10_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s10_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,0.81,0.80,0.00,0,8736
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,0.81,0.80,0.00,0,8720
+#Inserting s10_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s10_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t ekey -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,0.80,0.79,0.00,0,8148
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t ekey -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,0.79,0.79,0.00,0,8064
+#Inserting s11_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s11_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t std -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.08,1.07,0.00,0,9444
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t std -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,0.83,0.82,0.00,0,9240
+#Inserting s11_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s11_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t adj -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,0.85,0.83,0.01,0,10192
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t adj -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,0.86,0.85,0.00,0,10240
+#Inserting s11_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s11_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t ekey -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.09,1.07,0.01,0,9372
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t ekey -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.08,1.07,0.01,0,9264
+#Inserting s10_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s10_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.05,1.04,0.00,0,8048
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.05,1.03,0.01,0,8252
+#Inserting s10_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s10_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.07,1.04,0.01,0,8732
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.06,1.05,0.01,0,8664
+#Inserting s10_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s10_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t ekey -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.06,1.04,0.01,0,8120
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t ekey -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,0.80,0.79,0.00,0,8280
+#Inserting s11_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s11_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t std -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.09,1.08,0.00,0,9312
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t std -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.08,1.07,0.00,0,9188
+#Inserting s11_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s11_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t adj -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.09,1.08,0.00,0,10024
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t adj -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.10,1.09,0.00,0,10032
+#Inserting s11_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s11_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t ekey -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,0.83,0.83,0.00,0,9308
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t ekey -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,0.83,0.82,0.00,0,9180
+#Inserting s12_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s12_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t std -p /home/jackgong/margraphita/db/s12_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.14,1.12,0.01,0,11552
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t std -p /home/jackgong/margraphita/db/s12_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.14,1.13,0.00,0,11608
+#Inserting s12_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s12_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t adj -p /home/jackgong/margraphita/db/s12_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.17,1.15,0.00,0,13076
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t adj -p /home/jackgong/margraphita/db/s12_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,0.91,0.90,0.01,0,13144
+#Inserting s12_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s12_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t ekey -p /home/jackgong/margraphita/db/s12_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.15,1.13,0.00,0,11400
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t ekey -p /home/jackgong/margraphita/db/s12_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.14,1.13,0.00,0,11336
+#Inserting s13_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s13_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t std -p /home/jackgong/margraphita/db/s13_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.27,1.24,0.02,0,15920
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t std -p /home/jackgong/margraphita/db/s13_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.01,0.98,0.02,0,15900
+#Inserting s13_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s13_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t adj -p /home/jackgong/margraphita/db/s13_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.31,1.29,0.01,0,18956
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t adj -p /home/jackgong/margraphita/db/s13_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.05,1.03,0.01,0,18956
+#Inserting s13_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s13_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t ekey -p /home/jackgong/margraphita/db/s13_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.27,1.26,0.00,0,15968
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t ekey -p /home/jackgong/margraphita/db/s13_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.01,0.99,0.01,0,15976
+#Inserting s14_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s14_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t std -p /home/jackgong/margraphita/db/s14_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.52,1.48,0.02,0,24632
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t std -p /home/jackgong/margraphita/db/s14_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.53,1.50,0.02,0,24652
+#Inserting s14_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s14_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t adj -p /home/jackgong/margraphita/db/s14_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.61,1.59,0.02,0,31372
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t adj -p /home/jackgong/margraphita/db/s14_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.39,1.37,0.01,0,31308
+#Inserting s14_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s14_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t ekey -p /home/jackgong/margraphita/db/s14_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,1.55,1.52,0.01,0,24872
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t ekey -p /home/jackgong/margraphita/db/s14_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,1.51,1.50,0.00,0,24576
+#Inserting s15_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s15_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t std -p /home/jackgong/margraphita/db/s15_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,2.03,1.98,0.04,0,42160
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t std -p /home/jackgong/margraphita/db/s15_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,2.02,1.98,0.03,0,42116
+#Inserting s15_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s15_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t adj -p /home/jackgong/margraphita/db/s15_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,2.19,2.16,0.04,0,54732
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t adj -p /home/jackgong/margraphita/db/s15_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,2.08,2.03,0.05,0,54772
+#Inserting s15_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s15_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t ekey -p /home/jackgong/margraphita/db/s15_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,2.05,2.00,0.04,0,42572
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t ekey -p /home/jackgong/margraphita/db/s15_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,2.02,1.97,0.04,0,41936
+#Inserting s16_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s16_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t std -p /home/jackgong/margraphita/db/s16_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,3.05,2.96,0.07,0,76560
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t std -p /home/jackgong/margraphita/db/s16_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,2.80,2.73,0.05,0,76596
+#Inserting s16_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s16_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t adj -p /home/jackgong/margraphita/db/s16_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,3.45,3.39,0.08,0,99044
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t adj -p /home/jackgong/margraphita/db/s16_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,3.39,3.30,0.10,0,98788
+#Inserting s16_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s16_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t ekey -p /home/jackgong/margraphita/db/s16_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,3.12,3.07,0.04,0,77748
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t ekey -p /home/jackgong/margraphita/db/s16_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,2.74,2.63,0.10,0,76864
+#Inserting s17_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s17_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t std -p /home/jackgong/margraphita/db/s17_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,5.42,5.29,0.12,0,142720
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t std -p /home/jackgong/margraphita/db/s17_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,5.52,5.41,0.10,0,142436
+#Inserting s17_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s17_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t adj -p /home/jackgong/margraphita/db/s17_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,6.73,6.44,0.34,0,172924
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t adj -p /home/jackgong/margraphita/db/s17_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,5.83,5.71,0.13,0,172700
+#Inserting s17_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s17_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t ekey -p /home/jackgong/margraphita/db/s17_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,5.32,5.14,0.17,0,144120
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t ekey -p /home/jackgong/margraphita/db/s17_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,5.19,5.04,0.15,0,142472
+#Inserting s18_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s18_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t std -p /home/jackgong/margraphita/db/s18_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,9.22,8.87,0.34,0,278768
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t std -p /home/jackgong/margraphita/db/s18_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,9.16,8.90,0.25,0,278520
+#Inserting s18_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s18_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t adj -p /home/jackgong/margraphita/db/s18_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,11.45,11.18,0.39,0,349432
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t adj -p /home/jackgong/margraphita/db/s18_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,11.19,10.98,0.32,0,349336
+#Inserting s18_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s18_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t ekey -p /home/jackgong/margraphita/db/s18_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,9.81,9.52,0.27,0,279276
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t ekey -p /home/jackgong/margraphita/db/s18_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,9.43,9.07,0.35,0,275740
+#Inserting s19_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s19_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t std -p /home/jackgong/margraphita/db/s19_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,17.69,17.14,0.56,0,553976
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t std -p /home/jackgong/margraphita/db/s19_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,17.78,17.23,0.55,0,553748
+#Inserting s19_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s19_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t adj -p /home/jackgong/margraphita/db/s19_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,21.70,22.46,1.47,0,739844
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t adj -p /home/jackgong/margraphita/db/s19_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,22.44,23.17,1.86,0,736476
+#Inserting s19_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s19_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t ekey -p /home/jackgong/margraphita/db/s19_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,19.99,19.21,0.78,0,543224
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t ekey -p /home/jackgong/margraphita/db/s19_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,18.59,18.03,0.54,0,538168
+#Inserting s20_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s20_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t std -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,36.34,36.91,1.57,0,758228
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t std -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,37.18,37.52,1.99,0,757880
+#Inserting s20_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s20_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t adj -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,47.01,46.27,1.98,0,918124
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t adj -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,46.16,45.65,3.10,0,917808
+#Inserting s20_e8
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s20_e8:
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/build/kron_insert.csv,39.20,39.90,2.24,0,825196
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/build/kron_insert.csv,38.67,39.90,1.84,0,782300
+#Inserting s10_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/build/release/benchmark/kron_insert.csv,1.05,1.04,0.00,0,8168
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/build/release/benchmark/kron_insert.csv,0.84,0.83,0.00,0,8324
+#Inserting s10_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/build/release/benchmark/kron_insert.csv,0.79,0.79,0.00,0,8240
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/build/release/benchmark/kron_insert.csv,0.79,0.79,0.00,0,8140
+#Inserting s10_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.80,0.79,0.00,0,8236
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.79,0.78,0.00,0,8224
+#Inserting s10_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.85,0.84,0.00,0,8816
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.06,1.03,0.01,0,8668
+#Inserting s10_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t ekey -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.05,1.03,0.01,0,8300
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t ekey -p /home/jackgong/margraphita/db/s10_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.05,1.03,0.01,0,8296
+#Inserting s11_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t std -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.08,1.07,0.00,0,9348
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t std -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.08,1.07,0.00,0,9340
+#Inserting s11_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t adj -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.87,0.85,0.01,0,10080
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t adj -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.09,1.08,0.01,0,10124
+#Inserting s11_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t ekey -p /home/jackgong/margraphita/db/s11_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.08,1.08,0.00,0,9348
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s11_e8 -e 16384 -n 2048 -f /home/jackgong/s11_e8/graph_s11_e8 -t ekey -p /home/jackgong/margraphita/db/s11_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.85,0.83,0.01,0,9288
+#Inserting s12_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t std -p /home/jackgong/margraphita/db/s12_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.14,1.13,0.00,0,11520
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t std -p /home/jackgong/margraphita/db/s12_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.88,0.88,0.00,0,11432
+#Inserting s12_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t adj -p /home/jackgong/margraphita/db/s12_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.16,1.15,0.00,0,13080
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t adj -p /home/jackgong/margraphita/db/s12_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.92,0.90,0.02,0,13052
+#Inserting s12_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t ekey -p /home/jackgong/margraphita/db/s12_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.89,0.88,0.00,0,11436
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s12_e8 -e 32768 -n 4096 -f /home/jackgong/s12_e8/graph_s12_e8 -t ekey -p /home/jackgong/margraphita/db/s12_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.88,0.86,0.01,0,11224
+#Inserting s13_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t std -p /home/jackgong/margraphita/db/s13_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.99,0.98,0.01,0,15860
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t std -p /home/jackgong/margraphita/db/s13_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.00,0.99,0.00,0,15816
+#Inserting s13_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t adj -p /home/jackgong/margraphita/db/s13_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.31,1.29,0.01,0,18936
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t adj -p /home/jackgong/margraphita/db/s13_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.07,1.04,0.02,0,18700
+#Inserting s13_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t ekey -p /home/jackgong/margraphita/db/s13_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.01,1.00,0.00,0,15824
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s13_e8 -e 65536 -n 8192 -f /home/jackgong/s13_e8/graph_s13_e8 -t ekey -p /home/jackgong/margraphita/db/s13_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.00,0.98,0.01,0,15948
+#Inserting s14_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t std -p /home/jackgong/margraphita/db/s14_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.51,1.49,0.01,0,24684
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t std -p /home/jackgong/margraphita/db/s14_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.50,1.48,0.02,0,24356
+#Inserting s14_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t adj -p /home/jackgong/margraphita/db/s14_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.36,1.34,0.01,0,31404
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t adj -p /home/jackgong/margraphita/db/s14_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.38,1.35,0.03,0,31272
+#Inserting s14_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t ekey -p /home/jackgong/margraphita/db/s14_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.54,1.53,0.01,0,24848
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s14_e8 -e 131072 -n 16384 -f /home/jackgong/s14_e8/graph_s14_e8 -t ekey -p /home/jackgong/margraphita/db/s14_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.26,1.24,0.01,0,24628
+#Inserting s15_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t std -p /home/jackgong/margraphita/db/s15_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.74,1.72,0.01,0,42152
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t std -p /home/jackgong/margraphita/db/s15_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.76,1.73,0.02,0,42064
+#Inserting s15_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t adj -p /home/jackgong/margraphita/db/s15_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.95,1.91,0.05,0,54712
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t adj -p /home/jackgong/margraphita/db/s15_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.96,1.92,0.05,0,54796
+#Inserting s15_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t ekey -p /home/jackgong/margraphita/db/s15_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,1.85,1.81,0.03,0,42588
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s15_e8 -e 262144 -n 32768 -f /home/jackgong/s15_e8/graph_s15_e8 -t ekey -p /home/jackgong/margraphita/db/s15_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,2.03,2.01,0.01,0,41992
+#Inserting s16_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t std -p /home/jackgong/margraphita/db/s16_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,3.01,2.95,0.06,0,76628
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t std -p /home/jackgong/margraphita/db/s16_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,2.70,2.64,0.06,0,76628
+#Inserting s16_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t adj -p /home/jackgong/margraphita/db/s16_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,3.48,3.43,0.07,0,98856
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t adj -p /home/jackgong/margraphita/db/s16_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,3.19,3.15,0.06,0,99036
+#Inserting s16_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t ekey -p /home/jackgong/margraphita/db/s16_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,2.86,2.77,0.08,0,77704
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s16_e8 -e 524288 -n 65536 -f /home/jackgong/s16_e8/graph_s16_e8 -t ekey -p /home/jackgong/margraphita/db/s16_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,2.87,2.82,0.04,0,76664
+#Inserting s17_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t std -p /home/jackgong/margraphita/db/s17_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,5.00,4.87,0.12,0,142632
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t std -p /home/jackgong/margraphita/db/s17_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,5.10,4.88,0.15,0,142556
+#Inserting s17_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t adj -p /home/jackgong/margraphita/db/s17_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,6.20,6.02,0.19,0,172700
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t adj -p /home/jackgong/margraphita/db/s17_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,6.00,5.84,0.17,0,172584
+#Inserting s17_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t ekey -p /home/jackgong/margraphita/db/s17_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,5.21,5.11,0.09,0,143936
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s17_e8 -e 1048576 -n 131072 -f /home/jackgong/s17_e8/graph_s17_e8 -t ekey -p /home/jackgong/margraphita/db/s17_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,5.47,5.30,0.17,0,142432
+#Inserting s18_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t std -p /home/jackgong/margraphita/db/s18_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,9.43,9.15,0.30,0,278800
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t std -p /home/jackgong/margraphita/db/s18_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,9.09,8.77,0.32,0,278664
+#Inserting s18_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t adj -p /home/jackgong/margraphita/db/s18_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,11.63,11.35,0.42,0,349232
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t adj -p /home/jackgong/margraphita/db/s18_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,11.15,10.87,0.39,0,349204
+#Inserting s18_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t ekey -p /home/jackgong/margraphita/db/s18_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,9.69,9.39,0.28,0,279280
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s18_e8 -e 2097152 -n 262144 -f /home/jackgong/s18_e8/graph_s18_e8 -t ekey -p /home/jackgong/margraphita/db/s18_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,9.80,9.46,0.33,0,275848
+#Inserting s19_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t std -p /home/jackgong/margraphita/db/s19_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,18.18,17.67,0.56,0,554268
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t std -p /home/jackgong/margraphita/db/s19_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,18.23,17.67,0.57,0,553700
+#Inserting s19_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t adj -p /home/jackgong/margraphita/db/s19_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,21.82,22.45,1.61,0,738224
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t adj -p /home/jackgong/margraphita/db/s19_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,22.95,23.84,1.19,0,765504
+#Inserting s19_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t ekey -p /home/jackgong/margraphita/db/s19_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,20.00,19.45,0.53,0,543108
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t ekey -p /home/jackgong/margraphita/db/s19_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,18.09,17.57,0.52,0,538192
+#Inserting s20_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t std -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,36.28,37.03,1.74,0,764288
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t std -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,37.71,38.19,1.88,0,764324
+#Inserting s20_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t adj -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,47.01,47.14,2.40,0,918420
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t adj -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,46.28,46.81,2.05,0,917672
+#Inserting s20_e8
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,39.71,40.54,2.08,0,784584
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,37.16,38.01,2.02,0,801500

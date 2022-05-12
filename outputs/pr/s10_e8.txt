@@ -2747,3 +2747,55 @@ PR  completed in : 60608
 --------------------------------
 Tue 26 Oct 2021 01:54:57 AM
 Running PageRank
+--------------------------------
+Wed 11 May 2022 03:30:30 PM PDT
+Running PageRank
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/jackgong/margraphita/db/s10_e8/adj_rd_s10_e8
+--------------------------------
+Wed 11 May 2022 03:55:39 PM PDT
+Running PageRank
+terminate called after throwing an instance of 'GraphException'
+  what():  Could not find the expected WT DB directory - /home/jackgong/margraphita/db/s10_e8/adj_rd_s10_e8
+--------------------------------
+Thu 12 May 2022 01:26:52 PM PDT
+Running PageRank
+Graph loaded in 764852
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 01:29:12 PM PDT
+Running PageRank
+Graph loaded in 1.01247e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 01:47:59 PM PDT
+Running PageRank
+Graph loaded in 1.01449e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 01:49:48 PM PDT
+Running PageRank
+Graph loaded in 1.01228e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 02:07:06 PM PDT
+Running PageRank
+Graph loaded in 764023
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 02:25:23 PM PDT
+Running PageRank
+Graph loaded in 1.01354e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 02:25:42 PM PDT
+Running PageRank
+Graph loaded in 1.01495e+06
+pure virtual method called
+terminate called without an active exception

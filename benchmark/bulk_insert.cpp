@@ -452,7 +452,7 @@ int main(int argc, char *argv[])
     {
         time_info *this_thread_time = insert_edge_thread(i);
         edge_times->insert_time += this_thread_time->insert_time;
-        edge_times->num_inserted += this_thread_time->num_inserted;
+        edge_times->num_inserted += this_thread_time->num_inserted; //open cursor to metadata table, insert key "numNodes/Edges", conversion
         edge_times->read_time += this_thread_time->read_time;
     }
 

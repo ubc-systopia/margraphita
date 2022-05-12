@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
         graph = &ekeyGraph;
     } else {
         std::cout << "Unrecognized graph representation";
-        exit(0);
+        //exit(0);
     }
     if (pr_cli.is_exit_on_create())  // Exit after creating the db
     {
@@ -211,8 +211,7 @@ int main(int argc, char *argv[])
          << endl;
 
     if ((pr_cli.get_graph_type() == "std" || pr_cli.get_graph_type() == "ekey") 
-        && pr_cli.is_index_create())
-    {
+        && pr_cli.is_index_create()) {
         Timer.start();
         graph->make_indexes();
         Timer.stop();

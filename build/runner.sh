@@ -10,10 +10,10 @@ source paths.sh
 # git add -u
 # git commit -a
 
- echo "---------NOW MAKING A RELEASE BUILD------------"
- mkdir ${RELEASE_PATH}
- cd ${RELEASE_PATH}
- cmake ../.. && make -j16
+# echo "---------NOW MAKING A RELEASE BUILD------------"
+# mkdir ${RELEASE_PATH}
+# cd ${RELEASE_PATH}
+# cmake ../.. && make -j16
 
 # echo "---------NOW MAKING A PROFILE BUILD------------"
 
@@ -31,11 +31,13 @@ source paths.sh
 #commit_id=`git rev-parse --short HEAD`
 
 # #create directory where the scripts will insert logs
-dir="${HOME}/scratch/margraphita/outputs/${commit_id}"
-# mkdir -p $dir
+dir="${HOME}/margraphita/outputs/${commit_id}"
+mkdir -p $dir
 
+# generste kron files
+# /bin/bash kron_gen.sh
 # #pass this dir to bulk_insert
-# #/bin/bash insert_kron.sh -l ${dir}
+# /bin/bash insert_kron.sh -l ${dir}
 
 # #now pass this commit_id to run_benchmarks.sh
-#/bin/bash run_benchmarks.sh -d ${dir}
+/bin/bash run_benchmarks.sh -d ${dir}
