@@ -2799,3 +2799,944 @@ Running PageRank
 Graph loaded in 1.01495e+06
 pure virtual method called
 terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:16:39 PM PDT
+Running PageRank
+Graph loaded in 1.01684e+06
+--------------------------------
+Thu 12 May 2022 03:22:44 PM PDT
+Running PageRank
+Graph loaded in 783149
+--------------------------------
+Thu 12 May 2022 03:23:11 PM PDT
+Running PageRank
+Graph loaded in 1.01401e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:33:38 PM PDT
+Running PageRank
+Graph loaded in 1.0125e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:42:57 PM PDT
+Running PageRank
+Graph loaded in 1.01428e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:46:16 PM PDT
+Running PageRank
+Graph loaded in 1.01243e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:46:35 PM PDT
+Running PageRank
+Graph loaded in 1.00468e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:48:33 PM PDT
+Running PageRank
+Graph loaded in 1.01554e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:50:10 PM PDT
+Running PageRank
+Graph loaded in 1.0152e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:55:42 PM PDT
+Running PageRank
+Graph loaded in 1.01434e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 03:56:13 PM PDT
+Running PageRank
+Graph loaded in 1.01389e+06
+PR  completed in : 1.198
+--------------------------------
+Thu 12 May 2022 03:56:14 PM PDT
+Running PageRank
+Graph loaded in 1.01304e+06
+PR  completed in : 1.225
+--------------------------------
+Thu 12 May 2022 03:56:15 PM PDT
+Running PageRank
+Graph loaded in 1.013e+06
+PR  completed in : 1.184
+--------------------------------
+Thu 12 May 2022 03:56:17 PM PDT
+Running PageRank
+Graph loaded in 1.01381e+06
+PR  completed in : 1.436
+--------------------------------
+Thu 12 May 2022 03:56:18 PM PDT
+Running PageRank
+Graph loaded in 1.01761e+06
+PR  completed in : 1.305
+--------------------------------
+Thu 12 May 2022 03:56:19 PM PDT
+Running PageRank
+Graph loaded in 1.00395e+06
+PR  completed in : 1.387
+--------------------------------
+Thu 12 May 2022 03:56:20 PM PDT
+Running PageRank
+Graph loaded in 1.02087e+06
+PR  completed in : 1.578
+--------------------------------
+Thu 12 May 2022 03:56:21 PM PDT
+Running PageRank
+Graph loaded in 1.01344e+06
+PR  completed in : 0.819
+--------------------------------
+Thu 12 May 2022 03:56:40 PM PDT
+Running PageRank
+Graph loaded in 765456
+PR  completed in : 1.14
+--------------------------------
+Thu 12 May 2022 03:56:41 PM PDT
+Running PageRank
+Graph loaded in 1.01425e+06
+PR  completed in : 1.468
+--------------------------------
+Thu 12 May 2022 03:56:42 PM PDT
+Running PageRank
+Graph loaded in 1.01534e+06
+PR  completed in : 1.392
+--------------------------------
+Thu 12 May 2022 03:56:43 PM PDT
+Running PageRank
+Graph loaded in 784373
+PR  completed in : 1.502
+--------------------------------
+Thu 12 May 2022 03:56:43 PM PDT
+Running PageRank
+--------------------------------
+Thu 12 May 2022 03:57:05 PM PDT
+Running PageRank
+Graph loaded in 1.01482e+06
+PR  completed in : 12.481
+--------------------------------
+Thu 12 May 2022 03:57:06 PM PDT
+Running PageRank
+Graph loaded in 1.0124e+06
+PR  completed in : 10.572
+--------------------------------
+Thu 12 May 2022 03:57:07 PM PDT
+Running PageRank
+--------------------------------
+Thu 12 May 2022 03:57:34 PM PDT
+Running PageRank
+Graph loaded in 765312
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:03:43 PM PDT
+Running PageRank
+Graph loaded in 762518
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:11:51 PM PDT
+Running PageRank
+Graph loaded in 1.01136e+06
+--------------------------------
+Thu 12 May 2022 04:12:11 PM PDT
+Running PageRank
+Graph loaded in 1.01107e+06
+--------------------------------
+Thu 12 May 2022 04:12:56 PM PDT
+Running PageRank
+Graph loaded in 763455
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:25:55 PM PDT
+Running PageRank
+Graph loaded in 1.01444e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:26:43 PM PDT
+Running PageRank
+Graph loaded in 762803
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:31:57 PM PDT
+Running PageRank
+Graph loaded in 762781
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:32:14 PM PDT
+Running PageRank
+Graph loaded in 762096
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:32:58 PM PDT
+Running PageRank
+Graph loaded in 1.01386e+06
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:35:48 PM PDT
+Running PageRank
+Graph loaded in 781569
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:36:43 PM PDT
+Running PageRank
+pure virtual method called
+terminate called without an active exception
+--------------------------------
+Thu 12 May 2022 04:37:13 PM PDT
+Running PageRank
+Graph loaded in 1.01507e+06
+PR  completed in : 12.334
+--------------------------------
+Thu 12 May 2022 04:37:14 PM PDT
+Running PageRank
+Graph loaded in 764101
+PR  completed in : 9.477
+--------------------------------
+Thu 12 May 2022 04:37:15 PM PDT
+Running PageRank
+Graph loaded in 1.01226e+06
+PR  completed in : 9.285
+--------------------------------
+Thu 12 May 2022 04:37:16 PM PDT
+Running PageRank
+Graph loaded in 1.01443e+06
+PR  completed in : 9.61
+--------------------------------
+Thu 12 May 2022 04:37:17 PM PDT
+Running PageRank
+Graph loaded in 1.01372e+06
+PR  completed in : 12.085
+--------------------------------
+Thu 12 May 2022 04:37:18 PM PDT
+Running PageRank
+Graph loaded in 1.01499e+06
+PR  completed in : 9.942
+--------------------------------
+Thu 12 May 2022 04:37:19 PM PDT
+Running PageRank
+Graph loaded in 1.01462e+06
+PR  completed in : 9.515
+--------------------------------
+Thu 12 May 2022 04:37:20 PM PDT
+Running PageRank
+Graph loaded in 1.01498e+06
+PR  completed in : 9.577
+--------------------------------
+Thu 12 May 2022 04:45:25 PM PDT
+Running PageRank
+Graph loaded in 1.015e+06
+PR  completed in : 12.523
+--------------------------------
+Thu 12 May 2022 04:45:26 PM PDT
+Running PageRank
+Graph loaded in 1.01226e+06
+PR  completed in : 13.363
+--------------------------------
+Thu 12 May 2022 04:45:27 PM PDT
+Running PageRank
+Graph loaded in 1.01491e+06
+PR  completed in : 9.393
+--------------------------------
+Thu 12 May 2022 04:45:28 PM PDT
+Running PageRank
+Graph loaded in 1.01312e+06
+PR  completed in : 9.258
+--------------------------------
+Thu 12 May 2022 04:45:29 PM PDT
+Running PageRank
+Graph loaded in 1.0144e+06
+PR  completed in : 11.565
+--------------------------------
+Thu 12 May 2022 04:45:30 PM PDT
+Running PageRank
+Graph loaded in 1.00968e+06
+PR  completed in : 11.981
+--------------------------------
+Thu 12 May 2022 04:45:31 PM PDT
+Running PageRank
+Graph loaded in 1.01339e+06
+PR  completed in : 9.37
+--------------------------------
+Thu 12 May 2022 04:45:32 PM PDT
+Running PageRank
+Graph loaded in 1.01344e+06
+PR  completed in : 14.159
+--------------------------------
+Thu 12 May 2022 04:46:52 PM PDT
+Running PageRank
+Graph loaded in 1.01297e+06
+PR  completed in : 16.234
+--------------------------------
+Thu 12 May 2022 04:46:53 PM PDT
+Running PageRank
+Graph loaded in 764279
+PR  completed in : 12.684
+--------------------------------
+Thu 12 May 2022 04:46:53 PM PDT
+Running PageRank
+--------------------------------
+Thu 12 May 2022 04:47:29 PM PDT
+Running PageRank
+Graph loaded in 1.01577e+06
+Loading the nodes and constructing the map took 1036
+Iter 1took 	11633
+Iter 2took 	9194
+Iter 3took 	8782
+Iter 4took 	8784
+Iter 5took 	8791
+Iter 6took 	8802
+Iter 7took 	8790
+Iter 8took 	8792
+Iter 9took 	8792
+Iter 10took 	8793
+PR  completed in : 92876.6
+--------------------------------
+Thu 12 May 2022 04:47:30 PM PDT
+Running PageRank
+Graph loaded in 1.01315e+06
+Loading the nodes and constructing the map took 1049
+Iter 1took 	11727
+Iter 2took 	8748
+Iter 3took 	8763
+Iter 4took 	8763
+Iter 5took 	8768
+Iter 6took 	8758
+Iter 7took 	8756
+Iter 8took 	8783
+Iter 9took 	8755
+Iter 10took 	8754
+PR  completed in : 92307.1
+--------------------------------
+Thu 12 May 2022 04:47:31 PM PDT
+Running PageRank
+Graph loaded in 760476
+Loading the nodes and constructing the map took 961
+Iter 1took 	12200
+Iter 2took 	9813
+Iter 3took 	8825
+Iter 4took 	8827
+Iter 5took 	8824
+Iter 6took 	8821
+Iter 7took 	8817
+Iter 8took 	8824
+Iter 9took 	8826
+Iter 10took 	8835
+PR  completed in : 94262.6
+--------------------------------
+Thu 12 May 2022 04:47:32 PM PDT
+Running PageRank
+Graph loaded in 1.01416e+06
+Loading the nodes and constructing the map took 1018
+Iter 1took 	11919
+Iter 2took 	8862
+Iter 3took 	8861
+Iter 4took 	8839
+Iter 5took 	8849
+Iter 6took 	8847
+Iter 7took 	8839
+Iter 8took 	8838
+Iter 9took 	8841
+Iter 10took 	8958
+PR  completed in : 93364.7
+--------------------------------
+Thu 12 May 2022 04:47:33 PM PDT
+Running PageRank
+Graph loaded in 785587
+Loading the nodes and constructing the map took 1067
+Iter 1took 	12461
+Iter 2took 	9937
+Iter 3took 	8820
+Iter 4took 	8815
+Iter 5took 	8813
+Iter 6took 	8798
+Iter 7took 	8801
+Iter 8took 	8817
+Iter 9took 	8797
+Iter 10took 	8795
+PR  completed in : 94594.9
+--------------------------------
+Thu 12 May 2022 04:47:34 PM PDT
+Running PageRank
+Graph loaded in 763208
+Loading the nodes and constructing the map took 825
+Iter 1took 	9619
+Iter 2took 	9667
+Iter 3took 	8838
+Iter 4took 	8842
+Iter 5took 	8838
+Iter 6took 	8844
+Iter 7took 	8852
+Iter 8took 	8839
+Iter 9took 	8839
+Iter 10took 	8842
+PR  completed in : 91531.8
+--------------------------------
+Thu 12 May 2022 04:47:35 PM PDT
+Running PageRank
+Graph loaded in 1.01056e+06
+Loading the nodes and constructing the map took 913
+Iter 1took 	11874
+Iter 2took 	9590
+Iter 3took 	8799
+Iter 4took 	8800
+Iter 5took 	8787
+Iter 6took 	8813
+Iter 7took 	8802
+Iter 8took 	8799
+Iter 9took 	8805
+Iter 10took 	8791
+PR  completed in : 93496.1
+--------------------------------
+Thu 12 May 2022 04:47:36 PM PDT
+Running PageRank
+Graph loaded in 763226
+Loading the nodes and constructing the map took 831
+Iter 1took 	9585
+Iter 2took 	9577
+Iter 3took 	8770
+Iter 4took 	8766
+Iter 5took 	8767
+Iter 6took 	8778
+Iter 7took 	8763
+Iter 8took 	8808
+Iter 9took 	8766
+Iter 10took 	8769
+PR  completed in : 90854.3
+--------------------------------
+Thu 12 May 2022 04:48:54 PM PDT
+Running PageRank
+Graph loaded in 1.01418e+06
+Loading the nodes and constructing the map took 809
+Iter 1took 	10735
+Iter 2took 	9212
+Iter 3took 	8880
+Iter 4took 	8805
+Iter 5took 	8804
+Iter 6took 	8805
+Iter 7took 	8936
+Iter 8took 	8816
+Iter 9took 	8814
+Iter 10took 	8811
+PR  completed in : 92153.2
+--------------------------------
+Thu 12 May 2022 04:48:55 PM PDT
+Running PageRank
+Graph loaded in 760045
+Loading the nodes and constructing the map took 798
+Iter 1took 	11933
+Iter 2took 	9964
+Iter 3took 	8941
+Iter 4took 	8935
+Iter 5took 	8948
+Iter 6took 	8969
+Iter 7took 	8937
+Iter 8took 	8937
+Iter 9took 	8933
+Iter 10took 	8950
+PR  completed in : 94930.4
+--------------------------------
+Thu 12 May 2022 04:48:56 PM PDT
+Running PageRank
+Graph loaded in 763042
+Loading the nodes and constructing the map took 793
+Iter 1took 	10277
+Iter 2took 	9937
+Iter 3took 	8832
+Iter 4took 	8820
+Iter 5took 	8810
+Iter 6took 	8822
+Iter 7took 	8823
+Iter 8took 	8820
+Iter 9took 	8808
+Iter 10took 	8821
+PR  completed in : 92243
+--------------------------------
+Thu 12 May 2022 04:48:57 PM PDT
+Running PageRank
+Graph loaded in 763982
+Loading the nodes and constructing the map took 817
+Iter 1took 	9508
+Iter 2took 	9295
+Iter 3took 	8954
+Iter 4took 	8881
+Iter 5took 	8883
+Iter 6took 	8893
+Iter 7took 	8896
+Iter 8took 	8886
+Iter 9took 	8892
+Iter 10took 	8876
+PR  completed in : 91483.2
+--------------------------------
+Thu 12 May 2022 04:48:57 PM PDT
+Running PageRank
+Graph loaded in 762835
+Loading the nodes and constructing the map took 818
+Iter 1took 	12063
+Iter 2took 	9034
+Iter 3took 	8798
+Iter 4took 	8797
+Iter 5took 	8795
+Iter 6took 	8810
+Iter 7took 	8816
+Iter 8took 	8810
+Iter 9took 	8793
+Iter 10took 	8795
+PR  completed in : 93040
+--------------------------------
+Thu 12 May 2022 04:48:58 PM PDT
+Running PageRank
+Graph loaded in 762787
+Loading the nodes and constructing the map took 815
+Iter 1took 	9501
+Iter 2took 	8936
+Iter 3took 	8912
+Iter 4took 	8916
+Iter 5took 	8906
+Iter 6took 	8919
+Iter 7took 	8901
+Iter 8took 	8911
+Iter 9took 	8910
+Iter 10took 	8918
+PR  completed in : 91224.5
+--------------------------------
+Thu 12 May 2022 04:48:59 PM PDT
+Running PageRank
+Graph loaded in 803984
+Loading the nodes and constructing the map took 809
+Iter 1took 	9973
+Iter 2took 	9622
+Iter 3took 	9008
+Iter 4took 	9017
+Iter 5took 	9003
+Iter 6took 	9009
+Iter 7took 	8994
+Iter 8took 	9010
+Iter 9took 	8998
+Iter 10took 	9005
+PR  completed in : 93123.8
+--------------------------------
+Thu 12 May 2022 04:49:00 PM PDT
+Running PageRank
+Graph loaded in 1.01306e+06
+Loading the nodes and constructing the map took 1025
+Iter 1took 	11687
+Iter 2took 	9241
+Iter 3took 	8848
+Iter 4took 	8855
+Iter 5took 	8859
+Iter 6took 	8859
+Iter 7took 	8850
+Iter 8took 	8850
+Iter 9took 	8856
+Iter 10took 	8852
+PR  completed in : 93462.5
+--------------------------------
+Fri 13 May 2022 11:13:33 AM PDT
+Running PageRank
+Graph loaded in 763380
+Loading the nodes and constructing the map took 817
+Iter 1took 	9416
+Iter 2took 	8861
+Iter 3took 	8863
+Iter 4took 	8839
+Iter 5took 	8834
+Iter 6took 	8840
+Iter 7took 	8847
+Iter 8took 	8843
+Iter 9took 	8846
+Iter 10took 	8845
+PR  completed in : 90540.2
+--------------------------------
+Fri 13 May 2022 11:13:33 AM PDT
+Running PageRank
+Graph loaded in 1.01615e+06
+Loading the nodes and constructing the map took 819
+Iter 1took 	9416
+Iter 2took 	8905
+Iter 3took 	8882
+Iter 4took 	8885
+Iter 5took 	8895
+Iter 6took 	8888
+Iter 7took 	8893
+Iter 8took 	8879
+Iter 9took 	8875
+Iter 10took 	8891
+PR  completed in : 90937.1
+--------------------------------
+Fri 13 May 2022 11:13:35 AM PDT
+Running PageRank
+Graph loaded in 764296
+Loading the nodes and constructing the map took 822
+Iter 1took 	9405
+Iter 2took 	8853
+Iter 3took 	8845
+Iter 4took 	8845
+Iter 5took 	8840
+Iter 6took 	8830
+Iter 7took 	8850
+Iter 8took 	8843
+Iter 9took 	8844
+Iter 10took 	8847
+PR  completed in : 90514.2
+--------------------------------
+Fri 13 May 2022 11:13:35 AM PDT
+Running PageRank
+--------------------------------
+Fri 13 May 2022 01:52:42 PM PDT
+Running PageRank
+Graph loaded in 1.01297e+06
+Loading the nodes and constructing the map took 797
+Iter 1took 	9405
+Iter 2took 	8857
+Iter 3took 	8834
+Iter 4took 	8828
+Iter 5took 	8832
+Iter 6took 	8816
+Iter 7took 	8821
+Iter 8took 	8825
+Iter 9took 	8828
+Iter 10took 	8913
+PR  completed in : 90461.3
+--------------------------------
+Fri 13 May 2022 01:52:43 PM PDT
+Running PageRank
+Graph loaded in 758834
+Loading the nodes and constructing the map took 803
+Iter 1took 	9513
+Iter 2took 	8954
+Iter 3took 	8954
+Iter 4took 	8941
+Iter 5took 	8949
+Iter 6took 	8954
+Iter 7took 	8928
+Iter 8took 	8929
+Iter 9took 	8927
+Iter 10took 	8935
+PR  completed in : 91502.7
+--------------------------------
+Fri 13 May 2022 01:52:43 PM PDT
+Running PageRank
+Graph loaded in 759342
+Loading the nodes and constructing the map took 812
+Iter 1took 	9515
+Iter 2took 	8967
+Iter 3took 	9005
+Iter 4took 	9003
+Iter 5took 	8981
+Iter 6took 	8963
+Iter 7took 	8974
+Iter 8took 	8978
+Iter 9took 	8987
+Iter 10took 	8940
+PR  completed in : 91877.1
+--------------------------------
+Fri 13 May 2022 01:52:44 PM PDT
+Running PageRank
+Graph loaded in 997497
+Loading the nodes and constructing the map took 1051
+Iter 1took 	10893
+Iter 2took 	8952
+Iter 3took 	8950
+Iter 4took 	8953
+Iter 5took 	8940
+Iter 6took 	8942
+Iter 7took 	8951
+Iter 8took 	8950
+Iter 9took 	8967
+Iter 10took 	8934
+PR  completed in : 93205.3
+--------------------------------
+Fri 13 May 2022 01:52:45 PM PDT
+Running PageRank
+Graph loaded in 1.05404e+06
+Loading the nodes and constructing the map took 1606
+Iter 1took 	18876
+Iter 2took 	17735
+Iter 3took 	17722
+Iter 4took 	17731
+Iter 5took 	17717
+Iter 6took 	17688
+Iter 7took 	11523
+Iter 8took 	8841
+Iter 9took 	8820
+Iter 10took 	8844
+PR  completed in : 147920
+--------------------------------
+Fri 13 May 2022 01:52:47 PM PDT
+Running PageRank
+Graph loaded in 764106
+Loading the nodes and constructing the map took 808
+Iter 1took 	10516
+Iter 2took 	9968
+Iter 3took 	9943
+Iter 4took 	9966
+Iter 5took 	9943
+Iter 6took 	9957
+Iter 7took 	9953
+Iter 8took 	9946
+Iter 9took 	9941
+Iter 10took 	9977
+PR  completed in : 101630
+--------------------------------
+Fri 13 May 2022 01:52:48 PM PDT
+Running PageRank
+Graph loaded in 768882
+Loading the nodes and constructing the map took 1160
+Iter 1took 	10962
+Iter 2took 	9055
+Iter 3took 	9051
+Iter 4took 	9033
+Iter 5took 	9051
+Iter 6took 	9059
+Iter 7took 	9052
+Iter 8took 	9063
+Iter 9took 	9044
+Iter 10took 	9042
+PR  completed in : 94296
+--------------------------------
+Fri 13 May 2022 01:52:48 PM PDT
+Running PageRank
+Graph loaded in 759375
+Loading the nodes and constructing the map took 824
+Iter 1took 	9449
+Iter 2took 	8896
+Iter 3took 	8878
+Iter 4took 	8886
+Iter 5took 	8873
+Iter 6took 	8897
+Iter 7took 	8940
+Iter 8took 	8894
+Iter 9took 	8890
+Iter 10took 	8880
+PR  completed in : 91110.8
+--------------------------------
+Fri 13 May 2022 02:10:14 PM PDT
+Running PageRank
+Graph loaded in 1.01354e+06
+Loading the nodes and constructing the map took 822
+Iter 1took 	9489
+Iter 2took 	8929
+Iter 3took 	8940
+Iter 4took 	8916
+Iter 5took 	8935
+Iter 6took 	8909
+Iter 7took 	8927
+Iter 8took 	8963
+Iter 9took 	8954
+Iter 10took 	8928
+PR  completed in : 91602.6
+--------------------------------
+Fri 13 May 2022 02:10:16 PM PDT
+Running PageRank
+Graph loaded in 759592
+Loading the nodes and constructing the map took 815
+Iter 1took 	9484
+Iter 2took 	8936
+Iter 3took 	8925
+Iter 4took 	8936
+Iter 5took 	8916
+Iter 6took 	8922
+Iter 7took 	8915
+Iter 8took 	8928
+Iter 9took 	8928
+Iter 10took 	8913
+PR  completed in : 91298
+--------------------------------
+Fri 13 May 2022 02:10:16 PM PDT
+Running PageRank
+Graph loaded in 1.01128e+06
+Loading the nodes and constructing the map took 808
+Iter 1took 	9552
+Iter 2took 	9039
+Iter 3took 	9002
+Iter 4took 	9019
+Iter 5took 	9011
+Iter 6took 	9017
+Iter 7took 	9005
+Iter 8took 	9014
+Iter 9took 	9001
+Iter 10took 	9025
+PR  completed in : 92201.7
+--------------------------------
+Fri 13 May 2022 02:10:18 PM PDT
+Running PageRank
+Graph loaded in 806385
+Loading the nodes and constructing the map took 799
+Iter 1took 	9721
+Iter 2took 	9142
+Iter 3took 	8902
+Iter 4took 	8892
+Iter 5took 	8896
+Iter 6took 	8885
+Iter 7took 	8898
+Iter 8took 	8897
+Iter 9took 	8890
+Iter 10took 	8892
+PR  completed in : 91506.1
+--------------------------------
+Fri 13 May 2022 02:10:18 PM PDT
+Running PageRank
+Graph loaded in 1.01395e+06
+Loading the nodes and constructing the map took 821
+Iter 1took 	9394
+Iter 2took 	8855
+Iter 3took 	8853
+Iter 4took 	8856
+Iter 5took 	8841
+Iter 6took 	8843
+Iter 7took 	8836
+Iter 8took 	8840
+Iter 9took 	8852
+Iter 10took 	8847
+PR  completed in : 90530.8
+--------------------------------
+Fri 13 May 2022 02:10:20 PM PDT
+Running PageRank
+Graph loaded in 763865
+Loading the nodes and constructing the map took 804
+Iter 1took 	9461
+Iter 2took 	8889
+Iter 3took 	8884
+Iter 4took 	8895
+Iter 5took 	8869
+Iter 6took 	8885
+Iter 7took 	8886
+Iter 8took 	8886
+Iter 9took 	8879
+Iter 10took 	8893
+PR  completed in : 90919.2
+--------------------------------
+Fri 13 May 2022 02:10:20 PM PDT
+Running PageRank
+Graph loaded in 1.01176e+06
+Loading the nodes and constructing the map took 808
+Iter 1took 	9811
+Iter 2took 	9164
+Iter 3took 	8940
+Iter 4took 	8934
+Iter 5took 	8958
+Iter 6took 	8949
+Iter 7took 	8938
+Iter 8took 	9006
+Iter 9took 	8937
+Iter 10took 	8941
+PR  completed in : 92093.5
+--------------------------------
+Fri 13 May 2022 02:10:21 PM PDT
+Running PageRank
+Graph loaded in 805570
+Loading the nodes and constructing the map took 818
+Iter 1took 	9645
+Iter 2took 	9123
+Iter 3took 	8827
+Iter 4took 	8831
+Iter 5took 	8821
+Iter 6took 	8832
+Iter 7took 	8846
+Iter 8took 	8832
+Iter 9took 	8842
+Iter 10took 	8830
+PR  completed in : 90958.2
+--------------------------------
+Fri 13 May 2022 02:10:54 PM PDT
+Running PageRank
+Graph loaded in 763499
+Loading the nodes and constructing the map took 853
+Iter 1took 	9856
+Iter 2took 	8959
+Iter 3took 	8891
+Iter 4took 	8885
+Iter 5took 	8883
+Iter 6took 	8877
+Iter 7took 	8880
+Iter 8took 	8875
+Iter 9took 	8886
+Iter 10took 	8889
+PR  completed in : 91419.5
+--------------------------------
+Fri 13 May 2022 02:10:55 PM PDT
+Running PageRank
+--------------------------------
+Fri 13 May 2022 02:49:42 PM PDT
+Running PageRank
+Graph loaded in 1.01211e+06
+Loading the nodes and constructing the map took 805
+Iter 1took 	9389
+Iter 2took 	8835
+Iter 3took 	8846
+Iter 4took 	8834
+Iter 5took 	8840
+Iter 6took 	8834
+Iter 7took 	8838
+Iter 8took 	8854
+Iter 9took 	8847
+Iter 10took 	8841
+PR  completed in : 90594.8
+--------------------------------
+Fri 13 May 2022 02:49:43 PM PDT
+Running PageRank
+Graph loaded in 1.013e+06
+Loading the nodes and constructing the map took 799
+Iter 1took 	9466
+Iter 2took 	8911
+Iter 3took 	8923
+Iter 4took 	8896
+Iter 5took 	8903
+Iter 6took 	8899
+Iter 7took 	8906
+Iter 8took 	8910
+Iter 9took 	8912
+Iter 10took 	8905
+PR  completed in : 91133.1
+--------------------------------
+Fri 13 May 2022 02:49:45 PM PDT
+Running PageRank
+Graph loaded in 758399
+Loading the nodes and constructing the map took 792
+Iter 1took 	9454
+Iter 2took 	8921
+Iter 3took 	8905
+Iter 4took 	8902
+Iter 5took 	8904
+Iter 6took 	8900
+Iter 7took 	8903
+Iter 8took 	8916
+Iter 9took 	8915
+Iter 10took 	8911
+PR  completed in : 91121.1
+--------------------------------
+Fri 13 May 2022 02:49:45 PM PDT
+Running PageRank
+Graph loaded in 758287
+Loading the nodes and constructing the map took 803
+Iter 1took 	9463
+Iter 2took 	8932
+Iter 3took 	8915
+Iter 4took 	8923
+Iter 5took 	8921
+Iter 6took 	8918
+Iter 7took 	8914
+Iter 8took 	8941
+Iter 9took 	8913
+Iter 10took 	8928
+PR  completed in : 91253.8
+--------------------------------
+Fri 13 May 2022 02:49:46 PM PDT
+Running PageRank

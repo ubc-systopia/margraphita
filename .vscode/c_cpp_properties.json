@@ -4,7 +4,12 @@
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "linux-gcc-x64",
-            "compilerPath": "/usr/bin/gcc"
+            "compilerPath": "/usr/bin/gcc",
+            "includePath": [
+                "${workspaceFolder}/utils",
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/libs/wiredtiger"
+            ]
         }
     ],
     "version": 4

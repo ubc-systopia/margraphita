@@ -188,14 +188,11 @@ int main(int argc, char *argv[])
     Times Timer;
     Timer.start();
     if(pr_cli.get_graph_type() == "std") {
-        StandardGraph stdGraph(opts);
-        graph = &stdGraph;
+        graph = new StandardGraph(opts);
     } else if(pr_cli.get_graph_type() == "adj") {
-        AdjList adjGraph(opts);
-        graph = &adjGraph;
+        graph = new AdjList(opts);
     } else if(pr_cli.get_graph_type() == "ekey") {
-        EdgeKey ekeyGraph(opts);
-        graph = &ekeyGraph;
+        graph = new EdgeKey(opts);
     } else {
         std::cout << "Unrecognized graph representation";
         //exit(0);
