@@ -25,14 +25,14 @@ int read_optimized = 0;
 int is_directed = 1;
 
 std::vector<std::string> types;
-std::unordered_map<int, node> nodelist;
-std::unordered_map<int, std::vector<int>> in_adjlist;
-std::unordered_map<int, std::vector<int>> out_adjlist;
+std::unordered_map<int64_t, node> nodelist;
+std::unordered_map<int64_t, std::vector<int64_t>> in_adjlist;
+std::unordered_map<int64_t, std::vector<int64_t>> out_adjlist;
 std::mutex lock;
 
-int nodelist_size;
+int64_t nodelist_size;
 
-std::string pack_int_to_str(int a, int b)
+std::string pack_int_to_str(int32_t a, int32_t b)
 {
     std::stringstream sstream;
     sstream << a << " " << b;
@@ -43,8 +43,8 @@ typedef struct time_info
 {
     int64_t insert_time;
     int64_t read_time;
-    int num_inserted;
-    time_info(int _val)
+    int64_t num_inserted;
+    time_info(int64_t _val)
         : insert_time(_val), read_time(_val), num_inserted(_val){};
 } time_info;
 
@@ -455,9 +455,8 @@ int main(int argc, char *argv[])
         edge_times->num_inserted += this_thread_time->num_inserted;
         edge_times->read_time += this_thread_time->read_time;
     }
-
-    // TODO: insert number of edges into metadata table
-
+    // TODO: #55 insert into the metadata table nEdges =
+    // edge_times->num_inserted
     auto end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert edges was "
               << std::chrono::duration_cast<std::chrono::microseconds>(end -
@@ -475,6 +474,7 @@ int main(int argc, char *argv[])
         node_times->num_inserted += this_thread_time->num_inserted;
         node_times->read_time += this_thread_time->read_time;
     }
+    // todo: insert num_nodes. into metadatatable
 
     // TODO: insert number of nodes into metadata table
 
