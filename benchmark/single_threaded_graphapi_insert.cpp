@@ -20,9 +20,9 @@
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 #define quote(x) #x
 
-std::unordered_map<int, std::vector<int>> in_adjlist;
-std::unordered_map<int, std::vector<int>> out_adjlist;
-std::set<int> nodes;
+std::unordered_map<int64_t, std::vector<int64_t>> in_adjlist;
+std::unordered_map<int64_t, std::vector<int64_t>> out_adjlist;
+std::set<int64_t> nodes;
 
 typedef struct insert_time
 {
@@ -31,12 +31,12 @@ typedef struct insert_time
     int64_t adj_insert;
     int64_t ekey_insert;
     int64_t ekey_index;
-    insert_time(int _val)
+    insert_time(int64_t _val)
         : std_insert(_val),
           std_index(_val),
           adj_insert(_val),
-          ekey_index(_val),
-          ekey_insert(_val){};
+          ekey_insert(_val),
+          ekey_index(_val){};
 } insert_time;
 
 void print_csv_info(std::string log_dir, std::string name, insert_time *info)
@@ -81,7 +81,7 @@ void get_edge_entries(std::vector<edge> &edges,
 
             else
             {
-                int a, b;
+                int64_t a, b;
                 std::stringstream s_stream(tp);
                 s_stream >> a;
                 s_stream >> b;
@@ -113,9 +113,9 @@ int64_t insert_adj(AdjList graph, std::string filename)
     std::vector<edge> edjlist;
     get_edge_entries(edjlist, filename, true);
 
-    for (int node : nodes)
+    for (int64_t node : nodes)
     {
-        std::vector<int> innodes, outnodes;
+        std::vector<int64_t> innodes, outnodes;
         try
         {
             innodes = in_adjlist.at(node);
@@ -155,9 +155,9 @@ int64_t create_init_nodes(Graph graph, std::string filename)
     std::vector<edge> edjlist;
     get_edge_entries(edjlist, filename, false);
 
-    for (int x : nodes)
+    for (int64_t x : nodes)
     {
-        std::vector<int> indeg, outdeg;
+        std::vector<int64_t> indeg, outdeg;
         node to_insert = {.id = x};
         try
         {

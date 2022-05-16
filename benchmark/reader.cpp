@@ -30,7 +30,7 @@ std::vector<edge> parse_edge_entries(std::string filename)
 
             else
             {
-                int a, b;
+                int64_t a, b;
                 std::stringstream s_stream(tp);
                 s_stream >> a;
                 s_stream >> b;
