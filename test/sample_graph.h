@@ -10,13 +10,13 @@ edge edge2 = {.src_id = 1, .dst_id = 3};
 
 edge edge3 = {.src_id = 2, .dst_id = 3};
 
-node node1 = {.id = 1};
+node node1 = {.id = 1, .in_degree = 0, .out_degree = 0};
 
-node node2 = {.id = 2};
+node node2 = {.id = 2, .in_degree = 0, .out_degree = 0};
 
-node node3 = {.id = 3};
+node node3 = {.id = 3, .in_degree = 0, .out_degree = 0};
 
-node node4 = {.id = 4};
+node node4 = {.id = 4, .in_degree = 0, .out_degree = 0};
 
 std::vector<edge> test_edges = {edge1, edge2, edge3};
 std::vector<node> test_nodes = {node1, node2, node3, node4};
