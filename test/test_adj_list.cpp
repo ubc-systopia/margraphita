@@ -98,7 +98,6 @@ void test_get_adjlist(AdjList graph, int node_id)
     INFO();
     std::cout << "Printing the in_adjlist first" << std::endl;
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
-    WT_CURSOR *out_adj_cur = graph.get_out_adjlist_cursor();
     for (int al : graph.get_adjlist(in_adj_cur, node_id))
     {
         // TODO: I don't know what would be a good testase here.
@@ -126,7 +125,6 @@ void test_add_edge(AdjList graph, bool is_directed)
 {
     INFO();
     edge to_insert = {
-        .id = 0,
         .src_id = 5,
         .dst_id = 6,
         .edge_weight = 333};  // node 300 and 400 dont exist yet so we must also
@@ -154,7 +152,7 @@ void test_add_edge(AdjList graph, bool is_directed)
     in_adj_cur->set_key(in_adj_cur, test_id2);
     assert(in_adj_cur->search(in_adj_cur) == 0);
     in_adj_cur->reset(in_adj_cur);
-    std::vector<int> adjlist = graph.get_adjlist(in_adj_cur, test_id2);
+    std::vector<int64_t> adjlist = graph.get_adjlist(in_adj_cur, test_id2);
     assert(adjlist.size() == 1);
     if (!is_directed)
     {
@@ -206,7 +204,7 @@ void test_get_out_edges(AdjList graph)
     {
         edges = graph.get_out_edges(test_id3);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -237,7 +235,7 @@ void test_get_in_edges(AdjList graph)
     {
         edges = graph.get_out_edges(test_id3);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -264,7 +262,7 @@ void test_get_out_nodes(AdjList graph)
     {
         nodes = graph.get_out_nodes(test_id3);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -291,7 +289,7 @@ void test_get_in_nodes(AdjList graph)
     {
         nodes = graph.get_in_nodes(test_id3);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -403,18 +401,18 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
 
     // Now check if node4 is present in in/out_adj_list of any of the remaining
     // nodes;
-    std::vector<int> remaining_nodes = {1, 3};
+    std::vector<int64_t> remaining_nodes = {1, 3};
 
-    for (int n : remaining_nodes)
+    for (auto n : remaining_nodes)
     {
         adj_out_cur->reset(adj_out_cur);
-        for (int dst : graph.get_adjlist(adj_out_cur, n))
+        for (auto dst : graph.get_adjlist(adj_out_cur, n))
         {
             assert(dst !=
                    SampleGraph::node4.id);  // node4 should not exist here
         }
         adj_in_cur->reset(adj_in_cur);
-        for (int src : graph.get_adjlist(adj_in_cur, n))
+        for (auto src : graph.get_adjlist(adj_in_cur, n))
         {
             assert(src !=
                    SampleGraph::node4.id);  // node 4 should not exist here

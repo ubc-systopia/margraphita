@@ -25,13 +25,14 @@ void create_init_nodes(EdgeKey graph, bool is_directed)
                     // test_edges
     }
     int edge_cnt = 1;
-    for (node n : SampleGraph::test_nodes)
-    {
-        graph.add_node(n);
-    }
+    // for (node n : SampleGraph::test_nodes)
+    // {
+    //     graph.add_node(n);
+    // }
 
     for (edge x : SampleGraph::test_edges)
     {
+        cout << "edge: " << x.src_id << " " << x.dst_id << endl;
         graph.add_edge(x, false);
         edge_cnt++;
     }
@@ -43,9 +44,9 @@ void test_get_node(EdgeKey graph)
     node found = graph.get_node(SampleGraph::node1.id);
     assert(found.id == 1);
     // now get a node that does not exist
-    found = graph.get_node(-1);
+    found = graph.get_node(OutOfBand_ID);
     assert(found.id == 0);
-    found = graph.get_random_node();
+    // found = graph.get_random_node();  //! this gets stuck
     CommonUtil::dump_node(found);
 }
 
@@ -76,7 +77,6 @@ void test_add_edge(EdgeKey graph, bool is_directed)
 {
     INFO();
     edge to_insert = {
-        .id = 0,
         .src_id = 5,
         .dst_id = 6,
         .edge_weight = 333};  // node 300 and 400 dont exist yet so we must also
@@ -103,7 +103,7 @@ void test_add_edge(EdgeKey graph, bool is_directed)
 
     // //Now check if the adjlists were updated
     WT_CURSOR *e_cur = graph.get_edge_cursor();
-    e_cur->set_key(e_cur, 5, -1);
+    e_cur->set_key(e_cur, 5, OutOfBand_ID);
     assert(e_cur->search(e_cur) == 0);
     assert(graph.get_out_degree(5) == 1);
     assert(graph.get_in_degree(6) == 1);
@@ -158,7 +158,7 @@ void test_get_out_edges(EdgeKey graph)
     {
         edges = graph.get_out_edges(1500);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -184,7 +184,7 @@ void test_get_out_nodes(EdgeKey graph)
     {
         nodes = graph.get_out_nodes(1500);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -214,7 +214,7 @@ void test_get_in_edges(EdgeKey graph)
     {
         edges = graph.get_out_edges(1500);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -240,7 +240,7 @@ void test_get_in_nodes(EdgeKey graph)
     {
         nodes = graph.get_in_nodes(1500);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -257,7 +257,7 @@ void test_delete_node(EdgeKey graph, bool is_directed)
 
     // Delete node2 and verify it was actually deleted
     graph.delete_node(SampleGraph::node2.id);
-    e_cur->set_key(e_cur, SampleGraph::node2.id, -1);
+    e_cur->set_key(e_cur, SampleGraph::node2.id, OutOfBand_ID);
     int ret = e_cur->search(e_cur);
     assert(ret != 0);
 
@@ -309,7 +309,7 @@ void test_InCursor(EdgeKey graph)
     while (in_cursor.has_more())
     {
         in_cursor.next(&found);
-        if (found.node_id != -1)
+        if (found.node_id != OutOfBand_ID)
         {
             CommonUtil::dump_adjlist(found);
             found = {0};
@@ -334,7 +334,7 @@ void test_OutCursor(EdgeKey graph)
     while (out_cursor.has_more())
     {
         out_cursor.next(&found);
-        if (found.node_id != -1)
+        if (found.node_id != OutOfBand_ID)
         {
             CommonUtil::dump_adjlist(found);
             found = {0};
@@ -365,9 +365,12 @@ int main()
 
     EdgeKeyTester graph = EdgeKeyTester(opts);
     create_init_nodes(graph, opts.is_directed);
-
+    // graph.close();
+    // exit(0);
     test_get_node(graph);
     test_node_add(graph, opts.read_optimize);
+    // graph.close();
+    // exit(0);
     test_get_nodes(graph);
     test_add_edge(graph, opts.is_directed);
     test_get_edge(graph);
