@@ -297,9 +297,24 @@ class EdgeCursor : public table_iterator
 
     void next(edge *found)
     {
+        // If first time calling next, we want the exact record corresponding to
+        // the key_pair start or, if there is no such record, the smallest
+        // record larger than the key_pair
+        if (is_first == true)
+        {
+            int status;
+            cursor->search_near(cursor, &status);
+            is_first = false;
+            if (!(status < 0))
+            {
+                goto first_time_skip_next;
+            }
+        }
+
         // Check existence of next record
         if (cursor->next(cursor) == 0)
         {
+        first_time_skip_next:
             cursor->get_key(cursor, &found->src_id, &found->dst_id);
 
             // If start_edge is set
