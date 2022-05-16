@@ -300,7 +300,8 @@ class EdgeCursor : public table_iterator
         // If first time calling next, we want the exact record corresponding to
         // the key_pair start or, if there is no such record, the smallest
         // record larger than the key_pair
-        if (is_first == true)
+        if (is_first == true && start_edge.src_id != -1 &&
+            start_edge.dst_id != -1)
         {
             int status;
             cursor->search_near(cursor, &status);
@@ -308,6 +309,13 @@ class EdgeCursor : public table_iterator
             if (!(status < 0))
             {
                 goto first_time_skip_next;
+            }
+        }
+        else
+        {
+            if (is_first)
+            {
+                is_first = false;
             }
         }
 

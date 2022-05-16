@@ -1,4 +1,6 @@
 make all --print-data-base --no-builtin-variables --no-builtin-rules --question
+make: *** No rule to make target 'all'.  Stop.
+
 # GNU Make 4.2.1
 # Built for x86_64-pc-linux-gnu
 # Copyright (C) 1988-2016 Free Software Foundation, Inc.
@@ -6,7 +8,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Sun May 15 20:37:15 2022
+# Make data base, printed on Mon May 16 13:36:56 2022
 
 # Variables
 
@@ -55,7 +57,7 @@ LESSOPEN = | /usr/bin/lesspipe %s
 # environment
 VSCODE_CWD = /home/jackli
 # environment
-SSH_CONNECTION = 198.162.33.17 46556 192.168.79.200 22
+SSH_CONNECTION = 198.162.33.17 46598 192.168.79.200 22
 # environment
 PATH = /home/jackli/.vscode-server/bin/da15b6fd3ef856477bf6f4fb29ba1b7af717770d/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/jackli/margraphita/libs/wiredtiger
 # environment
@@ -63,7 +65,7 @@ XDG_RUNTIME_DIR = /run/user/1006
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/1006/vscode-ipc-517346a9-de9f-42bf-9e22-8033e170a275.sock
+VSCODE_IPC_HOOK_CLI = /run/user/1006/vscode-ipc-70ee2823-7756-44ea-8657-2c23a1aac79d.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -103,7 +105,7 @@ MAKECMDGOALS := all
 # environment
 SHLVL = 1
 # environment
-XDG_SESSION_ID = 404
+XDG_SESSION_ID = 447
 # environment
 USER = jackli
 # makefile
@@ -121,7 +123,7 @@ MAKEFLAGS = pqrR
 # environment
 MFLAGS = -pqrR
 # environment
-SSH_CLIENT = 198.162.33.17 46556 22
+SSH_CLIENT = 198.162.33.17 46598 22
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # environment
@@ -217,8 +219,6 @@ GNUmakefile:
 # strcache performance: lookups = 29 / hit rate = 10%
 # hash-table stats:
 # Load=26/8192=0%, Rehash=0, Collisions=1/29=3%
-# Finished Make data base on Sun May 15 20:37:15 2022
+# Finished Make data base on Mon May 16 13:36:56 2022
 
  
-make: *** No rule to make target 'all'.  Stop.
-
