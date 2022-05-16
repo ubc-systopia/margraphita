@@ -91,7 +91,7 @@ class InCursor : public table_iterator
         has_next = false;
     }
 
-    void next(adjlist *found, int key)
+    void next(adjlist *found, int64_t key)
     {
         // Must reset OutCursor if already no_next
         if (!has_next)
