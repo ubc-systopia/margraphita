@@ -2,7 +2,7 @@
 set -x
 set -e
 
-source paths.sh
+source ../../paths.sh
 usage() {
 echo "Usage: $0 [-d log_dir"
 echo "log_dir : the absolute path to the directory where the benchmark results will be stored"
@@ -10,7 +10,7 @@ exit 1;}
 
 TYPES=( "adj" "std" "ekey" )
 DATASETS=( "s10_e8" "cit-Patents" )
-RESULT=/home/puneet/scratch/margraphita/outputs/on_mars
+RESULT=/home/jackli/margraphita/outputs/on_mars
 COUNTS=10
 
 while getopts ":d:h" o; do

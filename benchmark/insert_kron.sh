@@ -46,7 +46,7 @@ log_file=${log_dir}/kron_insert.txt
 
 TYPES=( "std" "adj" "ekey" )
 
-for ((scale=10; scale <=27; scale ++ )); do
+for ((scale=10; scale <=15; scale ++ )); do
 	n_edges=$(bc <<<"8*2^$scale")
     n_nodes=$(bc <<<"2^$scale")
     date >> ${log_file}

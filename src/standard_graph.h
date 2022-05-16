@@ -284,7 +284,10 @@ class EdgeCursor : public table_iterator
 
    public:
     EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+
+    // Overwrites set_key(int key) implementation in table_iterator
     void set_key(int key) = delete;
+
     void set_key(key_pair start, key_pair end)
     {
         start_edge = start;
@@ -294,19 +297,53 @@ class EdgeCursor : public table_iterator
 
     void next(edge *found)
     {
-        // if (cursor->next(cursor) == 0)
-        // {
-        //     cursor->get_key(cursor, &found->src_id, &found->dst_id);
-        //     if (keys.src_id > -1 && keys.dst_id > -1)  // keys were set
-        //         CommonUtil::__record_to_edge(cursor, found);
-        // }
-        // else
-        // {
-        //     found->src_id = -1;
-        //     found->dst_id = -1;
-        //     found->edge_weight = -1;
-        //     has_next = false;
-        // }
+        // Check existence of next record
+        if (cursor->next(cursor) == 0)
+        {
+            cursor->get_key(cursor, &found->src_id, &found->dst_id);
+
+            // If start_edge is set
+            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+            {
+                // Expect start_edge <= found
+                if (start_edge.src_id < found->src_id ||
+                    ((start_edge.src_id == found->src_id) &&
+                     (start_edge.dst_id <= found->dst_id)))
+                {
+                    // pass
+                }
+                else
+                {
+                    goto no_next;
+                }
+            }
+
+            // If end_edge is set
+            if (end_edge.src_id != -1 && end_edge.dst_id != -1)
+            {
+                // Expect found <= end edge
+                if (found->src_id < end_edge.src_id ||
+                    ((found->src_id == end_edge.src_id) &&
+                     (found->dst_id <= end_edge.dst_id)))
+                {
+                    // pass
+                }
+                else
+                {
+                    goto no_next;
+                }
+            }
+
+            CommonUtil::__record_to_edge(cursor, found);
+        }
+        else
+        {
+        no_next:
+            found->src_id = -1;
+            found->dst_id = -1;
+            found->edge_weight = -1;
+            has_next = false;
+        }
     }
 };
 

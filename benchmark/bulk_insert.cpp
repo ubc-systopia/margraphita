@@ -456,6 +456,8 @@ int main(int argc, char *argv[])
         edge_times->read_time += this_thread_time->read_time;
     }
 
+    // TODO: insert number of edges into metadata table
+
     auto end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert edges was "
               << std::chrono::duration_cast<std::chrono::microseconds>(end -
@@ -473,6 +475,8 @@ int main(int argc, char *argv[])
         node_times->num_inserted += this_thread_time->num_inserted;
         node_times->read_time += this_thread_time->read_time;
     }
+
+    // TODO: insert number of nodes into metadata table
 
     end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert nodes was "

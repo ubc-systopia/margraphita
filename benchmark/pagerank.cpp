@@ -11,6 +11,7 @@
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
+#include "graph.h"
 #include "graph_exception.h"
 #include "reader.h"
 #include "standard_graph.h"
@@ -183,100 +184,65 @@ int main(int argc, char *argv[])
     std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = pr_log + "/" + opts.db_name;
 
-    if (pr_cli.get_graph_type() == "std")
+    if (pr_cli.get_graph_type() != "std" && pr_cli.get_graph_type() != "adj" &&
+        pr_cli.get_graph_type() != "ekey")
     {
-        auto start = chrono::steady_clock::now();
-        StandardGraph graph(opts);
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
-        {
-            graph.close();
-            exit(0);
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-
-        if (pr_cli.is_index_create())
-        {
-            start = chrono::steady_clock::now();
-            graph.make_indexes();
-            end = chrono::steady_clock::now();
-            cout << "Indices created in "
-                 << chrono::duration_cast<chrono::microseconds>(end - start)
-                        .count()
-                 << endl;
-            graph.close();
-            exit(0);
-        }
-
-        // Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
-        end = chrono::steady_clock::now();
-        cout << "PR  completed in : "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        graph.close();
-    }
-    else if (pr_cli.get_graph_type() == "adj")
-    {
-        auto start = chrono::steady_clock::now();
-        AdjList graph(opts);
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
-        {
-            exit(0);
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        // Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
-        end = chrono::steady_clock::now();
-        cout << "PR  completed in : "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        graph.close();
-    }
-    else if (pr_cli.get_graph_type() == "ekey")
-    {
-        auto start = chrono::steady_clock::now();
-        EdgeKey graph(opts);
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
-        {
-            exit(0);
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-
-        if (pr_cli.is_index_create())
-        {
-            start = chrono::steady_clock::now();
-            graph.make_indexes();
-            end = chrono::steady_clock::now();
-            cout << "Indices created in "
-                 << chrono::duration_cast<chrono::microseconds>(end - start)
-                        .count()
-                 << endl;
-            graph.close();
-            exit(0);
-        }
-
-        // Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
-        end = chrono::steady_clock::now();
-        cout << "PR  completed in : "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        graph.close();
+        std::cout << "Unrecognized graph representation";
     }
     else
     {
-        std::cout << "Unrecognized graph representation";
+        GraphBase *graph;
+        auto start = chrono::steady_clock::now();
+        if (pr_cli.get_graph_type() == "std")
+        {
+            StandardGraph tempGraph(opts);
+            graph = &tempGraph;
+        }
+        else if (pr_cli.get_graph_type() == "adj")
+        {
+            AdjList tempGraph(opts);
+            graph = &tempGraph;
+        }
+        else
+        {
+            EdgeKey tempGraph(opts);
+            graph = &tempGraph;
+        }
+
+        if (pr_cli.is_exit_on_create())  // Exit after creating the db
+        {
+            if (pr_cli.get_graph_type() == "std")
+            {
+                graph->close();
+            }
+            exit(0);
+        }
+        auto end = chrono::steady_clock::now();
+        cout << "Graph loaded in "
+             << chrono::duration_cast<chrono::microseconds>(end - start).count()
+             << endl;
+
+        // create_indices does not apply to adjacency lists
+        if (pr_cli.is_index_create() && pr_cli.get_graph_type() != "adj")
+        {
+            start = chrono::steady_clock::now();
+            graph->make_indexes();
+            end = chrono::steady_clock::now();
+            cout << "Indices created in "
+                 << chrono::duration_cast<chrono::microseconds>(end - start)
+                        .count()
+                 << endl;
+            graph->close();
+            exit(0);
+        }
+
+        // Now run PR
+        start = chrono::steady_clock::now();
+        pagerank(*graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
+        end = chrono::steady_clock::now();
+        cout << "PR  completed in : "
+             << chrono::duration_cast<chrono::microseconds>(end - start).count()
+             << endl;
+        graph->close();
     }
 }
