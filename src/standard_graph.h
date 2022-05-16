@@ -17,8 +17,8 @@ namespace StdIterator
 class InCursor : public table_iterator
 {
    private:
-    int prev_node;
-    int cur_node;
+    int64_t prev_node;
+    int64_t cur_node;
     key_range keys;
 
    public:
@@ -47,8 +47,8 @@ class InCursor : public table_iterator
                 (keys.end != -1 && cur_node > keys.end))  // out of key range
             {
                 has_next = false;
-                found->degree = -1;
-                found->node_id = -1;
+                found->degree = 0;
+                found->node_id = 0;
                 return;
             }
 
@@ -86,7 +86,7 @@ class InCursor : public table_iterator
         prev_node = cur_node = 0;
     }
 
-    void next(adjlist *found, int key)
+    void next(adjlist *found, int64_t key)
     {
         edge idx;
         cursor->reset(cursor);
@@ -94,7 +94,7 @@ class InCursor : public table_iterator
         int ret = 0;
         if (cursor->search(cursor) == 0 && has_next)
         {
-            int iter_key;
+            int64_t iter_key;
             do
             {
                 CommonUtil::__read_from_edge_idx(cursor, &idx);
@@ -123,8 +123,8 @@ class InCursor : public table_iterator
 class OutCursor : public table_iterator
 {
    private:
-    int prev_node;
-    int cur_node;
+    int64_t prev_node;
+    int64_t cur_node;
     key_range keys;
 
    public:
@@ -198,7 +198,7 @@ class OutCursor : public table_iterator
         int ret = 0;
         if (cursor->search(cursor) == 0 && has_next)
         {
-            int iter_key;
+            int64_t iter_key;
             do
             {
                 CommonUtil::__read_from_edge_idx(cursor, &idx);
@@ -257,8 +257,8 @@ class NodeCursor : public table_iterator
                 else
                 {
                     found->id = -1;
-                    found->in_degree = -1;
-                    found->out_degree = -1;
+                    found->in_degree = 0;
+                    found->out_degree = 0;
                     has_next = false;
                 }
             }
@@ -353,7 +353,7 @@ class EdgeCursor : public table_iterator
     }
 };
 
-};  // namespace StdIterator
+}  // namespace StdIterator
 
 class StandardGraph : public GraphBase
 {
@@ -363,22 +363,22 @@ class StandardGraph : public GraphBase
     void create_new_graph();
     void add_node(node to_insert);
 
-    bool has_node(int node_id);
-    node get_node(int node_id);
-    void delete_node(int node_id);
+    bool has_node(int64_t node_id);
+    node get_node(int64_t node_id);
+    void delete_node(int64_t node_id);
     node get_random_node();
-    int get_in_degree(int node_id);
-    int get_out_degree(int node_id);
+    uint32_t get_in_degree(int64_t node_id);
+    uint32_t get_out_degree(int64_t node_id);
     std::vector<node> get_nodes();
     void add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(int src_id, int dst_id);
-    void delete_edge(int src_id, int dst_id);
-    edge get_edge(int src_id, int dst_id);  // todo <-- implement this
+    bool has_edge(int64_t src_id, int64_t dst_id);
+    void delete_edge(int64_t src_id, int64_t dst_id);
+    edge get_edge(int64_t src_id, int64_t dst_id);  // todo <-- implement this
     std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(int node_id);
-    std::vector<node> get_out_nodes(int node_id);
-    std::vector<edge> get_in_edges(int node_id);
-    std::vector<node> get_in_nodes(int node_id);
+    std::vector<edge> get_out_edges(int64_t node_id);
+    std::vector<node> get_out_nodes(int64_t node_id);
+    std::vector<edge> get_in_edges(int64_t node_id);
+    std::vector<node> get_in_nodes(int64_t node_id);
     void get_nodes(vector<node> &nodes);
     std::string get_db_name() const { return opts.db_name; };
 
@@ -395,7 +395,7 @@ class StandardGraph : public GraphBase
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
     WT_CURSOR *get_src_dst_idx_cursor();
-    std::vector<edge> test_cursor_iter(int node_id);
+    std::vector<edge> test_cursor_iter(int64_t node_id);
     void make_indexes();
 
    private:
@@ -412,18 +412,18 @@ class StandardGraph : public GraphBase
     vector<string> node_columns = {ID};  // Always there :)
     vector<string> edge_columns = {SRC, DST};
     string node_value_format;
-    string node_key_format = "I";
-    string edge_key_format = "II";
+    string node_key_format = "q";
+    string edge_key_format = "qq";
     string edge_value_format = "";  // I if weighted or b if unweighted.
 
     // Internal methods
     void drop_indices();
     void create_indices();
     void update_node_degree(WT_CURSOR *cursor,
-                            int node_id,
-                            int indeg,
-                            int outdeg);
-    void delete_related_edges(WT_CURSOR *index_cursor, int node_id);
+                            int64_t node_id,
+                            uint32_t indeg,
+                            uint32_t outdeg);
+    void delete_related_edges(WT_CURSOR *index_cursor, int64_t node_id);
 
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
