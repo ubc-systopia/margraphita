@@ -13,7 +13,7 @@
 #include <experimental/filesystem>
 #endif
 #ifdef LINUX
-#include <filesystem>>
+#include <filesystem>
 #endif
 
 const std::string METADATA = "metadata";
@@ -943,7 +943,7 @@ std::vector<int> CommonUtil::unpack_vector_int(WT_SESSION *session,
 
     (void)wiredtiger_unpack_start(
         session, format.c_str(), packed.data, packed.size, &pack_stream);
-    for (int i = 0; i < format.length(); i++)
+    for (size_t i = 0; i < format.length(); i++)
     {
         int64_t found;
         wiredtiger_unpack_int(pack_stream, &found);
@@ -967,9 +967,9 @@ std::vector<int> CommonUtil::unpack_vector_int(WT_SESSION *session,
  * @param to_unpack string that contains the packed vector
  * @return std::vector<int> unpacked buffer
  */
-std::vector<int> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
-                                                   size_t size,
-                                                   char *packed_str)
+std::vector<int64_t> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
+                                                       size_t size,
+                                                       char *packed_str)
 {
     WT_PACK_STREAM *psp;
     WT_ITEM unpacked;
@@ -977,11 +977,11 @@ std::vector<int> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
     wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
     wiredtiger_unpack_item(psp, &unpacked);
     wiredtiger_pack_close(psp, &used);
-    std::vector<int> unpacked_vec;
+    std::vector<int64_t> unpacked_vec;
 
-    int vec_size = (int)size / sizeof(int);
+    int vec_size = (int)size / sizeof(int64_t);
     for (int i = 0; i < vec_size; i++)
-        unpacked_vec.push_back(((int *)unpacked.data)[i]);
+        unpacked_vec.push_back(((int64_t *)unpacked.data)[i]);
     return unpacked_vec;
 }
 
@@ -998,19 +998,26 @@ std::vector<int> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
  * @return buffer containing the packed array.
  */
 char *CommonUtil::pack_int_vector_wti(WT_SESSION *session,
-                                      std::vector<int> to_pack,
+                                      std::vector<int64_t> to_pack,
                                       size_t *size)
 {
     WT_PACK_STREAM *psp;
     WT_ITEM item;
     item.data = to_pack.data();
-    item.size = sizeof(int) * to_pack.size();
+    item.size = sizeof(int64_t) * to_pack.size();
 
-    void *pack_buf = malloc(sizeof(int) * to_pack.size());
+    void *pack_buf = malloc(sizeof(int64_t) * to_pack.size());
     int ret = wiredtiger_pack_start(session, "u", pack_buf, item.size, &psp);
-
-    wiredtiger_pack_item(psp, &item);
-    wiredtiger_pack_close(psp, size);
+    if (ret == 0)
+    {
+        wiredtiger_pack_item(psp, &item);
+        wiredtiger_pack_close(psp, size);
+    }
+    else
+    {
+        std::cerr << "Error in packing" << std::endl;
+        exit(-1);
+    }
 
     return (char *)pack_buf;
 }

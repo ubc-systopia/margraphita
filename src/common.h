@@ -45,6 +45,7 @@ extern const std::string IN_ADJLIST;   // New
 extern const std::string OUT_ADJLIST;  // New
 extern const std::string node_count;
 extern const std::string edge_count;
+const int64_t OutOfBand_ID = -1;
 
 struct graph_opts
 {
@@ -67,40 +68,38 @@ typedef struct wt_conn_info
 
 typedef struct node
 {
-    int id;  // node ID
-    int in_degree = 0;
-    int out_degree = 0;
+    int64_t id;  // node ID
+    uint32_t in_degree = 0;
+    uint32_t out_degree = 0;
 } node;
 
 typedef struct edge
 {
-    int id;
-    int src_id;
-    int dst_id;
-    int edge_weight;  // uint8_t should get transparently cast to int
-                      // (unweighted). We need two fields for weights if the
-                      // graph is undirected.
+    // int32_t id;
+    int64_t src_id;
+    int64_t dst_id;
+    int32_t edge_weight;
 } edge;
 
 typedef struct edge_index
 {
-    int src_id;
-    int dst_id;
+    int64_t src_id;
+    int64_t dst_id;
 } edge_index;
 
 typedef struct edge_index key_pair;
 
 typedef struct key_range
 {
-    int start;
-    int end;
+    int64_t start;
+    int64_t end;
 } key_range;
 
 typedef struct adjlist
 {
-    int node_id;
-    int degree;
-    std::vector<int> edgelist;
+    int64_t node_id;
+    uint32_t degree;
+    std::vector<int64_t> edgelist;
 } adjlist;
 
 class table_iterator
@@ -120,7 +119,7 @@ class table_iterator
     // know which table to provide a cursor for. This is guaranteed to cause
     // bugs.
    public:
-    void set_key(int key) { cursor->set_key(cursor, key); }
+    void set_key(int32_t key) { cursor->set_key(cursor, key); }
     bool has_more() { return has_next; };
     virtual void reset()
     {
@@ -129,6 +128,8 @@ class table_iterator
         has_next = true;
     }
 };
+
+// TODO: remove unused functions from this class.
 
 class CommonUtil
 {
@@ -193,11 +194,11 @@ class CommonUtil
     static std::vector<int> unpack_int_vector_std(std::string packed_str);
 
     static char *pack_int_vector_wti(WT_SESSION *session,
-                                     std::vector<int> to_pack,
+                                     std::vector<int64_t> to_pack,
                                      size_t *size);
-    static std::vector<int> unpack_int_vector_wti(WT_SESSION *session,
-                                                  size_t size,
-                                                  char *packed_str);
+    static std::vector<int64_t> unpack_int_vector_wti(WT_SESSION *session,
+                                                      size_t size,
+                                                      char *packed_str);
 
     // WT Session and Cursor wrangling operations
     static int open_cursor(WT_SESSION *session,
@@ -350,7 +351,7 @@ class CommonUtil
                                            WT_CURSOR *cursor,
                                            adjlist *found)
     {
-        int degree;
+        int32_t degree;
         WT_ITEM item;
         cursor->get_value(cursor, &degree, &item);
         found->edgelist = CommonUtil::unpack_int_vector_wti(
