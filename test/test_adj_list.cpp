@@ -422,23 +422,27 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     }
 }
 
+void add_edges_for_cursor_test(AdjList graph)
+{
+    edge to_insert = {.id = 19, .src_id = 1, .dst_id = 7, .edge_weight = 222};
+    graph.add_edge(to_insert, false);
+    to_insert = {.id = 20, .src_id = 7, .dst_id = 8, .edge_weight = 222};
+    graph.add_edge(to_insert, false);
+    to_insert = {.id = 21, .src_id = 1, .dst_id = 8, .edge_weight = 222};
+    graph.add_edge(to_insert, false);
+}
+
 void test_InCursor(AdjList graph)
 {
     INFO();
     AdjIterator::InCursor in_cursor = graph.get_innbd_iter();
-    adjlist found = {0};
-    do
+    adjlist found;
+    in_cursor.next(&found);
+    while (found.node_id != -1)
     {
+        CommonUtil::dump_adjlist(found);
         in_cursor.next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-        }
-        else
-        {
-            break;
-        }
-    } while (found.node_id != -1);
+    }
 }
 
 void test_OutCursor(AdjList graph)
@@ -446,18 +450,18 @@ void test_OutCursor(AdjList graph)
     INFO();
     AdjIterator::OutCursor out_cursor = graph.get_outnbd_iter();
     adjlist found;
-    do
+    out_cursor.next(&found);
+    while (found.node_id != -1)
     {
+        CommonUtil::dump_adjlist(found);
         out_cursor.next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-        }
-        else
-        {
-            break;
-        }
-    } while (found.node_id != -1);
+    }
+}
+
+void test_NodeCursor(AdjList graph)
+{
+    INFO();
+    AdjIterator::NodeCursor node_cursor = graph.get_node_iter();
 }
 
 int main()
@@ -494,6 +498,7 @@ int main()
     test_delete_node(graph, opts.is_directed);
     test_delete_isolated_node(graph, opts.is_directed);
 
+    add_edges_for_cursor_test(graph);
     test_InCursor(graph);
     test_OutCursor(graph);
 

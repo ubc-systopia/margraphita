@@ -284,7 +284,10 @@ class EdgeCursor : public table_iterator
 
    public:
     EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+
+    // Overwrites set_key(int key) implementation in table_iterator
     void set_key(int key) = delete;
+
     void set_key(key_pair start, key_pair end)
     {
         start_edge = start;
@@ -294,19 +297,60 @@ class EdgeCursor : public table_iterator
 
     void next(edge *found)
     {
-        // if (cursor->next(cursor) == 0)
-        // {
-        //     cursor->get_key(cursor, &found->src_id, &found->dst_id);
-        //     if (keys.src_id > -1 && keys.dst_id > -1)  // keys were set
-        //         CommonUtil::__record_to_edge(cursor, found);
-        // }
-        // else
-        // {
-        //     found->src_id = -1;
-        //     found->dst_id = -1;
-        //     found->edge_weight = -1;
-        //     has_next = false;
-        // }
+        if (!has_next)
+        {
+            return;
+        }
+
+        // If first time calling next, we want the exact record corresponding to
+        // the key_pair start or, if there is no such record, the smallest
+        // record larger than the key_pair
+        if (is_first)
+        {
+            is_first = false;
+
+            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
+                {
+                    goto first_time_skip_next;
+                }
+            }
+        }
+
+        // Check existence of next record
+        if (cursor->next(cursor) == 0)
+        {
+        first_time_skip_next:
+            // error_check(
+            //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
+            cursor->get_key(cursor, &found->src_id, &found->dst_id);
+
+            // If end_edge is set
+            if (end_edge.src_id != -1)
+            {
+                // If found > end edge
+                if (!(found->src_id < end_edge.src_id ||
+                      ((found->src_id == end_edge.src_id) &&
+                       (found->dst_id <= end_edge.dst_id))))
+                {
+                    goto no_next;
+                }
+            }
+
+            CommonUtil::__record_to_edge(cursor, found);
+        }
+        else
+        {
+        no_next:
+            found->src_id = -1;
+            found->dst_id = -1;
+            found->edge_weight = -1;
+            has_next = false;
+        }
     }
 };
 

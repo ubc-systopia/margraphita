@@ -4252,3 +4252,6 @@ Iter 8took 	8961
 Iter 9took 	8983
 Iter 10took 	8979
 PR  completed in : 92212.3
+--------------------------------
+Tue 17 May 2022 02:43:40 PM PDT
+run_benchmarks.sh: line 57: /home/puneet/scratch/margraphita/build/release/benchmark/pagerank: No such file or directory

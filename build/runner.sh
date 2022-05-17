@@ -10,10 +10,10 @@ source paths.sh
 # git add -u
 # git commit -a
 
-# echo "---------NOW MAKING A RELEASE BUILD------------"
-# mkdir ${RELEASE_PATH}
-# cd ${RELEASE_PATH}
-# cmake ../.. && make -j16
+ echo "---------NOW MAKING A RELEASE BUILD------------"
+ mkdir ${RELEASE_PATH}
+ cd ${RELEASE_PATH}
+ cmake ../.. && make -j16
 
 # echo "---------NOW MAKING A PROFILE BUILD------------"
 
