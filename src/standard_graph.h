@@ -18,7 +18,7 @@ class InCursor : public table_iterator
 {
    private:
     int64_t prev_node;
-    int64_t cur_node;
+    node_id_t cur_node;
     key_range keys;
 
    public:
@@ -86,7 +86,7 @@ class InCursor : public table_iterator
         prev_node = cur_node = 0;
     }
 
-    void next(adjlist *found, int64_t key)
+    void next(adjlist *found, node_id_t key)
     {
         edge idx;
         cursor->reset(cursor);
@@ -94,7 +94,7 @@ class InCursor : public table_iterator
         int ret = 0;
         if (cursor->search(cursor) == 0 && has_next)
         {
-            int64_t iter_key;
+            node_id_t iter_key;
             do
             {
                 CommonUtil::__read_from_edge_idx(cursor, &idx);
@@ -123,8 +123,8 @@ class InCursor : public table_iterator
 class OutCursor : public table_iterator
 {
    private:
-    int64_t prev_node;
-    int64_t cur_node;
+    node_id_t prev_node;
+    node_id_t cur_node;
     key_range keys;
 
    public:
@@ -191,14 +191,14 @@ class OutCursor : public table_iterator
         prev_node = cur_node = 0;
     }
 
-    void next(adjlist *found, int key)
+    void next(adjlist *found, node_id_t key)
     {
         edge idx;
         cursor->set_key(cursor, key);
         int ret = 0;
         if (cursor->search(cursor) == 0 && has_next)
         {
-            int64_t iter_key;
+            node_id_t iter_key;
             do
             {
                 CommonUtil::__read_from_edge_idx(cursor, &idx);
@@ -363,22 +363,23 @@ class StandardGraph : public GraphBase
     void create_new_graph();
     void add_node(node to_insert);
 
-    bool has_node(int64_t node_id);
-    node get_node(int64_t node_id);
-    void delete_node(int64_t node_id);
+    bool has_node(node_id_t node_id);
+    node get_node(node_id_t node_id);
+    void delete_node(node_id_t node_id);
     node get_random_node();
-    uint32_t get_in_degree(int64_t node_id);
-    uint32_t get_out_degree(int64_t node_id);
+    degree_t get_in_degree(node_id_t node_id);
+    degree_t get_out_degree(node_id_t node_id);
     std::vector<node> get_nodes();
     void add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(int64_t src_id, int64_t dst_id);
-    void delete_edge(int64_t src_id, int64_t dst_id);
-    edge get_edge(int64_t src_id, int64_t dst_id);  // todo <-- implement this
+    bool has_edge(node_id_t src_id, node_id_t dst_id);
+    void delete_edge(node_id_t src_id, node_id_t dst_id);
+    edge get_edge(node_id_t src_id,
+                  node_id_t dst_id);  // todo <-- implement this
     std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(int64_t node_id);
-    std::vector<node> get_out_nodes(int64_t node_id);
-    std::vector<edge> get_in_edges(int64_t node_id);
-    std::vector<node> get_in_nodes(int64_t node_id);
+    std::vector<edge> get_out_edges(node_id_t node_id);
+    std::vector<node> get_out_nodes(node_id_t node_id);
+    std::vector<edge> get_in_edges(node_id_t node_id);
+    std::vector<node> get_in_nodes(node_id_t node_id);
     void get_nodes(vector<node> &nodes);
     std::string get_db_name() const { return opts.db_name; };
 
@@ -395,7 +396,7 @@ class StandardGraph : public GraphBase
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
     WT_CURSOR *get_src_dst_idx_cursor();
-    std::vector<edge> test_cursor_iter(int64_t node_id);
+    std::vector<edge> test_cursor_iter(node_id_t node_id);
     void make_indexes();
 
    private:
@@ -420,10 +421,10 @@ class StandardGraph : public GraphBase
     void drop_indices();
     void create_indices();
     void update_node_degree(WT_CURSOR *cursor,
-                            int64_t node_id,
-                            uint32_t indeg,
-                            uint32_t outdeg);
-    void delete_related_edges(WT_CURSOR *index_cursor, int64_t node_id);
+                            node_id_t node_id,
+                            degree_t indeg,
+                            degree_t outdeg);
+    void delete_related_edges(WT_CURSOR *index_cursor, node_id_t node_id);
 
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);

@@ -24,8 +24,8 @@
 
 typedef struct tc_info
 {
-    int cycle_count;
-    int trust_count;
+    int64_t cycle_count;
+    int64_t trust_count;
     int64_t trust_time;
     int64_t cycle_time;
     tc_info(int _val)
@@ -65,14 +65,7 @@ std::vector<node> intersection(std::vector<node> A, std::vector<node> B)
     int b = B.size();
     std::sort(A.begin(), A.end(), node_compare);
     std::sort(B.begin(), B.end(), node_compare);
-    // std::set<int> ABintersection;
     std::vector<node> ABintersection;
-    // std::set_intersect(A.begin(),
-    //                    A.end(),
-    //                    B.begin(),
-    //                    B.end(),
-    //                    std::inserter(ABintersection,
-    //                    ABintersection.begin()));
     std::vector<node>::iterator A_iter = A.begin();
     std::vector<node>::iterator B_iter = B.begin();
     int i = 0;
@@ -101,9 +94,9 @@ std::vector<node> intersection(std::vector<node> A, std::vector<node> B)
 }
 
 template <typename Graph>
-int trust_tc(Graph &graph)
+int64_t trust_tc(Graph &graph)
 {
-    int count = 0;
+    int64_t count = 0;
     vector<node> nodes = graph.get_nodes();
     for (node n : nodes)
     {
@@ -112,21 +105,16 @@ int trust_tc(Graph &graph)
         for (edge e : out_edges)
         {
             vector<edge> edges2;
-            int nbr_id = e.dst_id;
+            node_id_t nbr_id = e.dst_id;
             if (nbr_id == n.id)
             {
                 continue;  // self loop -- ignore.
             }
 
-            // if (isTrust) // or e.dst_id > n.id)
-            // {
             edges2 = graph.get_out_edges(nbr_id);
-            // }
 
-            // if (isTrust)
-            // {
-            set<int> edge_nei;
-            set<int> edge2_nei;
+            set<node_id_t> edge_nei;
+            set<node_id_t> edge2_nei;
 
             for (edge e : out_edges)
             {
@@ -152,9 +140,9 @@ int trust_tc(Graph &graph)
 }
 
 template <typename Graph>
-int cycle_tc(Graph &graph)
+int64_t cycle_tc(Graph &graph)
 {
-    int count = 0;
+    int64_t count = 0;
     vector<node> nodes = graph.get_nodes();
     for (node n : nodes)
     {
@@ -170,8 +158,6 @@ int cycle_tc(Graph &graph)
                 {
                     if (n.id < w.id and out_node.id < w.id)
                     {
-                        // cout << "(" << n.id << "," << out_node.id << "," <<
-                        // w.id << ")\n";
                         count++;
                     }
                 }

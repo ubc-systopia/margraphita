@@ -302,7 +302,7 @@ void StandardGraph::add_node(node to_insert)
  * @param node_id the node_id to be searched.
  * @return true if the node is found; false otherwise.
  */
-bool StandardGraph::has_node(int64_t node_id)
+bool StandardGraph::has_node(node_id_t node_id)
 {
     int ret = 0;
     if (this->node_cursor == NULL)
@@ -328,7 +328,7 @@ bool StandardGraph::has_node(int64_t node_id)
  * @param dst_id destination node_id
  * @return true/false for if the edge exists/does not exist
  */
-bool StandardGraph::has_edge(int64_t src_id, int64_t dst_id)
+bool StandardGraph::has_edge(node_id_t src_id, node_id_t dst_id)
 {
     int ret = 0;
     string projection = "(" + SRC + "," + DST + ")";
@@ -346,7 +346,7 @@ bool StandardGraph::has_edge(int64_t src_id, int64_t dst_id)
     else
     {
         //? WHY IS THIS NECESSARY?
-        int64_t temp_src_id = 0, temp_dst_id = 0;
+        node_id_t temp_src_id = 0, temp_dst_id = 0;
 
         ret = src_dst_index_cursor->get_value(
             src_dst_index_cursor, &temp_src_id, &temp_dst_id);
@@ -368,7 +368,7 @@ bool StandardGraph::has_edge(int64_t src_id, int64_t dst_id)
  * @param dst_id destination node_id
  * @return true/false for if the edge exists/does not exist
  */
-edge StandardGraph::get_edge(int64_t src_id, int64_t dst_id)
+edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
 {
     int ret = 0;
     edge found = {-1, -1, -1};
@@ -388,7 +388,7 @@ edge StandardGraph::get_edge(int64_t src_id, int64_t dst_id)
     return found;
 }
 
-node StandardGraph::get_node(int64_t node_id)
+node StandardGraph::get_node(node_id_t node_id)
 {
     node found = {0};
     int ret = 0;
@@ -436,7 +436,7 @@ node StandardGraph::get_random_node()
  */
 //! read again
 // TODO(puneet):
-void StandardGraph::delete_node(int64_t node_id)
+void StandardGraph::delete_node(node_id_t node_id)
 {
     int ret = 0;
 
@@ -473,7 +473,7 @@ void StandardGraph::delete_node(int64_t node_id)
     set_num_nodes(get_num_nodes() - 1, metadata_cursor);
 }
 
-uint32_t StandardGraph::get_in_degree(int64_t node_id)
+degree_t StandardGraph::get_in_degree(node_id_t node_id)
 {
     if (this->opts.read_optimize)
     {
@@ -498,7 +498,7 @@ uint32_t StandardGraph::get_in_degree(int64_t node_id)
                     "Could not get a DST index cursor on the edge table");
             }
         }
-        uint32_t count = 0;
+        degree_t count = 0;
         dst_index_cursor->set_key(dst_index_cursor, node_id);
 
         if (dst_index_cursor->search(dst_index_cursor) == 0)
@@ -506,7 +506,7 @@ uint32_t StandardGraph::get_in_degree(int64_t node_id)
             count++;
             while (dst_index_cursor->next(dst_index_cursor) == 0)
             {
-                int64_t src, dst = 0;
+                node_id_t src, dst = 0;
                 dst_index_cursor->get_value(dst_index_cursor, &src, &dst);
                 if (dst == node_id)
                 {
@@ -518,7 +518,7 @@ uint32_t StandardGraph::get_in_degree(int64_t node_id)
     }
 }
 
-uint32_t StandardGraph::get_out_degree(int64_t node_id)
+degree_t StandardGraph::get_out_degree(node_id_t node_id)
 {
     if (opts.read_optimize)
     {
@@ -543,7 +543,7 @@ uint32_t StandardGraph::get_out_degree(int64_t node_id)
                     "Could not get a SRC index cursor on the edge table");
             }
         }
-        uint32_t count = 0;
+        degree_t count = 0;
 
         src_index_cursor->set_key(src_index_cursor, node_id);
 
@@ -553,7 +553,7 @@ uint32_t StandardGraph::get_out_degree(int64_t node_id)
 
             while (src_index_cursor->next(src_index_cursor) == 0)
             {
-                int64_t src, dst = 0;
+                node_id_t src, dst = 0;
                 src_index_cursor->get_value(src_index_cursor, &src, &dst);
                 if (src == node_id)
                 {
@@ -701,7 +701,7 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
     }
 }
 
-void StandardGraph::delete_edge(int64_t src_id, int64_t dst_id)
+void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
     node n_found;
     WT_CURSOR *e_cursor, *n_cursor;
@@ -787,9 +787,9 @@ void StandardGraph::delete_edge(int64_t src_id, int64_t dst_id)
 }
 
 void StandardGraph::update_node_degree(WT_CURSOR *cursor,
-                                       int64_t node_id,
-                                       uint32_t in_degree,
-                                       uint32_t out_degree)
+                                       node_id_t node_id,
+                                       degree_t in_degree,
+                                       degree_t out_degree)
 {
     cursor->set_key(cursor, node_id);
     int ret = cursor->search(cursor);
@@ -834,7 +834,7 @@ std::vector<edge> StandardGraph::get_edges()
  * @param node_id the ID of the node whose out edges are being searched
  * @return std::vector<edge> vector of out edges found
  */
-std::vector<edge> StandardGraph::get_out_edges(int64_t node_id)
+std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
 {
     vector<edge> edges;
     if (!has_node(node_id))
@@ -847,7 +847,7 @@ std::vector<edge> StandardGraph::get_out_edges(int64_t node_id)
     cursor->reset(cursor);
     cursor->set_key(cursor, node_id);
 
-    int64_t temp = -1;
+    node_id_t temp = -1;
     cursor->get_key(cursor, &temp);
 
     if (cursor->search(cursor) == 0)
@@ -877,7 +877,7 @@ std::vector<edge> StandardGraph::get_out_edges(int64_t node_id)
  * @param node_id the node for which out edges are being searched
  * @return vector<node> The vector of out nodes
  */
-vector<node> StandardGraph::get_out_nodes(int64_t node_id)
+vector<node> StandardGraph::get_out_nodes(node_id_t node_id)
 {
     vector<edge> out_edges;
     vector<node> nodes;
@@ -909,7 +909,7 @@ vector<node> StandardGraph::get_out_nodes(int64_t node_id)
  * @param node_id
  * @return vector<edge>
  */
-vector<edge> StandardGraph::get_in_edges(int64_t node_id)
+vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
 {
     vector<edge> edges;
 
@@ -957,7 +957,7 @@ vector<edge> StandardGraph::get_in_edges(int64_t node_id)
  * @param node_id for identifying the node to search
  * @return vector<node> set of nodes that have edges to node_id
  */
-vector<node> StandardGraph::get_in_nodes(int64_t node_id)
+vector<node> StandardGraph::get_in_nodes(node_id_t node_id)
 {
     vector<node> nodes;
     WT_CURSOR *cursor = get_dst_idx_cursor();
@@ -1119,7 +1119,7 @@ edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
     }
 }
 
-vector<edge> StandardGraph::test_cursor_iter(int64_t node_id)
+vector<edge> StandardGraph::test_cursor_iter(node_id_t node_id)
 {
     vector<edge> edges;
     if (!has_node(node_id))

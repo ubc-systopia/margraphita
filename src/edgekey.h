@@ -17,9 +17,9 @@ namespace EKeyIterator
 class InCursor : public table_iterator
 {
    private:
-    int64_t prev_dst;
-    int64_t prev_node = 0;
-    int64_t cur_node = 0;
+    node_id_t prev_dst;
+    node_id_t prev_node = 0;
+    node_id_t cur_node = 0;
 
    public:
     InCursor(WT_CURSOR *beg_cur, WT_SESSION *sess) { init(beg_cur, sess); }
@@ -28,10 +28,10 @@ class InCursor : public table_iterator
     void next(adjlist *found)
     {
         int ret = 0;
-        // int64_t prev_node, cur_node = 0;
+        // node_id_t prev_node, cur_node = 0;
         while ((ret = cursor->next(cursor)) == 0)
         {
-            int64_t src, dst = 0;
+            node_id_t src, dst = 0;
             cursor->get_key(cursor, &cur_node);
             if (cur_node == -1)
             {
@@ -65,14 +65,14 @@ class InCursor : public table_iterator
     void next(adjlist *found, key_pair kp)
     {
         cursor->set_key(cursor, kp.dst_id);
-        int64_t src = 0, dst = 0;
+        node_id_t src = 0, dst = 0;
         int ret = cursor->search(cursor);
 
         if ((ret == 0) && (has_next == true))
         {
             do
             {
-                int64_t temp = 0;
+                node_id_t temp = 0;
                 cursor->get_value(cursor, &src, &dst);
                 cursor->get_key(cursor, &temp);
                 if (dst == kp.dst_id)
@@ -373,22 +373,22 @@ class EdgeKey : public GraphBase
     void create_new_graph();
     void add_node(node to_insert);
 
-    bool has_node(int64_t node_id);
-    node get_node(int64_t node_id);
-    void delete_node(int64_t node_id);
+    bool has_node(node_id_t node_id);
+    node get_node(node_id_t node_id);
+    void delete_node(node_id_t node_id);
     node get_random_node();
-    uint32_t get_in_degree(int64_t node_id);
-    uint32_t get_out_degree(int64_t node_id);
+    degree_t get_in_degree(node_id_t node_id);
+    degree_t get_out_degree(node_id_t node_id);
     std::vector<node> get_nodes();
     void add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(int64_t src_id, int64_t dst_id);
-    void delete_edge(int64_t src_id, int64_t dst_id);
-    edge get_edge(int64_t src_id, int64_t dst_id);
+    bool has_edge(node_id_t src_id, node_id_t dst_id);
+    void delete_edge(node_id_t src_id, node_id_t dst_id);
+    edge get_edge(node_id_t src_id, node_id_t dst_id);
     std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(int64_t node_id);
-    std::vector<node> get_out_nodes(int64_t node_id);
-    std::vector<edge> get_in_edges(int64_t node_id);
-    std::vector<node> get_in_nodes(int64_t node_id);
+    std::vector<edge> get_out_edges(node_id_t node_id);
+    std::vector<node> get_out_nodes(node_id_t node_id);
+    std::vector<edge> get_in_edges(node_id_t node_id);
+    std::vector<node> get_in_nodes(node_id_t node_id);
 
     EKeyIterator::OutCursor get_outnbd_cursor();
     EKeyIterator::InCursor get_innbd_cursor();
@@ -416,8 +416,8 @@ class EdgeKey : public GraphBase
     // internal methods
     void delete_related_edges(WT_CURSOR *idx_cursor,
                               WT_CURSOR *edge_cur,
-                              int64_t node_id);
-    void update_node_degree(int64_t node_id, uint32_t indeg, uint32_t outdeg);
+                              node_id_t node_id);
+    void update_node_degree(node_id_t node_id, degree_t indeg, degree_t outdeg);
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
 

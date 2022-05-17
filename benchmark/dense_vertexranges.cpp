@@ -13,13 +13,15 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "common.h"
+
 //#include "dense_vertexrange.h"
 #define NUM_THREADS 10
 double num_edges;
 double num_nodes;
 std::string dataset;
 std::string out_dir;
-std::unordered_map<int64_t, int64_t> remap;
+std::unordered_map<node_id_t, node_id_t> remap;
 
 typedef std::shared_mutex Lock;
 typedef std::unique_lock<Lock> WriteLock;
@@ -27,14 +29,14 @@ typedef std::shared_lock<Lock> ReadLock;
 
 Lock lock;
 
-void construct_vertex_mapping(int64_t line_num)
+void construct_vertex_mapping(node_id_t line_num)
 {
     std::string filename = dataset + "_nodes";
     std::ifstream nodefile(filename.c_str());
     if (nodefile.is_open())
     {
         std::string tp;
-        int64_t line = 0;
+        node_id_t line = 0;
         while (getline(nodefile, tp))
         {
             if (line < line_num)
@@ -44,7 +46,7 @@ void construct_vertex_mapping(int64_t line_num)
             }
             else
             {
-                int64_t val;
+                node_id_t val;
                 std::stringstream s_str(tp);
                 s_str >> val;
                 WriteLock writer(lock);
@@ -60,7 +62,9 @@ void construct_vertex_mapping(int64_t line_num)
         std::cout << "failed;";
     }
 }
-void convert_edge_list(int64_t beg_offset, int64_t end_offset, int64_t t_id)
+void convert_edge_list(node_id_t beg_offset,
+                       node_id_t end_offset,
+                       node_id_t t_id)
 {
     std::ifstream edgefile(dataset.c_str());
 
@@ -72,7 +76,7 @@ void convert_edge_list(int64_t beg_offset, int64_t end_offset, int64_t t_id)
     if (edgefile.is_open())
     {
         std::string tp;
-        int64_t line = 0;
+        node_id_t line = 0;
         while (getline(edgefile, tp))
         {
             if (line < beg_offset)
@@ -82,7 +86,7 @@ void convert_edge_list(int64_t beg_offset, int64_t end_offset, int64_t t_id)
             }
             else if (line >= beg_offset && line < end_offset)
             {
-                int64_t src, dst;
+                node_id_t src, dst;
                 std::stringstream s_str(tp);
                 s_str >> src;
                 s_str >> dst;
@@ -149,7 +153,7 @@ int main(int argc, char *argv[])
 #pragma omp parallel for num_threads(NUM_THREADS) shared(num_nodes)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        int64_t offset = ((i * num_nodes) / NUM_THREADS);
+        node_id_t offset = ((i * num_nodes) / NUM_THREADS);
 
         construct_vertex_mapping(offset);
     }
@@ -165,8 +169,8 @@ int main(int argc, char *argv[])
 #pragma omp parallel for num_threads(NUM_THREADS) shared(num_edges)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        int64_t beg_offset = ((i * num_edges) / NUM_THREADS);
-        int64_t end_offset = ((i + 1) * num_edges) / NUM_THREADS;
+        node_id_t beg_offset = ((i * num_edges) / NUM_THREADS);
+        node_id_t end_offset = ((i + 1) * num_edges) / NUM_THREADS;
         convert_edge_list(beg_offset, end_offset, i);
     }
     return (EXIT_SUCCESS);

@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "common.h"
+
 class CmdLineBase
 {
    protected:
@@ -161,7 +163,7 @@ class CmdLineBase
 class CmdLineApp : public CmdLineBase
 {
     int num_trials = 16;
-    int start_vertex_ = -1;
+    node_id_t start_vertex_ = -1;
 
    public:
     CmdLineApp(int argc, char **argv) : CmdLineBase(argc, argv)
@@ -192,7 +194,7 @@ class CmdLineApp : public CmdLineBase
         }
     }
     int get_num_trials() const { return num_trials; }
-    int start_vertex() const { return start_vertex_; }
+    node_id_t start_vertex() const { return start_vertex_; }
 };
 
 class PageRankOpts : public CmdLineApp

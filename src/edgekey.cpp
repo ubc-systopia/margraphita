@@ -147,7 +147,7 @@ void EdgeKey::create_new_graph()
  * @param node_id the Node ID
  * @return node the node struct containing the node
  */
-node EdgeKey::get_node(int64_t node_id)
+node EdgeKey::get_node(node_id_t node_id)
 {
     WT_CURSOR *cursor = get_edge_cursor();
     cursor->set_key(cursor, node_id, OutOfBand_ID);
@@ -178,7 +178,7 @@ node EdgeKey::get_random_node()
     {
         throw GraphException("could not get a random cursor to the node table");
     }
-    int64_t src, dst;
+    node_id_t src, dst;
     ret = random_cur->next(random_cur);
     if (ret != 0)
     {
@@ -263,7 +263,7 @@ void EdgeKey::add_node(node to_insert)
  * @param node_id the ID to look for
  * @return true / false depending on if node_id is found or not
  */
-bool EdgeKey::has_node(int64_t node_id)
+bool EdgeKey::has_node(node_id_t node_id)
 {
     WT_CURSOR *e_cur = get_edge_cursor();
 
@@ -285,7 +285,7 @@ bool EdgeKey::has_node(int64_t node_id)
  * @param dst_id destinatino node for the edge to search
  * @return true/false id edge was found or not
  */
-bool EdgeKey::has_edge(int64_t src_id, int64_t dst_id)
+bool EdgeKey::has_edge(node_id_t src_id, node_id_t dst_id)
 {
     bool found = false;
     WT_CURSOR *e_cur = get_edge_cursor();
@@ -298,7 +298,7 @@ bool EdgeKey::has_edge(int64_t src_id, int64_t dst_id)
     return found;
 }
 
-void EdgeKey::delete_node(int64_t node_id)
+void EdgeKey::delete_node(node_id_t node_id)
 {
     WT_CURSOR *e_cur = get_edge_cursor();
     WT_CURSOR *src_cur = get_src_idx_cur();
@@ -321,7 +321,7 @@ void EdgeKey::delete_node(int64_t node_id)
 
 void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
                                    WT_CURSOR *e_cur,
-                                   int64_t node_id)
+                                   node_id_t node_id)
 {
     int ret = 0;
     e_cur->reset(e_cur);
@@ -329,7 +329,7 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
     idx_cur->set_key(idx_cur, node_id);
     if (idx_cur->search(idx_cur) == 0)
     {
-        int64_t src, dst;
+        node_id_t src, dst;
         idx_cur->get_value(idx_cur, &src, &dst);
         e_cur->set_key(e_cur, src, dst);
         ret = e_cur->remove(e_cur);
@@ -358,7 +358,7 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
         while (idx_cur->next(idx_cur) == 0 &&
                idx_cur->get_key(idx_cur) == node_id)
         {
-            int64_t src, dst;
+            node_id_t src, dst;
             idx_cur->get_value(idx_cur, &src, &dst);
             e_cur->set_key(e_cur, src, dst);
             ret = e_cur->remove(e_cur);
@@ -396,9 +396,9 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
  * @param indeg new in_degree
  * @param outdeg new out_degree
  */
-void EdgeKey::update_node_degree(int64_t node_id,
-                                 uint32_t indeg,
-                                 uint32_t outdeg)
+void EdgeKey::update_node_degree(node_id_t node_id,
+                                 degree_t indeg,
+                                 degree_t outdeg)
 {
     if (opts.read_optimize)
     {
@@ -507,7 +507,7 @@ void EdgeKey::add_edge(edge to_insert, bool is_bulk)
  * @param src_id Source node ID for the edge to be deleted
  * @param dst_id Dst node ID for the edge to be deleted
  */
-void EdgeKey::delete_edge(int64_t src_id, int64_t dst_id)
+void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
     // delete edge
     WT_CURSOR *e_cur = get_edge_cursor();
@@ -568,7 +568,7 @@ void EdgeKey::delete_edge(int64_t src_id, int64_t dst_id)
  * @param dst_id destination node_id
  * @return edge the edge object found
  */
-edge EdgeKey::get_edge(int64_t src_id, int64_t dst_id)
+edge EdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
 {
     edge found = {0};
     WT_CURSOR *e_cur = get_edge_cursor();
@@ -601,7 +601,7 @@ std::vector<node> EdgeKey::get_nodes()
     dst_cur->set_key(dst_cur, OutOfBand_ID);
     if (dst_cur->search(dst_cur) == 0)
     {
-        int64_t node_id, temp;
+        node_id_t node_id, temp;
         dst_cur->get_value(dst_cur, &node_id, &temp);
         assert(temp == OutOfBand_ID);  // this should be true
         e_cur->set_key(e_cur, node_id, OutOfBand_ID);
@@ -642,7 +642,7 @@ std::vector<node> EdgeKey::get_nodes()
  * @param node_id ID of the node whose out degree is sought
  * @return int outdegree of node with ID node_id
  */
-uint32_t EdgeKey::get_out_degree(int64_t node_id)
+degree_t EdgeKey::get_out_degree(node_id_t node_id)
 {
     if (opts.read_optimize)
     {
@@ -659,12 +659,12 @@ uint32_t EdgeKey::get_out_degree(int64_t node_id)
     }
     else
     {
-        uint32_t out_deg = 0;
+        degree_t out_deg = 0;
         WT_CURSOR *src_cur = get_src_idx_cur();
         src_cur->set_key(src_cur, node_id);
         if (src_cur->search(src_cur) == 0)
         {
-            int64_t src, dst;
+            node_id_t src, dst;
             src_cur->get_value(src_cur, &src, &dst);
 
             if (src == node_id && dst != OutOfBand_ID)
@@ -702,7 +702,7 @@ uint32_t EdgeKey::get_out_degree(int64_t node_id)
  * @param node_id the ID of the node whose in_degree is sought
  * @return int the indegree found/computed.
  */
-uint32_t EdgeKey::get_in_degree(int64_t node_id)
+degree_t EdgeKey::get_in_degree(node_id_t node_id)
 {
     if (opts.read_optimize)
     {
@@ -716,12 +716,12 @@ uint32_t EdgeKey::get_in_degree(int64_t node_id)
     }
     else
     {
-        uint32_t in_degree = 0;
+        degree_t in_degree = 0;
         WT_CURSOR *dst_cur = get_dst_idx_cur();
         dst_cur->set_key(dst_cur, node_id);
         if (dst_cur->search(dst_cur) == 0)
         {
-            int64_t src, dst;
+            node_id_t src, dst;
             dst_cur->get_value(dst_cur, &src, &dst);
             if (dst == node_id)
             {
@@ -778,7 +778,7 @@ std::vector<edge> EdgeKey::get_edges()
  * @param node_id
  * @return std::vector<edge>
  */
-std::vector<edge> EdgeKey::get_out_edges(int64_t node_id)
+std::vector<edge> EdgeKey::get_out_edges(node_id_t node_id)
 {
     std::vector<edge> out_edges;
     WT_CURSOR *e_cur = get_edge_cursor();
@@ -793,7 +793,7 @@ std::vector<edge> EdgeKey::get_out_edges(int64_t node_id)
     int flag = 0;
     if (search_ret == 0)
     {
-        int64_t src_id, dst_id;
+        node_id_t src_id, dst_id;
 
         do
         {
@@ -834,7 +834,7 @@ std::vector<edge> EdgeKey::get_out_edges(int64_t node_id)
  * @param node_id Node ID of the node who's out nodes are sought.
  * @return std::vector<node>
  */
-std::vector<node> EdgeKey::get_out_nodes(int64_t node_id)
+std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
 {
     std::vector<node> out_nodes;
     WT_CURSOR *src_cur = get_src_idx_cur();
@@ -849,7 +849,7 @@ std::vector<node> EdgeKey::get_out_nodes(int64_t node_id)
     int flag = 0;
     if (search_ret == 0)
     {
-        int64_t src, dst;
+        node_id_t src, dst;
         do
         {
             src_cur->get_value(src_cur, &src, &dst);
@@ -889,7 +889,7 @@ std::vector<node> EdgeKey::get_out_nodes(int64_t node_id)
  * @param node_id the id of the node whose in_edges are sought
  * @return std::vector<edge>
  */
-std::vector<edge> EdgeKey::get_in_edges(int64_t node_id)
+std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
 {
     std::vector<edge> in_edges;
     WT_CURSOR *e_cur = get_edge_cursor();
@@ -903,7 +903,7 @@ std::vector<edge> EdgeKey::get_in_edges(int64_t node_id)
     int search_ret = dst_cur->search(dst_cur);
     if (search_ret == 0)
     {
-        int64_t src_id, dst_id;
+        node_id_t src_id, dst_id;
         dst_cur->get_value(dst_cur, &src_id, &dst_id);
 
         do
@@ -930,7 +930,7 @@ std::vector<edge> EdgeKey::get_in_edges(int64_t node_id)
  * @param node_id the node whose in_nodes are sought.
  * @return std::vector<node>
  */
-std::vector<node> EdgeKey::get_in_nodes(int64_t node_id)
+std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
 {
     std::vector<node> in_nodes;
     WT_CURSOR *e_cur = get_edge_cursor();
@@ -943,7 +943,7 @@ std::vector<node> EdgeKey::get_in_nodes(int64_t node_id)
     dst_cur->set_key(dst_cur, node_id);
     if (dst_cur->search(dst_cur) == 0)
     {
-        int64_t src_id, dst_id;
+        node_id_t src_id, dst_id;
         if (dst_cur->get_value(dst_cur, &src_id, &dst_id) != 0)
         {
             throw GraphException("here" + __LINE__);
@@ -1115,7 +1115,7 @@ node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
     node found = {-1};
     if (dst_cur->search(dst_cur) == 0)
     {
-        int node_id, temp;
+        node_id_t node_id, temp;
         dst_cur->get_value(dst_cur, &node_id, &temp);
         assert(temp == OutOfBand_ID);  // this should be true
         e_cur->set_key(e_cur, node_id, OutOfBand_ID);
