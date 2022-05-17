@@ -319,7 +319,10 @@ class EdgeCursor : public table_iterator
             }
         }
 
-        cursor->next(cursor);
+        if (cursor->next(cursor) != 0)
+        {
+            goto no_next;
+        }
 
     skip_first_advance:
         // Advance until cursor is pointing to an edge
