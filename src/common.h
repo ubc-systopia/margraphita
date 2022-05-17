@@ -50,8 +50,6 @@ typedef int64_t node_id_t;
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
 const node_id_t OutOfBand_ID = -1;
-extern const int BUFFER_LENGTH;  // Length for converting int to string buffer
-
 struct graph_opts
 {
     bool create_new = true;
