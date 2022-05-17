@@ -1,6 +1,4 @@
 make all --print-data-base --no-builtin-variables --no-builtin-rules --question
-make: *** No rule to make target 'all'.  Stop.
-
 # GNU Make 4.2.1
 # Built for x86_64-pc-linux-gnu
 # Copyright (C) 1988-2016 Free Software Foundation, Inc.
@@ -8,7 +6,7 @@ make: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Mon May 16 13:59:48 2022
+# Make data base, printed on Tue May 17 12:08:28 2022
 
 # Variables
 
@@ -57,7 +55,7 @@ LESSOPEN = | /usr/bin/lesspipe %s
 # environment
 VSCODE_CWD = /home/jackli
 # environment
-SSH_CONNECTION = 198.162.33.17 46598 192.168.79.200 22
+SSH_CONNECTION = 198.162.33.17 46674 192.168.79.200 22
 # environment
 PATH = /home/jackli/.vscode-server/bin/da15b6fd3ef856477bf6f4fb29ba1b7af717770d/bin/remote-cli:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/jackli/margraphita/libs/wiredtiger
 # environment
@@ -65,7 +63,7 @@ XDG_RUNTIME_DIR = /run/user/1006
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /run/user/1006/vscode-ipc-f0679bf2-5219-409c-9318-42487acd81a1.sock
+VSCODE_IPC_HOOK_CLI = /run/user/1006/vscode-ipc-14088ca0-1e5b-49ad-9413-0c376dd516c7.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -105,7 +103,7 @@ MAKECMDGOALS := all
 # environment
 SHLVL = 1
 # environment
-XDG_SESSION_ID = 447
+XDG_SESSION_ID = 499
 # environment
 USER = jackli
 # makefile
@@ -123,7 +121,7 @@ MAKEFLAGS = pqrR
 # environment
 MFLAGS = -pqrR
 # environment
-SSH_CLIENT = 198.162.33.17 46598 22
+SSH_CLIENT = 198.162.33.17 46674 22
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # environment
@@ -219,6 +217,8 @@ GNUmakefile:
 # strcache performance: lookups = 29 / hit rate = 10%
 # hash-table stats:
 # Load=26/8192=0%, Rehash=0, Collisions=1/29=3%
-# Finished Make data base on Mon May 16 13:59:48 2022
+# Finished Make data base on Tue May 17 12:08:28 2022
 
  
+make: *** No rule to make target 'all'.  Stop.
+

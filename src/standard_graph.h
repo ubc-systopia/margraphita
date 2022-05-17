@@ -297,18 +297,23 @@ class EdgeCursor : public table_iterator
 
     void next(edge *found)
     {
+        if (!has_next)
+        {
+            return;
+        }
+
         // If first time calling next, we want the exact record corresponding to
         // the key_pair start or, if there is no such record, the smallest
         // record larger than the key_pair
-        if (is_first == true)
+        if (is_first)
         {
             is_first = false;
 
             if (start_edge.src_id != -1 && start_edge.dst_id != -1)
             {
                 int status;
-                cursor->search_near(cursor, &status);
-                if (!(status < 0))
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status) if (status >= 0)
                 {
                     goto first_time_skip_next;
                 }
@@ -319,35 +324,17 @@ class EdgeCursor : public table_iterator
         if (cursor->next(cursor) == 0)
         {
         first_time_skip_next:
+            // error_check(
+            //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
             cursor->get_key(cursor, &found->src_id, &found->dst_id);
 
-            // If start_edge is set
-            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
-            {
-                // Expect start_edge <= found
-                if (start_edge.src_id < found->src_id ||
-                    ((start_edge.src_id == found->src_id) &&
-                     (start_edge.dst_id <= found->dst_id)))
-                {
-                    // pass
-                }
-                else
-                {
-                    goto no_next;
-                }
-            }
-
             // If end_edge is set
-            if (end_edge.src_id != -1 && end_edge.dst_id != -1)
+            if (end_edge.src_id != -1)
             {
-                // Expect found <= end edge
-                if (found->src_id < end_edge.src_id ||
-                    ((found->src_id == end_edge.src_id) &&
-                     (found->dst_id <= end_edge.dst_id)))
-                {
-                    // pass
-                }
-                else
+                // If found > end edge
+                if (!(found->src_id < end_edge.src_id ||
+                      ((found->src_id == end_edge.src_id) &&
+                       (found->dst_id <= end_edge.dst_id))))
                 {
                     goto no_next;
                 }
