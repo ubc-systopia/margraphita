@@ -45,7 +45,6 @@ extern const std::string IN_ADJLIST;   // New
 extern const std::string OUT_ADJLIST;  // New
 extern const std::string node_count;
 extern const std::string edge_count;
-const int64_t OutOfBand_ID = -1;
 
 typedef int64_t node_id_t;
 typedef int32_t edgeweight_t;
