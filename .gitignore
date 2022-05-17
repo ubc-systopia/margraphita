@@ -22,3 +22,5 @@ db/
 .vscode/configurationCache.json
 .vscode/dryrun.log
 .vscode/targets.log
+workspace.code-workspace
+tasks.md
