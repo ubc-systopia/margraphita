@@ -25,12 +25,12 @@ int read_optimized = 0;
 int is_directed = 1;
 
 std::vector<std::string> types;
-std::unordered_map<int64_t, node> nodelist;
-std::unordered_map<int64_t, std::vector<int64_t>> in_adjlist;
-std::unordered_map<int64_t, std::vector<int64_t>> out_adjlist;
+std::unordered_map<node_id_t, node> nodelist;
+std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;
+std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;
 std::mutex lock;
 
-int64_t nodelist_size;
+uint64_t nodelist_size;
 
 std::string pack_int_to_str(int32_t a, int32_t b)
 {
@@ -441,7 +441,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    int i;
     // pthread_t threads[NUM_THREADS];
 
     auto start = std::chrono::steady_clock::now();

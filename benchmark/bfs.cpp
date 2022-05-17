@@ -33,19 +33,19 @@ typedef struct bfs_info
 } bfs_info;
 
 template <typename Graph>
-bfs_info *bfs(Graph &graph, int src)
+bfs_info *bfs(Graph &graph, node_id_t src)
 {
     bfs_info *info = new bfs_info(0);
     auto start = chrono::steady_clock::now();
     for (int i = 0; i < 10; i++)
     {
-        set<int> visited = {src};
-        list<int> queue = {src};
-        vector<int> result;
+        set<node_id_t> visited = {src};
+        list<node_id_t> queue = {src};
+        vector<node_id_t> result;
 
         while (!queue.empty())
         {
-            int node_id = queue.front();
+            node_id_t node_id = queue.front();
             queue.pop_front();
             result.push_back(node_id);
             vector<node> out_nbrs = graph.get_out_nodes(node_id);
@@ -96,7 +96,7 @@ void print_csv_info(std::string name,
     FILE.close();
 }
 template <typename Graph>
-int find_random_start(Graph &graph)
+node_id_t find_random_start(Graph &graph)
 {
     while (1)
     {
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
         // random node
         for (int i = 0; i < bfs_cli.get_num_trials(); i++)
         {
-            int start_vertex = bfs_cli.start_vertex();
+            node_id_t start_vertex = bfs_cli.start_vertex();
             if (start_vertex == -1)
             {
                 start_vertex = find_random_start(graph);
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 
         for (int i = 0; i < bfs_cli.get_num_trials(); i++)
         {
-            int start_vertex = bfs_cli.start_vertex();
+            node_id_t start_vertex = bfs_cli.start_vertex();
             if (start_vertex == -1)
             {
                 start_vertex = find_random_start(graph);
@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 #endif
         for (int i = 0; i < num_trials; i++)
         {
-            int start_vertex = bfs_cli.start_vertex();
+            node_id_t start_vertex = bfs_cli.start_vertex();
             if (start_vertex == -1)
             {
                 start_vertex = find_random_start(graph);

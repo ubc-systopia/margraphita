@@ -45,8 +45,11 @@ extern const std::string IN_ADJLIST;   // New
 extern const std::string OUT_ADJLIST;  // New
 extern const std::string node_count;
 extern const std::string edge_count;
-const int64_t OutOfBand_ID = -1;
 
+typedef int64_t node_id_t;
+typedef int32_t edgeweight_t;
+typedef uint32_t degree_t;
+const node_id_t OutOfBand_ID = -1;
 struct graph_opts
 {
     bool create_new = true;
@@ -68,38 +71,38 @@ typedef struct wt_conn_info
 
 typedef struct node
 {
-    int64_t id;  // node ID
-    uint32_t in_degree = 0;
-    uint32_t out_degree = 0;
+    node_id_t id;  // node ID
+    degree_t in_degree = 0;
+    degree_t out_degree = 0;
 } node;
 
 typedef struct edge
 {
     // int32_t id;
-    int64_t src_id;
-    int64_t dst_id;
-    int32_t edge_weight;
+    node_id_t src_id;
+    node_id_t dst_id;
+    edgeweight_t edge_weight;
 } edge;
 
 typedef struct edge_index
 {
-    int64_t src_id;
-    int64_t dst_id;
+    node_id_t src_id;
+    node_id_t dst_id;
 } edge_index;
 
 typedef struct edge_index key_pair;
 
 typedef struct key_range
 {
-    int64_t start;
-    int64_t end;
+    node_id_t start;
+    node_id_t end;
 } key_range;
 
 typedef struct adjlist
 {
-    int64_t node_id;
-    uint32_t degree;
-    std::vector<int64_t> edgelist;
+    node_id_t node_id;
+    degree_t degree;
+    std::vector<node_id_t> edgelist;
 } adjlist;
 
 class table_iterator
@@ -119,7 +122,7 @@ class table_iterator
     // know which table to provide a cursor for. This is guaranteed to cause
     // bugs.
    public:
-    void set_key(int32_t key) { cursor->set_key(cursor, key); }
+    void set_key(node_id_t key) { cursor->set_key(cursor, key); }
     bool has_more() { return has_next; };
     virtual void reset()
     {
@@ -194,11 +197,11 @@ class CommonUtil
     static std::vector<int> unpack_int_vector_std(std::string packed_str);
 
     static char *pack_int_vector_wti(WT_SESSION *session,
-                                     std::vector<int64_t> to_pack,
+                                     std::vector<node_id_t> to_pack,
                                      size_t *size);
-    static std::vector<int64_t> unpack_int_vector_wti(WT_SESSION *session,
-                                                      size_t size,
-                                                      char *packed_str);
+    static std::vector<node_id_t> unpack_int_vector_wti(WT_SESSION *session,
+                                                        size_t size,
+                                                        char *packed_str);
 
     // WT Session and Cursor wrangling operations
     static int open_cursor(WT_SESSION *session,
@@ -239,7 +242,7 @@ class CommonUtil
 
     /********************************************************************************************
      *            Serialization/ Deserialization methods common to all
-     *representations           *
+     *                             *representations*
      ********************************************************************************************/
 
     /**

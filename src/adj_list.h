@@ -33,7 +33,7 @@ class InCursor : public table_iterator
         }
     }
 
-    void next(adjlist *found, int64_t key)
+    void next(adjlist *found, node_id_t key)
     {
         cursor->set_key(cursor, key);
         if (cursor->search(cursor) == 0)
@@ -70,7 +70,7 @@ class OutCursor : public table_iterator
         }
     }
 
-    void next(adjlist *found, int key)
+    void next(adjlist *found, node_id_t key)
     {
         if (cursor->next(cursor) == 0)
         {
@@ -180,38 +180,38 @@ class AdjList : public GraphBase
     AdjList(graph_opts &opt_params);
     void create_new_graph();
     void add_node(node to_insert);
-    void add_node(int64_t to_insert,
-                  std::vector<int64_t> &inlist,
-                  std::vector<int64_t> &outlist);
-    bool has_node(int64_t node_id);
-    node get_node(int64_t node_id);
-    void delete_node(int64_t node_id);
+    void add_node(node_id_t to_insert,
+                  std::vector<node_id_t> &inlist,
+                  std::vector<node_id_t> &outlist);
+    bool has_node(node_id_t node_id);
+    node get_node(node_id_t node_id);
+    void delete_node(node_id_t node_id);
     node get_random_node();
-    uint32_t get_in_degree(int64_t node_id);
-    uint32_t get_out_degree(int64_t node_id);
+    degree_t get_in_degree(node_id_t node_id);
+    degree_t get_out_degree(node_id_t node_id);
     std::vector<node> get_nodes();
 
     void add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(int64_t src_id, int64_t dst_id);
-    void delete_edge(int64_t src_id, int64_t dst_id);
-    edge get_edge(int64_t src_id, int64_t dst_id);
+    bool has_edge(node_id_t src_id, node_id_t dst_id);
+    void delete_edge(node_id_t src_id, node_id_t dst_id);
+    edge get_edge(node_id_t src_id, node_id_t dst_id);
     std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(int64_t node_id);
-    std::vector<node> get_out_nodes(int64_t node_id);
-    std::vector<edge> get_in_edges(int64_t node_id);
-    std::vector<node> get_in_nodes(int64_t node_id);
+    std::vector<edge> get_out_edges(node_id_t node_id);
+    std::vector<node> get_out_nodes(node_id_t node_id);
+    std::vector<edge> get_in_edges(node_id_t node_id);
+    std::vector<node> get_in_nodes(node_id_t node_id);
     std::string get_db_name() const { return opts.db_name; };
-    std::vector<int64_t> get_adjlist(WT_CURSOR *cursor, int64_t node_id);
+    std::vector<node_id_t> get_adjlist(WT_CURSOR *cursor, node_id_t node_id);
     AdjIterator::OutCursor get_outnbd_iter();
     AdjIterator::InCursor get_innbd_iter();
     AdjIterator::NodeCursor get_node_iter();
     AdjIterator::EdgeCursor get_edge_iter();
 
-    int32_t get_edge_weight(int64_t src_id, int64_t dst_id);
+    edgeweight_t get_edge_weight(node_id_t src_id, node_id_t dst_id);
     void update_edge_weight(
-        int64_t src_id,
-        int64_t dst_id,
-        int32_t edge_weight);  // todo <-- is this implemented?
+        node_id_t src_id,
+        node_id_t dst_id,
+        edgeweight_t edge_weight);  // todo <-- is this implemented?
 
     // internal cursor operations:
     //! Check if these should be public:
@@ -249,21 +249,23 @@ class AdjList : public GraphBase
     // AdjList specific internal methods:
     node get_next_node(WT_CURSOR *n_cur);
     edge get_next_edge(WT_CURSOR *e_cur);
-    void add_adjlist(WT_CURSOR *cursor, int64_t node_id);
+    void add_adjlist(WT_CURSOR *cursor, node_id_t node_id);
     void add_adjlist(WT_CURSOR *cursor,
-                     int64_t node_id,
-                     std::vector<int64_t> &list);
-    void delete_adjlist(WT_CURSOR *cursor, int64_t node_id);
-    void delete_node_from_adjlists(int64_t node_id);
-    void add_to_adjlists(WT_CURSOR *cursor, int64_t node_id, int64_t to_insert);
+                     node_id_t node_id,
+                     std::vector<node_id_t> &list);
+    void delete_adjlist(WT_CURSOR *cursor, node_id_t node_id);
+    void delete_node_from_adjlists(node_id_t node_id);
+    void add_to_adjlists(WT_CURSOR *cursor,
+                         node_id_t node_id,
+                         node_id_t to_insert);
     void delete_from_adjlists(WT_CURSOR *cursor,
-                              int64_t node_id,
-                              int64_t to_delete);
-    void delete_related_edges_and_adjlists(int64_t node_id);
+                              node_id_t node_id,
+                              node_id_t to_delete);
+    void delete_related_edges_and_adjlists(node_id_t node_id);
     void update_node_degree(WT_CURSOR *cursor,
-                            int64_t node_id,
-                            uint32_t indeg,
-                            uint32_t outdeg);
+                            node_id_t node_id,
+                            degree_t indeg,
+                            degree_t outdeg);
 
     void dump_tables();
     void create_indices() { return; }  // here because defined in interface

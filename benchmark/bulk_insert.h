@@ -17,8 +17,8 @@
 
 #define NUM_THREADS 10
 
-extern std::unordered_map<int64_t, std::vector<int64_t>> in_adjlist;
-extern std::unordered_map<int64_t, std::vector<int64_t>> out_adjlist;
+extern std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;
+extern std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;
 extern std::mutex lock;
 
 #endif
