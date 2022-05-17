@@ -19,3 +19,6 @@ mt_test/
 profile/
 release/
 db/
+.vscode/configurationCache.json
+.vscode/dryrun.log
+.vscode/targets.log
