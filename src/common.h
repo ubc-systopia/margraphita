@@ -46,6 +46,8 @@ extern const std::string OUT_ADJLIST;  // New
 extern const std::string node_count;
 extern const std::string edge_count;
 
+extern const int BUFFER_LENGTH;  // Length for converting int to string buffer
+
 struct graph_opts
 {
     bool create_new = true;
