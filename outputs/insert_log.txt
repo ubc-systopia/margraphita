@@ -2709,3 +2709,471 @@ time to read edges 1197562
 total inserted nodes  = 910898 num_nodes = 1.04858e+06
 time to insert_nodes 315995
 time to read nodes 209925
+#s10_e8:
+ Total time to insert edges was 17952
+ Total time to insert nodes was 2857
+total inserted edges = 8192 num_edges = 8192
+time to insert edges 4922
+time to read edges 6104
+total inserted nodes  = 992 num_nodes = 1024
+time to insert_nodes 807
+time to read nodes 758
+ Total time to insert edges was 12350
+ Total time to insert nodes was 2370
+total inserted edges = 8192 num_edges = 8192
+time to insert edges 2592
+time to read edges 5753
+total inserted nodes  = 992 num_nodes = 1024
+time to insert_nodes 332
+time to read nodes 434
+#s10_e8:
+ Total time to insert edges was 15826
+ Total time to insert nodes was 6909
+total inserted edges = 8192 num_edges = 8192
+time to insert edges 3819
+time to read edges 6321
+total inserted nodes  = 992 num_nodes = 1024
+time to insert_nodes 2562
+time to read nodes 1021
+ Total time to insert edges was 12639
+ Total time to insert nodes was 12513
+total inserted edges = 8192 num_edges = 8192
+time to insert edges 2796
+time to read edges 6354
+total inserted nodes  = 992 num_nodes = 1024
+time to insert_nodes 5887
+time to read nodes 588
+#s10_e8:
+ Total time to insert edges was 16746
+ Total time to insert nodes was 2820
+total inserted edges = 8192 num_edges = 8192
+time to insert edges 6732
+time to read edges 5947
+total inserted nodes  = 992 num_nodes = 1024
+time to insert_nodes 673
+time to read nodes 895
+ Total time to insert edges was 18661
+ Total time to insert nodes was 2314
+total inserted edges = 8192 num_edges = 8192
+time to insert edges 6971
+time to read edges 6500
+total inserted nodes  = 992 num_nodes = 1024
+time to insert_nodes 661
+time to read nodes 748
+#s11_e8:
+ Total time to insert edges was 31306
+ Total time to insert nodes was 4253
+total inserted edges = 16384 num_edges = 16384
+time to insert edges 5980
+time to read edges 12221
+total inserted nodes  = 1963 num_nodes = 2048
+time to insert_nodes 1354
+time to read nodes 1531
+ Total time to insert edges was 28917
+ Total time to insert nodes was 4594
+total inserted edges = 16384 num_edges = 16384
+time to insert edges 9062
+time to read edges 11850
+total inserted nodes  = 1963 num_nodes = 2048
+time to insert_nodes 1414
+time to read nodes 1703
+#s11_e8:
+ Total time to insert edges was 30168
+ Total time to insert nodes was 10043
+total inserted edges = 16384 num_edges = 16384
+time to insert edges 10265
+time to read edges 13078
+total inserted nodes  = 1963 num_nodes = 2048
+time to insert_nodes 3276
+time to read nodes 1151
+ Total time to insert edges was 30590
+ Total time to insert nodes was 23339
+total inserted edges = 16384 num_edges = 16384
+time to insert edges 7751
+time to read edges 12575
+total inserted nodes  = 1963 num_nodes = 2048
+time to insert_nodes 19550
+time to read nodes 1273
+#s11_e8:
+ Total time to insert edges was 37037
+ Total time to insert nodes was 5146
+total inserted edges = 16384 num_edges = 16384
+time to insert edges 12688
+time to read edges 17391
+total inserted nodes  = 1963 num_nodes = 2048
+time to insert_nodes 1635
+time to read nodes 1692
+ Total time to insert edges was 29921
+ Total time to insert nodes was 4284
+total inserted edges = 16384 num_edges = 16384
+time to insert edges 12536
+time to read edges 11946
+total inserted nodes  = 1963 num_nodes = 2048
+time to insert_nodes 1356
+time to read nodes 1438
+#s12_e8:
+ Total time to insert edges was 115242
+ Total time to insert nodes was 7626
+total inserted edges = 32768 num_edges = 32768
+time to insert edges 64999
+time to read edges 39591
+total inserted nodes  = 3910 num_nodes = 4096
+time to insert_nodes 2676
+time to read nodes 2499
+ Total time to insert edges was 64335
+ Total time to insert nodes was 7060
+total inserted edges = 32768 num_edges = 32768
+time to insert edges 30178
+time to read edges 26190
+total inserted nodes  = 3910 num_nodes = 4096
+time to insert_nodes 2124
+time to read nodes 2571
+#s12_e8:
+ Total time to insert edges was 70192
+ Total time to insert nodes was 19773
+total inserted edges = 32768 num_edges = 32768
+time to insert edges 34225
+time to read edges 21332
+total inserted nodes  = 3910 num_nodes = 4096
+time to insert_nodes 11908
+time to read nodes 3035
+ Total time to insert edges was 100310
+ Total time to insert nodes was 39913
+total inserted edges = 32768 num_edges = 32768
+time to insert edges 57169
+time to read edges 30261
+total inserted nodes  = 3910 num_nodes = 4096
+time to insert_nodes 34816
+time to read nodes 2799
+#s12_e8:
+ Total time to insert edges was 53513
+ Total time to insert nodes was 8491
+total inserted edges = 32768 num_edges = 32768
+time to insert edges 21863
+time to read edges 21378
+total inserted nodes  = 3910 num_nodes = 4096
+time to insert_nodes 2892
+time to read nodes 2681
+ Total time to insert edges was 57613
+ Total time to insert nodes was 7996
+total inserted edges = 32768 num_edges = 32768
+time to insert edges 22598
+time to read edges 22364
+total inserted nodes  = 3910 num_nodes = 4096
+time to insert_nodes 2776
+time to read nodes 2597
+#s13_e8:
+ Total time to insert edges was 313369
+ Total time to insert nodes was 16529
+total inserted edges = 65536 num_edges = 65536
+time to insert edges 242281
+time to read edges 62119
+total inserted nodes  = 7730 num_nodes = 8192
+time to insert_nodes 4938
+time to read nodes 7056
+ Total time to insert edges was 138460
+ Total time to insert nodes was 13200
+total inserted edges = 65536 num_edges = 65536
+time to insert edges 68451
+time to read edges 51985
+total inserted nodes  = 7730 num_nodes = 8192
+time to insert_nodes 4785
+time to read nodes 5654
+#s13_e8:
+ Total time to insert edges was 293771
+ Total time to insert nodes was 57720
+total inserted edges = 65536 num_edges = 65536
+time to insert edges 221364
+time to read edges 60162
+total inserted nodes  = 7730 num_nodes = 8192
+time to insert_nodes 39527
+time to read nodes 6272
+ Total time to insert edges was 133835
+ Total time to insert nodes was 31458
+total inserted edges = 65536 num_edges = 65536
+time to insert edges 62121
+time to read edges 51963
+total inserted nodes  = 7730 num_nodes = 8192
+time to insert_nodes 19054
+time to read nodes 6592
+#s13_e8:
+ Total time to insert edges was 279236
+ Total time to insert nodes was 17228
+total inserted edges = 65536 num_edges = 65536
+time to insert edges 208214
+time to read edges 60765
+total inserted nodes  = 7730 num_nodes = 8192
+time to insert_nodes 5799
+time to read nodes 6501
+ Total time to insert edges was 191821
+ Total time to insert nodes was 15467
+total inserted edges = 65536 num_edges = 65536
+time to insert edges 106898
+time to read edges 73567
+total inserted nodes  = 7730 num_nodes = 8192
+time to insert_nodes 5022
+time to read nodes 6479
+#s14_e8:
+ Total time to insert edges was 316553
+ Total time to insert nodes was 62051
+total inserted edges = 131072 num_edges = 131072
+time to insert edges 153779
+time to read edges 138644
+total inserted nodes  = 15313 num_nodes = 16384
+time to insert_nodes 45210
+time to read nodes 11479
+ Total time to insert edges was 370306
+ Total time to insert nodes was 43384
+total inserted edges = 131072 num_edges = 131072
+time to insert edges 209882
+time to read edges 134190
+total inserted nodes  = 15313 num_nodes = 16384
+time to insert_nodes 19884
+time to read nodes 14009
+#s14_e8:
+ Total time to insert edges was 345520
+ Total time to insert nodes was 84854
+total inserted edges = 131072 num_edges = 131072
+time to insert edges 197305
+time to read edges 119961
+total inserted nodes  = 15313 num_nodes = 16384
+time to insert_nodes 56763
+time to read nodes 16668
+ Total time to insert edges was 371743
+ Total time to insert nodes was 62214
+total inserted edges = 131072 num_edges = 131072
+time to insert edges 186956
+time to read edges 157200
+total inserted nodes  = 15313 num_nodes = 16384
+time to insert_nodes 37373
+time to read nodes 14863
+#s14_e8:
+ Total time to insert edges was 469707
+ Total time to insert nodes was 35501
+total inserted edges = 131072 num_edges = 131072
+time to insert edges 275666
+time to read edges 160948
+total inserted nodes  = 15313 num_nodes = 16384
+time to insert_nodes 11334
+time to read nodes 14766
+ Total time to insert edges was 354682
+ Total time to insert nodes was 52896
+total inserted edges = 131072 num_edges = 131072
+time to insert edges 169575
+time to read edges 162033
+total inserted nodes  = 15313 num_nodes = 16384
+time to insert_nodes 26983
+time to read nodes 14054
+#s15_e8:
+ Total time to insert edges was 749307
+ Total time to insert nodes was 63630
+total inserted edges = 262144 num_edges = 262144
+time to insert edges 400064
+time to read edges 303042
+total inserted nodes  = 30337 num_nodes = 32768
+time to insert_nodes 26941
+time to read nodes 26988
+ Total time to insert edges was 1017937
+ Total time to insert nodes was 60005
+total inserted edges = 262144 num_edges = 262144
+time to insert edges 693174
+time to read edges 289992
+total inserted nodes  = 30337 num_nodes = 32768
+time to insert_nodes 23298
+time to read nodes 27321
+#s15_e8:
+ Total time to insert edges was 1042355
+ Total time to insert nodes was 138693
+total inserted edges = 262144 num_edges = 262144
+time to insert edges 682145
+time to read edges 328551
+total inserted nodes  = 30337 num_nodes = 32768
+time to insert_nodes 93039
+time to read nodes 27797
+ Total time to insert edges was 963134
+ Total time to insert nodes was 284943
+total inserted edges = 262144 num_edges = 262144
+time to insert edges 609742
+time to read edges 326679
+total inserted nodes  = 30337 num_nodes = 32768
+time to insert_nodes 246941
+time to read nodes 27345
+#s15_e8:
+ Total time to insert edges was 955716
+ Total time to insert nodes was 96228
+total inserted edges = 262144 num_edges = 262144
+time to insert edges 622331
+time to read edges 288762
+total inserted nodes  = 30337 num_nodes = 32768
+time to insert_nodes 45360
+time to read nodes 26305
+ Total time to insert edges was 996213
+ Total time to insert nodes was 57048
+total inserted edges = 262144 num_edges = 262144
+time to insert edges 620771
+time to read edges 331695
+total inserted nodes  = 30337 num_nodes = 32768
+time to insert_nodes 17879
+time to read nodes 28296
+#s16_e8:
+ Total time to insert edges was 2063706
+ Total time to insert nodes was 128080
+total inserted edges = 524288 num_edges = 524288
+time to insert edges 1276242
+time to read edges 711690
+total inserted nodes  = 59803 num_nodes = 65536
+time to insert_nodes 39986
+time to read nodes 56683
+ Total time to insert edges was 2296415
+ Total time to insert nodes was 123355
+total inserted edges = 524288 num_edges = 524288
+time to insert edges 1524322
+time to read edges 684935
+total inserted nodes  = 59803 num_nodes = 65536
+time to insert_nodes 46347
+time to read nodes 56106
+#s16_e8:
+ Total time to insert edges was 2200861
+ Total time to insert nodes was 550867
+total inserted edges = 524288 num_edges = 524288
+time to insert edges 1451116
+time to read edges 686351
+total inserted nodes  = 59803 num_nodes = 65536
+time to insert_nodes 453415
+time to read nodes 60572
+ Total time to insert edges was 1787378
+ Total time to insert nodes was 594356
+total inserted edges = 524288 num_edges = 524288
+time to insert edges 972790
+time to read edges 757991
+total inserted nodes  = 59803 num_nodes = 65536
+time to insert_nodes 497291
+time to read nodes 62269
+#s16_e8:
+ Total time to insert edges was 2223770
+ Total time to insert nodes was 168227
+total inserted edges = 524288 num_edges = 524288
+time to insert edges 1456218
+time to read edges 687673
+total inserted nodes  = 59803 num_nodes = 65536
+time to insert_nodes 84588
+time to read nodes 55610
+ Total time to insert edges was 2215427
+ Total time to insert nodes was 133964
+total inserted edges = 524288 num_edges = 524288
+time to insert edges 1467887
+time to read edges 681039
+total inserted nodes  = 59803 num_nodes = 65536
+time to insert_nodes 55159
+time to read nodes 57844
+#s17_e8:
+ Total time to insert edges was 4377103
+ Total time to insert nodes was 258318
+total inserted edges = 1048576 num_edges = 1.04858e+06
+time to insert edges 2834750
+time to read edges 1374859
+total inserted nodes  = 118284 num_nodes = 131072
+time to insert_nodes 112132
+time to read nodes 121761
+ Total time to insert edges was 4509907
+ Total time to insert nodes was 253894
+total inserted edges = 1048576 num_edges = 1.04858e+06
+time to insert edges 2869010
+time to read edges 1480170
+total inserted nodes  = 118284 num_nodes = 131072
+time to insert_nodes 112545
+time to read nodes 119365
+#s17_e8:
+ Total time to insert edges was 4549358
+ Total time to insert nodes was 1112892
+total inserted edges = 1048576 num_edges = 1.04858e+06
+time to insert edges 3009358
+time to read edges 1372530
+total inserted nodes  = 118284 num_nodes = 131072
+time to insert_nodes 946743
+time to read nodes 131806
+ Total time to insert edges was 4577456
+ Total time to insert nodes was 795424
+total inserted edges = 1048576 num_edges = 1.04858e+06
+time to insert edges 2887337
+time to read edges 1503454
+total inserted nodes  = 118284 num_nodes = 131072
+time to insert_nodes 614307
+time to read nodes 127639
+#s17_e8:
+ Total time to insert edges was 4413632
+ Total time to insert nodes was 356696
+total inserted edges = 1048576 num_edges = 1.04858e+06
+time to insert edges 2778878
+time to read edges 1381418
+total inserted nodes  = 118284 num_nodes = 131072
+time to insert_nodes 201851
+time to read nodes 123779
+ Total time to insert edges was 4082666
+ Total time to insert nodes was 403599
+total inserted edges = 1048576 num_edges = 1.04858e+06
+time to insert edges 2518962
+time to read edges 1391206
+total inserted nodes  = 118284 num_nodes = 131072
+time to insert_nodes 247273
+time to read nodes 130256
+#s18_e8:
+ Total time to insert edges was 8411188
+ Total time to insert nodes was 898923
+total inserted edges = 2097152 num_edges = 2.09715e+06
+time to insert edges 5100988
+time to read edges 3097459
+total inserted nodes  = 233589 num_nodes = 262144
+time to insert_nodes 580006
+time to read nodes 249102
+ Total time to insert edges was 9427209
+ Total time to insert nodes was 886022
+total inserted edges = 2097152 num_edges = 2.09715e+06
+time to insert edges 6071932
+time to read edges 3126926
+total inserted nodes  = 233589 num_nodes = 262144
+time to insert_nodes 586430
+time to read nodes 248548
+#s18_e8:
+ Total time to insert edges was 9519245
+ Total time to insert nodes was 1592918
+total inserted edges = 2097152 num_edges = 2.09715e+06
+time to insert edges 6221651
+time to read edges 3063370
+total inserted nodes  = 233589 num_nodes = 262144
+time to insert_nodes 1255249
+time to read nodes 257699
+ Total time to insert edges was 8663280
+ Total time to insert nodes was 2647963
+total inserted edges = 2097152 num_edges = 2.09715e+06
+time to insert edges 5327267
+time to read edges 3080622
+total inserted nodes  = 233589 num_nodes = 262144
+time to insert_nodes 2337959
+time to read nodes 272517
+#s18_e8:
+ Total time to insert edges was 9460335
+ Total time to insert nodes was 745020
+total inserted edges = 2097152 num_edges = 2.09715e+06
+time to insert edges 6110454
+time to read edges 3115577
+total inserted nodes  = 233589 num_nodes = 262144
+time to insert_nodes 447163
+time to read nodes 247769
+ Total time to insert edges was 9506038
+ Total time to insert nodes was 923677
+total inserted edges = 2097152 num_edges = 2.09715e+06
+time to insert edges 6063585
+time to read edges 3224465
+total inserted nodes  = 233589 num_nodes = 262144
+time to insert_nodes 623667
+time to read nodes 252322
+#s19_e8:
+ Total time to insert edges was 20079168
+ Total time to insert nodes was 1278805
+total inserted edges = 4194304 num_edges = 4.1943e+06
+time to insert edges 12752591
+time to read edges 6866491
+total inserted nodes  = 461595 num_nodes = 524288
+time to insert_nodes 603641
+time to read nodes 598899

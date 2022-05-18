@@ -56,6 +56,8 @@ const std::string SRC_INDEX = "IX_edge_" + SRC;
 const std::string DST_INDEX = "IX_edge_" + DST;
 const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
 
+const int BUFFER_LENGTH = 20;
+
 void CommonUtil::create_dir(std::string path)
 {
 #ifdef MACOSX

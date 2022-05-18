@@ -78,15 +78,18 @@ void print_time_csvline(std::string db_name,
 void insert_stats_to_session(WT_SESSION *session, int edgeNo, int nodeNo)
 {
     WT_CURSOR *cursor;
-    if (int ret = session->open_cursor(
-                      session, "table:metadata", NULL, NULL, &cursor) != 0)
+    if (session->open_cursor(session, "table:metadata", NULL, NULL, &cursor) !=
+        0)
     {
         std::cout << "Failed to open metadata table";
     }
+    char buffer[BUFFER_LENGTH];
+    sprintf(buffer, "%d", nodeNo);
     cursor->set_key(cursor, node_count.c_str());
-    cursor->set_value(cursor, std::to_string(nodeNo).c_str());
+    cursor->set_value(cursor, buffer);
     cursor->insert(cursor);
 
+    sprintf(buffer, "%d", edgeNo);
     cursor->set_key(cursor, edge_count.c_str());
     cursor->set_value(cursor, std::to_string(edgeNo).c_str());
     cursor->insert(cursor);

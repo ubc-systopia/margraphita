@@ -11,28 +11,28 @@
 + RESULT=/home/jackgong/margraphita/build
 + preprocess=1
 + insert=1
-+ '[' -z '-d /home/jackgong/s20_e8 -f /home/jackgong/s20_e8/graph_s20_e8 -o /home/jackgong/margraphita/db/s20_e8 -m s20_e8 -n 1048576 -e 8388608 -t ekey -l /home/jackgong/margraphita/outputs/ -p 1 -b 1 -i 0' ']'
++ '[' -z '-d /home/jackgong/s19_e8 -f /home/jackgong/s19_e8/graph_s19_e8 -o /home/jackgong/margraphita/db/s19_e8 -m s19_e8 -n 524288 -e 4194304 -t adj -l /home/jackgong/margraphita/outputs/ -p 1 -b 1 -i 0' ']'
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
-+ graph_dir=/home/jackgong/s20_e8
++ graph_dir=/home/jackgong/s19_e8
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
-+ graph=/home/jackgong/s20_e8/graph_s20_e8
++ graph=/home/jackgong/s19_e8/graph_s19_e8
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
-+ output=/home/jackgong/margraphita/db/s20_e8
++ output=/home/jackgong/margraphita/db/s19_e8
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
-+ dataset=s20_e8
++ dataset=s19_e8
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
-+ nodecnt=1048576
++ nodecnt=524288
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
-+ edgecnt=8388608
++ edgecnt=4194304
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
-+ type=ekey
++ type=adj
 + getopts d:f:l:o:m:e:n:t:p:i:b: o
 + case "${o}" in
 + RESULT=/home/jackgong/margraphita/outputs
@@ -50,38 +50,9 @@
 + NUM_FILES=10
 + [[ linux-gnu == \d\a\r\w\i\n* ]]
 + TIME_CMD=/usr/bin/time
-++ wc -l /home/jackgong/s20_e8/graph_s20_e8
+++ wc -l /home/jackgong/s19_e8/graph_s19_e8
 ++ cut '-d ' -f1
-+ NUM_LINES=8388608
++ NUM_LINES=4194304
 + '[' 1 -eq 1 ']'
-+ sort --parallel=10 -k 1,2 -g /home/jackgong/s20_e8/graph_s20_e8
++ sort --parallel=10 -k 1,2 -g /home/jackgong/s19_e8/graph_s19_e8
 + sed '/^#/d'
-+ mv /home/jackgong/s20_e8/graph_s20_e8 /home/jackgong/s20_e8/graph_s20_e8_orig
-+ mv /home/jackgong/s20_e8/graph_s20_e8_sorted.txt /home/jackgong/s20_e8/graph_s20_e8
-+ [[ linux-gnu == \d\a\r\w\i\n* ]]
-+ [[ linux-gnu == \l\i\n\u\x\-\g\n\u* ]]
-+ split --number=l/10 /home/jackgong/s20_e8/graph_s20_e8 /home/jackgong/s20_e8/graph_s20_e8_edges
-+ sed -e 's/\t/\n/g; s/\r//g' /home/jackgong/s20_e8/graph_s20_e8
-+ sort -u --parallel=10
-+ [[ linux-gnu == \d\a\r\w\i\n* ]]
-+ [[ linux-gnu == \l\i\n\u\x\-\g\n\u* ]]
-+ split --number=l/10 /home/jackgong/s20_e8/graph_s20_e8_nodes /home/jackgong/s20_e8/graph_s20_e8_nodes
-+ '[' 1 -eq 1 ']'
-+ [[ ekey == \s\t\d ]]
-+ [[ ekey == \a\l\l ]]
-+ [[ ekey == \a\d\j ]]
-+ [[ ekey == \a\l\l ]]
-+ [[ ekey == \e\k\e\y ]]
-+ /home/jackgong/margraphita/build/release/benchmark/pagerank -n -m ekey_rd_s20_e8 -b PR -a /home/jackgong/margraphita/db/s20_e8 -s s20_e8 -o -r -d -l ekey -e
-Running PageRank
-+ /home/jackgong/margraphita/build/release/benchmark/pagerank -n -m ekey_d_s20_e8 -b PR -a /home/jackgong/margraphita/db/s20_e8 -s s20_e8 -o -d -l ekey -e
-Running PageRank
-+ mkdir -p /home/jackgong/margraphita/outputs
-+ echo '#Inserting s20_e8'
-+ echo 'Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set'
-+ echo '#s20_e8:'
-+ echo '#s20_e8:'
-+ /usr/bin/time --format=%C,%e,%U,%S,%F,%M --output-file=insert_time.txt --append /home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv
-+ /usr/bin/time --format=%C,%e,%U,%S,%F,%M --output-file=insert_time.txt --append /home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s20_e8 -e 8388608 -n 1048576 -f /home/jackgong/s20_e8/graph_s20_e8 -t ekey -p /home/jackgong/margraphita/db/s20_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv
-+ '[' 0 -eq 1 ']'
----------------------------------------------
