@@ -1138,3 +1138,9 @@ Command terminated by signal 2
 /home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t std -p /home/jackgong/margraphita/db/s19_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,22.88,104.45,46.62,0,320248
 Command terminated by signal 2
 /home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s19_e8 -e 4194304 -n 524288 -f /home/jackgong/s19_e8/graph_s19_e8 -t std -p /home/jackgong/margraphita/db/s19_e8 -l /home/jackgong/margraphita/outputs/kron_insert.csv,10.48,33.26,26.49,0,252664
+#Inserting s10_e8
+Command terminated by signal 2
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t std -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.01,0.00,0.00,0,4588
+#Inserting s10_e8
+Command terminated by signal 2
+/home/jackgong/margraphita/build/release/benchmark/bulk_insert -d s10_e8 -e 8192 -n 1024 -f /home/jackgong/s10_e8/graph_s10_e8 -t adj -p /home/jackgong/margraphita/db/s10_e8 -r -l /home/jackgong/margraphita/outputs/kron_insert.csv,0.61,0.60,0.00,0,4672

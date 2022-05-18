@@ -622,3 +622,7 @@ Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
 #s18_e8:
 Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
 #s19_e8:
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s10_e8:
+Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set
+#s10_e8:

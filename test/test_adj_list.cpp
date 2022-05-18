@@ -188,13 +188,16 @@ void test_get_out_edges(AdjList graph)
     INFO();
     int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
     std::vector<edge> edges = graph.get_out_edges(test_id1);
-    assert(edges.size() == 2);
+    assert(edges.size() == 3);
     // compare edge0
     assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
     assert(edges.at(0).dst_id == SampleGraph::edge1.dst_id);
     // compare edge1
     assert(edges.at(1).src_id == SampleGraph::edge2.src_id);
     assert(edges.at(1).dst_id == SampleGraph::edge2.dst_id);
+    // compare edge4
+    assert(edges.at(2).src_id == SampleGraph::edge4.src_id);
+    assert(edges.at(2).dst_id == SampleGraph::edge4.dst_id);
 
     // Now test for a node that has no out edge
     edges = graph.get_out_edges(test_id2);
@@ -250,9 +253,10 @@ void test_get_out_nodes(AdjList graph)
     INFO();
     int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
     std::vector<node> nodes = graph.get_out_nodes(test_id1);
-    assert(nodes.size() == 2);
+    assert(nodes.size() == 3);
     assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
     assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
+    assert(nodes.at(2).id == SampleGraph::node7.id);  // edge(1->7)
 
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(test_id2);
@@ -422,16 +426,6 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     }
 }
 
-void add_edges_for_cursor_test(AdjList graph)
-{
-    edge to_insert = {.id = 19, .src_id = 1, .dst_id = 7, .edge_weight = 222};
-    graph.add_edge(to_insert, false);
-    to_insert = {.id = 20, .src_id = 7, .dst_id = 8, .edge_weight = 222};
-    graph.add_edge(to_insert, false);
-    to_insert = {.id = 21, .src_id = 1, .dst_id = 8, .edge_weight = 222};
-    graph.add_edge(to_insert, false);
-}
-
 void test_InCursor(AdjList graph)
 {
     INFO();
@@ -462,6 +456,74 @@ void test_NodeCursor(AdjList graph)
 {
     INFO();
     AdjIterator::NodeCursor node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {1, 3, 5, 6, 7, 8};
+    int i = 0;
+    node_cursor.next(&found);
+    while (found.id != -1)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor.next(&found);
+        i++;
+    }
+}
+
+void test_NodeCursor_Range(AdjList graph)
+{
+    INFO();
+    AdjIterator::NodeCursor node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {3, 5, 6};
+    int i = 0;
+    node_cursor.set_key_range(key_range{.start = 3, .end = 6});
+    node_cursor.next(&found);
+    while (found.id != -1)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor.next(&found);
+        i++;
+    }
+}
+
+void test_EdgeCursor(AdjList graph)
+{
+    INFO();
+    AdjIterator::EdgeCursor edge_cursor = graph.get_edge_iter();
+    edge found;
+    int srcIdList[] = {1, 1, 5, 7, 8};
+    int dstIdList[] = {3, 7, 6, 8, 7};
+    int i = 0;
+    edge_cursor.next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor.next(&found);
+        i++;
+    }
+}
+
+void test_EdgeCursor_Range(AdjList graph)
+{
+    INFO();
+    AdjIterator::EdgeCursor edge_cursor = graph.get_edge_iter();
+    edge_cursor.set_key({1, 4}, {8, 1});
+    edge found;
+    int srcIdList[] = {1, 5, 7};
+    int dstIdList[] = {7, 6, 8};
+    int i = 0;
+    edge_cursor.next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor.next(&found);
+        i++;
+    }
 }
 
 int main()
@@ -493,14 +555,15 @@ int main()
     test_get_out_nodes(graph);
     test_get_in_nodes(graph);
     test_get_in_degree(graph);
-    // tearDown(graph);
-    // return 0;
     test_delete_node(graph, opts.is_directed);
     test_delete_isolated_node(graph, opts.is_directed);
 
-    add_edges_for_cursor_test(graph);
     test_InCursor(graph);
     test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
 
     tearDown(graph);
 }

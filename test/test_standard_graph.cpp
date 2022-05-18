@@ -20,9 +20,10 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
+        std::cout << SampleGraph::test_edges.size() << "\n";
         assert(SampleGraph::test_edges.size() ==
-               6);  // checking if directed edges got created and stored in
-                    // test_edges
+               10);  // checking if directed edges got created and stored in
+                     // test_edges
     }
     int edge_cnt = 1;
     for (edge x : SampleGraph::test_edges)
@@ -99,13 +100,13 @@ void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
     INFO();
     if (is_directed)
     {
-        assert(graph.get_num_nodes() == 4);
-        assert(graph.get_num_edges() == 3);
+        assert(graph.get_num_nodes() == 6);
+        assert(graph.get_num_edges() == 6);
     }
     else
     {
-        assert(graph.get_num_nodes() == 4);
-        assert(graph.get_num_edges() == 6);
+        assert(graph.get_num_nodes() == 6);
+        assert(graph.get_num_edges() == 10);
     }
 }
 
@@ -124,12 +125,16 @@ void test_get_in_degree(StandardGraph graph, bool is_directed)
         assert(graph.get_in_degree(1) == 0);
         assert(graph.get_in_degree(2) == 1);
         assert(graph.get_in_degree(3) == 2);
+        assert(graph.get_in_degree(7) == 2);
+        assert(graph.get_in_degree(8) == 1);
     }
     else
     {
-        assert(graph.get_in_degree(1) == 2);
+        assert(graph.get_in_degree(1) == 3);
         assert(graph.get_in_degree(2) == 2);
         assert(graph.get_in_degree(3) == 2);
+        assert(graph.get_in_degree(7) == 2);
+        assert(graph.get_in_degree(8) == 1);
     }
 }
 
@@ -138,13 +143,13 @@ void test_get_out_degree(StandardGraph graph, bool is_directed)
     INFO();
     if (is_directed)
     {
-        assert(graph.get_out_degree(1) == 2);
+        assert(graph.get_out_degree(1) == 3);
         assert(graph.get_out_degree(2) == 1);
         assert(graph.get_out_degree(3) == 0);
     }
     else
     {
-        assert(graph.get_out_degree(1) == 2);
+        assert(graph.get_out_degree(1) == 3);
         assert(graph.get_out_degree(2) == 2);
         assert(graph.get_out_degree(3) == 2);
     }
@@ -225,11 +230,11 @@ void test_get_edges(StandardGraph graph, bool is_directed)
 
     if (!is_directed)
     {
-        assert(edges.size() == 6);
+        assert(edges.size() == 10);
     }
     else
     {
-        assert(edges.size() == 3);
+        assert(edges.size() == 6);
     }
 }
 
@@ -284,7 +289,7 @@ void test_OutCursor(StandardGraph graph)
     out_cursor.reset();
     out_cursor.next(&found, 1);
     assert(found.node_id == 1);
-    assert(found.edgelist.size() == 1);
+    assert(found.edgelist.size() == 2);
 }
 
 void test_index_cursor(StandardGraph graph)
