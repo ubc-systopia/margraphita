@@ -192,7 +192,8 @@ class EdgeCursor : public table_iterator
             {
                 int status;
                 // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status) if (status >= 0)
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
                 {
                     goto first_time_skip_next;
                 }

@@ -315,7 +315,7 @@ class EdgeCursor : public table_iterator
                 cursor->search_near(cursor, &status);
                 if (status >= 0)
                 {
-                    goto skip_first_advance:
+                    goto skip_first_advance;
                 }
             }
         }
