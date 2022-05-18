@@ -40,6 +40,12 @@ INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 target_include_directories(bulk_insert PRIVATE ${PATH_SRC})
 target_link_libraries(bulk_insert PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
 
+add_executable(dense_vertexranges dense_vertexranges.cpp)
+INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
+
+target_include_directories(dense_vertexranges PRIVATE ${PATH_SRC})
+target_link_libraries(dense_vertexranges PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
+
 add_executable(single_threaded_graphapi_insert single_threaded_graphapi_insert.cpp)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 
