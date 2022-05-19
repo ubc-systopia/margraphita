@@ -50,6 +50,7 @@ typedef int64_t node_id_t;
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
 const node_id_t OutOfBand_ID = -1;
+
 struct graph_opts
 {
     bool create_new = true;
@@ -97,6 +98,14 @@ typedef struct key_range
     node_id_t start;
     node_id_t end;
 } key_range;
+
+typedef struct edge_range
+{
+    key_pair start;
+    key_pair end;
+
+    edge_range(key_pair _start, key_pair _end) : start(_start), end(_end) {}
+} edge_range;
 
 typedef struct adjlist
 {
