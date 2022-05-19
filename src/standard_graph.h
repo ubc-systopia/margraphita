@@ -67,7 +67,7 @@ class InCursor : public table_iterator
         }
 
         cursor->get_value(cursor, &src, &dst);
-        if (keys.end != 1 && dst > keys.end)
+        if (keys.end != -1 && dst > keys.end)
         {
             goto no_next;
         }
@@ -216,7 +216,7 @@ class OutCursor : public table_iterator
         }
 
         cursor->get_value(cursor, &src, &dst);
-        if (keys.end != 1 && src > keys.end)
+        if (keys.end != -1 && src > keys.end)
         {
             goto no_next;
         }

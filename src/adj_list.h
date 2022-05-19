@@ -16,80 +16,269 @@ namespace AdjIterator
 {
 class InCursor : public table_iterator
 {
+   private:
+    key_range keys;
+
    public:
-    InCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
 
     void next(adjlist *found)
     {
-        if (cursor->next(cursor) == 0)
+        if (!has_next)
         {
-            CommonUtil::__record_to_adjlist(session, cursor, found);
-            cursor->get_key(cursor, &found->node_id);
+            goto no_next;
         }
-        else
+
+        if (is_first)
         {
-            found->node_id = -1;
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
+                {
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_next;
+                    }
+                }
+            }
+        }
+
+        int curr_key;
+        cursor->get_key(cursor, &curr_key);
+
+        if (keys.end != -1 && curr_key > keys.end)
+        {
+            goto no_next;
+        }
+
+        CommonUtil::__record_to_adjlist(session, cursor, found);
+        found->node_id = curr_key;
+
+        if (cursor->next(cursor) != 0)
+        {
             has_next = false;
         }
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 
     void next(adjlist *found, int key)
     {
+        // Must reset OutCursor if already no_next
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
         cursor->set_key(cursor, key);
-        if (cursor->search(cursor) == 0)
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+
+        int curr_key;
+        cursor->get_key(cursor, &curr_key);
+
+        if (curr_key == key)
         {
             CommonUtil::__record_to_adjlist(session, cursor, found);
-            found->node_id = key;
-            cursor->reset(cursor);
         }
-        else
+
+        if (keys.end != -1 && curr_key > keys.end)
         {
-            found->node_id = -1;
-            // check for out-of-band values in application program.
             has_next = false;
         }
+
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+        }
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 };
 
 class OutCursor : public table_iterator
 {
+   private:
+    key_range keys;
+
    public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
 
     void next(adjlist *found)
     {
-        if (cursor->next(cursor) == 0)
+        if (!has_next)
         {
-            CommonUtil::__record_to_adjlist(session, cursor, found);
-            cursor->get_key(cursor, &found->node_id);
+            goto no_next;
         }
-        else
+
+        if (is_first)
         {
-            found->node_id = -1;
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
+                {
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_next;
+                    }
+                }
+            }
+        }
+
+        int curr_key;
+        cursor->get_key(cursor, &curr_key);
+
+        if (keys.end != -1 && curr_key > keys.end)
+        {
+            goto no_next;
+        }
+
+        CommonUtil::__record_to_adjlist(session, cursor, found);
+        found->node_id = curr_key;
+
+        if (cursor->next(cursor) != 0)
+        {
             has_next = false;
         }
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 
     void next(adjlist *found, int key)
     {
-        if (cursor->next(cursor) == 0)
+        // Must reset OutCursor if already no_next
+        if (!has_next)
         {
-            cursor->get_key(cursor, &found->node_id);
-            if (found->node_id == key)
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
             {
-                CommonUtil::__record_to_adjlist(session, cursor, found);
-            }
-            else
-            {
-                found->node_id = -1;
                 has_next = false;
+                return;
             }
         }
-        else
+
+        int curr_key;
+        cursor->get_key(cursor, &curr_key);
+
+        if (curr_key == key)
         {
-            found->node_id = -1;
+            CommonUtil::__record_to_adjlist(session, cursor, found);
+        }
+
+        if (keys.end != -1 && curr_key > keys.end)
+        {
             has_next = false;
         }
+
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+        }
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 };
 
@@ -171,7 +360,12 @@ class EdgeCursor : public table_iterator
     key_pair end_edge;
 
    public:
-    EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+    EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        start_edge = {-1, -1};
+        end_edge = {-1, -1};
+    }
 
     // Overwrites set_key(int key) implementation in table_iterator
     void set_key(int key) = delete;
