@@ -349,12 +349,58 @@ class NodeIterator : public table_iterator
     void set_key_range(key_range _keys)
     {
         keys = _keys;
-        cursor->set_key(cursor, -1);
+        cursor->set_key(cursor, -1, keys.start);
     }
 
     void next(node *found)
     {
-        // TODO
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
+                {
+                    goto first_time_skip_next;
+                }
+            }
+        }
+
+        edge curr_edge;
+
+        if (cursor->next(cursor) == 0)
+        {
+        first_time_skip_next:
+            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            if (keys.end != -1 && curr_edge.src_id > keys.end)
+            {
+                goto no_next;
+            }
+
+            if (curr_edge.dst_id != -1)
+            {
+                goto no_next;
+            }
+            found->id = curr_edge.src_id;
+            // TODO: record in and out degree to found
+        }
+        else
+        {
+        no_next:
+            found->id = -1;
+            found->in_degree = -1;
+            found->out_degree = -1;
+            has_next = false;
+        }
     }
 };
 
