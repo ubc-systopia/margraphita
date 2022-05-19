@@ -64,6 +64,14 @@ class InCursor : public table_iterator
                     }
                 }
             }
+            else
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_next;
+                }
+            }
         }
 
         cursor->get_value(cursor, &src, &dst);
@@ -211,6 +219,14 @@ class OutCursor : public table_iterator
                     {
                         goto no_next;
                     }
+                }
+            }
+            else
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_next;
                 }
             }
         }
