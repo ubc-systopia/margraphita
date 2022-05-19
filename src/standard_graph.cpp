@@ -470,7 +470,6 @@ void StandardGraph::delete_node(node_id_t node_id)
         throw GraphException("Could not delete node with ID " +
                              to_string(node_id));
     }
-    set_num_nodes(get_num_nodes() - 1);
     set_num_nodes(get_num_nodes() - 1, metadata_cursor);
 }
 
