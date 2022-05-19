@@ -391,7 +391,7 @@ class NodeIterator : public table_iterator
                 goto no_next;
             }
             found->id = curr_edge.src_id;
-            // TODO: record in and out degree to found
+            CommonUtil::__record_to_node_ekey(cursor, found);
         }
         else
         {
@@ -488,7 +488,7 @@ class EdgeCursor : public table_iterator
                 goto no_next;
             }
         }
-        CommonUtil::__record_to_edge(cursor, found);
+        CommonUtil::__record_to_edge_ekey(cursor, found);
         return;
 
     no_next:
