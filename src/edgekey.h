@@ -80,14 +80,91 @@ class InCursor : public table_iterator
 
         do
         {
-            cursor->get_value(cursor, &curr_edge->src_id, &curr_edge->dst_id);
-        } while (true);
-        // TODO
+            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            if (dst == curr_edge.dst_id)
+            {
+                found->degree++;
+                found->edgelist.push_back(curr_edge.src_id);
+            }
+            else
+            {
+                return;
+            }
+
+        } while (cursor->next(cursor) == 0);
+
+        has_next = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 
-    void next(adjlist *found, key_pair kp)
+    void next(adjlist *found, int key)
     {
-        // TODO
+        // Must reset OutCursor if already no_next
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        edge curr_edge;
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+
+        do
+        {
+            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            if (curr_edge.dst_id != key)
+            {
+                if (keys.end != -1 && curr_edge.dst_id > keys.end)
+                {
+                    has_next = false;
+                }
+                return;
+            }
+            found->edgelist.push_back(curr_edge.src_id);
+            found->degree++;
+        } while (cursor->next(cursor) == 0);
+
+        has_next = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 };
 
@@ -111,12 +188,143 @@ class OutCursor : public table_iterator
 
     void next(adjlist *found)
     {
-        // TODO
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        int src;
+        int dst;
+
+        edge curr_edge;
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
+                {
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_next;
+                    }
+                }
+            }
+            else
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_next;
+                }
+            }
+        }
+
+        cursor->get_value(cursor, &src, &dst);
+        if (keys.end != -1 && src > keys.end)
+        {
+            goto no_next;
+        }
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = src;
+
+        do
+        {
+            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            if (src == curr_edge.src_id && curr_edge.dst_id != -1)
+            {
+                found->degree++;
+                found->edgelist.push_back(curr_edge.dst_id);
+            }
+            else
+            {
+                return;
+            }
+        } while (cursor->next(cursor) == 0);
+
+        has_next = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 
-    void next(adjlist *found, key_pair kp)
+    void next(adjlist *found, int key)
     {
-        // TODO
+        // Must reset OutCursor if already no_next
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        edge curr_edge;
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+
+        do
+        {
+            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            if (curr_edge.src_id != key)
+            {
+                if (keys.end != -1 && curr_edge.src_id > keys.end)
+                {
+                    has_next = false;
+                }
+                return;
+            }
+            if (curr_edge.dst_id != -1)
+            {
+                found->edgelist.push_back(curr_edge.dst_id);
+                found->degree++;
+            }
+        } while (cursor->next(cursor) == 0);
+
+        has_next = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 };
 /**
