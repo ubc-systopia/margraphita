@@ -123,14 +123,12 @@ class InCursor : public table_iterator
 class OutCursor : public table_iterator
 {
    private:
-    node_id_t prev_node;
-    node_id_t cur_node;
     key_range keys;
 
    public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    OutCursor(WT_CURSOR *src_edge_cur, WT_SESSION *sess)
     {
-        init(cur, sess);
+        init(src_edge_cur, sess);
         keys = {-1, -1};
     }
 
@@ -140,87 +138,134 @@ class OutCursor : public table_iterator
         cursor->set_key(cursor, keys.start);
     }
 
-    // This calls the next method on the src_index cursor
-    void next(adjlist *found)  //! Make this a reference not a pointer to use
-                               //! move semantics
+    void next(adjlist *found)
     {
-        edge idx;
-        int ret = 0;
-        while ((ret = cursor->next(cursor)) == 0)
+        if (!has_next)
         {
-            cursor->get_key(cursor, &cur_node);
-            if ((keys.start != -1 && cur_node < keys.start) ||
-                (keys.end != -1 && cur_node > keys.end))  // out of key range
+            goto no_next;
+        }
+
+        int src;
+        int dst;
+
+        edge curr_edge;
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
             {
-                has_next = false;
-                found->degree = -1;
-                found->node_id = -1;
-                return;
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
+                {
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_next;
+                    }
+                }
             }
-            if (is_first)
-            {
-                prev_node = cur_node;
-                is_first = false;
-            }
-            CommonUtil ::__read_from_edge_idx(cursor, &idx);
-            if (prev_node == idx.src_id)
+        }
+
+        cursor->get_value(cursor, &src, &dst);
+        if (keys.end != 1 && src > keys.end)
+        {
+            goto no_next;
+        }
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = src;
+
+        do
+        {
+            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            if (src = curr_edge.src_id)
             {
                 found->degree++;
-                found->edgelist.push_back(idx.dst_id);
-                found->node_id = idx.src_id;
+                found->edgelist.push_back(curr_edge.dst_id);
             }
             else
             {
-                cursor->prev(cursor);
-                is_first = true;
-                break;
+                return;
             }
-        }
+        } while (cursor->next(cursor) == 0);
 
-        if (ret != 0)
-        {
-            has_next = false;
-        }
-    }
+        has_next = false;
+        return;
 
-    void reset() override
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-        prev_node = cur_node = 0;
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 
     void next(adjlist *found, node_id_t key)
     {
-        edge idx;
-        cursor->set_key(cursor, key);
-        int ret = 0;
-        if (cursor->search(cursor) == 0 && has_next)
+        // Must reset OutCursor if already no_next
+        if (!has_next)
         {
-            node_id_t iter_key;
-            do
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        edge curr_edge;
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
             {
-                CommonUtil::__read_from_edge_idx(cursor, &idx);
-                found->edgelist.push_back(idx.dst_id);
-                found->degree++;
-                found->node_id = key;
-                // check if the next key is the same as the one we are currently
-                // looking for.
-                ret = cursor->next(cursor);
-                if (ret != 0)
+                has_next = false;
+                return;
+            }
+        }
+
+        do
+        {
+            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            if (curr_edge.src_id != key)
+            {
+                if (keys.end != -1 && curr_edge.src_id > keys.end)
                 {
                     has_next = false;
-                    return;
                 }
-                cursor->get_key(cursor, &iter_key);
-            } while (iter_key == key);
-        }
-        else
-        {
-            found->node_id = -1;
-            cursor->reset(cursor);
-        }
+                return;
+            }
+            found->edgelist.push_back(curr_edge.dst_id);
+            found->degree++;
+        } while (cursor->next(cursor) == 0);
+
+        has_next = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 };
 
@@ -230,9 +275,9 @@ class NodeCursor : public table_iterator
     key_range keys;
 
    public:
-    NodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
     {
-        init(cur, sess);
+        init(node_cur, sess);
         keys = {-1, -1};
     }
 
@@ -244,33 +289,45 @@ class NodeCursor : public table_iterator
 
     void next(node *found)
     {
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
+                {
+                    goto first_time_skip_next;
+                }
+            }
+        }
+
         if (cursor->next(cursor) == 0)
         {
+        first_time_skip_next:
+            // error_check(cursor->get_key(cursor, &found->id));
             cursor->get_key(cursor, &found->id);
-            if (keys.start > -1 && keys.start > -1)  // keys were set
+            if (keys.end != -1 && found->id > keys.end)
             {
-                if (found->id >= keys.start && found->id <= keys.end)
-                {
-                    CommonUtil::__record_to_node(
-                        cursor, found, true);  // works for read_opt only
-                }
-                else
-                {
-                    found->id = -1;
-                    found->in_degree = 0;
-                    found->out_degree = 0;
-                    has_next = false;
-                }
+                goto no_next;
             }
-            else
-            {
-                CommonUtil::__record_to_node(
-                    cursor, found, true);  // works for read_opt only
-            }
+
+            CommonUtil::__record_to_node(cursor, found, true);
         }
         else
         {
+        no_next:
             found->id = -1;
+            found->in_degree = -1;
+            found->out_degree = -1;
             has_next = false;
         }
     }
@@ -283,7 +340,10 @@ class EdgeCursor : public table_iterator
     key_pair end_edge;
 
    public:
-    EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
+    {
+        init(composite_edge_cur, sess);
+    }
 
     // Overwrites set_key(int key) implementation in table_iterator
     void set_key(int key) = delete;
@@ -299,7 +359,7 @@ class EdgeCursor : public table_iterator
     {
         if (!has_next)
         {
-            return;
+            goto no_next;
         }
 
         // If first time calling next, we want the exact record corresponding to
