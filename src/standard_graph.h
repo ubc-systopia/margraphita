@@ -64,6 +64,14 @@ class InCursor : public table_iterator
                     }
                 }
             }
+            else
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_next;
+                }
+            }
         }
 
         cursor->get_value(cursor, &src, &dst);
@@ -79,7 +87,7 @@ class InCursor : public table_iterator
         do
         {
             CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
-            if (dst = curr_edge.dst_id)
+            if (dst == curr_edge.dst_id)
             {
                 found->degree++;
                 found->edgelist.push_back(curr_edge.src_id);
@@ -213,6 +221,14 @@ class OutCursor : public table_iterator
                     }
                 }
             }
+            else
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_next;
+                }
+            }
         }
 
         cursor->get_value(cursor, &src, &dst);
@@ -228,7 +244,7 @@ class OutCursor : public table_iterator
         do
         {
             CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
-            if (src = curr_edge.src_id)
+            if (src == curr_edge.src_id)
             {
                 found->degree++;
                 found->edgelist.push_back(curr_edge.dst_id);

@@ -140,13 +140,16 @@ void test_get_out_edges(EdgeKey graph)
 {
     INFO();
     std::vector<edge> edges = graph.get_out_edges(1);
-    assert(edges.size() == 2);
+    assert(edges.size() == 3);
     // compare edge0
     assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
     assert(edges.at(0).dst_id == SampleGraph::edge1.dst_id);
     // compare edge1
     assert(edges.at(1).src_id == SampleGraph::edge2.src_id);
     assert(edges.at(1).dst_id == SampleGraph::edge2.dst_id);
+
+    assert(edges.at(2).src_id == SampleGraph::edge4.src_id);
+    assert(edges.at(2).dst_id == SampleGraph::edge4.dst_id);
 
     // Now test for a node that has no out edge
     edges = graph.get_out_edges(4);
@@ -170,10 +173,10 @@ void test_get_out_nodes(EdgeKey graph)
 {
     INFO();
     std::vector<node> nodes = graph.get_out_nodes(1);
-    assert(nodes.size() == 2);
+    assert(nodes.size() == 3);
     assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
     assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
-
+    assert(nodes.at(2).id == SampleGraph::node7.id);  // edge(1->7)
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(4);
     assert(nodes.size() == 0);
@@ -279,12 +282,12 @@ void test_delete_node(EdgeKey graph, bool is_directed)
     // Verify that the in and out degrees of node 1 and 3 got updated
     if (is_directed)
     {
-        assert(graph.get_out_degree(SampleGraph::node1.id) == 1);
+        assert(graph.get_out_degree(SampleGraph::node1.id) == 2);
         assert(graph.get_in_degree(SampleGraph::node3.id) == 1);
     }
     else
     {
-        assert(graph.get_in_degree(SampleGraph::node1.id) == 1);
+        assert(graph.get_in_degree(SampleGraph::node1.id) == 2);
         assert(graph.get_out_degree(SampleGraph::node3.id) == 1);
     }
 }
@@ -296,7 +299,7 @@ void test_get_in_and_out_degree(EdgeKey graph)
     indeg = graph.get_in_degree(3);
     outdeg = graph.get_out_degree(1);
     assert(indeg == 2);
-    assert(outdeg == 2);
+    assert(outdeg == 3);
 }
 
 void tearDown(EdgeKey graph) { graph.close(); }
