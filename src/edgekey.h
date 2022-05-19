@@ -280,7 +280,12 @@ class EdgeCursor : public table_iterator
     key_pair end_edge;
 
    public:
-    EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+    EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        start_edge = {-1, -1};
+        end_edge = {-1, -1};
+    }
 
     // Overwrites set_key(int key) implementation in table_iterator
     void set_key(int key) = delete;
@@ -342,7 +347,7 @@ class EdgeCursor : public table_iterator
 
     edge_found:
         // If end_edge is set
-        if (end_edge.src_id != -1)
+        if (end_edge.src_id != -2)
         {
             // If found > end edge
             if (!(found->src_id < end_edge.src_id ||
