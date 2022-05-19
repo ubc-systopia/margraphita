@@ -245,18 +245,12 @@ void test_InCursor(StandardGraph graph)
     INFO();
     StdIterator::InCursor in_cursor = graph.get_innbd_iter();
     adjlist found = {0};
-    while (in_cursor.has_more())
+    in_cursor.next(&found);
+    while (found.node_id != -1)
     {
+        CommonUtil::dump_adjlist(found);
+        found = {0};
         in_cursor.next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-            found = {0};
-        }
-        else
-        {
-            break;
-        }
     }
 
     in_cursor.reset();

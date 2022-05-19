@@ -430,7 +430,7 @@ void test_InCursor(AdjList graph)
 {
     INFO();
     AdjIterator::InCursor in_cursor = graph.get_innbd_iter();
-    adjlist found;
+    adjlist found = {0};
     in_cursor.next(&found);
     while (found.node_id != -1)
     {
@@ -443,11 +443,12 @@ void test_OutCursor(AdjList graph)
 {
     INFO();
     AdjIterator::OutCursor out_cursor = graph.get_outnbd_iter();
-    adjlist found;
+    adjlist found = {0};
     out_cursor.next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
+        found = {0};
         out_cursor.next(&found);
     }
 }

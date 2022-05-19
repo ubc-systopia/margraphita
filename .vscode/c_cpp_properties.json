@@ -8,6 +8,7 @@
             "includePath": [
                 "${workspaceFolder}/utils",
                 "${workspaceFolder}/src",
+                "${workspaceFolder}/test",
                 "${workspaceFolder}/libs/wiredtiger"
             ]
         }
