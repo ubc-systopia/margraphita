@@ -296,7 +296,7 @@ class EdgeCursor : public table_iterator
     {
         if (!has_next)
         {
-            return;
+            goto no_next;
         }
 
         // If first time calling next, we want the exact record corresponding to
