@@ -22,9 +22,9 @@ class InCursor : public table_iterator
     key_range keys;
 
    public:
-    InCursor(WT_CURSOR *beg_cur, WT_SESSION *sess)
+    InCursor(WT_CURSOR *dst_edge_cur, WT_SESSION *sess)
     {
-        init(beg_cur, sess);
+        init(dst_edge_cur, sess);
         keys = {-1, -1};
     }
 
@@ -388,6 +388,8 @@ class EdgeCursor : public table_iterator
     EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
     {
         init(composite_edge_cur, sess);
+        start_edge = {-1, -1};
+        end_edge = {-1, -1};
     }
 
     // Overwrites set_key(int key) implementation in table_iterator

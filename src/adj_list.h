@@ -99,7 +99,11 @@ class NodeCursor : public table_iterator
     key_range keys;
 
    public:
-    NodeCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
+    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
+    {
+        init(node_cur, sess);
+        keys = {-1, -1};
+    }
 
     /**
      * @brief Set the key range object
@@ -116,25 +120,45 @@ class NodeCursor : public table_iterator
     // use key_pair to define start and end keys.
     void next(node *found)
     {
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
+                {
+                    goto first_time_skip_next;
+                }
+            }
+        }
+
         if (cursor->next(cursor) == 0)
         {
-            int temp_key;
-            cursor->get_key(cursor, &temp_key);
-            if (temp_key > keys.end)
+        first_time_skip_next:
+            // error_check(cursor->get_key(cursor, &found->id));
+            cursor->get_key(cursor, &found->id);
+            if (keys.end != -1 && found->id > keys.end)
             {
-                found->id = -1;
-                has_next = false;
+                goto no_next;
             }
-            else
-            {
-                CommonUtil::__record_to_node(cursor, found, true);
-                found->id = temp_key;
-            }
+
+            CommonUtil::__record_to_node(cursor, found, true);
         }
         else
         {
+        no_next:
             found->id = -1;
-            // check for out-of-band values in application program.
+            found->in_degree = -1;
+            found->out_degree = -1;
             has_next = false;
         }
     }
