@@ -34,89 +34,134 @@ class InCursor : public table_iterator
         cursor->set_key(cursor, keys.start);
     }
 
-    // Return the next node in the graph. This function calls the cursor on dst
-    // column
     void next(adjlist *found)
     {
-        edge idx;
-        int ret = 0;
-        while ((ret = cursor->next(cursor)) == 0)
+        if (!has_next)
         {
-            cursor->get_key(cursor, &cur_node);
-            if ((keys.start != -1 && cur_node < keys.start) ||
-                (keys.end != -1 && cur_node > keys.end))  // out of key range
-            {
-                has_next = false;
-                found->degree = 0;
-                found->node_id = 0;
-                return;
-            }
+            goto no_next;
+        }
 
-            if (is_first)
-            {
-                prev_node = cur_node;
-                is_first = false;
-            }
+        int src;
+        int dst;
 
-            CommonUtil::__read_from_edge_idx(cursor, &idx);
-            if (prev_node == idx.dst_id)
+        edge curr_edge;
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
+                {
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_next;
+                    }
+                }
+            }
+        }
+
+        cursor->get_value(cursor, &src, &dst);
+        if (keys.end != 1 && dst > keys.end)
+        {
+            goto no_next;
+        }
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = dst;
+
+        do
+        {
+            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            if (dst = curr_edge.dst_id)
             {
                 found->degree++;
-                found->edgelist.push_back(idx.src_id);  // in nbd;
-                found->node_id = idx.dst_id;
+                found->edgelist.push_back(curr_edge.src_id);
             }
-            else  // We have moved to the next node id.
+            else
             {
-                cursor->prev(cursor);
-                is_first = true;
-                break;
+                return;
             }
-        }
-        if (ret != 0)
-        {
-            has_next = false;
-        }
-    }
+        } while (cursor->next(cursor) == 0);
 
-    void reset() override
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-        prev_node = cur_node = 0;
+        has_next = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 
     void next(adjlist *found, node_id_t key)
     {
-        edge idx;
-        cursor->reset(cursor);
-        cursor->set_key(cursor, key);
-        int ret = 0;
-        if (cursor->search(cursor) == 0 && has_next)
+        // Must reset OutCursor if already no_next
+        if (!has_next)
         {
-            node_id_t iter_key;
-            do
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        edge curr_edge;
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
             {
-                CommonUtil::__read_from_edge_idx(cursor, &idx);
-                found->edgelist.push_back(idx.src_id);
-                found->degree++;
-                found->node_id = key;
-                // now check if the next key is still the same as the one we
-                // want
-                ret = cursor->next(cursor);
-                if (ret != 0)
+                has_next = false;
+                return;
+            }
+        }
+
+        do
+        {
+            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            if (curr_edge.dst_id != key)
+            {
+                if (keys.end != -1 && curr_edge.dst_id > keys.end)
                 {
                     has_next = false;
-                    return;
                 }
-                cursor->get_key(cursor, &iter_key);
-            } while (iter_key == key);
-        }
-        else
-        {
-            found->node_id = -1;
-            cursor->reset(cursor);
-        }
+                return;
+            }
+            found->edgelist.push_back(curr_edge.src_id);
+            found->degree++;
+        } while (cursor->next(cursor) == 0);
+
+        has_next = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
     }
 };
 
