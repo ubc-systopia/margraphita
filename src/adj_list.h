@@ -33,14 +33,7 @@ class InCursor : public table_iterator
         }
     }
 
-    void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-    }
-
-    void next(adjlist *found, key_pair keys) override
+    void next(adjlist *found, int key)
     {
         cursor->set_key(cursor, key);
         if (cursor->search(cursor) == 0)
@@ -77,14 +70,7 @@ class OutCursor : public table_iterator
         }
     }
 
-    void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-    }
-
-    void next(adjlist *found, key_pair keys) override
+    void next(adjlist *found, int key)
     {
         if (cursor->next(cursor) == 0)
         {
@@ -106,7 +92,6 @@ class OutCursor : public table_iterator
         }
     }
 };
-}  // namespace AdjIterator
 
 class NodeCursor : public table_iterator
 {

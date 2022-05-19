@@ -201,8 +201,6 @@ class OutCursor : public table_iterator
         }
     }
 };
-}  // namespace EKeyIterator
-
 /**
  * @brief This class is used to iterate over the nodes of a graph.
  * Considering the way we imlpement EdgeKey, this class needs a cursor to the
@@ -364,9 +362,7 @@ class EdgeCursor : public table_iterator
         has_next = false;
     }
 };
-
 }  // namespace EKeyIterator
-
 class EdgeKey : public GraphBase
 {
    public:
