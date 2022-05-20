@@ -321,8 +321,10 @@ void test_InCursor(EdgeKey graph)
     }
 
     in_cursor.reset();
-    key_pair kp = {.src_id = 0, .dst_id = 1};
-    in_cursor.next(&found, kp);
+    int dst = 1;
+    in_cursor.next(&found, dst);
+    // key_pair kp = {.src_id = 0, .dst_id = 1};
+    // in_cursor.next(&found, kp);
     CommonUtil::dump_adjlist(found);
 }
 
@@ -345,8 +347,11 @@ void test_OutCursor(EdgeKey graph)
         }
     }
     out_cursor.reset();
-    key_pair kp = {.src_id = 1, .dst_id = 0};
-    out_cursor.next(&found, kp);
+
+    int src = 1;
+    out_cursor.next(&found, src);
+    // key_pair kp = {.src_id = 1, .dst_id = 0};
+    // out_cursor.next(&found, kp);
     CommonUtil::dump_adjlist(found);
 }
 
