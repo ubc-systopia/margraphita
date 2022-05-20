@@ -75,6 +75,50 @@ void print_time_csvline(std::string db_name,
     log_file.close();
 }
 
+void insert_stats_to_session(WT_SESSION *session, int edgeNo, int nodeNo)
+{
+    WT_CURSOR *cursor;
+    if (session->open_cursor(session, "table:metadata", NULL, NULL, &cursor) !=
+        0)
+    {
+        std::cout << "Failed to open metadata table";
+    }
+    char buffer[BUFFER_LENGTH];
+    sprintf(buffer, "%d", nodeNo);
+    cursor->set_key(cursor, node_count.c_str());
+    cursor->set_value(cursor, buffer);
+    cursor->insert(cursor);
+
+    sprintf(buffer, "%d", edgeNo);
+    cursor->set_key(cursor, edge_count.c_str());
+    cursor->set_value(cursor, std::to_string(edgeNo).c_str());
+    cursor->insert(cursor);
+
+    cursor->close(cursor);
+}
+
+void insert_stats(int edgeNo, int nodeNo)
+{
+    WT_SESSION *session;
+    for (std::string type : types)
+    {
+        if (type == "std")
+        {
+            conn_std->open_session(conn_std, NULL, NULL, &session);
+        }
+        else if (type == "adj")
+        {
+            conn_adj->open_session(conn_adj, NULL, NULL, &session);
+        }
+        else if (type == "ekey")
+        {
+            conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
+        }
+        insert_stats_to_session(session, edgeNo, nodeNo);
+        session->close(session, NULL);
+    }
+}
+
 time_info *insert_edge_thread(int _tid)
 {
     int tid = _tid;  //*(int *)arg;
@@ -473,9 +517,7 @@ int main(int argc, char *argv[])
         node_times->num_inserted += this_thread_time->num_inserted;
         node_times->read_time += this_thread_time->read_time;
     }
-    // todo: insert num_nodes. into metadatatable
-
-    // TODO: insert number of nodes into metadata table
+    insert_stats(edge_times->num_inserted, node_times->num_inserted);
 
     end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert nodes was "
