@@ -724,7 +724,7 @@ std::vector<edge> AdjList::get_edges()
  */
 edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {0};
+    edge found = {-1, -1, -1};
     found.src_id = src_id;
     found.dst_id = dst_id;
     if (!opts.is_weighted)
@@ -738,7 +738,7 @@ edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
     ret = e_cursor->search(e_cursor);
     if (ret != 0)
     {
-        found = {0};
+        found = {-1, -1, -1};
         return found;
     }
     else

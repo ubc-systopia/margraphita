@@ -25,14 +25,13 @@ void create_init_nodes(EdgeKey graph, bool is_directed)
                     // test_edges
     }
     int edge_cnt = 1;
-    // for (node n : SampleGraph::test_nodes)
-    // {
-    //     graph.add_node(n);
-    // }
+    for (node n : SampleGraph::test_nodes)
+    {
+        graph.add_node(n);
+    }
 
     for (edge x : SampleGraph::test_edges)
     {
-        cout << "edge: " << x.src_id << " " << x.dst_id << endl;
         graph.add_edge(x, false);
         edge_cnt++;
     }
@@ -44,9 +43,9 @@ void test_get_node(EdgeKey graph)
     node found = graph.get_node(SampleGraph::node1.id);
     assert(found.id == 1);
     // now get a node that does not exist
-    found = graph.get_node(OutOfBand_ID);
+    found = graph.get_node(-1);
     assert(found.id == 0);
-    // found = graph.get_random_node();  //! this gets stuck
+    found = graph.get_random_node();
     CommonUtil::dump_node(found);
 }
 
@@ -127,26 +126,28 @@ void test_get_edge(EdgeKey graph)
         graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
     assert(found.src_id == SampleGraph::edge1.src_id);
     assert(found.dst_id == SampleGraph::edge1.dst_id);
-    assert(found.edge_weight == SampleGraph::edge1.edge_weight);
 
     // Now get a non-existent edge
     found = graph.get_edge(222, 333);
-    assert(found.src_id == 0);
-    assert(found.dst_id == 0);
-    assert(found.edge_weight == 0);
+    assert(found.src_id == -1);
+    assert(found.dst_id == -1);
+    assert(found.edge_weight == -1);
 }
 
 void test_get_out_edges(EdgeKey graph)
 {
     INFO();
     std::vector<edge> edges = graph.get_out_edges(1);
-    assert(edges.size() == 2);
+    assert(edges.size() == 3);
     // compare edge0
     assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
     assert(edges.at(0).dst_id == SampleGraph::edge1.dst_id);
     // compare edge1
     assert(edges.at(1).src_id == SampleGraph::edge2.src_id);
     assert(edges.at(1).dst_id == SampleGraph::edge2.dst_id);
+
+    assert(edges.at(2).src_id == SampleGraph::edge4.src_id);
+    assert(edges.at(2).dst_id == SampleGraph::edge4.dst_id);
 
     // Now test for a node that has no out edge
     edges = graph.get_out_edges(4);
@@ -158,7 +159,7 @@ void test_get_out_edges(EdgeKey graph)
     {
         edges = graph.get_out_edges(1500);
     }
-    catch (GraphException &ex)
+    catch (GraphException ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -170,10 +171,10 @@ void test_get_out_nodes(EdgeKey graph)
 {
     INFO();
     std::vector<node> nodes = graph.get_out_nodes(1);
-    assert(nodes.size() == 2);
+    assert(nodes.size() == 3);
     assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
     assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
-
+    assert(nodes.at(2).id == SampleGraph::node7.id);  // edge(1->7)
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(4);
     assert(nodes.size() == 0);
@@ -184,7 +185,7 @@ void test_get_out_nodes(EdgeKey graph)
     {
         nodes = graph.get_out_nodes(1500);
     }
-    catch (GraphException &ex)
+    catch (GraphException ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -214,7 +215,7 @@ void test_get_in_edges(EdgeKey graph)
     {
         edges = graph.get_out_edges(1500);
     }
-    catch (GraphException &ex)
+    catch (GraphException ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -240,7 +241,7 @@ void test_get_in_nodes(EdgeKey graph)
     {
         nodes = graph.get_in_nodes(1500);
     }
-    catch (GraphException &ex)
+    catch (GraphException ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -257,7 +258,7 @@ void test_delete_node(EdgeKey graph, bool is_directed)
 
     // Delete node2 and verify it was actually deleted
     graph.delete_node(SampleGraph::node2.id);
-    e_cur->set_key(e_cur, SampleGraph::node2.id, OutOfBand_ID);
+    e_cur->set_key(e_cur, SampleGraph::node2.id, -1);
     int ret = e_cur->search(e_cur);
     assert(ret != 0);
 
@@ -279,12 +280,12 @@ void test_delete_node(EdgeKey graph, bool is_directed)
     // Verify that the in and out degrees of node 1 and 3 got updated
     if (is_directed)
     {
-        assert(graph.get_out_degree(SampleGraph::node1.id) == 1);
+        assert(graph.get_out_degree(SampleGraph::node1.id) == 2);
         assert(graph.get_in_degree(SampleGraph::node3.id) == 1);
     }
     else
     {
-        assert(graph.get_in_degree(SampleGraph::node1.id) == 1);
+        assert(graph.get_in_degree(SampleGraph::node1.id) == 2);
         assert(graph.get_out_degree(SampleGraph::node3.id) == 1);
     }
 }
@@ -296,7 +297,7 @@ void test_get_in_and_out_degree(EdgeKey graph)
     indeg = graph.get_in_degree(3);
     outdeg = graph.get_out_degree(1);
     assert(indeg == 2);
-    assert(outdeg == 2);
+    assert(outdeg == 3);
 }
 
 void tearDown(EdgeKey graph) { graph.close(); }
@@ -309,7 +310,7 @@ void test_InCursor(EdgeKey graph)
     while (in_cursor.has_more())
     {
         in_cursor.next(&found);
-        if (found.node_id != OutOfBand_ID)
+        if (found.node_id != -1)
         {
             CommonUtil::dump_adjlist(found);
             found = {0};
@@ -321,10 +322,8 @@ void test_InCursor(EdgeKey graph)
     }
 
     in_cursor.reset();
-    int dst = 1;
-    in_cursor.next(&found, dst);
-    // key_pair kp = {.src_id = 0, .dst_id = 1};
-    // in_cursor.next(&found, kp);
+    int nodeID = 0;
+    in_cursor.next(&found, nodeID);
     CommonUtil::dump_adjlist(found);
 }
 
@@ -336,7 +335,7 @@ void test_OutCursor(EdgeKey graph)
     while (out_cursor.has_more())
     {
         out_cursor.next(&found);
-        if (found.node_id != OutOfBand_ID)
+        if (found.node_id != -1)
         {
             CommonUtil::dump_adjlist(found);
             found = {0};
@@ -347,13 +346,84 @@ void test_OutCursor(EdgeKey graph)
         }
     }
     out_cursor.reset();
-
-    int src = 1;
-    out_cursor.next(&found, src);
-    // key_pair kp = {.src_id = 1, .dst_id = 0};
-    // out_cursor.next(&found, kp);
+    int nodeID = 1;
+    out_cursor.next(&found, nodeID);
     CommonUtil::dump_adjlist(found);
 }
+
+// void test_NodeCursor(EdgeKey graph)
+// {
+//     INFO();
+//     EKeyIterator::NodeCursor node_cursor = graph.get_node_iter();
+//     node found;
+//     int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
+//     int i = 0;
+//     node_cursor.next(&found);
+//     while (found.id != -1)
+//     {
+//         assert(found.id == nodeIdList[i]);
+//         CommonUtil::dump_node(found);
+//         node_cursor.next(&found);
+//         i++;
+//     }
+// }
+
+// void test_NodeCursor_Range(EdgeKey graph)
+// {
+//     INFO();
+//     EKeyIterator::NodeCursor node_cursor = graph.get_node_iter();
+//     node found;
+//     int nodeIdList[] = {3, 4, 5, 6};
+//     int i = 0;
+//     node_cursor.set_key_range(key_range{.start = 3, .end = 6});
+//     node_cursor.next(&found);
+//     while (found.id != -1)
+//     {
+//         assert(found.id == nodeIdList[i]);
+//         CommonUtil::dump_node(found);
+//         node_cursor.next(&found);
+//         i++;
+//     }
+// }
+
+// void test_EdgeCursor(EdgeKey graph)
+// {
+//     INFO();
+//     EKeyIterator::EdgeCursor edge_cursor = graph.get_edge_iter();
+//     edge found;
+//     int srcIdList[] = {1, 1, 5, 7, 8};
+//     int dstIdList[] = {3, 7, 6, 8, 7};
+//     int i = 0;
+//     edge_cursor.next(&found);
+//     while (found.src_id != -1)
+//     {
+//         assert(found.src_id == srcIdList[i]);
+//         assert(found.dst_id == dstIdList[i]);
+//         CommonUtil::dump_edge(found);
+//         edge_cursor.next(&found);
+//         i++;
+//     }
+// }
+
+// void test_EdgeCursor_Range(EdgeKey graph)
+// {
+//     INFO();
+//     EKeyIterator::EdgeCursor edge_cursor = graph.get_edge_iter();
+//     edge_cursor.set_key({1, 4}, {8, 1});
+//     edge found;
+//     int srcIdList[] = {1, 5, 7};
+//     int dstIdList[] = {7, 6, 8};
+//     int i = 0;
+//     edge_cursor.next(&found);
+//     while (found.src_id != -1)
+//     {
+//         assert(found.src_id == srcIdList[i]);
+//         assert(found.dst_id == dstIdList[i]);
+//         CommonUtil::dump_edge(found);
+//         edge_cursor.next(&found);
+//         i++;
+//     }
+// }
 
 int main()
 {
@@ -370,12 +440,9 @@ int main()
 
     EdgeKeyTester graph = EdgeKeyTester(opts);
     create_init_nodes(graph, opts.is_directed);
-    // graph.close();
-    // exit(0);
+
     test_get_node(graph);
     test_node_add(graph, opts.read_optimize);
-    // graph.close();
-    // exit(0);
     test_get_nodes(graph);
     test_add_edge(graph, opts.is_directed);
     test_get_edge(graph);

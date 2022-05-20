@@ -478,7 +478,7 @@ class EdgeCursor : public table_iterator
 
     edge_found:
         // If end_edge is set
-        if (end_edge.src_id != -2)
+        if (end_edge.src_id != -1)
         {
             // If found > end edge
             if (!(found->src_id < end_edge.src_id ||

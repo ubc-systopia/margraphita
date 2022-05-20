@@ -20,9 +20,10 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
+        std::cout << SampleGraph::test_edges.size() << "\n";
         assert(SampleGraph::test_edges.size() ==
-               6);  // checking if directed edges got created and stored in
-                    // test_edges
+               10);  // checking if directed edges got created and stored in
+                     // test_edges
     }
     int edge_cnt = 1;
     for (edge x : SampleGraph::test_edges)
@@ -58,7 +59,6 @@ void test_node_delete(StandardGraph graph, bool is_directed)
     assert(graph.has_node(to_delete.id) == false);
 
     // check if the edges have been deleted
-    edge test;
     if (is_directed)
     {
         assert(graph.has_edge(SampleGraph::edge1.src_id,
@@ -81,12 +81,15 @@ void test_node_delete(StandardGraph graph, bool is_directed)
         assert(graph.has_edge(SampleGraph::edge3.dst_id,
                               SampleGraph::edge3.src_id) == false);
     }
+
+    int isolatedNodeID = 11;
+    graph.delete_node(isolatedNodeID);
+    assert(graph.has_node(isolatedNodeID) == false);
 }
 
 void test_get_edge_id(StandardGraph graph)
 {
     INFO();
-    edge e;
     assert(graph.has_edge(1, 2) == true);  // Edge ID 1
     assert(graph.has_edge(1, 3) == true);  // Edge ID 2
     assert(graph.has_edge(2, 3) == true);  // Edge ID 3
@@ -99,13 +102,33 @@ void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
     INFO();
     if (is_directed)
     {
-        assert(graph.get_num_nodes() == 4);
-        assert(graph.get_num_edges() == 3);
+        assert(graph.get_num_nodes() == 6);
+        assert(graph.get_num_edges() == 6);
     }
     else
     {
-        assert(graph.get_num_nodes() == 4);
-        assert(graph.get_num_edges() == 6);
+        assert(graph.get_num_nodes() == 6);
+        assert(graph.get_num_edges() == 10);
+    }
+}
+
+void test_add_edge(StandardGraph graph, bool is_directed)
+{
+    INFO();
+    edge to_insert = {
+        .src_id = 5,
+        .dst_id = 6,
+        .edge_weight = 333};  // node 5 and 6 dont exist yet so we must also
+                              // check if the nodes get created
+    int test_id1 = 5, test_id2 = 6;
+    graph.add_edge(to_insert, false);
+    edge found = graph.get_edge(test_id1, test_id2);
+    CommonUtil::dump_edge(found);
+    assert(found.edge_weight == 333);
+    if (!is_directed)
+    {
+        found = graph.get_edge(test_id2, test_id1);
+        assert(found.edge_weight == 333);
     }
 }
 
@@ -124,12 +147,16 @@ void test_get_in_degree(StandardGraph graph, bool is_directed)
         assert(graph.get_in_degree(1) == 0);
         assert(graph.get_in_degree(2) == 1);
         assert(graph.get_in_degree(3) == 2);
+        assert(graph.get_in_degree(7) == 2);
+        assert(graph.get_in_degree(8) == 1);
     }
     else
     {
-        assert(graph.get_in_degree(1) == 2);
+        assert(graph.get_in_degree(1) == 3);
         assert(graph.get_in_degree(2) == 2);
         assert(graph.get_in_degree(3) == 2);
+        assert(graph.get_in_degree(7) == 2);
+        assert(graph.get_in_degree(8) == 1);
     }
 }
 
@@ -138,13 +165,13 @@ void test_get_out_degree(StandardGraph graph, bool is_directed)
     INFO();
     if (is_directed)
     {
-        assert(graph.get_out_degree(1) == 2);
+        assert(graph.get_out_degree(1) == 3);
         assert(graph.get_out_degree(2) == 1);
         assert(graph.get_out_degree(3) == 0);
     }
     else
     {
-        assert(graph.get_out_degree(1) == 2);
+        assert(graph.get_out_degree(1) == 3);
         assert(graph.get_out_degree(2) == 2);
         assert(graph.get_out_degree(3) == 2);
     }
@@ -217,20 +244,28 @@ void test_cursor(StandardGraph graph)
 void test_get_edges(StandardGraph graph, bool is_directed)
 {
     INFO();
-    edge found;
-    graph.has_edge(1, 2);
-    CommonUtil::dump_edge(found);
-
     vector<edge> edges = graph.get_edges();
 
     if (!is_directed)
     {
-        assert(edges.size() == 6);
+        assert(edges.size() == 12);
     }
     else
     {
-        assert(edges.size() == 3);
+        assert(edges.size() == 7);
     }
+    edge found =
+        graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
+    assert(found.src_id == SampleGraph::edge1.src_id);
+    assert(found.dst_id == SampleGraph::edge1.dst_id);
+    // not testing weight since not set
+
+    // Now get a non-existent edge
+    int test_id1 = 222, test_id2 = 333;
+    found = graph.get_edge(test_id1, test_id2);
+    assert(found.src_id == -1);
+    assert(found.dst_id == -1);
+    assert(found.edge_weight == -1);
 }
 
 void print_delim() { cout << endl << "--------------------" << endl; }
@@ -240,18 +275,12 @@ void test_InCursor(StandardGraph graph)
     INFO();
     StdIterator::InCursor in_cursor = graph.get_innbd_iter();
     adjlist found = {0};
-    while (in_cursor.has_more())
+    in_cursor.next(&found);
+    while (found.node_id != -1)
     {
+        CommonUtil::dump_adjlist(found);
+        found = {0};
         in_cursor.next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-            found = {0};
-        }
-        else
-        {
-            break;
-        }
     }
 
     in_cursor.reset();
@@ -284,7 +313,7 @@ void test_OutCursor(StandardGraph graph)
     out_cursor.reset();
     out_cursor.next(&found, 1);
     assert(found.node_id == 1);
-    assert(found.edgelist.size() == 1);
+    assert(found.edgelist.size() == 2);
 }
 
 void test_index_cursor(StandardGraph graph)
@@ -306,6 +335,80 @@ void test_index_cursor(StandardGraph graph)
     {
         CommonUtil::__read_from_edge_idx(dstcur, &found);
         CommonUtil::dump_edge(found);
+    }
+}
+
+void test_NodeCursor(StandardGraph graph)
+{
+    INFO();
+    StdIterator::NodeCursor node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
+    int i = 0;
+    node_cursor.next(&found);
+    while (found.id != -1)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor.next(&found);
+        i++;
+    }
+}
+
+void test_NodeCursor_Range(StandardGraph graph)
+{
+    INFO();
+    StdIterator::NodeCursor node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {3, 4, 5, 6};
+    int i = 0;
+    node_cursor.set_key_range(key_range{.start = 3, .end = 6});
+    node_cursor.next(&found);
+    while (found.id != -1)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor.next(&found);
+        i++;
+    }
+}
+
+void test_EdgeCursor(StandardGraph graph)
+{
+    INFO();
+    StdIterator::EdgeCursor edge_cursor = graph.get_edge_iter();
+    edge found;
+    int srcIdList[] = {1, 1, 5, 7, 8};
+    int dstIdList[] = {3, 7, 6, 8, 7};
+    int i = 0;
+    edge_cursor.next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor.next(&found);
+        i++;
+    }
+}
+
+void test_EdgeCursor_Range(StandardGraph graph)
+{
+    INFO();
+    StdIterator::EdgeCursor edge_cursor = graph.get_edge_iter();
+    edge_cursor.set_key({1, 4}, {8, 1});
+    edge found;
+    int srcIdList[] = {1, 5, 7};
+    int dstIdList[] = {7, 6, 8};
+    int i = 0;
+    edge_cursor.next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor.next(&found);
+        i++;
     }
 }
 
@@ -357,6 +460,8 @@ int main()
     test_node_add(graph, opts.read_optimize);
     print_delim();
 
+    test_add_edge(graph, opts.is_directed);
+
     // test get_edge_id()
     test_get_edge_id(graph);
     print_delim();
@@ -380,6 +485,10 @@ int main()
 
     test_InCursor(graph);
     test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
 
     // Test std_graph teardown
     tearDown(graph);

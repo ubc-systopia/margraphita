@@ -570,7 +570,7 @@ void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
  */
 edge EdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {0};
+    edge found = {-1, -1, -1};
     WT_CURSOR *e_cur = get_edge_cursor();
     e_cur->set_key(e_cur, src_id, dst_id);
     if (e_cur->search(e_cur) == 0)
