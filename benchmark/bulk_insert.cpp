@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -95,7 +96,7 @@ void insert_stats_to_session(WT_SESSION *session, int edgeNo, int nodeNo)
     {
         std::cout << "Failed to open metadata table";
     }
-    char buffer[BUFFER_LENGTH];
+    memset(buffer, 0, BUFFER_LENGTH);
     sprintf(buffer, "%d", nodeNo);
     cursor->set_key(cursor, node_count.c_str());
     cursor->set_value(cursor, buffer);
