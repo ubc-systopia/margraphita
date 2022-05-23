@@ -196,28 +196,24 @@ int main(int argc, char *argv[])
         auto start = chrono::steady_clock::now();
         if (pr_cli.get_graph_type() == "std")
         {
-            StandardGraph tempGraph(opts);
-            graph = &tempGraph;
+            graph = new StandardGraph(opts);
+
+            // must use derived class object here
+            if (pr_cli.is_exit_on_create())  // Exit after creating the db
+            {
+                graph->close();
+                exit(0);
+            }
         }
         else if (pr_cli.get_graph_type() == "adj")
         {
-            AdjList tempGraph(opts);
-            graph = &tempGraph;
+            graph = new AdjList(opts);
         }
         else
         {
-            EdgeKey tempGraph(opts);
-            graph = &tempGraph;
+            graph = new EdgeKey(opts);
         }
 
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
-        {
-            if (pr_cli.get_graph_type() == "std")
-            {
-                graph->close();
-            }
-            exit(0);
-        }
         auto end = chrono::steady_clock::now();
         cout << "Graph loaded in "
              << chrono::duration_cast<chrono::microseconds>(end - start).count()

@@ -168,7 +168,7 @@ void StandardGraph::create_new_graph()
                     this->metadata_cursor);
 }
 
-void StandardGraph::make_indexes() { return create_indices(); }
+void StandardGraph::make_indexes() { create_indices(); }
 /**
  * @brief Creates the indices not required for adding nodes/edges.
  * Used for optimized bulk loading: User should call drop_indices() before

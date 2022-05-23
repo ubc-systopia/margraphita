@@ -21,7 +21,7 @@ preprocess=1
 bulk_load=1
 index_create=0
 
-while getopts ":l:pbi" o; do
+while getopts "l:pbi" o; do
     case "${o}" in
         (l)
             log_dir=${OPTARG}

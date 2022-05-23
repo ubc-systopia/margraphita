@@ -977,7 +977,7 @@ std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
     return in_nodes;
 }
 
-void EdgeKey::make_indexes() { return create_indices(); }
+void EdgeKey::make_indexes() { create_indices(); }
 /**
  * @brief Creates the indices on the SRC and the DST column of the edge table.
  * These are not (and should not be) used for inserting data into the edge
