@@ -40,6 +40,7 @@ extern const std::string EDGE_TABLE;
 extern const std::string SRC_INDEX;
 extern const std::string DST_INDEX;
 extern const std::string SRC_DST_INDEX;
+extern const std::string DST_SRC_INDEX;
 // specific to AdjList implementation
 extern const std::string IN_ADJLIST;   // New
 extern const std::string OUT_ADJLIST;  // New

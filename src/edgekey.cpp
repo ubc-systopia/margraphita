@@ -1022,6 +1022,17 @@ void EdgeKey::create_indices()
         throw GraphException(
             "Failed to create an index on the DST column of the edge table");
     }
+
+    // Index on (DST,SRC) columns of the edge table
+    // Used for adjacency neighbourhood iterators
+    edge_table_idx = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
+    edge_table_idx_conf = "columns=(" + DST + "," + SRC + ")";
+    if (session->create(
+            session, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
+    {
+        throw GraphException(
+            "Failed to create DST_SRC_INDEX on the edge table");
+    }
 }
 /**
  * @brief Drops the indices not required for adding edges.

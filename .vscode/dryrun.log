@@ -1,6 +1,0 @@
-make --dry-run --always-make --keep-going --print-directory
-make: Entering directory '/home/jackli/margraphita'
-make: Leaving directory '/home/jackli/margraphita'
- 
-make: *** No targets specified and no makefile found.  Stop.
-

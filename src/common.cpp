@@ -55,7 +55,7 @@ const std::string IN_ADJLIST = "adjlistin";
 const std::string SRC_INDEX = "IX_edge_" + SRC;
 const std::string DST_INDEX = "IX_edge_" + DST;
 const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
-
+const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
 const int BUFFER_LENGTH = 20;
 
 void CommonUtil::create_dir(std::string path)
