@@ -159,7 +159,7 @@ void test_get_out_edges(EdgeKey graph)
     {
         edges = graph.get_out_edges(1500);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -185,7 +185,7 @@ void test_get_out_nodes(EdgeKey graph)
     {
         nodes = graph.get_out_nodes(1500);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -215,7 +215,7 @@ void test_get_in_edges(EdgeKey graph)
     {
         edges = graph.get_out_edges(1500);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -241,7 +241,7 @@ void test_get_in_nodes(EdgeKey graph)
     {
         nodes = graph.get_in_nodes(1500);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;

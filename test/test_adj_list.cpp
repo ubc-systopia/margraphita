@@ -96,12 +96,17 @@ void test_get_edges(AdjList graph)
 void test_get_adjlist(AdjList graph, int node_id)
 {
     INFO();
-    std::cout << "Printing the in_adjlist first" << std::endl;
+    std::cout << "Printing the in_adjlist for node " << node_id << std::endl;
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
     WT_CURSOR *out_adj_cur = graph.get_out_adjlist_cursor();
-    for (int al : graph.get_adjlist(in_adj_cur, node_id))
+    for (auto al : graph.get_adjlist(in_adj_cur, node_id))
     {
-        // TODO: I don't know what would be a good testase here.
+        std::cout << al << " ";
+    }
+    std::cout << "Printing the out_adjlist for node " << node_id << std::endl;
+    for (auto al : graph.get_adjlist(out_adj_cur, node_id))
+    {
+        std::cout << al << " ";
     }
 }
 
@@ -208,7 +213,7 @@ void test_get_out_edges(AdjList graph)
     {
         edges = graph.get_out_edges(test_id3);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -239,7 +244,7 @@ void test_get_in_edges(AdjList graph)
     {
         edges = graph.get_out_edges(test_id3);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -267,7 +272,7 @@ void test_get_out_nodes(AdjList graph)
     {
         nodes = graph.get_out_nodes(test_id3);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -294,7 +299,7 @@ void test_get_in_nodes(AdjList graph)
     {
         nodes = graph.get_in_nodes(test_id3);
     }
-    catch (GraphException ex)
+    catch (GraphException &ex)
     {
         cout << ex.what() << endl;
         assert_fail = true;
@@ -372,7 +377,6 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
 {
     INFO();
     WT_CURSOR *n_cursor = graph.get_node_cursor();
-    WT_CURSOR *e_cursor = graph.get_edge_cursor();
     WT_CURSOR *adj_out_cur = graph.get_out_adjlist_cursor();
     WT_CURSOR *adj_in_cur = graph.get_in_adjlist_cursor();
 
