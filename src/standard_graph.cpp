@@ -372,7 +372,7 @@ edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
 {
     int ret = 0;
     edge found = {-1, -1, -1};
-    string projection = "(" + SRC + "," + DST + ")";
+    string projection = "(" + SRC + "," + DST + "," + WEIGHT + ")";
     if (src_dst_index_cursor == NULL)
     {
         ret = _get_index_cursor(
@@ -382,8 +382,10 @@ edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
     ret = src_dst_index_cursor->search(src_dst_index_cursor);
     if (ret == 0)
     {
-        ret = src_dst_index_cursor->get_value(
-            src_dst_index_cursor, &found.src_id, &found.dst_id);
+        ret = src_dst_index_cursor->get_value(src_dst_index_cursor,
+                                              &found.src_id,
+                                              &found.dst_id,
+                                              &found.edge_weight);
     }
     return found;
 }
