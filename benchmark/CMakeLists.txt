@@ -28,11 +28,11 @@ target_include_directories(bfs PRIVATE ${PATH_SRC})
 target_link_libraries(tc PUBLIC ${NAME_LIB}
                                         graph_utils)
 
-add_executable(wt_thread wt_thread.cpp)
-INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
+# add_executable(wt_thread wt_thread.cpp)
+# INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")
 
-target_include_directories(wt_thread PRIVATE ${PATH_SRC})
-target_link_libraries(wt_thread PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
+# target_include_directories(wt_thread PRIVATE ${PATH_SRC})
+# target_link_libraries(wt_thread PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
 
 add_executable(bulk_insert bulk_insert.cpp reader.cpp)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}" "${UTILS}")

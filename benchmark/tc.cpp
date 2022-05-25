@@ -4,19 +4,20 @@
 
 #include <algorithm>
 #include <cassert>
-#include <chrono>
 #include <deque>
 #include <fstream>
 #include <iostream>
 #include <set>
 #include <vector>
 
+#include "GraphCreate.h"
 #include "adj_list.h"
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
+#include "times.h"
 
 /**
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts
@@ -26,8 +27,8 @@ typedef struct tc_info
 {
     int64_t cycle_count;
     int64_t trust_count;
-    int64_t trust_time;
-    int64_t cycle_time;
+    double trust_time;
+    double cycle_time;
     tc_info(int _val)
         : cycle_count(_val),
           trust_count(_val),
@@ -61,16 +62,14 @@ bool node_compare(node a, node b) { return ((a.id < b.id)); }
 
 std::vector<node> intersection(std::vector<node> A, std::vector<node> B)
 {
-    int a = A.size();
-    int b = B.size();
+    size_t a = A.size();
+    size_t b = B.size();
     std::sort(A.begin(), A.end(), node_compare);
     std::sort(B.begin(), B.end(), node_compare);
     std::vector<node> ABintersection;
     std::vector<node>::iterator A_iter = A.begin();
     std::vector<node>::iterator B_iter = B.begin();
-    int i = 0;
-    int j = 0;
-    int k = 0;
+    size_t i = 0, j = 0, k = 0;
     while (i < a and j < b)
     {
         if ((*A_iter).id == (*B_iter).id)
@@ -97,10 +96,10 @@ template <typename Graph>
 int64_t trust_tc(Graph &graph)
 {
     int64_t count = 0;
-    vector<node> nodes = graph.get_nodes();
+    vector<node> nodes = graph->get_nodes();
     for (node n : nodes)
     {
-        vector<edge> out_edges = graph.get_out_edges(n.id);
+        vector<edge> out_edges = graph->get_out_edges(n.id);
 
         for (edge e : out_edges)
         {
@@ -111,7 +110,7 @@ int64_t trust_tc(Graph &graph)
                 continue;  // self loop -- ignore.
             }
 
-            edges2 = graph.get_out_edges(nbr_id);
+            edges2 = graph->get_out_edges(nbr_id);
 
             set<node_id_t> edge_nei;
             set<node_id_t> edge2_nei;
@@ -143,17 +142,17 @@ template <typename Graph>
 int64_t cycle_tc(Graph &graph)
 {
     int64_t count = 0;
-    vector<node> nodes = graph.get_nodes();
+    vector<node> nodes = graph->get_nodes();
     for (node n : nodes)
     {
-        vector<node> out_nodes = graph.get_out_nodes(n.id);
+        vector<node> out_nodes = graph->get_out_nodes(n.id);
         for (node out_node : out_nodes)
         {
             if (n.id < out_node.id)
             {
                 std::vector<node> intersect =
-                    (graph.get_in_nodes(n.id),
-                     graph.get_out_nodes(out_node.id));
+                    (graph->get_in_nodes(n.id),
+                     graph->get_out_nodes(out_node.id));
                 for (node w : intersect)
                 {
                     if (n.id < w.id and out_node.id < w.id)
@@ -187,129 +186,41 @@ int main(int argc, char *argv[])
     std::string tc_log = tc_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = tc_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
-    int num_trials = 1;
+    opts.type = tc_cli.get_graph_type();
 
-    if (tc_cli.get_graph_type() == "std")
+    int num_trials = tc_cli.get_num_trials();
+
+    Times t;
+    t.start();
+    GraphFactory f;
+    GraphBase *graph = f.CreateGraph(opts);
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+
+    for (int i = 0; i < num_trials; i++)
     {
-        auto start = std::chrono::steady_clock::now();
-        StandardGraph graph(opts);
-        auto end = std::chrono::steady_clock::now();
-        std::cout << "Graph loaded in "
-                  << std::chrono::duration_cast<chrono::microseconds>(end -
-                                                                      start)
-                         .count()
+        tc_info info(0);
+        // Count Trust Triangles
+        t.start();
+        info.trust_count = trust_tc(graph);
+        t.stop();
+
+        info.trust_time = t.t_micros();
+        std::cout << "Trust TriangleCounting completed in : " << info.trust_time
+                  << std::endl;
+        std::cout << "Trust Triangles count = " << info.trust_count
                   << std::endl;
 
-        for (int i = 0; i < num_trials; i++)
-        {
-            tc_info info(0);
-            // Count Trust Triangles
-            start = std::chrono::steady_clock::now();
-            info.trust_count = trust_tc(graph);
-            end = std::chrono::steady_clock::now();
-
-            info.trust_time =
-                std::chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "Trust TriangleCounting completed in : "
-                      << info.trust_time << std::endl;
-            std::cout << "Trust Triangles count = " << info.trust_count
-                      << std::endl;
-
-            // Count Cycle Triangles
-            start = std::chrono::steady_clock::now();
-            info.cycle_count = cycle_tc(graph);
-            end = std::chrono::steady_clock::now();
-            info.cycle_time =
-                std::chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "Cycle TriangleCounting  completed in : "
-                      << info.cycle_time << std::endl;
-            std::cout << "Cycle Triangles count = " << info.cycle_count
-                      << std::endl;
-
-            print_csv_info(opts.db_name, info, tc_log);
-        }
-    }
-    if (tc_cli.get_graph_type() == "adj")
-    {
-        auto start = std::chrono::steady_clock::now();
-        AdjList graph(opts);
-        auto end = std::chrono::steady_clock::now();
-        std::cout << "Graph loaded in "
-                  << std::chrono::duration_cast<chrono::microseconds>(end -
-                                                                      start)
-                         .count()
+        // Count Cycle Triangles
+        t.start();
+        info.cycle_count = cycle_tc(graph);
+        t.stop();
+        info.cycle_time = t.t_micros();
+        std::cout << "Cycle TriangleCounting  completed in : "
+                  << info.cycle_time << std::endl;
+        std::cout << "Cycle Triangles count = " << info.cycle_count
                   << std::endl;
 
-        for (int i = 0; i < num_trials; i++)
-        {
-            tc_info info(0);
-            // Count Trust Triangles
-            start = std::chrono::steady_clock::now();
-            info.trust_count = trust_tc(graph);
-            end = std::chrono::steady_clock::now();
-            info.trust_time =
-                std::chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "Trust TriangleCounting completed in : "
-                      << info.trust_time << std::endl;
-            std::cout << "Trust Triangles count = " << info.trust_count
-                      << std::endl;
-
-            // Count Cycle Triangles
-            start = std::chrono::steady_clock::now();
-            info.cycle_count = cycle_tc(graph);
-            end = std::chrono::steady_clock::now();
-            info.cycle_time =
-                std::chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "Cycle Triangle Counting  completed in : "
-                      << info.cycle_time << std::endl;
-            std::cout << "Cycle Triangles count = " << info.cycle_count
-                      << std::endl;
-            print_csv_info(opts.db_name, info, tc_log);
-        }
-    }
-
-    if (tc_cli.get_graph_type() == "ekey")
-    {
-        auto start = std::chrono::steady_clock::now();
-        EdgeKey graph(opts);
-        auto end = std::chrono::steady_clock::now();
-        std::cout << "Graph loaded in "
-                  << std::chrono::duration_cast<chrono::microseconds>(end -
-                                                                      start)
-                         .count()
-                  << std::endl;
-
-        for (int i = 0; i < num_trials; i++)
-        {
-            tc_info info(0);
-            // Count Trust Triangles
-            start = std::chrono::steady_clock::now();
-            info.trust_count = trust_tc(graph);
-            end = std::chrono::steady_clock::now();
-            info.trust_time =
-                std::chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "Trust TriangleCounting completed in : "
-                      << info.trust_time << std::endl;
-            std::cout << "Trust Triangles count = " << info.trust_count
-                      << std::endl;
-
-            // Count Cycle Triangles
-            start = std::chrono::steady_clock::now();
-            info.cycle_count = cycle_tc(graph);
-            end = std::chrono::steady_clock::now();
-            info.cycle_time =
-                std::chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "Cycle TriangleCounting  completed in : "
-                      << info.cycle_time << std::endl;
-            std::cout << "Cycle Triangles count = " << info.cycle_count
-                      << std::endl;
-            print_csv_info(opts.db_name, info, tc_log);
-        }
+        print_csv_info(opts.db_name, info, tc_log);
     }
 }

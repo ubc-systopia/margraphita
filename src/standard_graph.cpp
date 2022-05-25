@@ -411,7 +411,7 @@ node StandardGraph::get_node(node_id_t node_id)
 
 node StandardGraph::get_random_node()
 {
-    node found;
+    node found = {0};
     int ret = 0;
 
     if (this->random_node_cursor == NULL)

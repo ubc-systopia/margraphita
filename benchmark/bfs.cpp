@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <chrono>
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -10,6 +9,7 @@
 #include <set>
 #include <vector>
 
+#include "GraphCreate.h"
 #include "adj_list.h"
 #include "command_line.h"
 #include "common.h"
@@ -29,7 +29,7 @@ typedef struct bfs_info
 {
     int num_visited;
     int sum_out_deg;
-    int64_t time_taken;
+    double time_taken;
     bfs_info(int _val)
         : num_visited(_val), sum_out_deg(_val), time_taken(_val){};
 } bfs_info;
@@ -37,8 +37,9 @@ typedef struct bfs_info
 template <typename Graph>
 bfs_info *bfs(Graph &graph, node_id_t src)
 {
+    Times timer;
     bfs_info *info = new bfs_info(0);
-    auto start = chrono::steady_clock::now();
+    timer.start();
     for (int i = 0; i < 10; i++)
     {
         set<node_id_t> visited = {src};
@@ -50,7 +51,7 @@ bfs_info *bfs(Graph &graph, node_id_t src)
             node_id_t node_id = queue.front();
             queue.pop_front();
             result.push_back(node_id);
-            vector<node> out_nbrs = graph.get_out_nodes(node_id);
+            vector<node> out_nbrs = graph->get_out_nodes(node_id);
             info->sum_out_deg += out_nbrs.size();
             for (node nbr : out_nbrs)
             {
@@ -63,9 +64,8 @@ bfs_info *bfs(Graph &graph, node_id_t src)
         }
         info->num_visited = visited.size();
     }
-    auto end = chrono::steady_clock::now();
-    info->time_taken =
-        chrono::duration_cast<chrono::microseconds>(end - start).count();
+    timer.stop();
+    info->time_taken = timer.t_micros();
     // average the time taken to get average per iteration.
     info->time_taken = info->time_taken / 10;
     return info;
@@ -74,7 +74,7 @@ bfs_info *bfs(Graph &graph, node_id_t src)
 void print_csv_info(std::string name,
                     int starting_node,
                     bfs_info *info,
-                    int time_from_outside,
+                    double time_from_outside,
                     std::string csv_logdir)
 {
     fstream FILE;
@@ -102,10 +102,10 @@ node_id_t find_random_start(Graph &graph)
 {
     while (1)
     {
-        node random_start = graph.get_random_node();
+        node random_start = graph->get_random_node();
         std::cout << random_start.id << std ::endl;
         std::cout << "random start vertex is " << random_start.id << std::endl;
-        if (graph.get_out_degree(random_start.id) != 0)
+        if (graph->get_out_degree(random_start.id) != 0)
         {
             return random_start.id;
         }
@@ -137,128 +137,35 @@ int main(int argc, char *argv[])
     std::string bfs_log = bfs_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = bfs_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // bfs_cli.get_conn_config();
+    opts.type = bfs_cli.get_graph_type();
 
-    if (bfs_cli.get_graph_type() == "std")
-    {
-        auto start = chrono::steady_clock::now();
-        StandardGraph graph(opts);
-        auto end = chrono::steady_clock::now();
-        std::cout
-            << "Graph loaded in "
-            << chrono::duration_cast<chrono::microseconds>(end - start).count()
-            << std::endl;
+    Times timer;
+    timer.start();
+    GraphFactory f;
+    GraphBase *graph = f.CreateGraph(opts);
+    timer.stop();
+    std::cout << "Graph loaded in " << timer.t_micros() << std::endl;
 
-        // do 10 runs with random starting nodes and run 10 trial per each
-        // random node
-        for (int i = 0; i < bfs_cli.get_num_trials(); i++)
-        {
-            node_id_t start_vertex = bfs_cli.start_vertex();
-            if (start_vertex == -1)
-            {
-                start_vertex = find_random_start(graph);
-            }
-            start = chrono::steady_clock::now();
-            bfs_info *bfs_run = bfs(graph, start_vertex);
-            end = chrono::steady_clock::now();
-            int time_from_outside =
-                chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "BFS  completed in : " << time_from_outside
-                      << std::endl;
-            print_csv_info(opts.db_name,
-                           start_vertex,
-                           bfs_run,
-                           time_from_outside,
-                           bfs_log);
-        }
-        graph.close();
-    }
-
-    if (bfs_cli.get_graph_type() == "adj")
-    {
-        auto start = chrono::steady_clock::now();
-        AdjList graph(opts);
-        auto end = chrono::steady_clock::now();
-        std::cout
-            << "Graph loaded in "
-            << chrono::duration_cast<chrono::microseconds>(end - start).count()
-            << std::endl;
-
-        // do 10 runs with random starting nodes and run 10 trial per each
-        // random node
-
-        for (int i = 0; i < bfs_cli.get_num_trials(); i++)
-        {
-            node_id_t start_vertex = bfs_cli.start_vertex();
-            if (start_vertex == -1)
-            {
-                start_vertex = find_random_start(graph);
-            }
-            start = chrono::steady_clock::now();
-            bfs_info *bfs_run = bfs(graph, start_vertex);
-            end = chrono::steady_clock::now();
-            int time_from_outside =
-                chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "BFS  completed in : " << time_from_outside
-                      << std::endl;
-            print_csv_info(opts.db_name,
-                           start_vertex,
-                           bfs_run,
-                           time_from_outside,
-                           bfs_log);
-        }
-        graph.close();
-    }
-
-    if (bfs_cli.get_graph_type() == "ekey")
-    {
-        auto start = chrono::steady_clock::now();
-        EdgeKey graph(opts);
-        auto end = chrono::steady_clock::now();
-        std::cout
-            << "Graph loaded in "
-            << chrono::duration_cast<chrono::microseconds>(end - start).count()
-            << std::endl;
-
-        // do 10 runs with random starting nodes and run 10 trial per each
-        // random node
-        /*
-        FOR SOME REASON SOME VERTICES IN THE EKEY SETUP NEVER TERMINATE. THEY
-        ARE THE ONES COMMENTED OUT FROM THE VECTOR BELOW. THIS VECTOR WAS
-        GENERATED BY RUNNING THE find_Random_start method get_num_trial() times.
-         std::vector<int> starts = {4027332, 2282634, 4161954, 5615385, 4276469,
-        4339986, 3865592, 4788124, 4639484, 4841846, 4169896, 4245846, 4608514,
-        5717290, 3916985}; // 5052634, , // 5848383, for (int start_vertex :
-        starts)
-
-        */
-        int num_trials = bfs_cli.get_num_trials();
+    // do 10 runs with random starting nodes and run 10 trial per each
+    // random node
+    int num_trials = bfs_cli.get_num_trials();
 #ifdef STAT
-        num_trials = 1;  // We want only one run with stats collection
+    num_trials = 1;  // We want only one run with stats collection
 #endif
-        for (int i = 0; i < num_trials; i++)
+    for (int i = 0; i < num_trials; i++)
+    {
+        node_id_t start_vertex = bfs_cli.start_vertex();
+        if (start_vertex == -1)
         {
-            node_id_t start_vertex = bfs_cli.start_vertex();
-            if (start_vertex == -1)
-            {
-                start_vertex = find_random_start(graph);
-            }
-            // std::cout << "start vertex is : " << start_vertex << endl;
-            start = chrono::steady_clock::now();
-            bfs_info *bfs_run = bfs(graph, start_vertex);
-            end = chrono::steady_clock::now();
-            int time_from_outside =
-                chrono::duration_cast<chrono::microseconds>(end - start)
-                    .count();
-            std::cout << "BFS  completed in : " << time_from_outside
-                      << std::endl;
-            print_csv_info(opts.db_name,
-                           start_vertex,
-                           bfs_run,
-                           time_from_outside,
-                           bfs_log);
+            start_vertex = find_random_start(graph);
         }
-        graph.close();
+        timer.start();
+        bfs_info *bfs_run = bfs(graph, start_vertex);
+        timer.stop();
+        double time_from_outside = timer.t_micros();
+        std::cout << "BFS  completed in : " << time_from_outside << std::endl;
+        print_csv_info(
+            opts.db_name, start_vertex, bfs_run, time_from_outside, bfs_log);
     }
+    graph->close();
 }

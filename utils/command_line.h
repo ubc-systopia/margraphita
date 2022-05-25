@@ -21,7 +21,7 @@ class CmdLineBase
     std::vector<std::string> help_strings_;
 
     std::string db_name;
-    std::string graph_type;
+    enum GraphType graph_type;
     std::string benchmark;
     std::string dataset;
     std::string log_dir;
@@ -88,13 +88,6 @@ class CmdLineBase
                       << std::endl;
             return false;
         }
-        if (graph_type == "")
-        {
-            std::cout << "Please specify the graph representation being used "
-                         "for this benchmark. Use -h for help."
-                      << std::endl;
-            return false;
-        }
         return true;
     }
     void virtual handle_args(signed char opt, char *opt_arg)
@@ -132,7 +125,7 @@ class CmdLineBase
                 directed = true;
                 break;
             case 'l':
-                graph_type = std::string(opt_arg);
+                graph_type = handle_graph_type(opt_arg);
                 break;
             case 'o':
                 optimized_create = true;
@@ -146,6 +139,34 @@ class CmdLineBase
         }
     }
 
+    GraphType handle_graph_type(char *opt_arg)
+    {
+        GraphType type;
+        if (strcmp(opt_arg, "std") == 0)
+        {
+            type = GraphType::Std;
+        }
+        else if (strcmp(opt_arg, "adj") == 0)
+        {
+            type = GraphType::Adj;
+        }
+        else if (strcmp(opt_arg, "ekey") == 0)
+        {
+            type = GraphType::EKey;
+        }
+        else if (strcmp(opt_arg, "") == 0)
+        {
+            throw(
+                "Please specify the graph representation being used "
+                "for this benchmark. Use -h for help.");
+        }
+        else
+        {
+            throw "Unrecognized graph representation";
+        }
+        return type;
+    }
+
     void print_help()
     {
         for (std::string h : help_strings_) std::cout << h << std::endl;
@@ -153,7 +174,7 @@ class CmdLineBase
     }
 
     std::string get_db_name() const { return db_name; }
-    std::string get_graph_type() const { return graph_type; }
+    GraphType get_graph_type() const { return graph_type; }
     std::string get_db_path() const { return db_path; }
     std::string get_dataset() const { return dataset; }
     std::string get_benchmark() const { return benchmark; }

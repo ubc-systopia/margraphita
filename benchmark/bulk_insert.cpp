@@ -19,6 +19,7 @@
 #include "reader.h"
 
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
+const static int BUFFER_LENGTH = 20;
 double num_edges;
 double num_nodes;
 std::string dataset;

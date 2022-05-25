@@ -51,7 +51,13 @@ typedef int64_t node_id_t;
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
 const node_id_t OutOfBand_ID = -1;
-extern const int BUFFER_LENGTH;  // Length for converting int to string buffer
+
+typedef enum GraphType
+{
+    Std,
+    Adj,
+    EKey,
+} GraphType;
 
 struct graph_opts
 {
@@ -64,6 +70,7 @@ struct graph_opts
     bool optimize_create;  // directs when the index should be created
     std::string conn_config;
     std::string stat_log;
+    GraphType type;
 };
 
 typedef struct wt_conn_info
