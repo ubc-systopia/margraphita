@@ -40,6 +40,8 @@ class EkeyInCursor : public InCursor
                 to_search = keys.start;
             }
 
+            cursor->set_key(cursor, to_search);
+
             int status;
             // error_check(cursor->search_near(cursor, &status));
             cursor->search_near(cursor, &status);
@@ -213,10 +215,13 @@ class EkeyOutCursor : public OutCursor
         do
         {
             CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
-            if (src == curr_edge.src_id && curr_edge.dst_id != -1)
+            if (src == curr_edge.src_id)
             {
-                found->degree++;
-                found->edgelist.push_back(curr_edge.dst_id);
+                if (curr_edge.dst_id != -1)
+                {
+                    found->degree++;
+                    found->edgelist.push_back(curr_edge.dst_id);
+                }
             }
             else
             {

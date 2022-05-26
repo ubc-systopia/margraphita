@@ -17,6 +17,8 @@ namespace StdIterator
 class StdInCursor : public InCursor
 {
    private:
+    bool data_remaining = true;
+    node_id_t next_expected = 0;
     int64_t prev_node;
     node_id_t cur_node;
 
@@ -30,8 +32,13 @@ class StdInCursor : public InCursor
             goto no_next;
         }
 
-        int src;
-        int dst;
+        if (!data_remaining)
+        {
+            goto no_data_remaining;
+        }
+
+        node_id_t src;
+        node_id_t dst;
 
         edge curr_edge;
 
@@ -41,6 +48,7 @@ class StdInCursor : public InCursor
 
             if (keys.start != -1)
             {
+                next_expected = keys.start;
                 int status;
                 // error_check(cursor->search_near(cursor, &status));
                 cursor->search_near(cursor, &status);
@@ -49,7 +57,7 @@ class StdInCursor : public InCursor
                     // Advances the cursor
                     if (cursor->next(cursor) != 0)
                     {
-                        goto no_next;
+                        goto no_data_remaining;
                     }
                 }
             }
@@ -58,20 +66,29 @@ class StdInCursor : public InCursor
                 // Advances the cursor
                 if (cursor->next(cursor) != 0)
                 {
-                    goto no_next;
+                    goto no_data_remaining;
                 }
             }
         }
 
-        cursor->get_value(cursor, &src, &dst);
-        if (keys.end != -1 && dst > keys.end)
+        if (keys.end != -1 && next_expected > keys.end)
         {
             goto no_next;
         }
 
+        cursor->get_value(cursor, &src, &dst);
+
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = dst;
+
+        if (dst != next_expected)
+        {
+            found->node_id = next_expected;
+            next_expected += 1;
+            return;
+        }
+        next_expected += 1;
 
         do
         {
@@ -87,7 +104,7 @@ class StdInCursor : public InCursor
             }
         } while (cursor->next(cursor) == 0);
 
-        has_next = false;
+        data_remaining = false;
         return;
 
     no_next:
@@ -95,6 +112,16 @@ class StdInCursor : public InCursor
         found->edgelist.clear();
         found->node_id = -1;
         has_next = false;
+        return;
+    no_data_remaining:
+        if (keys.end != -1 && next_expected > keys.end)
+        {
+            goto no_next;
+        }
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = next_expected;
+        next_expected += 1;
     }
 
     void next(adjlist *found, node_id_t key)
@@ -116,12 +143,16 @@ class StdInCursor : public InCursor
             goto no_next;
         }
 
+        next_expected = key + 1;
+
         edge curr_edge;
         cursor->set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = key;
+
+        data_remaining = true;
 
         int status;
         // error_check(cursor->search_near(cursor, &status));
@@ -131,7 +162,7 @@ class StdInCursor : public InCursor
             // Advances the cursor
             if (cursor->next(cursor) != 0)
             {
-                has_next = false;
+                data_remaining = false;
                 return;
             }
         }
@@ -141,7 +172,7 @@ class StdInCursor : public InCursor
             CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
             if (curr_edge.dst_id != key)
             {
-                if (keys.end != -1 && curr_edge.dst_id > keys.end)
+                if (keys.end != -1 && next_expected > keys.end)
                 {
                     has_next = false;
                 }
@@ -151,7 +182,7 @@ class StdInCursor : public InCursor
             found->degree++;
         } while (cursor->next(cursor) == 0);
 
-        has_next = false;
+        data_remaining = false;
         return;
 
     no_next:
@@ -164,6 +195,8 @@ class StdInCursor : public InCursor
 
 class StdOutCursor : public OutCursor
 {
+    node_id_t next_expected = 0;
+    bool data_remaining = true;
    public:
     StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
@@ -174,8 +207,13 @@ class StdOutCursor : public OutCursor
             goto no_next;
         }
 
-        int src;
-        int dst;
+        if (!data_remaining)
+        {
+            goto no_data_remaining;
+        }
+
+        node_id_t src;
+        node_id_t dst;
 
         edge curr_edge;
 
@@ -185,6 +223,7 @@ class StdOutCursor : public OutCursor
 
             if (keys.start != -1)
             {
+                next_expected = keys.start;
                 int status;
                 // error_check(cursor->search_near(cursor, &status));
                 cursor->search_near(cursor, &status);
@@ -193,7 +232,7 @@ class StdOutCursor : public OutCursor
                     // Advances the cursor
                     if (cursor->next(cursor) != 0)
                     {
-                        goto no_next;
+                        goto no_data_remaining;
                     }
                 }
             }
@@ -202,20 +241,29 @@ class StdOutCursor : public OutCursor
                 // Advances the cursor
                 if (cursor->next(cursor) != 0)
                 {
-                    goto no_next;
+                    goto no_data_remaining;
                 }
             }
         }
 
-        cursor->get_value(cursor, &src, &dst);
-        if (keys.end != -1 && src > keys.end)
+        if (keys.end != -1 && next_expected > keys.end)
         {
             goto no_next;
         }
 
+        cursor->get_value(cursor, &src, &dst);
+
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = src;
+
+        if (src != next_expected)
+        {
+            found->node_id = next_expected;
+            next_expected += 1;
+            return;
+        }
+        next_expected += 1;
 
         do
         {
@@ -231,7 +279,7 @@ class StdOutCursor : public OutCursor
             }
         } while (cursor->next(cursor) == 0);
 
-        has_next = false;
+        data_remaining = false;
         return;
 
     no_next:
@@ -239,6 +287,16 @@ class StdOutCursor : public OutCursor
         found->edgelist.clear();
         found->node_id = -1;
         has_next = false;
+        return;
+    no_data_remaining:
+        if (keys.end != -1 && next_expected > keys.end)
+        {
+            goto no_next;
+        }
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = next_expected;
+        next_expected += 1;
     }
 
     void next(adjlist *found, node_id_t key)
@@ -260,12 +318,16 @@ class StdOutCursor : public OutCursor
             goto no_next;
         }
 
+        next_expected = key + 1;
+
         edge curr_edge;
         cursor->set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = key;
+
+        data_remaining = true;
 
         int status;
         // error_check(cursor->search_near(cursor, &status));
@@ -275,7 +337,7 @@ class StdOutCursor : public OutCursor
             // Advances the cursor
             if (cursor->next(cursor) != 0)
             {
-                has_next = false;
+                data_remaining = false;
                 return;
             }
         }
@@ -285,7 +347,7 @@ class StdOutCursor : public OutCursor
             CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
             if (curr_edge.src_id != key)
             {
-                if (keys.end != -1 && curr_edge.src_id > keys.end)
+                if (keys.end != -1 && next_expected > keys.end)
                 {
                     has_next = false;
                 }
@@ -295,7 +357,7 @@ class StdOutCursor : public OutCursor
             found->degree++;
         } while (cursor->next(cursor) == 0);
 
-        has_next = false;
+        data_remaining = false;
         return;
 
     no_next:
