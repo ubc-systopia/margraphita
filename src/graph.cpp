@@ -137,6 +137,7 @@ void GraphBase::__restore_from_db(std::string db_name)
             this->opts.db_name =
                 value;  // CommonUtil::unpack_string_wt(value, this->session);
         }
+        // restore nNodes & nEdges
         else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)

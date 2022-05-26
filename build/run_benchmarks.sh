@@ -11,7 +11,7 @@ exit 1;}
 #TYPES=( "adj" "std" "ekey19)
 TYPES=( "adj" )
 DATASETS=( "cit-Patents" )
-RESULT=/home/puneet/scratch/margraphita/outputs/on_mars
+RESULT=/home/jackli/margraphita/outputs/on_mars
 COUNTS=10
 
 while getopts ":d:h" o; do

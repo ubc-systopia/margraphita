@@ -31,7 +31,7 @@ source paths.sh
 #commit_id=`git rev-parse --short HEAD`
 
 # #create directory where the scripts will insert logs
-dir="${HOME}/scratch/margraphita/outputs/${commit_id}"
+dir="${HOME}/margraphita/outputs/${commit_id}"
 # mkdir -p $dir
 
 # #pass this dir to bulk_insert
