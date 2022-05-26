@@ -333,14 +333,14 @@ class OutCursor : public table_iterator
  * dst index. FIXIT: We need to change this to make it transparent to the user.
  */
 
-class NodeIterator : public table_iterator
+class NodeCursor : public table_iterator
 {
    private:
     key_range keys;
 
    public:
     // Takes a composite index cursor on (dst, src)
-    NodeIterator(WT_CURSOR *comp_idx_cur, WT_SESSION *sess)
+    NodeCursor(WT_CURSOR *comp_idx_cur, WT_SESSION *sess)
     {
         init(comp_idx_cur, sess);
         keys = {-1, -1};
@@ -523,15 +523,16 @@ class EdgeKey : public GraphBase
     std::vector<edge> get_in_edges(node_id_t node_id);
     std::vector<node> get_in_nodes(node_id_t node_id);
 
-    EKeyIterator::OutCursor get_outnbd_cursor();
-    EKeyIterator::InCursor get_innbd_cursor();
+    EKeyIterator::OutCursor get_outnbd_iter();
+    EKeyIterator::InCursor get_innbd_iter();
+    EKeyIterator::NodeCursor get_node_iter();
+    EKeyIterator::EdgeCursor get_edge_iter();
     // internal cursor operations:
     void init_cursors();  // todo <-- implement this
+    WT_CURSOR *get_src_idx_cursor();
+    WT_CURSOR *get_dst_idx_cursor();
+    WT_CURSOR *get_node_cursor();
     WT_CURSOR *get_edge_cursor();
-    WT_CURSOR *get_src_idx_cur();
-    WT_CURSOR *get_dst_idx_cur();
-    WT_CURSOR *get_node_iter();
-    WT_CURSOR *get_edge_iter();
     void make_indexes();
 
    private:
