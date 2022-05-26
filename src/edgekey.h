@@ -16,6 +16,8 @@ namespace EKeyIterator
 {
 class EkeyInCursor : public InCursor
 {
+    node_id_t next_expected = 0;
+    bool data_remaining = true;
    public:
     EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
@@ -26,21 +28,25 @@ class EkeyInCursor : public InCursor
             goto no_next;
         }
 
-        int src;
-        int dst;
+        if (!data_remaining)
+        {
+            goto no_data_remaining;
+        }
+
+        node_id_t src;
+        node_id_t dst;
 
         if (is_first)
         {
             is_first = false;
 
-            int to_search = 0;
+            node_id_t to_search = 0;
 
             if (keys.start != -1)
             {
                 to_search = keys.start;
+                next_expected = keys.start;
             }
-
-            cursor->set_key(cursor, to_search);
 
             int status;
             // error_check(cursor->search_near(cursor, &status));
@@ -50,20 +56,29 @@ class EkeyInCursor : public InCursor
                 // Advances the cursor
                 if (cursor->next(cursor) != 0)
                 {
-                    goto no_next;
+                    goto no_data_remaining;
                 }
             }
         }
 
-        cursor->get_value(cursor, &src, &dst);
-        if (keys.end != -1 && dst > keys.end)
+        if (keys.end != -1 && next_expected > keys.end)
         {
             goto no_next;
         }
 
+        cursor->get_value(cursor, &src, &dst);
+
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = dst;
+
+        if (dst != next_expected)
+        {
+            found->node_id = next_expected;
+            next_expected += 1;
+            return;
+        }
+        next_expected += 1;
 
         edge curr_edge;
 
@@ -82,7 +97,7 @@ class EkeyInCursor : public InCursor
 
         } while (cursor->next(cursor) == 0);
 
-        has_next = false;
+        data_remaining = false;
         return;
 
     no_next:
@@ -90,6 +105,16 @@ class EkeyInCursor : public InCursor
         found->edgelist.clear();
         found->node_id = -1;
         has_next = false;
+        return;
+    no_data_remaining:
+        if (keys.end != -1 && next_expected > keys.end)
+        {
+            goto no_next;
+        }
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = next_expected;
+        next_expected += 1;
     }
 
     void next(adjlist *found, node_id_t key)
@@ -111,12 +136,16 @@ class EkeyInCursor : public InCursor
             goto no_next;
         }
 
+        next_expected = key + 1;
+
         edge curr_edge;
         cursor->set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = key;
+
+        data_remaining = true;
 
         int status;
         // error_check(cursor->search_near(cursor, &status));
@@ -136,7 +165,7 @@ class EkeyInCursor : public InCursor
             CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
             if (curr_edge.dst_id != key)
             {
-                if (keys.end != -1 && curr_edge.dst_id > keys.end)
+                if (keys.end != -1 && next_expected > keys.end)
                 {
                     has_next = false;
                 }
@@ -146,7 +175,7 @@ class EkeyInCursor : public InCursor
             found->degree++;
         } while (cursor->next(cursor) == 0);
 
-        has_next = false;
+        data_remaining = true;
         return;
 
     no_next:
@@ -159,6 +188,8 @@ class EkeyInCursor : public InCursor
 
 class EkeyOutCursor : public OutCursor
 {
+    bool data_remaining = true;
+    node_id_t next_expected = 0;
    public:
     EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
@@ -169,8 +200,13 @@ class EkeyOutCursor : public OutCursor
             goto no_next;
         }
 
-        int src;
-        int dst;
+        if (!data_remaining)
+        {
+            goto no_data_remaining;
+        }
+
+        node_id_t src;
+        node_id_t dst;
 
         edge curr_edge;
 
@@ -180,6 +216,7 @@ class EkeyOutCursor : public OutCursor
 
             if (keys.start != -1)
             {
+                next_expected = keys.start;
                 int status;
                 // error_check(cursor->search_near(cursor, &status));
                 cursor->search_near(cursor, &status);
@@ -188,7 +225,7 @@ class EkeyOutCursor : public OutCursor
                     // Advances the cursor
                     if (cursor->next(cursor) != 0)
                     {
-                        goto no_next;
+                        goto no_data_remaining;
                     }
                 }
             }
@@ -197,20 +234,29 @@ class EkeyOutCursor : public OutCursor
                 // Advances the cursor
                 if (cursor->next(cursor) != 0)
                 {
-                    goto no_next;
+                    goto no_data_remaining;
                 }
             }
         }
 
-        cursor->get_value(cursor, &src, &dst);
-        if (keys.end != -1 && src > keys.end)
+        if (keys.end != -1 && next_expected > keys.end)
         {
             goto no_next;
         }
 
+        cursor->get_value(cursor, &src, &dst);
+
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = src;
+
+        if (src != next_expected)
+        {
+            found->node_id = next_expected;
+            next_expected += 1;
+            return;
+        }
+        next_expected += 1;
 
         do
         {
@@ -229,7 +275,7 @@ class EkeyOutCursor : public OutCursor
             }
         } while (cursor->next(cursor) == 0);
 
-        has_next = false;
+        data_remaining = false;
         return;
 
     no_next:
@@ -237,6 +283,16 @@ class EkeyOutCursor : public OutCursor
         found->edgelist.clear();
         found->node_id = -1;
         has_next = false;
+        return;
+    no_data_remaining:
+        if (keys.end != -1 && next_expected > keys.end)
+        {
+            goto no_next;
+        }
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = next_expected;
+        next_expected += 1;
     }
 
     void next(adjlist *found, node_id_t key)
@@ -258,12 +314,16 @@ class EkeyOutCursor : public OutCursor
             goto no_next;
         }
 
+        next_expected = key + 1;
+
         edge curr_edge;
         cursor->set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = key;
+
+        data_remaining = true;
 
         int status;
         // error_check(cursor->search_near(cursor, &status));
@@ -273,7 +333,7 @@ class EkeyOutCursor : public OutCursor
             // Advances the cursor
             if (cursor->next(cursor) != 0)
             {
-                has_next = false;
+                data_remaining = false;
                 return;
             }
         }
@@ -283,7 +343,7 @@ class EkeyOutCursor : public OutCursor
             CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
             if (curr_edge.src_id != key)
             {
-                if (keys.end != -1 && curr_edge.src_id > keys.end)
+                if (keys.end != -1 && next_expected > keys.end)
                 {
                     has_next = false;
                 }
@@ -296,7 +356,7 @@ class EkeyOutCursor : public OutCursor
             }
         } while (cursor->next(cursor) == 0);
 
-        has_next = false;
+        data_remaining = false;
         return;
 
     no_next:
@@ -425,7 +485,7 @@ class EkeyEdgeCursor : public EdgeCursor
 
     edge_found:
         // If end_edge is set
-        if (end_edge.src_id != -1)
+        if (end_edge.src_id != -2)
         {
             // If found > end edge
             if (!(found->src_id < end_edge.src_id ||
