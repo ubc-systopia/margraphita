@@ -195,8 +195,8 @@ class StdInCursor : public InCursor
 
 class StdOutCursor : public OutCursor
 {
-    node_id_t next_expected = 0;
     bool data_remaining = true;
+    node_id_t next_expected = 0;
    public:
     StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 

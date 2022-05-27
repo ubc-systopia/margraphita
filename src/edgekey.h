@@ -188,6 +188,8 @@ class EkeyInCursor : public InCursor
 
 class EkeyOutCursor : public OutCursor
 {
+   private:
+    node_id_t next_expected = 0;
     bool data_remaining = true;
     node_id_t next_expected = 0;
    public:
