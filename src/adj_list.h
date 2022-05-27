@@ -14,23 +14,10 @@
 using namespace std;
 namespace AdjIterator
 {
-class InCursor : public table_iterator
+class AdjInCursor : public InCursor
 {
-   private:
-    key_range keys;
-
    public:
-    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
+    AdjInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
     void next(adjlist *found)
     {
@@ -91,7 +78,7 @@ class InCursor : public table_iterator
         has_next = false;
     }
 
-    void next(adjlist *found, int key)
+    void next(adjlist *found, node_id_t key)
     {
         // Must reset OutCursor if already no_next
         if (!has_next)
@@ -156,23 +143,10 @@ class InCursor : public table_iterator
     }
 };
 
-class OutCursor : public table_iterator
+class AdjOutCursor : public OutCursor
 {
-   private:
-    key_range keys;
-
    public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
+    AdjOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
     void next(adjlist *found)
     {
@@ -233,7 +207,7 @@ class OutCursor : public table_iterator
         has_next = false;
     }
 
-    void next(adjlist *found, int key)
+    void next(adjlist *found, node_id_t key)
     {
         // Must reset OutCursor if already no_next
         if (!has_next)
@@ -298,29 +272,10 @@ class OutCursor : public table_iterator
     }
 };
 
-class NodeCursor : public table_iterator
+class AdjNodeCursor : public NodeCursor
 {
-   private:
-    key_range keys;
-
    public:
-    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
-    {
-        init(node_cur, sess);
-        keys = {-1, -1};
-    }
-
-    /**
-     * @brief Set the key range object
-     *
-     * @param _keys the key range object. Set the end key to INT_MAX if you want
-     * to get all the nodes from start node.
-     */
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
+    AdjNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
     // use key_pair to define start and end keys.
     void next(node *found)
@@ -369,29 +324,10 @@ class NodeCursor : public table_iterator
     }
 };
 
-class EdgeCursor : public table_iterator
+class AdjEdgeCursor : public EdgeCursor
 {
-   private:
-    key_pair start_edge;
-    key_pair end_edge;
-
    public:
-    EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-    }
-
-    // Overwrites set_key(int key) implementation in table_iterator
-    void set_key(int key) = delete;
-
-    void set_key(key_pair start, key_pair end)
-    {
-        start_edge = start;
-        end_edge = end;
-        cursor->set_key(cursor, start.src_id, start.dst_id);
-    }
+    AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
     void next(edge *found)
     {
@@ -482,10 +418,10 @@ class AdjList : public GraphBase
     std::vector<node> get_in_nodes(node_id_t node_id);
     std::string get_db_name() const { return opts.db_name; };
     std::vector<node_id_t> get_adjlist(WT_CURSOR *cursor, node_id_t node_id);
-    AdjIterator::OutCursor get_outnbd_iter();
-    AdjIterator::InCursor get_innbd_iter();
-    AdjIterator::NodeCursor get_node_iter();
-    AdjIterator::EdgeCursor get_edge_iter();
+    OutCursor *get_outnbd_iter();
+    InCursor *get_innbd_iter();
+    NodeCursor *get_node_iter();
+    EdgeCursor *get_edge_iter();
 
     edgeweight_t get_edge_weight(node_id_t src_id, node_id_t dst_id);
     void update_edge_weight(

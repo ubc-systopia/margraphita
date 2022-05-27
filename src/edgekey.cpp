@@ -1095,24 +1095,24 @@ WT_CURSOR *EdgeKey::get_dst_idx_cursor()
     return dst_idx_cursor;
 }
 
-EKeyIterator::OutCursor EdgeKey::get_outnbd_iter()
+OutCursor *EdgeKey::get_outnbd_iter()
 {
-    return EKeyIterator::OutCursor(get_src_idx_cursor(), session);
+    return new EKeyIterator::EkeyOutCursor(get_src_idx_cursor(), session);
 }
 
-EKeyIterator::InCursor EdgeKey::get_innbd_iter()
+InCursor *EdgeKey::get_innbd_iter()
 {
-    return EKeyIterator::InCursor(get_dst_idx_cursor(), session);
+    return new EKeyIterator::EkeyInCursor(get_dst_idx_cursor(), session);
 }
 
-EKeyIterator::NodeCursor EdgeKey::get_node_iter()
+NodeCursor *EdgeKey::get_node_iter()
 {
-    return EKeyIterator::NodeCursor(get_node_cursor(), session);
+    return new EKeyIterator::EkeyNodeCursor(get_node_cursor(), session);
 }
 
-EKeyIterator::EdgeCursor EdgeKey::get_edge_iter()
+EdgeCursor *EdgeKey::get_edge_iter()
 {
-    return EKeyIterator::EdgeCursor(get_edge_cursor(), session);
+    return new EKeyIterator::EkeyEdgeCursor(get_edge_cursor(), session);
 }
 
 WT_CURSOR *EdgeKey::get_node_cursor() { return get_dst_idx_cursor(); }

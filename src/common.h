@@ -150,6 +150,104 @@ class table_iterator
     }
 };
 
+class OutCursor : public table_iterator
+{
+   protected:
+    key_range keys;
+
+   public:
+    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
+
+    virtual void next(adjlist *found) = 0;
+    virtual void next(adjlist *found, node_id_t key) = 0;
+};
+
+class InCursor : public table_iterator
+{
+   protected:
+    key_range keys;
+
+   public:
+    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
+
+    virtual void next(adjlist *found) = 0;
+    virtual void next(adjlist *found, node_id_t key) = 0;
+};
+
+class NodeCursor : public table_iterator
+{
+   protected:
+    key_range keys;
+
+   public:
+    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
+    {
+        init(node_cur, sess);
+        keys = {-1, -1};
+    }
+
+    /**
+     * @brief Set the key range object
+     *
+     * @param _keys the key range object. Set the end key to INT_MAX if you want
+     * to get all the nodes from start node.
+     */
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
+
+    virtual void next(node *found) = 0;
+};
+
+class EdgeCursor : public table_iterator
+{
+   protected:
+    key_pair start_edge;
+    key_pair end_edge;
+
+   public:
+    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
+    {
+        init(composite_edge_cur, sess);
+        start_edge = {-1, -1};
+        end_edge = {-1, -1};
+    }
+
+    // Overwrites set_key(int key) implementation in table_iterator
+    void set_key(int key) = delete;
+
+    void set_key(key_pair start, key_pair end)
+    {
+        start_edge = start;
+        end_edge = end;
+        cursor->set_key(cursor, start.src_id, start.dst_id);
+    }
+
+    virtual void next(edge *found) = 0;
+};
+
 // TODO: remove unused functions from this class.
 
 class CommonUtil

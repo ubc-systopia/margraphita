@@ -1060,24 +1060,24 @@ WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
     return src_dst_index_cursor;
 }
 
-StdIterator::OutCursor StandardGraph::get_outnbd_iter()
+OutCursor *StandardGraph::get_outnbd_iter()
 {
-    return StdIterator::OutCursor(get_src_idx_cursor(), session);
+    return new StdIterator::StdOutCursor(get_src_idx_cursor(), session);
 }
 
-StdIterator::InCursor StandardGraph::get_innbd_iter()
+InCursor *StandardGraph::get_innbd_iter()
 {
-    return StdIterator::InCursor(get_dst_idx_cursor(), session);
+    return new StdIterator::StdInCursor(get_dst_idx_cursor(), session);
 }
 
-StdIterator::NodeCursor StandardGraph::get_node_iter()
+NodeCursor *StandardGraph::get_node_iter()
 {
-    return StdIterator::NodeCursor(get_node_cursor(), session);
+    return new StdIterator::StdNodeCursor(get_node_cursor(), session);
 }
 
-StdIterator::EdgeCursor StandardGraph::get_edge_iter()
+EdgeCursor *StandardGraph::get_edge_iter()
 {
-    return StdIterator::EdgeCursor(get_edge_cursor(), session);
+    return new StdIterator::StdEdgeCursor(get_edge_cursor(), session);
 }
 
 /**

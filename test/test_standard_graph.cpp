@@ -273,19 +273,19 @@ void print_delim() { cout << endl << "--------------------" << endl; }
 void test_InCursor(StandardGraph graph)
 {
     INFO();
-    StdIterator::InCursor in_cursor = graph.get_innbd_iter();
+    InCursor *in_cursor = graph.get_innbd_iter();
     adjlist found = {0};
-    in_cursor.next(&found);
+    in_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
         found = {0};
-        in_cursor.next(&found);
+        in_cursor->next(&found);
     }
 
-    in_cursor.reset();
+    in_cursor->reset();
 
-    in_cursor.next(&found, 3);
+    in_cursor->next(&found, 3);
     assert(found.node_id == 3);
     assert(found.edgelist.size() ==
            1);  // size is 1 after deleting node 2; 2 if not deleted
@@ -294,11 +294,11 @@ void test_InCursor(StandardGraph graph)
 void test_OutCursor(StandardGraph graph)
 {
     INFO();
-    auto out_cursor = graph.get_outnbd_iter();
+    OutCursor *out_cursor = graph.get_outnbd_iter();
     adjlist found = {0};
-    while (out_cursor.has_more())
+    while (out_cursor->has_more())
     {
-        out_cursor.next(&found);
+        out_cursor->next(&found);
         if (found.node_id != -1)
         {
             CommonUtil::dump_adjlist(found);
@@ -310,8 +310,8 @@ void test_OutCursor(StandardGraph graph)
         }
     }
 
-    out_cursor.reset();
-    out_cursor.next(&found, 1);
+    out_cursor->reset();
+    out_cursor->next(&found, 1);
     assert(found.node_id == 1);
     assert(found.edgelist.size() == 2);
 }
@@ -341,16 +341,16 @@ void test_index_cursor(StandardGraph graph)
 void test_NodeCursor(StandardGraph graph)
 {
     INFO();
-    StdIterator::NodeCursor node_cursor = graph.get_node_iter();
+    NodeCursor *node_cursor = graph.get_node_iter();
     node found;
     int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
     int i = 0;
-    node_cursor.next(&found);
+    node_cursor->next(&found);
     while (found.id != -1)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
-        node_cursor.next(&found);
+        node_cursor->next(&found);
         i++;
     }
 }
@@ -358,17 +358,17 @@ void test_NodeCursor(StandardGraph graph)
 void test_NodeCursor_Range(StandardGraph graph)
 {
     INFO();
-    StdIterator::NodeCursor node_cursor = graph.get_node_iter();
+    NodeCursor *node_cursor = graph.get_node_iter();
     node found;
     int nodeIdList[] = {3, 4, 5, 6};
     int i = 0;
-    node_cursor.set_key_range(key_range{.start = 3, .end = 6});
-    node_cursor.next(&found);
+    node_cursor->set_key_range(key_range{.start = 3, .end = 6});
+    node_cursor->next(&found);
     while (found.id != -1)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
-        node_cursor.next(&found);
+        node_cursor->next(&found);
         i++;
     }
 }
@@ -376,18 +376,18 @@ void test_NodeCursor_Range(StandardGraph graph)
 void test_EdgeCursor(StandardGraph graph)
 {
     INFO();
-    StdIterator::EdgeCursor edge_cursor = graph.get_edge_iter();
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge found;
     int srcIdList[] = {1, 1, 5, 7, 8};
     int dstIdList[] = {3, 7, 6, 8, 7};
     int i = 0;
-    edge_cursor.next(&found);
+    edge_cursor->next(&found);
     while (found.src_id != -1)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
         CommonUtil::dump_edge(found);
-        edge_cursor.next(&found);
+        edge_cursor->next(&found);
         i++;
     }
 }
@@ -395,19 +395,19 @@ void test_EdgeCursor(StandardGraph graph)
 void test_EdgeCursor_Range(StandardGraph graph)
 {
     INFO();
-    StdIterator::EdgeCursor edge_cursor = graph.get_edge_iter();
-    edge_cursor.set_key({1, 4}, {8, 1});
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge_cursor->set_key({1, 4}, {8, 1});
     edge found;
     int srcIdList[] = {1, 5, 7};
     int dstIdList[] = {7, 6, 8};
     int i = 0;
-    edge_cursor.next(&found);
+    edge_cursor->next(&found);
     while (found.src_id != -1)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
         CommonUtil::dump_edge(found);
-        edge_cursor.next(&found);
+        edge_cursor->next(&found);
         i++;
     }
 }

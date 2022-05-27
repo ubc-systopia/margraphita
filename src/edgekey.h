@@ -14,23 +14,10 @@
 using namespace std;
 namespace EKeyIterator
 {
-class InCursor : public table_iterator
+class EkeyInCursor : public InCursor
 {
-   private:
-    key_range keys;
-
    public:
-    InCursor(WT_CURSOR *dst_cur, WT_SESSION *sess)
-    {
-        init(dst_cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
+    EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
     void next(adjlist *found)
     {
@@ -103,7 +90,7 @@ class InCursor : public table_iterator
         has_next = false;
     }
 
-    void next(adjlist *found, int key)
+    void next(adjlist *found, node_id_t key)
     {
         // Must reset OutCursor if already no_next
         if (!has_next)
@@ -168,23 +155,10 @@ class InCursor : public table_iterator
     }
 };
 
-class OutCursor : public table_iterator
+class EkeyOutCursor : public OutCursor
 {
-   private:
-    key_range keys;
-
    public:
-    OutCursor(WT_CURSOR *src_cur, WT_SESSION *sess)
-    {
-        init(src_cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
+    EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
     void next(adjlist *found)
     {
@@ -260,7 +234,7 @@ class OutCursor : public table_iterator
         has_next = false;
     }
 
-    void next(adjlist *found, int key)
+    void next(adjlist *found, node_id_t key)
     {
         // Must reset OutCursor if already no_next
         if (!has_next)
@@ -333,24 +307,11 @@ class OutCursor : public table_iterator
  * dst index. FIXIT: We need to change this to make it transparent to the user.
  */
 
-class NodeCursor : public table_iterator
+class EkeyNodeCursor : public NodeCursor
 {
-   private:
-    key_range keys;
-
    public:
     // Takes a composite index cursor on (dst, src)
-    NodeCursor(WT_CURSOR *comp_idx_cur, WT_SESSION *sess)
-    {
-        init(comp_idx_cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, -1, keys.start);
-    }
+    EkeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
     void next(node *found)
     {
@@ -404,29 +365,10 @@ class NodeCursor : public table_iterator
     }
 };
 
-class EdgeCursor : public table_iterator
+class EkeyEdgeCursor : public EdgeCursor
 {
-   private:
-    key_pair start_edge;
-    key_pair end_edge;
-
    public:
-    EdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-    }
-
-    // Overwrites set_key(int key) implementation in table_iterator
-    void set_key(int key) = delete;
-
-    void set_key(key_pair start, key_pair end)
-    {
-        start_edge = start;
-        end_edge = end;
-        cursor->set_key(cursor, start.src_id, start.dst_id);
-    }
+    EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
     void next(edge *found)
     {
@@ -523,10 +465,10 @@ class EdgeKey : public GraphBase
     std::vector<edge> get_in_edges(node_id_t node_id);
     std::vector<node> get_in_nodes(node_id_t node_id);
 
-    EKeyIterator::OutCursor get_outnbd_iter();
-    EKeyIterator::InCursor get_innbd_iter();
-    EKeyIterator::NodeCursor get_node_iter();
-    EKeyIterator::EdgeCursor get_edge_iter();
+    OutCursor *get_outnbd_iter();
+    InCursor *get_innbd_iter();
+    NodeCursor *get_node_iter();
+    EdgeCursor *get_edge_iter();
     // internal cursor operations:
     void init_cursors();  // todo <-- implement this
     WT_CURSOR *get_src_idx_cursor();
