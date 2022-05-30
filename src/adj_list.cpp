@@ -1296,24 +1296,24 @@ void AdjList::delete_related_edges_and_adjlists(node_id_t node_id)
     cout << std::endl;
 }
 
-AdjIterator::OutCursor AdjList::get_outnbd_iter()
+OutCursor *AdjList::get_outnbd_iter()
 {
-    return AdjIterator::OutCursor(get_out_adjlist_cursor(), session);
+    return new AdjIterator::AdjOutCursor(get_out_adjlist_cursor(), session);
 }
 
-AdjIterator::InCursor AdjList::get_innbd_iter()
+InCursor *AdjList::get_innbd_iter()
 {
-    return AdjIterator::InCursor(get_in_adjlist_cursor(), session);
+    return new AdjIterator::AdjInCursor(get_in_adjlist_cursor(), session);
 }
 
-AdjIterator::NodeCursor AdjList::get_node_iter()
+NodeCursor *AdjList::get_node_iter()
 {
-    return AdjIterator::NodeCursor(get_node_cursor(), session);
+    return new AdjIterator::AdjNodeCursor(get_node_cursor(), session);
 }
 
-AdjIterator::EdgeCursor AdjList::get_edge_iter()
+EdgeCursor *AdjList::get_edge_iter()
 {
-    return AdjIterator::EdgeCursor(get_edge_cursor(), session);
+    return new AdjIterator::AdjEdgeCursor(get_edge_cursor(), session);
 }
 
 /*

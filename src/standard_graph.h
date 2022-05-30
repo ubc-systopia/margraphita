@@ -14,25 +14,14 @@
 using namespace std;
 namespace StdIterator
 {
-class InCursor : public table_iterator
+class StdInCursor : public InCursor
 {
    private:
     int64_t prev_node;
     node_id_t cur_node;
-    key_range keys;
 
    public:
-    InCursor(WT_CURSOR *dst_edge_cur, WT_SESSION *sess)
-    {
-        init(dst_edge_cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
+    StdInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
     void next(adjlist *found)
     {
@@ -173,23 +162,10 @@ class InCursor : public table_iterator
     }
 };
 
-class OutCursor : public table_iterator
+class StdOutCursor : public OutCursor
 {
-   private:
-    key_range keys;
-
    public:
-    OutCursor(WT_CURSOR *src_edge_cur, WT_SESSION *sess)
-    {
-        init(src_edge_cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
+    StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
     void next(adjlist *found)
     {
@@ -330,23 +306,10 @@ class OutCursor : public table_iterator
     }
 };
 
-class NodeCursor : public table_iterator
+class StdNodeCursor : public NodeCursor
 {
-   private:
-    key_range keys;
-
    public:
-    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
-    {
-        init(node_cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
+    StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
     void next(node *found)
     {
@@ -394,29 +357,10 @@ class NodeCursor : public table_iterator
     }
 };
 
-class EdgeCursor : public table_iterator
+class StdEdgeCursor : public EdgeCursor
 {
-   private:
-    key_pair start_edge;
-    key_pair end_edge;
-
    public:
-    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
-    {
-        init(composite_edge_cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-    }
-
-    // Overwrites set_key(int key) implementation in table_iterator
-    void set_key(int key) = delete;
-
-    void set_key(key_pair start, key_pair end)
-    {
-        start_edge = start;
-        end_edge = end;
-        cursor->set_key(cursor, start.src_id, start.dst_id);
-    }
+    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
     void next(edge *found)
     {
@@ -507,10 +451,10 @@ class StandardGraph : public GraphBase
     void get_nodes(vector<node> &nodes);
     std::string get_db_name() const { return opts.db_name; };
 
-    StdIterator::OutCursor get_outnbd_iter();
-    StdIterator::InCursor get_innbd_iter();
-    StdIterator::EdgeCursor get_edge_iter();
-    StdIterator::NodeCursor get_node_iter();
+    OutCursor *get_outnbd_iter();
+    InCursor *get_innbd_iter();
+    NodeCursor *get_node_iter();
+    EdgeCursor *get_edge_iter();
 
     // internal cursor methods
     //! Check if these should be public
