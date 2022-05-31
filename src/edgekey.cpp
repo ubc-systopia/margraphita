@@ -1065,6 +1065,18 @@ void EdgeKey::drop_indices()
 Get cursors
 */
 
+WT_CURSOR *EdgeKey::get_metadata_cursor()
+{
+    if (metadata_cursor == nullptr)
+    {
+        int ret = _get_table_cursor(METADATA, &metadata_cursor, session, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a metadata cursor");
+        }
+    }
+    return metadata_cursor;
+}
 WT_CURSOR *EdgeKey::get_src_idx_cursor()
 {
     if (src_idx_cursor == nullptr)

@@ -17,7 +17,7 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
       MESSAGE("Enabling statistics")
       add_compile_definitions(STAT)
     endif()
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g  -fno-inline-functions -fno-omit-frame-pointer")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -fno-inline-functions -fno-omit-frame-pointer")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
     SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
     IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -122,11 +122,11 @@ SET(UTILS       "${PROJECT_SOURCE_DIR}/utils")
 #Create GraphAPI static library
 add_subdirectory(src)
 
-#Create Test executables
-add_subdirectory(test)
-
 #Compile utilities
 add_subdirectory(utils)
+
+#Create Test executables
+add_subdirectory(test)
 
 #Compile all benchmarks
 add_subdirectory(benchmark)

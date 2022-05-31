@@ -159,12 +159,7 @@ void AdjList::create_new_graph()
         fprintf(stderr, "Failed to create the metadata table ");
     }
 
-    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, session, false)) !=
-        0)
-    {
-        fprintf(stderr, "Failed to create cursor to the metadata table.");
-        exit(-1);
-    }
+    init_metadata_cursor();
 
     // DB_NAME
     string db_name_fmt;
@@ -1319,6 +1314,18 @@ EdgeCursor *AdjList::get_edge_iter()
 /*
 Get test cursors
 */
+void AdjList::init_metadata_cursor()
+{
+    if (metadata_cursor == nullptr)
+    {
+        int ret = _get_table_cursor(METADATA, &metadata_cursor, session, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a metadata cursor");
+        }
+    }
+}
+
 WT_CURSOR *AdjList::get_node_cursor()
 {
     if (node_cursor == nullptr)

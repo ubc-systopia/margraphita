@@ -436,6 +436,7 @@ class AdjList : public GraphBase
     WT_CURSOR *get_edge_cursor();
     WT_CURSOR *get_in_adjlist_cursor();
     WT_CURSOR *get_out_adjlist_cursor();
+
     void make_indexes() { return; };
 
    private:
@@ -465,6 +466,7 @@ class AdjList : public GraphBase
     WT_CURSOR *metadata_cursor = NULL;
 
     // AdjList specific internal methods:
+    void init_metadata_cursor();
     node get_next_node(WT_CURSOR *n_cur);
     edge get_next_edge(WT_CURSOR *e_cur);
     void add_adjlist(WT_CURSOR *cursor, node_id_t node_id);

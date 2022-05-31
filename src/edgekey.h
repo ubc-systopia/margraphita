@@ -492,6 +492,7 @@ class EdgeKey : public GraphBase
     string edge_count = "nEdges";
 
     // internal methods
+    WT_CURSOR *get_metadata_cursor();
     void delete_related_edges(WT_CURSOR *idx_cursor,
                               WT_CURSOR *edge_cur,
                               node_id_t node_id);

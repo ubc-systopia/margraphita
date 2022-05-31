@@ -123,12 +123,7 @@ void StandardGraph::create_new_graph()
         fprintf(stderr, "Failed to create the metadata table ");
     }
 
-    if ((ret = _get_table_cursor(
-             METADATA, &this->metadata_cursor, this->session, false)) != 0)
-    {
-        fprintf(stderr, "Failed to create cursor to the metadata table.");
-        exit(-1);
-    }
+    init_metadata_cursor();
 
     insert_metadata(DB_NAME,
                     const_cast<char *>(opts.db_name.c_str()),
@@ -292,7 +287,8 @@ void StandardGraph::add_node(node to_insert)
         throw GraphException("Failed to add node_id" +
                              std::to_string(to_insert.id));
     }
-    set_num_nodes(get_num_nodes() + 1, metadata_cursor);
+    init_metadata_cursor();
+    set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
 }
 
 /**
@@ -991,6 +987,18 @@ vector<node> StandardGraph::get_in_nodes(node_id_t node_id)
     cursor->reset(cursor);
 
     return nodes;
+}
+
+void StandardGraph::init_metadata_cursor()
+{
+    if (metadata_cursor == nullptr)
+    {
+        int ret = _get_table_cursor(METADATA, &metadata_cursor, session, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a metadata cursor");
+        }
+    }
 }
 
 WT_CURSOR *StandardGraph::get_node_cursor()

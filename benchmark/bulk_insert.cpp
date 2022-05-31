@@ -272,7 +272,7 @@ time_info *insert_node(int _tid)
             }
             else if (type == "ekey")
             {
-                ekey_cur->set_key(ekey_cur, to_insert.id, -1);
+                ekey_cur->set_key(ekey_cur, to_insert.id, OutOfBand_ID);
                 if (read_optimized)
                 {
                     std::string packed = pack_int_to_str(to_insert.in_degree,

@@ -486,6 +486,7 @@ class StandardGraph : public GraphBase
     string edge_value_format = "";  // I if weighted or b if unweighted.
 
     // Internal methods
+    void init_metadata_cursor();
     void drop_indices();
     void create_indices();
     void update_node_degree(WT_CURSOR *cursor,
