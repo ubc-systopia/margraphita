@@ -44,13 +44,22 @@ done
 if [ $OPTIND -eq 1 ]; then echo "No options were passed. Using ${log_dir} as log dir."; fi
 log_file=${log_dir}/kron_insert.txt
 
+n_edges=0
+n_nodes=0
+graph_dir=""
+dataset=""
+
+preprocess_func () {
+    ./preprocess.sh -d $1 -f $2 -o "${DB_DIR}/${3}" -m $3 -n $4 -e $5 -t $6 -l $log_dir -p $preprocess -b $bulk_load -i $index_create &> ${log_file}
+}
+
 TYPES=( "std" "adj" "ekey" )
 
 for ((scale=10; scale <=15; scale ++ )); do
 	n_edges=$(bc <<<"8*2^$scale")
     n_nodes=$(bc <<<"2^$scale")
     date >> ${log_file}
-    
+
     dataset="s${scale}_e8"
     graph_dir="${KRON_GRAPHS_PATH}/${dataset}"
     graph="${KRON_GRAPHS_PATH}/${dataset}/graph_${dataset}"
@@ -58,10 +67,24 @@ for ((scale=10; scale <=15; scale ++ )); do
     for type in "${TYPES[@]}"
     do
         echo " Now inserting scale $scale, saved in $graph" >> ${log_file}
-        ./preprocess.sh -d "${graph_dir}" -f "${graph}" -o "${DB_DIR}/${dataset}" -m $dataset -n $n_nodes -e $n_edges -t $type -l $log_dir -p $preprocess -b $bulk_load -i $index_create &> ${log_file}
-         echo "---------------------------------------------" >> ${log_file}
+        preprocess_func ${graph_dir} ${graph} ${dataset} ${n_nodes} ${n_edges} $type
+        echo "---------------------------------------------" >> ${log_file}
     done
 
     # /usr/bin/time --format="%C,%e,%U,%S,%F,%M" --output-file=single_thread_insert_time.txt --append ./single_threaded_graphapi_insert ${scale} &>> single_threaded_insert_log.txt
-    
+
 done
+
+##check if you need to insert these
+echo "Now inserting CIT"
+dataset="cit-Patents"
+graph_dir="${KRON_GRAPHS_PATH}/${dataset}"
+graph="${KRON_GRAPHS_PATH}/${dataset}/${dataset}.txt"
+n_nodes=3774768 
+n_edges=16518948
+for type in "${TYPES[@]}"
+    do
+    preprocess_func ${graph_dir} ${graph} ${dataset} ${n_nodes} ${n_edges} $type
+    done
+
+# ./preprocess.sh -d /drives/hdd_main/cit-Patents -f /drives/hdd_main/cit-Patents/cit-Patents.txt -o home/puneet/scratch/margraphita/db/cit-Patents -m cit-Patents  -t std -l /home/puneet/scratch/margraphita/build/release/benchmark -p 1 -b 1 -i 0
