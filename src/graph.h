@@ -40,6 +40,12 @@ class GraphBase
     virtual std::vector<node> get_out_nodes(node_id_t node_id) = 0;  // ✅
     virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;   // ✅
     virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;   // ✅
+
+    virtual OutCursor *get_outnbd_iter() = 0;
+    virtual InCursor *get_innbd_iter() = 0;
+    virtual NodeCursor *get_node_iter() = 0;
+    virtual EdgeCursor *get_edge_iter() = 0;
+
     void close();
     uint64_t get_num_nodes();
     uint64_t get_num_edges();

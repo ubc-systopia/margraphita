@@ -12,8 +12,7 @@
 #include "graph_exception.h"
 
 using namespace std;
-namespace StdIterator
-{
+
 class StdInCursor : public InCursor
 {
    private:
@@ -197,6 +196,7 @@ class StdOutCursor : public OutCursor
 {
     bool data_remaining = true;
     node_id_t next_expected = 0;
+
    public:
     StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
@@ -482,8 +482,6 @@ class StdEdgeCursor : public EdgeCursor
         }
     }
 };
-
-}  // namespace StdIterator
 
 class StandardGraph : public GraphBase
 {
