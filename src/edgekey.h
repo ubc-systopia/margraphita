@@ -18,6 +18,7 @@ class EkeyInCursor : public InCursor
 {
     node_id_t next_expected = 0;
     bool data_remaining = true;
+
    public:
     EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
@@ -191,7 +192,7 @@ class EkeyOutCursor : public OutCursor
    private:
     node_id_t next_expected = 0;
     bool data_remaining = true;
-    node_id_t next_expected = 0;
+
    public:
     EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
