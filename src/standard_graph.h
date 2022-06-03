@@ -197,6 +197,7 @@ class StdOutCursor : public OutCursor
 {
     bool data_remaining = true;
     node_id_t next_expected = 0;
+
    public:
     StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
@@ -508,8 +509,10 @@ class StandardGraph : public GraphBase
     std::vector<edge> get_edges();
     std::vector<edge> get_out_edges(node_id_t node_id);
     std::vector<node> get_out_nodes(node_id_t node_id);
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id);
     std::vector<edge> get_in_edges(node_id_t node_id);
     std::vector<node> get_in_nodes(node_id_t node_id);
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id);
     void get_nodes(vector<node> &nodes);
     std::string get_db_name() const { return opts.db_name; };
 

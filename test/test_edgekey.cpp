@@ -171,13 +171,20 @@ void test_get_out_nodes(EdgeKey graph)
 {
     INFO();
     std::vector<node> nodes = graph.get_out_nodes(1);
+    std::vector<node_id_t> nodes_id = graph.get_out_nodes_id(1);
     assert(nodes.size() == 3);
+    assert(nodes_id.size() == 3);
     assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
+    assert(nodes.at(0).id == nodes_id.at(0));
     assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
+    assert(nodes.at(1).id == nodes_id.at(1));
     assert(nodes.at(2).id == SampleGraph::node7.id);  // edge(1->7)
+    assert(nodes.at(2).id == nodes_id.at(2));
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(4);
+    nodes_id = graph.get_out_nodes_id(4);
     assert(nodes.size() == 0);
+    assert(nodes_id.size() == 0);
 
     // test for a node that does not exist
     bool assert_fail = false;
@@ -227,13 +234,19 @@ void test_get_in_nodes(EdgeKey graph)
 {
     INFO();
     std::vector<node> nodes = graph.get_in_nodes(3);
+    std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
     assert(nodes.size() == 2);
+    assert(nodes_id.size() == 2);
     assert(nodes.at(0).id == SampleGraph::node1.id);
+    assert(nodes.at(0).id == nodes_id.at(0));
     assert(nodes.at(1).id == SampleGraph::node2.id);
+    assert(nodes.at(1).id == nodes_id.at(1));
 
     // test for a node that has no in_edge
     nodes = graph.get_in_nodes(4);
+    nodes_id = graph.get_in_nodes_id(4);
     assert(nodes.size() == 0);
+    assert(nodes_id.size() == 0);
 
     // test for a node that does not exist
     bool assert_fail = false;
@@ -455,12 +468,12 @@ int main()
     test_delete_node(graph, opts.is_directed);
     // // test_delete_isolated_node(graph, opts.is_directed);
 
-    test_InCursor(graph);
-    test_OutCursor(graph);
-    test_NodeCursor(graph);
-    test_NodeCursor_Range(graph);
-    test_EdgeCursor(graph);
-    test_EdgeCursor_Range(graph);
+    // test_InCursor(graph);
+    // test_OutCursor(graph);
+    // test_NodeCursor(graph);
+    // test_NodeCursor_Range(graph);
+    // test_EdgeCursor(graph);
+    // test_EdgeCursor_Range(graph);
 
     tearDown(graph);
 }

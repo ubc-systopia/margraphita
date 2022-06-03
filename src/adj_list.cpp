@@ -835,7 +835,10 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
     std::vector<node> out_nodes;
     WT_CURSOR *outadj_cursor = get_out_adjlist_cursor();
     WT_CURSOR *n_cursor = get_node_cursor();
-
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
     std::vector<node_id_t> adjlist = get_adjlist(outadj_cursor, node_id);
 
     for (auto dst_id : adjlist)
@@ -856,7 +859,36 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
                                  " but not in node table");
         }
     }
+    out_adjlist_cursor->reset(out_adjlist_cursor);
+    n_cursor->reset(n_cursor);
     return out_nodes;
+}
+
+/**
+ * @brief Get a list of ids of nodes that have an incoming edge from node_id
+ * (are out nodes for node_id); does one less cursor search than get_out_nodes
+ *
+ * @param node_id The node which is being queried.
+ * @return std::vector<node> The vector of out nodes
+ * @throws GraphException if could not acquire cursors to node table or the
+ * out_adjlist tables;
+ */
+std::vector<node_id_t> AdjList::get_out_nodes_id(node_id_t node_id)
+{
+    std::vector<node_id_t> out_nodes_id;
+    WT_CURSOR *outadj_cursor = get_out_adjlist_cursor();
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    std::vector<node_id_t> adjlist = get_adjlist(outadj_cursor, node_id);
+
+    for (auto dst_id : adjlist)
+    {
+        out_nodes_id.push_back(dst_id);
+    }
+    out_adjlist_cursor->reset(out_adjlist_cursor);
+    return out_nodes_id;
 }
 
 /**
@@ -872,7 +904,10 @@ std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
     std::vector<node_id_t> dst_nodes;
     WT_CURSOR *out_adj_cur = get_out_adjlist_cursor();
     WT_CURSOR *e_cur = get_edge_cursor();
-
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
     dst_nodes = get_adjlist(out_adj_cur, node_id);
 
     for (auto dst : dst_nodes)
@@ -909,7 +944,10 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
     std::vector<node> in_nodes;
     WT_CURSOR *inadj_cursor = get_in_adjlist_cursor();
     WT_CURSOR *n_cursor = get_node_cursor();
-
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
     std::vector<node_id_t> adjlist = get_adjlist(inadj_cursor, node_id);
     node found = {0};
     for (auto src_id : adjlist)
@@ -929,7 +967,36 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
                                  " but not in node table");
         }
     }
+    inadj_cursor->reset(inadj_cursor);
+    n_cursor->reset(n_cursor);
     return in_nodes;
+}
+
+/**
+ * @brief Get a list of ids of nodes that have an outgoing edge to node_id (are
+ * in nodes for node_id); does one less cursor search than get_in_nodes
+ *
+ * @param node_id The node which is being queried.
+ * @return std::vector<node> the vector of in nodes
+ * @throws GraphException if could not acquire cursors to node table or the
+ * in_adjlist tables
+ */
+std::vector<node_id_t> AdjList::get_in_nodes_id(node_id_t node_id)
+{
+    std::vector<node_id_t> in_nodes_id;
+    WT_CURSOR *inadj_cursor = get_in_adjlist_cursor();
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    std::vector<node_id_t> adjlist = get_adjlist(inadj_cursor, node_id);
+    node found = {0};
+    for (auto src_id : adjlist)
+    {
+        in_nodes_id.push_back(src_id);
+    }
+    inadj_cursor->reset(inadj_cursor);
+    return in_nodes_id;
 }
 
 /**

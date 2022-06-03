@@ -880,25 +880,42 @@ vector<node> StandardGraph::get_out_nodes(node_id_t node_id)
     vector<edge> out_edges;
     vector<node> nodes;
     WT_CURSOR *cursor = get_node_cursor();
-    int ret;
-    out_edges = get_out_edges(node_id);
-    if (out_edges.size() > 0)
+    if (!has_node(node_id))
     {
-        for (edge out_edge : out_edges)
-        {
-            cursor->set_key(cursor, out_edge.dst_id);
-            ret = cursor->search(cursor);
-            if (ret == 0)
-            {
-                node found_dst;
-                CommonUtil::__record_to_node(
-                    cursor, &found_dst, opts.read_optimize);
-                found_dst.id = out_edge.dst_id;
-                nodes.push_back(found_dst);
-            }
-        }
+        throw GraphException("There is no node with ID " + to_string(node_id));
     }
+    out_edges = get_out_edges(node_id);
+    for (edge out_edge : out_edges)
+    {
+        nodes.push_back(get_node(out_edge.dst_id));
+    }
+    cursor->reset(cursor);
     return nodes;
+}
+
+/**
+ * @brief This function is used to get ids of all the nodes that have an
+ * incoming edge from node_id; uses one less cursor search than get_out_nodes
+ *
+ * @param node_id the node for which out edges are being searched
+ * @return vector<node> The vector of out nodes
+ */
+vector<node_id_t> StandardGraph::get_out_nodes_id(node_id_t node_id)
+{
+    vector<edge> out_edges;
+    vector<node_id_t> node_ids;
+    WT_CURSOR *cursor = get_node_cursor();
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    out_edges = get_out_edges(node_id);
+    for (edge out_edge : out_edges)
+    {
+        node_ids.push_back(out_edge.dst_id);
+    }
+    cursor->reset(cursor);
+    return node_ids;
 }
 
 /**
@@ -985,8 +1002,46 @@ vector<node> StandardGraph::get_in_nodes(node_id_t node_id)
         }
     }
     cursor->reset(cursor);
-
     return nodes;
+}
+
+/**
+ * @brief This function is used to get the the ids of list of nodes that have
+ * edges to node_id; uses one less search than get_in_nodes
+ *
+ * @param node_id for identifying the node to search
+ * @return vector<node_ids> Id of set of nodes that have edges to node_id
+ */
+vector<node_id_t> StandardGraph::get_in_nodes_id(node_id_t node_id)
+{
+    vector<node_id_t> node_ids;
+    WT_CURSOR *cursor = get_dst_idx_cursor();
+    if (!has_node(node_id))
+    {
+        throw GraphException("Could not find node with id" +
+                             to_string(node_id));
+    }
+    cursor->set_key(cursor, node_id);
+    if (cursor->search(cursor) == 0)
+    {
+        edge found;
+        CommonUtil::__read_from_edge_idx(cursor, &found);
+        node_ids.push_back(found.src_id);
+        while (cursor->next(cursor) == 0)
+        {
+            CommonUtil::__read_from_edge_idx(cursor, &found);
+            if (found.dst_id == node_id)
+            {
+                node_ids.push_back(found.src_id);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    cursor->reset(cursor);
+    return node_ids;
 }
 
 void StandardGraph::init_metadata_cursor()
@@ -1089,10 +1144,11 @@ EdgeCursor *StandardGraph::get_edge_iter()
 }
 
 /**
- * @brief This is a function that I am using to test how search using cursors
- * works. It returns a cursor pointing to the first entry where the condition is
- * true and you can call next() on the cursor to get all records that match the
- * condition -- Break when the condition is not true anymore.
+ * @brief This is a function that I am using to test how search using
+ * cursors works. It returns a cursor pointing to the first entry where the
+ * condition is true and you can call next() on the cursor to get all
+ * records that match the condition -- Break when the condition is not true
+ * anymore.
  *
  * @param node_id
  * @return vector<edge>

@@ -884,6 +884,54 @@ std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
 }
 
 /**
+ * @brief Returns a list containing ids of all nodes that have an incoming edge
+ * from node_id; uses one less cursor search than get_out_nodes
+ *
+ * @param node_id Node ID of the node who's out nodes are sought.
+ * @return std::vector<node>
+ */
+std::vector<node_id_t> EdgeKey::get_out_nodes_id(node_id_t node_id)
+{
+    std::vector<node_id_t> out_nodes_id;
+    WT_CURSOR *src_cur = get_src_idx_cursor();
+
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    src_cur->set_key(src_cur, node_id);
+    int search_ret = src_cur->search(src_cur);
+    int flag = 0;
+    if (search_ret == 0)
+    {
+        node_id_t src, dst;
+        do
+        {
+            src_cur->get_value(src_cur, &src, &dst);
+            // don't need to check if src == node_id because search_ret was 0
+            if (src != node_id)
+            {
+                break;
+            }
+            if (src == node_id && dst == OutOfBand_ID)
+            {
+                flag++;
+            }
+            else
+            {
+                out_nodes_id.push_back(dst);
+            }
+        } while (src == node_id && src_cur->next(src_cur) == 0 &&
+                 flag <= 1);  // flag check ensures that if the first entry we
+                              // hit was (node_id, -1), we try to look for the
+                              // next entry the cursor points to to see if it
+                              // has a (node_id, <dst>) entry.
+    }
+    src_cur->reset(src_cur);
+    return out_nodes_id;
+}
+
+/**
  * @brief Get a list of all edges that have node_id as the destination
  *
  * @param node_id the id of the node whose in_edges are sought
@@ -930,6 +978,7 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
  * @param node_id the node whose in_nodes are sought.
  * @return std::vector<node>
  */
+// Should we delete the debug info here?
 std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
 {
     std::vector<node> in_nodes;
@@ -975,6 +1024,42 @@ std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
     e_cur->reset(e_cur);
     dst_cur->reset(dst_cur);
     return in_nodes;
+}
+
+/**
+ * @brief Get a list of ids of all nodes that have an outgoing edge to node_id;
+ * uses one less cursor search than get_in_nodes
+ *
+ * @param node_id the node whose in_nodes are sought.
+ * @return std::vector<node>
+ */
+// Should we delete the debug info here?
+std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
+{
+    std::vector<node_id_t> in_nodes_id;
+    WT_CURSOR *dst_cur = get_dst_idx_cursor();
+
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    dst_cur->set_key(dst_cur, node_id);
+    if (dst_cur->search(dst_cur) == 0)
+    {
+        node_id_t src_id, dst_id;
+        dst_cur->get_value(dst_cur, &src_id, &dst_id);
+        while (dst_id == node_id)
+        {
+            in_nodes_id.push_back(src_id);
+            if (!dst_cur->next(dst_cur) == 0)
+            {
+                break;
+            }
+            dst_cur->get_value(dst_cur, &src_id, &dst_id);
+        }
+    }
+    dst_cur->reset(dst_cur);
+    return in_nodes_id;
 }
 
 void EdgeKey::make_indexes() { create_indices(); }
