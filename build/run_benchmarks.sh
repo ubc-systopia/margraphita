@@ -11,7 +11,7 @@ exit 1;}
 #TYPES=( "adj" "std" "ekey19)
 TYPES=( "adj" )
 DATASETS=( "cit-Patents" )
-RESULT=/home/jackli/margraphita/outputs/on_mars
+RESULT=/home/puneet/margraphita/outputs/on_mars
 COUNTS=10
 
 while getopts ":d:h" o; do
@@ -94,11 +94,11 @@ done
 
 run_tc()
 {
-types_tc=( "ekey" "std" )
-#dataset_tc=( "s18_e8" "s19_e8" "s20_e8" )
+types_tc=( "ekey" "std" "adj" )
+dataset_tc=( "cit-Patents" ) #"s19_e8" "s20_e8" )
 for type in "${types_tc[@]}"
 do
-    for ds in "${DATASETS[@]}"
+    for ds in "${dataset_tc[@]}"
     do
         for trials in $(seq 1 8)
         do
@@ -118,5 +118,5 @@ done
 }
 
 #run_pagerank
-run_bfs
-#run_tc
+#run_bfs
+run_tc
