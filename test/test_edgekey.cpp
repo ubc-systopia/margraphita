@@ -468,12 +468,12 @@ int main()
     test_delete_node(graph, opts.is_directed);
     // // test_delete_isolated_node(graph, opts.is_directed);
 
-    // test_InCursor(graph);
-    // test_OutCursor(graph);
-    // test_NodeCursor(graph);
-    // test_NodeCursor_Range(graph);
-    // test_EdgeCursor(graph);
-    // test_EdgeCursor_Range(graph);
+    test_InCursor(graph);
+    test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
 
     tearDown(graph);
 }

@@ -838,7 +838,6 @@ std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
 {
     std::vector<node> out_nodes;
     WT_CURSOR *src_cur = get_src_idx_cursor();
-    WT_CURSOR *e_cur = get_edge_cursor();
 
     if (!has_node(node_id))
     {
@@ -864,11 +863,9 @@ std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
             }
             else
             {
-                e_cur->set_key(e_cur, dst, OutOfBand_ID);
-                if (e_cur->search(e_cur) == 0)
+                node found = get_node(dst);
+                if (found.id != 0)
                 {
-                    node found{.id = dst};
-                    CommonUtil::__record_to_node_ekey(e_cur, &found);
                     out_nodes.push_back(found);
                 }
             }
@@ -878,7 +875,6 @@ std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
                               // next entry the cursor points to to see if it
                               // has a (node_id, <dst>) entry.
     }
-    e_cur->reset(e_cur);
     src_cur->reset(src_cur);
     return out_nodes;
 }
@@ -982,7 +978,6 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
 std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
 {
     std::vector<node> in_nodes;
-    WT_CURSOR *e_cur = get_edge_cursor();
     WT_CURSOR *dst_cur = get_dst_idx_cursor();
 
     if (!has_node(node_id))
@@ -1000,12 +995,10 @@ std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
 
         do
         {
-            e_cur->set_key(e_cur, src_id, OutOfBand_ID);
-            if (e_cur->search(e_cur) == 0)
+            node found = get_node(src_id);
+            if (found.id != 0)
             {
-                node found{.id = src_id};
-                CommonUtil::__record_to_node_ekey(e_cur, &found);
-                in_nodes.push_back(found);
+                in_nodes.push_back(get_node(src_id));
             }
             if (dst_cur->next(dst_cur) == 0)
             {
@@ -1021,7 +1014,6 @@ std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
 
         } while (dst_id == node_id);
     }
-    e_cur->reset(e_cur);
     dst_cur->reset(dst_cur);
     return in_nodes;
 }

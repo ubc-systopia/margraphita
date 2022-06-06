@@ -834,7 +834,6 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
 {
     std::vector<node> out_nodes;
     WT_CURSOR *outadj_cursor = get_out_adjlist_cursor();
-    WT_CURSOR *n_cursor = get_node_cursor();
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
@@ -843,12 +842,9 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
 
     for (auto dst_id : adjlist)
     {
-        n_cursor->set_key(n_cursor, dst_id);
-        node found = {0};
-        if (n_cursor->search(n_cursor) == 0)
+        node found = get_node(dst_id);
+        if (found.id != 0)
         {
-            CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
-            found.id = dst_id;
             out_nodes.push_back(found);
         }
         else
@@ -860,7 +856,6 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
         }
     }
     out_adjlist_cursor->reset(out_adjlist_cursor);
-    n_cursor->reset(n_cursor);
     return out_nodes;
 }
 
@@ -943,7 +938,6 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
 {
     std::vector<node> in_nodes;
     WT_CURSOR *inadj_cursor = get_in_adjlist_cursor();
-    WT_CURSOR *n_cursor = get_node_cursor();
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
@@ -952,11 +946,9 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
     node found = {0};
     for (auto src_id : adjlist)
     {
-        n_cursor->set_key(n_cursor, src_id);
-        if (n_cursor->search(n_cursor) == 0)
+        node found = get_node(src_id);
+        if (found.id != 0)
         {
-            CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
-            found.id = src_id;
             in_nodes.push_back(found);
         }
         else
@@ -968,7 +960,6 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
         }
     }
     inadj_cursor->reset(inadj_cursor);
-    n_cursor->reset(n_cursor);
     return in_nodes;
 }
 
