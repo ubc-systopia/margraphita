@@ -393,18 +393,12 @@ void test_OutCursor(StandardGraph graph)
     INFO();
     OutCursor *out_cursor = graph.get_outnbd_iter();
     adjlist found = {0};
-    while (out_cursor->has_more())
+    out_cursor->next(&found);
+    while (found.node_id != -1)
     {
+        CommonUtil::dump_adjlist(found);
+        found = {0};
         out_cursor->next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-            found = {0};
-        }
-        else
-        {
-            break;
-        }
     }
 
     out_cursor->reset();

@@ -1186,22 +1186,22 @@ WT_CURSOR *EdgeKey::get_dst_idx_cursor()
 
 OutCursor *EdgeKey::get_outnbd_iter()
 {
-    return new EKeyIterator::EkeyOutCursor(get_src_idx_cursor(), session);
+    return new EkeyOutCursor(get_src_idx_cursor(), session);
 }
 
 InCursor *EdgeKey::get_innbd_iter()
 {
-    return new EKeyIterator::EkeyInCursor(get_dst_idx_cursor(), session);
+    return new EkeyInCursor(get_dst_idx_cursor(), session);
 }
 
 NodeCursor *EdgeKey::get_node_iter()
 {
-    return new EKeyIterator::EkeyNodeCursor(get_node_cursor(), session);
+    return new EkeyNodeCursor(get_node_cursor(), session);
 }
 
 EdgeCursor *EdgeKey::get_edge_iter()
 {
-    return new EKeyIterator::EkeyEdgeCursor(get_edge_cursor(), session);
+    return new EkeyEdgeCursor(get_edge_cursor(), session);
 }
 
 WT_CURSOR *EdgeKey::get_node_cursor() { return get_dst_idx_cursor(); }

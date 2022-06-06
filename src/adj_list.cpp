@@ -1351,22 +1351,22 @@ void AdjList::delete_related_edges_and_adjlists(node_id_t node_id)
 
 OutCursor *AdjList::get_outnbd_iter()
 {
-    return new AdjIterator::AdjOutCursor(get_out_adjlist_cursor(), session);
+    return new AdjOutCursor(get_out_adjlist_cursor(), session);
 }
 
 InCursor *AdjList::get_innbd_iter()
 {
-    return new AdjIterator::AdjInCursor(get_in_adjlist_cursor(), session);
+    return new AdjInCursor(get_in_adjlist_cursor(), session);
 }
 
 NodeCursor *AdjList::get_node_iter()
 {
-    return new AdjIterator::AdjNodeCursor(get_node_cursor(), session);
+    return new AdjNodeCursor(get_node_cursor(), session);
 }
 
 EdgeCursor *AdjList::get_edge_iter()
 {
-    return new AdjIterator::AdjEdgeCursor(get_edge_cursor(), session);
+    return new AdjEdgeCursor(get_edge_cursor(), session);
 }
 
 /*

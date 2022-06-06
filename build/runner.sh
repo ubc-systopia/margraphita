@@ -5,6 +5,18 @@ set -x
 # I want to use this to track which optimization is actually beneficial to us.
 
 source paths.sh
+#check if this file exists and assert that it matches $HOME
+if test -f "paths.sh"; then
+    if grep -Fq "$HOME" paths.sh; then
+        source paths.sh
+    else
+        echo "Please update paths.sh to reflect your settings."
+    fi
+else
+    echo "paths.sh not found."
+fi
+
+exit 0
 
 #commit all changed files in the working directory. This should open vim for commit message
 # git add -u

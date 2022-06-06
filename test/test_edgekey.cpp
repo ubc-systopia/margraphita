@@ -320,20 +320,12 @@ void test_InCursor(EdgeKey graph)
     INFO();
     InCursor *in_cursor = graph.get_innbd_iter();
     adjlist found = {0};
-    while (in_cursor->has_more())
+    in_cursor->next(&found);
+    while (found.node_id != -1)
     {
+        CommonUtil::dump_adjlist(found);
         in_cursor->next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-            found = {0};
-        }
-        else
-        {
-            break;
-        }
     }
-
     in_cursor->reset();
     int nodeID = 0;
     in_cursor->next(&found, nodeID);
@@ -345,18 +337,12 @@ void test_OutCursor(EdgeKey graph)
     INFO();
     OutCursor *out_cursor = graph.get_outnbd_iter();
     adjlist found = {0};
-    while (out_cursor->has_more())
+    out_cursor->next(&found);
+    while (found.node_id != -1)
     {
+        CommonUtil::dump_adjlist(found);
+        found = {0};
         out_cursor->next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-            found = {0};
-        }
-        else
-        {
-            break;
-        }
     }
     out_cursor->reset();
     int nodeID = 1;

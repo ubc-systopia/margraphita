@@ -38,10 +38,18 @@ class GraphBase
     virtual degree_t get_in_degree(node_id_t node_id) = 0;           // ✅
     virtual std::vector<edge> get_out_edges(node_id_t node_id) = 0;  // ✅
     virtual std::vector<node> get_out_nodes(node_id_t node_id) = 0;  // ✅
+
     virtual std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) = 0;
-    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;  // ✅
-    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;  // ✅
     virtual std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) = 0;
+
+    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;   // ✅
+    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;   // ✅
+
+    virtual OutCursor *get_outnbd_iter() = 0;
+    virtual InCursor *get_innbd_iter() = 0;
+    virtual NodeCursor *get_node_iter() = 0;
+    virtual EdgeCursor *get_edge_iter() = 0;
+
     void close();
     uint64_t get_num_nodes();
     uint64_t get_num_edges();
@@ -49,6 +57,13 @@ class GraphBase
     void set_num_edges(uint64_t num_edges, WT_CURSOR *cursor);
     virtual void make_indexes() = 0;
     std::string get_db_name() const { return opts.db_name; };
+
+    struct db_handle
+    {
+        WT_CONNECTION *conn;
+        WT_SESSION *session;
+        WT_CURSOR *cur;
+    };
 
    protected:
     graph_opts opts;
