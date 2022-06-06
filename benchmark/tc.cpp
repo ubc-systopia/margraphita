@@ -60,26 +60,25 @@ void print_csv_info(std::string name, tc_info &info, std::string csv_logdir)
 
 bool node_compare(node a, node b) { return ((a.id < b.id)); }
 
-std::vector<node> intersection(std::vector<node> A, std::vector<node> B)
+std::vector<node_id_t> intersection(std::vector<node_id_t> A,
+                                    std::vector<node_id_t> B)
 {
     size_t a = A.size();
     size_t b = B.size();
-    std::sort(A.begin(), A.end(), node_compare);
-    std::sort(B.begin(), B.end(), node_compare);
-    std::vector<node> ABintersection;
-    std::vector<node>::iterator A_iter = A.begin();
-    std::vector<node>::iterator B_iter = B.begin();
+    std::vector<node_id_t> ABintersection;
+    std::vector<node_id_t>::iterator A_iter = A.begin();
+    std::vector<node_id_t>::iterator B_iter = B.begin();
     size_t i = 0, j = 0, k = 0;
     while (i < a and j < b)
     {
-        if ((*A_iter).id == (*B_iter).id)
+        if ((*A_iter) == (*B_iter))
         {
             ABintersection[k] = *A_iter;
             k++;
             ++A_iter;
             ++B_iter;
         }
-        else if ((*A_iter).id < (*B_iter).id)
+        else if ((*A_iter) < (*B_iter))
         {
             ++A_iter;
         }
