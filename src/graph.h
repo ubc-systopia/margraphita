@@ -54,6 +54,13 @@ class GraphBase
     virtual void make_indexes() = 0;
     std::string get_db_name() const { return opts.db_name; };
 
+    struct db_handle
+    {
+        WT_CONNECTION *conn;
+        WT_SESSION *session;
+        WT_CURSOR *cur;
+    };
+
    protected:
     graph_opts opts;
     WT_CONNECTION *conn;

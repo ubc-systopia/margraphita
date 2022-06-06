@@ -53,7 +53,7 @@ class AdjInCursor : public InCursor
             }
         }
 
-        int curr_key;
+        node_id_t curr_key;
         cursor->get_key(cursor, &curr_key);
 
         if (keys.end != -1 && curr_key > keys.end)

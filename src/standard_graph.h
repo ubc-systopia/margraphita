@@ -18,8 +18,6 @@ class StdInCursor : public InCursor
    private:
     bool data_remaining = true;
     node_id_t next_expected = 0;
-    int64_t prev_node;
-    node_id_t cur_node;
 
    public:
     StdInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
