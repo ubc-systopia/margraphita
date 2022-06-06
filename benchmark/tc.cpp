@@ -91,47 +91,77 @@ std::vector<node_id_t> intersection(std::vector<node_id_t> A,
     return ABintersection;
 }
 
+std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
+                                       std::vector<node_id_t> B)
+{
+    size_t a = A.size();
+    size_t b = B.size();
+    std::vector<node_id_t> ABintersection;
+    std::vector<node_id_t>::iterator A_iter = A.begin();
+    std::vector<node_id_t>::iterator B_iter = B.begin();
+    size_t i = 0, j = 0, k = 0;
+    while (i < a and j < b)
+    {
+        if ((*A_iter) == (*B_iter))
+        {
+            ABintersection[k] = *A_iter;
+            k++;
+            ++A_iter;
+            ++B_iter;
+        }
+        else if ((*A_iter) < (*B_iter))
+        {
+            ++A_iter;
+        }
+
+        else
+        {
+            ++B_iter;
+        }
+    }
+    assert(ABintersection.size() == k);
+    return ABintersection;
+}
+
 template <typename Graph>
 int64_t trust_tc(Graph &graph)
 {
     int64_t count = 0;
     vector<node> nodes = graph->get_nodes();
-    for (node n : nodes)
+    for (node u : nodes)
     {
-        vector<edge> out_edges = graph->get_out_edges(n.id);
-
-        for (edge e : out_edges)
+        vector<node_id_t> u_out_ids = graph->get_out_nodes_id(u.id);
+        for (node_id_t v : u_out_ids)
         {
-            vector<edge> edges2;
-            node_id_t nbr_id = e.dst_id;
-            if (nbr_id == n.id)
-            {
-                continue;  // self loop -- ignore.
-            }
-
-            edges2 = graph->get_out_edges(nbr_id);
-
-            set<node_id_t> edge_nei;
-            set<node_id_t> edge2_nei;
-
-            for (edge e : out_edges)
-            {
-                if (e.src_id != e.dst_id)
-                {
-                    edge_nei.insert(e.dst_id);
-                }
-            }
-
-            for (edge e : edges2)
-            {
-                if (e.src_id != e.dst_id &&
-                    edge_nei.find(e.dst_id) != edge_nei.end())
-                {
-                    count++;
-                }
-            }
-            //}
+            vector<node_id_t> v_out_ids = graph->get_out_nodes_id(v);
+            std::vector<node_id_t> intersect =
+                intersection_id(u_out_ids, v_out_ids);
+            count += intersect.size();
         }
+    }
+
+    return count;
+}
+
+int64_t trust_tc_iter(Graph &graph)
+{
+    int64_t count = 0;
+    OutCursor out_cursor = graph.get_outnbd_iter();
+    adjlist found = {0};
+
+    out_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        std::vector<node_id_t> out_nbrhood = found.edgelist;
+        for (node_id_t node : out_nbrhood)
+        {
+            std::vector<node_id_t> node_out_nbrhood =
+                graph->get_out_nodes_id(node);
+            std::vector<node_id_t> intersect =
+                intersection_id(out_nbrhood, node_out_nbrhood);
+            count += intersect.size();
+        }
+        out_cursor->next(&found);
     }
 
     return count;
@@ -142,26 +172,67 @@ int64_t cycle_tc(Graph &graph)
 {
     int64_t count = 0;
     vector<node> nodes = graph->get_nodes();
-    for (node n : nodes)
+    for (node u : nodes)
     {
-        vector<node> out_nodes = graph->get_out_nodes(n.id);
-        for (node out_node : out_nodes)
+        vector<node_id_t> u_out_ids = graph->get_out_nodes_id(u.id);
+        for (node_id_t v : u_out_ids)
         {
-            if (n.id < out_node.id)
+            if (u.id < v)
             {
-                std::vector<node> intersect =
-                    (graph->get_in_nodes(n.id),
-                     graph->get_out_nodes(out_node.id));
-                for (node w : intersect)
+                vector<node_id_t> v_out_ids = graph->get_out_nodes_id(v);
+                vector<node_id_t> u_in_ids = graph->get_in_nodes_id(u_id);
+                std::vector<node_id_t> intersect =
+                    intersection_id(v_out_ids, u_in_ids);
+                for (node_id_t w : intersect)
                 {
-                    if (n.id < w.id and out_node.id < w.id)
+                    if (u.id < w)
                     {
-                        count++;
+                        count += 1;
                     }
                 }
             }
         }
     }
+    return count;
+}
+
+int64_t cycle_tc_iter(Graph &graph)
+{
+    int64_t count = 0;
+    InCursor in_cursor = graph.get_innbd_iter();
+    OutCursor out_cursor = graph.get_outnbd_iter();
+    adjlist found = {0};
+    adjlist found_out = {0};
+
+    in_cursor->next(&found);
+    out_cursor->next(&found_out);
+
+    while (found.node_id != -1)
+    {
+        std::vector<node_id_t> in_nbrhood = found.edgelist;
+        std::vector<node_id_t> out_nbrhood = found_out.edgelist;
+        for (node_id_t node : out_nbrhood)
+        {
+            if (found.id < node)
+            {
+                std::vector<node_id_t> node_out_nbrhood =
+                    graph->get_out_nodes_id(node);
+                std::vector<node_id_t> intersect =
+                    intersection_id(in_nbrhood, node_out_nbrhood);
+
+                for (node_id_t itsc : intersect)
+                {
+                    if (found.id < itsc)
+                    {
+                        count += 1;
+                    }
+                }
+            }
+        }
+        in_cursor->next(&found);
+        out_cursor->next(&found_out);
+    }
+
     return count;
 }
 
