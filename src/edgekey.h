@@ -12,8 +12,7 @@
 #include "graph_exception.h"
 
 using namespace std;
-namespace EKeyIterator
-{
+
 class EkeyInCursor : public InCursor
 {
     node_id_t next_expected = 0;
@@ -508,7 +507,7 @@ class EkeyEdgeCursor : public EdgeCursor
         has_next = false;
     }
 };
-}  // namespace EKeyIterator
+
 class EdgeKey : public GraphBase
 {
    public:

@@ -1070,22 +1070,22 @@ WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
 
 OutCursor *StandardGraph::get_outnbd_iter()
 {
-    return new StdIterator::StdOutCursor(get_src_idx_cursor(), session);
+    return new StdOutCursor(get_src_idx_cursor(), session);
 }
 
 InCursor *StandardGraph::get_innbd_iter()
 {
-    return new StdIterator::StdInCursor(get_dst_idx_cursor(), session);
+    return new StdInCursor(get_dst_idx_cursor(), session);
 }
 
 NodeCursor *StandardGraph::get_node_iter()
 {
-    return new StdIterator::StdNodeCursor(get_node_cursor(), session);
+    return new StdNodeCursor(get_node_cursor(), session);
 }
 
 EdgeCursor *StandardGraph::get_edge_iter()
 {
-    return new StdIterator::StdEdgeCursor(get_edge_cursor(), session);
+    return new StdEdgeCursor(get_edge_cursor(), session);
 }
 
 /**

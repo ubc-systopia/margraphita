@@ -12,8 +12,7 @@
 #include "graph_exception.h"
 
 using namespace std;
-namespace AdjIterator
-{
+
 class AdjInCursor : public InCursor
 {
    public:
@@ -387,8 +386,6 @@ class AdjEdgeCursor : public EdgeCursor
         }
     }
 };
-
-}  // namespace AdjIterator
 
 class AdjList : public GraphBase
 {
