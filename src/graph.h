@@ -38,6 +38,10 @@ class GraphBase
     virtual degree_t get_in_degree(node_id_t node_id) = 0;           // ✅
     virtual std::vector<edge> get_out_edges(node_id_t node_id) = 0;  // ✅
     virtual std::vector<node> get_out_nodes(node_id_t node_id) = 0;  // ✅
+
+    virtual std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) = 0;
+    virtual std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) = 0;
+
     virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;   // ✅
     virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;   // ✅
 

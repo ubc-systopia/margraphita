@@ -257,20 +257,39 @@ void test_get_out_nodes(AdjList graph)
     INFO();
     int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
     std::vector<node> nodes = graph.get_out_nodes(test_id1);
+    std::vector<node_id_t> nodes_id = graph.get_out_nodes_id(test_id1);
     assert(nodes.size() == 3);
+    assert(nodes_id.size() == 3);
     assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
+    assert(nodes.at(0).id == nodes_id.at(0));
     assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
+    assert(nodes.at(1).id == nodes_id.at(1));
     assert(nodes.at(2).id == SampleGraph::node7.id);  // edge(1->7)
+    assert(nodes.at(2).id == nodes_id.at(2));
 
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(test_id2);
+    nodes_id = graph.get_out_nodes_id(test_id2);
     assert(nodes.size() == 0);
+    assert(nodes_id.size() == 0);
 
     // test for a node that does not exist
     bool assert_fail = false;
     try
     {
         nodes = graph.get_out_nodes(test_id3);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+
+    assert_fail = false;
+    try
+    {
+        nodes_id = graph.get_out_nodes_id(test_id3);
     }
     catch (GraphException &ex)
     {
@@ -285,19 +304,37 @@ void test_get_in_nodes(AdjList graph)
     INFO();
     int test_id1 = 3, test_id2 = 4, test_id3 = 1500;
     std::vector<node> nodes = graph.get_in_nodes(test_id1);
+    std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(test_id1);
     assert(nodes.size() == 2);
+    assert(nodes_id.size() == 2);
     assert(nodes.at(0).id == SampleGraph::node1.id);
+    assert(nodes.at(0).id == nodes_id.at(0));
     assert(nodes.at(1).id == SampleGraph::node2.id);
+    assert(nodes.at(1).id == nodes_id.at(1));
 
     // test for a node that has no in_edge
     nodes = graph.get_in_nodes(test_id2);
+    nodes_id = graph.get_in_nodes_id(test_id2);
     assert(nodes.size() == 0);
+    assert(nodes_id.size() == 0);
 
     // test for a node that does not exist
     bool assert_fail = false;
     try
     {
         nodes = graph.get_in_nodes(test_id3);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+
+    assert_fail = false;
+    try
+    {
+        nodes_id = graph.get_in_nodes_id(test_id3);
     }
     catch (GraphException &ex)
     {

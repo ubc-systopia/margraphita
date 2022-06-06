@@ -411,8 +411,10 @@ class AdjList : public GraphBase
     std::vector<edge> get_edges();
     std::vector<edge> get_out_edges(node_id_t node_id);
     std::vector<node> get_out_nodes(node_id_t node_id);
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id);
     std::vector<edge> get_in_edges(node_id_t node_id);
     std::vector<node> get_in_nodes(node_id_t node_id);
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id);
     std::string get_db_name() const { return opts.db_name; };
     std::vector<node_id_t> get_adjlist(WT_CURSOR *cursor, node_id_t node_id);
     OutCursor *get_outnbd_iter();
