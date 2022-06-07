@@ -60,25 +60,23 @@ void print_csv_info(std::string name, tc_info &info, std::string csv_logdir)
 
 bool node_compare(node a, node b) { return ((a.id < b.id)); }
 
-std::vector<node_id_t> intersection(std::vector<node_id_t> A,
-                                    std::vector<node_id_t> B)
+std::vector<node> intersection(std::vector<node> A, std::vector<node> B)
 {
-    size_t a = A.size();
-    size_t b = B.size();
-    std::vector<node_id_t> ABintersection;
-    std::vector<node_id_t>::iterator A_iter = A.begin();
-    std::vector<node_id_t>::iterator B_iter = B.begin();
-    size_t i = 0, j = 0, k = 0;
-    while (i < a and j < b)
+    std::sort(A.begin(), A.end(), node_compare);
+    std::sort(B.begin(), B.end(), node_compare);
+    std::vector<node> ABintersection;
+    std::vector<node>::iterator A_iter = A.begin();
+    std::vector<node>::iterator B_iter = B.begin();
+
+    while (A_iter != std::end(A) && B_iter != std::end(B))
     {
-        if ((*A_iter) == (*B_iter))
+        if ((*A_iter).id == (*B_iter).id)
         {
-            ABintersection[k] = *A_iter;
-            k++;
+            ABintersection.push_back(*A_iter);
             ++A_iter;
             ++B_iter;
         }
-        else if ((*A_iter) < (*B_iter))
+        else if ((*A_iter).id < (*B_iter).id)
         {
             ++A_iter;
         }
@@ -87,7 +85,6 @@ std::vector<node_id_t> intersection(std::vector<node_id_t> A,
             ++B_iter;
         }
     }
-    assert(ABintersection.size() == k);
     return ABintersection;
 }
 
@@ -150,8 +147,8 @@ int64_t cycle_tc(Graph &graph)
             if (n.id < out_node.id)
             {
                 std::vector<node> intersect =
-                    (graph->get_in_nodes(n.id),
-                     graph->get_out_nodes(out_node.id));
+                    intersection(graph->get_in_nodes(n.id),
+                                 graph->get_out_nodes(out_node.id));
                 for (node w : intersect)
                 {
                     if (n.id < w.id and out_node.id < w.id)
@@ -221,5 +218,7 @@ int main(int argc, char *argv[])
                   << std::endl;
 
         print_csv_info(opts.db_name, info, tc_log);
+        graph->close();
+        exit(0);
     }
 }
