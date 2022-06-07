@@ -143,13 +143,14 @@ int64_t trust_tc(Graph &graph)
     return count;
 }
 
+template <typename Graph>
 int64_t trust_tc_iter(Graph &graph)
 {
     int64_t count = 0;
     OutCursor out_cursor = graph.get_outnbd_iter();
     adjlist found = {0};
 
-    out_cursor->next(&found);
+    out_cursor.next(&found);
     while (found.node_id != -1)
     {
         std::vector<node_id_t> out_nbrhood = found.edgelist;
@@ -161,7 +162,7 @@ int64_t trust_tc_iter(Graph &graph)
                 intersection_id(out_nbrhood, node_out_nbrhood);
             count += intersect.size();
         }
-        out_cursor->next(&found);
+        out_cursor.next(&found);
     }
 
     return count;
@@ -180,7 +181,7 @@ int64_t cycle_tc(Graph &graph)
             if (u.id < v)
             {
                 vector<node_id_t> v_out_ids = graph->get_out_nodes_id(v);
-                vector<node_id_t> u_in_ids = graph->get_in_nodes_id(u_id);
+                vector<node_id_t> u_in_ids = graph->get_in_nodes_id(u.id);
                 std::vector<node_id_t> intersect =
                     intersection_id(v_out_ids, u_in_ids);
                 for (node_id_t w : intersect)
@@ -196,6 +197,7 @@ int64_t cycle_tc(Graph &graph)
     return count;
 }
 
+template <typename Graph>
 int64_t cycle_tc_iter(Graph &graph)
 {
     int64_t count = 0;
@@ -204,8 +206,8 @@ int64_t cycle_tc_iter(Graph &graph)
     adjlist found = {0};
     adjlist found_out = {0};
 
-    in_cursor->next(&found);
-    out_cursor->next(&found_out);
+    in_cursor.next(&found);
+    out_cursor.next(&found_out);
 
     while (found.node_id != -1)
     {
@@ -213,7 +215,7 @@ int64_t cycle_tc_iter(Graph &graph)
         std::vector<node_id_t> out_nbrhood = found_out.edgelist;
         for (node_id_t node : out_nbrhood)
         {
-            if (found.id < node)
+            if (found.node_id < node)
             {
                 std::vector<node_id_t> node_out_nbrhood =
                     graph->get_out_nodes_id(node);
@@ -222,15 +224,15 @@ int64_t cycle_tc_iter(Graph &graph)
 
                 for (node_id_t itsc : intersect)
                 {
-                    if (found.id < itsc)
+                    if (found.node_id < itsc)
                     {
                         count += 1;
                     }
                 }
             }
         }
-        in_cursor->next(&found);
-        out_cursor->next(&found_out);
+        in_cursor.next(&found);
+        out_cursor.next(&found_out);
     }
 
     return count;

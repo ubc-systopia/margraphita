@@ -16,7 +16,7 @@ else
     echo "paths.sh not found."
 fi
 
-exit 0
+# exit 0
 
 #commit all changed files in the working directory. This should open vim for commit message
 # git add -u
