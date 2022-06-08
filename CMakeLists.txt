@@ -130,3 +130,11 @@ add_subdirectory(test)
 
 #Compile all benchmarks
 add_subdirectory(benchmark)
+
+configure_file(${PROJECT_SOURCE_DIR}/.githooks/pre-commit ${PROJECT_SOURCE_DIR}/.git/hooks COPYONLY)
+execute_process(COMMAND cp -n .paths.sh paths.sh
+       RESULT_VARIABLE result
+       WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
+   if(result)
+       message(FATAL_ERROR "Make sure that paths.sh file is correctly set")
+   endif()
