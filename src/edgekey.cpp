@@ -157,6 +157,7 @@ node EdgeKey::get_node(node_id_t node_id)
         found.id = node_id;
         CommonUtil::__record_to_node_ekey(cursor, &found);
     }
+    cursor->reset(cursor);
     return found;
 }
 
@@ -268,14 +269,9 @@ bool EdgeKey::has_node(node_id_t node_id)
     WT_CURSOR *e_cur = get_edge_cursor();
 
     e_cur->set_key(e_cur, node_id, OutOfBand_ID);
-    if (e_cur->search(e_cur) == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    bool ret = (e_cur->search(e_cur) == 0);
+    e_cur->reset(e_cur);
+    return ret;
 }
 
 /**
@@ -317,6 +313,7 @@ void EdgeKey::delete_node(node_id_t node_id)
     delete_related_edges(src_cur, e_cur, node_id);
     delete_related_edges(dst_cur, e_cur, node_id);
     set_num_nodes(get_num_nodes() - 1, metadata_cursor);
+    e_cur->reset(e_cur);
 }
 
 void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
@@ -324,7 +321,6 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
                                    node_id_t node_id)
 {
     int ret = 0;
-    e_cur->reset(e_cur);
 
     idx_cur->set_key(idx_cur, node_id);
     if (idx_cur->search(idx_cur) == 0)
@@ -387,6 +383,8 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
             }
         }
     }
+    idx_cur->reset(idx_cur);
+    e_cur->reset(e_cur);
 }
 
 /**
@@ -531,7 +529,7 @@ void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
         }
         set_num_edges(get_num_edges() - 1, metadata_cursor);
     }
-
+    e_cur->reset(e_cur);
     // update node degrees
     if (opts.read_optimize)
     {
@@ -578,12 +576,9 @@ edge EdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
         found.src_id = src_id;
         found.dst_id = dst_id;
         CommonUtil::__record_to_edge_ekey(e_cur, &found);
-        return found;
     }
-    else
-    {
-        return found;
-    }
+    e_cur->reset(e_cur);
+    return found;
 }
 
 /**

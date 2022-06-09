@@ -271,7 +271,7 @@ void AdjList::add_node(node to_insert)
     }
 
     ret = n_cur->insert(n_cur);
-
+    n_cur->reset(n_cur);
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" +
@@ -306,7 +306,7 @@ void AdjList::add_node(node_id_t to_insert,
     }
 
     ret = n_cur->insert(n_cur);
-
+    n_cur->reset(n_cur);
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" +
@@ -339,6 +339,7 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, node_id_t node_id)
     WT_ITEM item = {.data = {}, .size = 0};  // todo: check
     cursor->set_value(cursor, 0, &item);     // serialize the vector and send ""
     ret = cursor->insert(cursor);
+    cursor->reset(cursor);
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" + std::to_string(node_id));
@@ -365,6 +366,7 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
         cursor, list.size(), &item);  // serialize the vector and send ""
 
     ret = cursor->insert(cursor);
+    cursor->reset(cursor);
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" + std::to_string(node_id));
@@ -386,7 +388,7 @@ void AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 
     cursor->set_key(cursor, node_id);
     ret = cursor->remove(cursor);
-
+    cursor->reset(cursor);
     if (ret != 0)
     {
         throw GraphException("Could not delete node with ID " +
@@ -447,8 +449,8 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
             cursor->set_value(cursor, 0);
         }
         set_num_edges(get_num_edges() + 1, metadata_cursor);
-        cursor->reset(cursor);
     }
+    cursor->reset(cursor);
     // cursor->close(cursor);
     if (is_bulk_insert)
     {
@@ -498,6 +500,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         found.id = to_insert.dst_id;
         found.in_degree = found.in_degree + 1;
         update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
+        cursor->reset(cursor);
         // cursor->close(cursor);
     }
 }
@@ -556,6 +559,7 @@ void AdjList::delete_node(node_id_t node_id)
     // delete OUT_ADJLIST entrties
     cursor = get_out_adjlist_cursor();
     delete_adjlist(cursor, node_id);
+    cursor->reset(cursor);
     // cursor->close(cursor);
 }
 
@@ -581,6 +585,7 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
         }
         node found{.id = node_id, .in_degree = 0, .out_degree = 0};
         CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
+        cursor->reset(cursor);
         // cursor->close(cursor);
         return found.in_degree;
     }
@@ -597,6 +602,7 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
         adjlist in_edges;
         in_edges.node_id = node_id;
         CommonUtil::__record_to_adjlist(session, cursor, &in_edges);
+        cursor->reset(cursor);
         // cursor->close(cursor);
         return in_edges.degree;
     }
@@ -624,6 +630,7 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
         }
         node found{.id = node_id, .in_degree = 0, .out_degree = 0};
         CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
+        cursor->reset(cursor);
         // cursor->close(cursor);
         return found.out_degree;
     }
@@ -641,6 +648,7 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
         adjlist out_edges;
         out_edges.node_id = node_id;
         CommonUtil::__record_to_adjlist(session, cursor, &out_edges);
+        cursor->reset(cursor);
         // cursor->close(cursor);
         return out_edges.degree;
     }
@@ -663,6 +671,7 @@ std::vector<node> AdjList::get_nodes()
         n_cursor->get_key(n_cursor, &found.id);
         nodelist.push_back(found);
     }
+    n_cursor->reset(n_cursor);
     return nodelist;
 }
 
@@ -684,6 +693,7 @@ node AdjList::get_node(node_id_t node_id)
         CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
         found.id = node_id;
     }
+    n_cursor->reset(n_cursor);
     return found;
 }
 
@@ -707,6 +717,7 @@ std::vector<edge> AdjList::get_edges()
 
         edgelist.push_back(found);
     }
+    e_cursor->reset(e_cursor);
     return edgelist;
 }
 
@@ -734,13 +745,13 @@ edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
     if (ret != 0)
     {
         found = {-1, -1, -1};
-        return found;
     }
     else
     {
         CommonUtil::__record_to_edge(e_cursor, &found);
-        return found;
     }
+    e_cursor->reset(e_cursor);
+    return found;
 }
 
 /**
@@ -758,6 +769,7 @@ bool AdjList::has_edge(node_id_t src_id, node_id_t dst_id)
     WT_CURSOR *e_cursor = get_edge_cursor();
     e_cursor->set_key(e_cursor, src_id, dst_id);
     ret = e_cursor->search(e_cursor);
+    e_cursor->reset(e_cursor);
     return (ret == 0);  // true if found :)
 }
 
@@ -791,6 +803,7 @@ edgeweight_t AdjList::get_edge_weight(node_id_t src_id, node_id_t dst_id)
     {
         edge found;
         CommonUtil::__record_to_edge(e_cursor, &found);
+        e_cursor->reset(e_cursor);
         return found.edge_weight;
     }
 }
@@ -844,7 +857,6 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
     {
         out_nodes.push_back(get_node(dst_id));
     }
-    out_adjlist_cursor->reset(out_adjlist_cursor);
     return out_nodes;
 }
 
@@ -871,7 +883,6 @@ std::vector<node_id_t> AdjList::get_out_nodes_id(node_id_t node_id)
     {
         out_nodes_id.push_back(dst_id);
     }
-    out_adjlist_cursor->reset(out_adjlist_cursor);
     return out_nodes_id;
 }
 
@@ -908,6 +919,7 @@ std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
         found.src_id = node_id;
         found.dst_id = dst;
         CommonUtil::__record_to_edge(e_cur, &found);
+        e_cur->reset(e_cur);
         out_edges.push_back(found);
     }
     return out_edges;
@@ -937,7 +949,6 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
     {
         in_nodes.push_back(get_node(src_id));
     }
-    inadj_cursor->reset(inadj_cursor);
     return in_nodes;
 }
 
@@ -964,7 +975,6 @@ std::vector<node_id_t> AdjList::get_in_nodes_id(node_id_t node_id)
     {
         in_nodes_id.push_back(src_id);
     }
-    inadj_cursor->reset(inadj_cursor);
     return in_nodes_id;
 }
 
@@ -998,6 +1008,7 @@ std::vector<edge> AdjList::get_in_edges(node_id_t node_id)
         found.src_id = src;
         found.dst_id = node_id;
         CommonUtil::__record_to_edge(e_cur, &found);
+        e_cur->reset(e_cur);
         in_edges.push_back(found);
     }
     return in_edges;
@@ -1096,6 +1107,7 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
             found.out_degree--;
         }
         CommonUtil::__node_to_record(n_cursor, found, opts.read_optimize);
+        n_cursor->reset(n_cursor);
     }
 }
 
@@ -1164,6 +1176,7 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
     // knowing which table is it in or out?
 
     CommonUtil::__record_to_adjlist(session, cursor, &adj_list);
+    cursor->reset(cursor);
     return adj_list.edgelist;
 }
 
@@ -1192,6 +1205,7 @@ void AdjList::add_to_adjlists(WT_CURSOR *cursor,
     found.degree += 1;
 
     CommonUtil::__adjlist_to_record(session, cursor, found);
+    cursor->reset(cursor);
 }
 
 void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
@@ -1226,6 +1240,7 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
                         // going negative.
 
     CommonUtil::__adjlist_to_record(session, cursor, found);
+    cursor->reset(cursor);
 }
 
 void AdjList::delete_node_from_adjlists(node_id_t node_id)
@@ -1280,7 +1295,7 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
     // Now, remove the node from both the tables
     out_cursor->set_key(out_cursor, node_id);
     ret = out_cursor->remove(out_cursor);
-
+    out_cursor->reset(out_cursor);
     if (ret != 0)
     {
         throw GraphException("Could not delete node with ID " +
@@ -1289,7 +1304,7 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
 
     in_cursor->set_key(in_cursor, node_id);
     ret = in_cursor->remove(in_cursor);
-
+    in_cursor->reset(in_cursor);
     if (ret != 0)
     {
         throw GraphException("Could not delete node with ID " +

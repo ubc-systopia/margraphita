@@ -307,6 +307,7 @@ bool StandardGraph::has_node(node_id_t node_id)
     }
     this->node_cursor->set_key(this->node_cursor, node_id);
     ret = this->node_cursor->search(this->node_cursor);
+    this->node_cursor->reset(this->node_cursor);
     if (ret == 0)
     {
         return true;
@@ -337,6 +338,7 @@ bool StandardGraph::has_edge(node_id_t src_id, node_id_t dst_id)
     ret = src_dst_index_cursor->search(src_dst_index_cursor);
     if (ret != 0)
     {
+        src_dst_index_cursor->reset(src_dst_index_cursor);
         return false;
     }
     else
@@ -346,14 +348,9 @@ bool StandardGraph::has_edge(node_id_t src_id, node_id_t dst_id)
 
         ret = src_dst_index_cursor->get_value(
             src_dst_index_cursor, &temp_src_id, &temp_dst_id);
-        if ((temp_src_id == src_id) & (temp_dst_id == dst_id))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        src_dst_index_cursor->reset(src_dst_index_cursor);
+
+        return (temp_src_id == src_id) & (temp_dst_id == dst_id);
     }
 }
 
@@ -383,6 +380,7 @@ edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
                                               &found.dst_id,
                                               &found.edge_weight);
     }
+    src_dst_index_cursor->reset(src_dst_index_cursor);
     return found;
 }
 
@@ -393,7 +391,6 @@ node StandardGraph::get_node(node_id_t node_id)
 
     WT_CURSOR *cursor = get_node_cursor();
     cursor->set_key(cursor, node_id);
-
     ret = cursor->search(cursor);
     if (ret != 0)
     {
@@ -402,6 +399,7 @@ node StandardGraph::get_node(node_id_t node_id)
     }
     CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
     found.id = node_id;
+    cursor->reset(cursor);
     return found;
 }
 
@@ -414,7 +412,6 @@ node StandardGraph::get_random_node()
     {
         ret = _get_table_cursor(NODE_TABLE, &random_node_cursor, session, true);
     }
-    random_node_cursor->reset(random_node_cursor);
 
     ret = this->random_node_cursor->next(random_node_cursor);
     if (ret != 0)
@@ -469,6 +466,7 @@ void StandardGraph::delete_node(node_id_t node_id)
                              to_string(node_id));
     }
     set_num_nodes(get_num_nodes() - 1, metadata_cursor);
+    node_cursor->reset(node_cursor);
 }
 
 degree_t StandardGraph::get_in_degree(node_id_t node_id)
@@ -510,8 +508,13 @@ degree_t StandardGraph::get_in_degree(node_id_t node_id)
                 {
                     count++;
                 }
+                else
+                {
+                    break;
+                }
             }
         }
+        dst_index_cursor->reset(dst_index_cursor);
         return count;
     }
 }
@@ -563,6 +566,7 @@ degree_t StandardGraph::get_out_degree(node_id_t node_id)
                 }
             }
         }
+        src_index_cursor->reset(src_index_cursor);
         return count;
     }
 }
@@ -680,6 +684,7 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
             CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
             found.id = to_insert.src_id;
             found.out_degree = found.out_degree + 1;
+            n_cursor->reset(n_cursor);
             update_node_degree(
                 n_cursor,
                 found.id,
@@ -693,6 +698,7 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
             CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
             found.id = to_insert.dst_id;
             found.in_degree = found.in_degree + 1;
+            n_cursor->reset(n_cursor);
             update_node_degree(
                 n_cursor, found.id, found.in_degree, found.out_degree);
         }
@@ -730,7 +736,7 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
                                      "," + to_string(dst_id));
         set_num_edges(get_num_edges() - 1, metadata_cursor);
     }
-
+    e_cursor->reset(e_cursor);
     // Update in/out degrees for the src and dst nodes if the graph is read
     // optimized
 
@@ -780,6 +786,7 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
     {
         n_found.out_degree = n_found.out_degree - 1;
     }
+    n_cursor->reset(n_cursor);
     update_node_degree(
         n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
 }
@@ -804,6 +811,7 @@ void StandardGraph::update_node_degree(WT_CURSOR *cursor,
     found.id = node_id;
 
     CommonUtil::__node_to_record(cursor, found, opts.read_optimize);
+    cursor->reset(cursor);
 }
 
 /**
@@ -842,7 +850,6 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
     }
 
     WT_CURSOR *cursor = get_src_idx_cursor();
-    cursor->reset(cursor);
     cursor->set_key(cursor, node_id);
 
     node_id_t temp = -1;
@@ -866,6 +873,7 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
             }
         }
     }
+    cursor->reset(cursor);
     return edges;
 }
 
@@ -879,7 +887,6 @@ vector<node> StandardGraph::get_out_nodes(node_id_t node_id)
 {
     vector<edge> out_edges;
     vector<node> nodes;
-    WT_CURSOR *cursor = get_node_cursor();
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
@@ -889,7 +896,6 @@ vector<node> StandardGraph::get_out_nodes(node_id_t node_id)
     {
         nodes.push_back(get_node(out_edge.dst_id));
     }
-    cursor->reset(cursor);
     return nodes;
 }
 
@@ -904,7 +910,6 @@ vector<node_id_t> StandardGraph::get_out_nodes_id(node_id_t node_id)
 {
     vector<edge> out_edges;
     vector<node_id_t> node_ids;
-    WT_CURSOR *cursor = get_node_cursor();
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
@@ -914,7 +919,6 @@ vector<node_id_t> StandardGraph::get_out_nodes_id(node_id_t node_id)
     {
         node_ids.push_back(out_edge.dst_id);
     }
-    cursor->reset(cursor);
     return node_ids;
 }
 
@@ -962,6 +966,7 @@ vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
             }
         }
     }
+    dst_index_cursor->reset(dst_index_cursor);
     return edges;
 }
 
@@ -1208,5 +1213,6 @@ vector<edge> StandardGraph::test_cursor_iter(node_id_t node_id)
             edges.push_back(found);
         }
     }
+    cursor->reset(cursor);
     return edges;
 }
