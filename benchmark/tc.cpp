@@ -60,8 +60,8 @@ void print_csv_info(std::string name, tc_info &info, std::string csv_logdir)
 
 bool id_compare(node_id_t a, node_id_t b) { return (a < b); }
 
-std::vector<node> intersection_id(std::vector<node_id_t> A,
-                                  std::vector<node_id_t> B)
+std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
+                                       std::vector<node_id_t> B)
 {
     std::sort(A.begin(), A.end(), id_compare);
     std::sort(B.begin(), B.end(), id_compare);

@@ -1,10 +1,20 @@
---------------------------------
-Wed 11 May 2022 09:51:29 PM PDT
+Fri 10 Jun 2022 01:17:05 PM PDT
 Running PageRank
-Graph loaded in 1015097
-Failed to retrieve metadata for the key nNodes
+Graph loaded in 1.01196e+06
+Loading the nodes and constructing the map took 1059.2
+terminate called after throwing an instance of 'GraphException'
+  what():  node with ID 0found in adjlist for 0 but not in node table
 --------------------------------
-Fri 13 May 2022 02:11:42 PM PDT
+Fri 10 Jun 2022 01:20:10 PM PDT
 Running PageRank
-Graph loaded in 764372
-Failed to retrieve metadata for the key nNodes
+Graph loaded in 1.01246e+06
+Loading the nodes and constructing the map took 784.544
+terminate called after throwing an instance of 'GraphException'
+  what():  node with ID 0found in adjlist for 0 but not in node table
+--------------------------------
+Fri 10 Jun 2022 01:21:37 PM PDT
+Running PageRank
+Graph loaded in 758881
+Loading the nodes and constructing the map took 797.816
+terminate called after throwing an instance of 'GraphException'
+  what():  node with ID 0found in adjlist for 0 but not in node table

@@ -44,10 +44,10 @@ fi
 
 # #create directory where the scripts will insert logs
 dir="${HOME}/margraphita/outputs/${commit_id}"
-# mkdir -p $dir
+mkdir -p $dir
 
 # #pass this dir to bulk_insert
-# #/bin/bash insert_kron.sh -l ${dir}
+# /bin/bash /home/jackli/margraphita/build/release/benchmark/insert_kron.sh -l ${dir}
 
 # #now pass this commit_id to run_benchmarks.sh
-#/bin/bash run_benchmarks.sh -d ${dir}
+# /bin/bash /home/jackli/margraphita/build/release/benchmark/run_benchmarks.sh -d ${dir}
