@@ -154,6 +154,7 @@ class OutCursor : public table_iterator
 {
    protected:
     key_range keys;
+    int num_nodes;
 
    public:
     OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
@@ -168,6 +169,8 @@ class OutCursor : public table_iterator
         cursor->set_key(cursor, keys.start);
     }
 
+    void set_num_nodes(int num) { num_nodes = num; }
+
     virtual void next(adjlist *found) = 0;
     virtual void next(adjlist *found, node_id_t key) = 0;
 };
@@ -176,6 +179,7 @@ class InCursor : public table_iterator
 {
    protected:
     key_range keys;
+    int num_nodes;
 
    public:
     InCursor(WT_CURSOR *cur, WT_SESSION *sess)
@@ -189,6 +193,8 @@ class InCursor : public table_iterator
         keys = _keys;
         cursor->set_key(cursor, keys.start);
     }
+
+    void set_num_nodes(int num) { num_nodes = num; }
 
     virtual void next(adjlist *found) = 0;
     virtual void next(adjlist *found, node_id_t key) = 0;

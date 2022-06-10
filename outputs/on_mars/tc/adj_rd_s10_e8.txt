@@ -1,0 +1,4 @@
+Running TC
+Graph loaded in 763066
+[1654900602:623687][696529:0x7fe1f93c7740], WT_CURSOR.get_key: __wt_cursor_kv_not_set, 226: requires key be set: Invalid argument
+[1654900602:623716][696529:0x7fe1f93c7740], WT_CURSOR.get_value: __wt_cursor_kv_not_set, 226: requires value be set: Invalid argument

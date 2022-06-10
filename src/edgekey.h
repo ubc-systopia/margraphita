@@ -48,6 +48,8 @@ class EkeyInCursor : public InCursor
                 next_expected = keys.start;
             }
 
+            cursor->set_key(cursor, to_search);
+
             int status;
             // error_check(cursor->search_near(cursor, &status));
             cursor->search_near(cursor, &status);

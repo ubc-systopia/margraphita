@@ -1,0 +1,100 @@
+Running BFS
+Graph loaded in 760692
+980
+random start vertex is 980
+BFS  completed in : 891598
+224
+random start vertex is 224
+BFS  completed in : 1.4261e+06
+437
+random start vertex is 437
+BFS  completed in : 2.21652e+06
+130
+random start vertex is 130
+BFS  completed in : 3.00141e+06
+728
+random start vertex is 728
+BFS  completed in : 3.77657e+06
+361
+random start vertex is 361
+BFS  completed in : 4.55454e+06
+201
+random start vertex is 201
+BFS  completed in : 5.33269e+06
+549
+random start vertex is 549
+BFS  completed in : 6.10373e+06
+94
+random start vertex is 94
+BFS  completed in : 6.87388e+06
+5
+random start vertex is 5
+BFS  completed in : 7.64476e+06
+521
+random start vertex is 521
+BFS  completed in : 8.41475e+06
+696
+random start vertex is 696
+BFS  completed in : 9.18231e+06
+12
+random start vertex is 12
+BFS  completed in : 9.95152e+06
+90
+random start vertex is 90
+BFS  completed in : 1.07236e+07
+467
+random start vertex is 467
+BFS  completed in : 1.14933e+07
+894
+random start vertex is 894
+BFS  completed in : 1.22686e+07
+Running BFS
+Graph loaded in 797740
+980
+random start vertex is 980
+BFS  completed in : 638144
+224
+random start vertex is 224
+BFS  completed in : 1.42533e+06
+437
+random start vertex is 437
+BFS  completed in : 2.21294e+06
+130
+random start vertex is 130
+BFS  completed in : 3.00491e+06
+728
+random start vertex is 728
+BFS  completed in : 3.7859e+06
+361
+random start vertex is 361
+BFS  completed in : 4.56228e+06
+201
+random start vertex is 201
+BFS  completed in : 5.33188e+06
+549
+random start vertex is 549
+BFS  completed in : 6.10378e+06
+94
+random start vertex is 94
+BFS  completed in : 6.87331e+06
+5
+random start vertex is 5
+BFS  completed in : 7.64139e+06
+521
+random start vertex is 521
+BFS  completed in : 8.41335e+06
+696
+random start vertex is 696
+BFS  completed in : 9.18376e+06
+12
+random start vertex is 12
+BFS  completed in : 9.95582e+06
+90
+random start vertex is 90
+BFS  completed in : 1.07217e+07
+467
+random start vertex is 467
+BFS  completed in : 1.14907e+07
+894
+random start vertex is 894
+BFS  completed in : 1.22651e+07

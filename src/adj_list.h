@@ -341,7 +341,6 @@ class AdjEdgeCursor : public EdgeCursor
         if (is_first)
         {
             is_first = false;
-
             if (start_edge.src_id != -1 && start_edge.dst_id != -1)
             {
                 int status;

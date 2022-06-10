@@ -1125,12 +1125,20 @@ WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
 
 OutCursor *StandardGraph::get_outnbd_iter()
 {
-    return new StdOutCursor(get_src_idx_cursor(), session);
+    uint64_t num_nodes = this->get_num_nodes();
+    OutCursor *toReturn = new StdOutCursor(get_src_idx_cursor(), session);
+    toReturn->set_num_nodes(num_nodes);
+    toReturn->set_key_range({-1, num_nodes - 1});
+    return toReturn;
 }
 
 InCursor *StandardGraph::get_innbd_iter()
 {
-    return new StdInCursor(get_dst_idx_cursor(), session);
+    uint64_t num_nodes = this->get_num_nodes();
+    InCursor *toReturn = new StdInCursor(get_dst_idx_cursor(), session);
+    toReturn->set_num_nodes(num_nodes);
+    toReturn->set_key_range({-1, num_nodes - 1});
+    return toReturn;
 }
 
 NodeCursor *StandardGraph::get_node_iter()

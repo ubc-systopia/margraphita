@@ -1,0 +1,100 @@
+Running BFS
+Graph loaded in 760911
+600
+random start vertex is 600
+BFS  completed in : 279655
+715
+random start vertex is 715
+BFS  completed in : 427031
+1016
+random start vertex is 1016
+BFS  completed in : 362067
+901
+random start vertex is 901
+BFS  completed in : 271205
+532
+random start vertex is 532
+BFS  completed in : 269653
+544
+random start vertex is 544
+BFS  completed in : 269800
+301
+random start vertex is 301
+BFS  completed in : 270155
+89
+random start vertex is 89
+BFS  completed in : 270457
+328
+random start vertex is 328
+BFS  completed in : 270294
+819
+random start vertex is 819
+BFS  completed in : 269817
+314
+random start vertex is 314
+BFS  completed in : 270017
+867
+random start vertex is 867
+BFS  completed in : 270034
+745
+random start vertex is 745
+BFS  completed in : 270365
+517
+random start vertex is 517
+BFS  completed in : 270294
+550
+random start vertex is 550
+BFS  completed in : 271243
+798
+random start vertex is 798
+BFS  completed in : 270394
+Running BFS
+Graph loaded in 1.00959e+06
+600
+random start vertex is 600
+BFS  completed in : 278569
+715
+random start vertex is 715
+BFS  completed in : 522016
+1016
+random start vertex is 1016
+BFS  completed in : 276437
+901
+random start vertex is 901
+BFS  completed in : 273570
+532
+random start vertex is 532
+BFS  completed in : 273550
+544
+random start vertex is 544
+BFS  completed in : 273595
+301
+random start vertex is 301
+BFS  completed in : 274158
+89
+random start vertex is 89
+BFS  completed in : 273806
+328
+random start vertex is 328
+BFS  completed in : 273526
+819
+random start vertex is 819
+BFS  completed in : 274055
+314
+random start vertex is 314
+BFS  completed in : 274136
+867
+random start vertex is 867
+BFS  completed in : 274164
+745
+random start vertex is 745
+BFS  completed in : 273532
+517
+random start vertex is 517
+BFS  completed in : 273803
+550
+random start vertex is 550
+BFS  completed in : 274104
+798
+random start vertex is 798
+BFS  completed in : 273907

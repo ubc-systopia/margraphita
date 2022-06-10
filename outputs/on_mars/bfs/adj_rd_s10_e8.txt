@@ -1,0 +1,100 @@
+Running BFS
+Graph loaded in 1.01052e+06
+980
+random start vertex is 980
+BFS  completed in : 74476.4
+224
+random start vertex is 224
+BFS  completed in : 70305.7
+437
+random start vertex is 437
+BFS  completed in : 70327
+130
+random start vertex is 130
+BFS  completed in : 70387.5
+728
+random start vertex is 728
+BFS  completed in : 70439.9
+361
+random start vertex is 361
+BFS  completed in : 70533.6
+201
+random start vertex is 201
+BFS  completed in : 70737
+549
+random start vertex is 549
+BFS  completed in : 70724.7
+94
+random start vertex is 94
+BFS  completed in : 70643.1
+5
+random start vertex is 5
+BFS  completed in : 70758.5
+521
+random start vertex is 521
+BFS  completed in : 70881.7
+696
+random start vertex is 696
+BFS  completed in : 70964.7
+12
+random start vertex is 12
+BFS  completed in : 70934.5
+90
+random start vertex is 90
+BFS  completed in : 71082.1
+467
+random start vertex is 467
+BFS  completed in : 71313.9
+894
+random start vertex is 894
+BFS  completed in : 71332.1
+Running BFS
+Graph loaded in 1.00776e+06
+980
+random start vertex is 980
+BFS  completed in : 74233.6
+224
+random start vertex is 224
+BFS  completed in : 69442.5
+437
+random start vertex is 437
+BFS  completed in : 69577.4
+130
+random start vertex is 130
+BFS  completed in : 111708
+728
+random start vertex is 728
+BFS  completed in : 139556
+361
+random start vertex is 361
+BFS  completed in : 139730
+201
+random start vertex is 201
+BFS  completed in : 137779
+549
+random start vertex is 549
+BFS  completed in : 69818
+94
+random start vertex is 94
+BFS  completed in : 69860.2
+5
+random start vertex is 5
+BFS  completed in : 70048.8
+521
+random start vertex is 521
+BFS  completed in : 70077
+696
+random start vertex is 696
+BFS  completed in : 70146
+12
+random start vertex is 12
+BFS  completed in : 70051.2
+90
+random start vertex is 90
+BFS  completed in : 70326
+467
+random start vertex is 467
+BFS  completed in : 70363.6
+894
+random start vertex is 894
+BFS  completed in : 70394.1
