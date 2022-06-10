@@ -271,7 +271,6 @@ void AdjList::add_node(node to_insert)
     }
 
     ret = n_cur->insert(n_cur);
-    n_cur->reset(n_cur);
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" +
@@ -306,7 +305,6 @@ void AdjList::add_node(node_id_t to_insert,
     }
 
     ret = n_cur->insert(n_cur);
-    n_cur->reset(n_cur);
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" +
@@ -339,7 +337,6 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, node_id_t node_id)
     WT_ITEM item = {.data = {}, .size = 0};  // todo: check
     cursor->set_value(cursor, 0, &item);     // serialize the vector and send ""
     ret = cursor->insert(cursor);
-    cursor->reset(cursor);
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" + std::to_string(node_id));
@@ -366,7 +363,6 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
         cursor, list.size(), &item);  // serialize the vector and send ""
 
     ret = cursor->insert(cursor);
-    cursor->reset(cursor);
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" + std::to_string(node_id));
@@ -450,7 +446,6 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         }
         set_num_edges(get_num_edges() + 1, metadata_cursor);
     }
-    cursor->reset(cursor);
     // cursor->close(cursor);
     if (is_bulk_insert)
     {
@@ -549,6 +544,7 @@ void AdjList::delete_node(node_id_t node_id)
         throw GraphException("failed to delete node with ID " +
                              std::to_string(node_id));
     }
+    cursor->reset(cursor);
     // cursor->close(cursor);
 
     // delete IN_ADJLIST entries
@@ -559,7 +555,6 @@ void AdjList::delete_node(node_id_t node_id)
     // delete OUT_ADJLIST entrties
     cursor = get_out_adjlist_cursor();
     delete_adjlist(cursor, node_id);
-    cursor->reset(cursor);
     // cursor->close(cursor);
 }
 
