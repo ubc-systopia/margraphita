@@ -114,7 +114,6 @@ int64_t trust_tc_iter(Graph &graph)
 {
     int64_t count = 0;
     OutCursor *out_cursor = graph->get_outnbd_iter();
-    out_cursor.set_key(0);  //
     adjlist found = {0};
 
     out_cursor->next(&found);
@@ -169,9 +168,7 @@ int64_t cycle_tc_iter(Graph &graph)
 {
     int64_t count = 0;
     InCursor *in_cursor = graph->get_innbd_iter();
-    in_cursor.set_key(0);  //
     OutCursor *out_cursor = graph->get_outnbd_iter();
-    out_cursor.set_key(0);  //
     adjlist found = {0};
     adjlist found_out = {0};
 
