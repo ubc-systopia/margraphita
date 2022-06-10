@@ -22,4 +22,8 @@ db/
 .vscode/
 workspace.code-workspace
 tasks.md
+<<<<<<< HEAD
 build/paths.sh
+=======
+build/paths.sh
+>>>>>>> 66d9a9edcbecf8761afd4c8498f479805d7177b2

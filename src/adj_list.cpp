@@ -842,18 +842,7 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
 
     for (auto dst_id : adjlist)
     {
-        node found = get_node(dst_id);
-        if (found.id != 0)
-        {
-            out_nodes.push_back(found);
-        }
-        else
-        {
-            throw GraphException("node with ID " + std::to_string(dst_id) +
-                                 "found in adjlist for " +
-                                 std::to_string(node_id) +
-                                 " but not in node table");
-        }
+        out_nodes.push_back(get_node(dst_id));
     }
     out_adjlist_cursor->reset(out_adjlist_cursor);
     return out_nodes;
@@ -946,18 +935,7 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
     node found = {0};
     for (auto src_id : adjlist)
     {
-        node found = get_node(src_id);
-        if (found.id != 0)
-        {
-            in_nodes.push_back(found);
-        }
-        else
-        {
-            throw GraphException("node with ID " + std::to_string(src_id) +
-                                 "found in adjlist for " +
-                                 std::to_string(node_id) +
-                                 " but not in node table");
-        }
+        in_nodes.push_back(get_node(src_id));
     }
     inadj_cursor->reset(inadj_cursor);
     return in_nodes;

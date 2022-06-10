@@ -863,11 +863,7 @@ std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
             }
             else
             {
-                node found = get_node(dst);
-                if (found.id != 0)
-                {
-                    out_nodes.push_back(found);
-                }
+                out_nodes.push_back(get_node(dst));
             }
         } while (src == node_id && src_cur->next(src_cur) == 0 &&
                  flag <= 1);  // flag check ensures that if the first entry we
@@ -995,11 +991,7 @@ std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
 
         do
         {
-            node found = get_node(src_id);
-            if (found.id != 0)
-            {
-                in_nodes.push_back(get_node(src_id));
-            }
+            in_nodes.push_back(get_node(src_id));
             if (dst_cur->next(dst_cur) == 0)
             {
                 if (dst_cur->get_value(dst_cur, &src_id, &dst_id) != 0)
