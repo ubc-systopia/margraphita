@@ -14,32 +14,39 @@
 #include <unordered_map>
 
 #include "common.h"
+#include "parallel_hashmap/phmap.h"
+#define MAPNAME phmap::parallel_flat_hash_map
+#define NMSP phmap
+#define NUM_THREADS 16
+#define MTX std::mutex
+#define EXTRAARGS                                                       \
+    , NMSP::priv::hash_default_hash<K>, NMSP::priv::hash_default_eq<K>, \
+        std::allocator<std::pair<const K, V>>, 4, MTX
 
-//#include "dense_vertexrange.h"
-#define NUM_THREADS 10
+template <class K, class V>
+using HashT = MAPNAME<K, V EXTRAARGS>;
+using hash_t = HashT<node_id_t, node_id_t>;
+
 double num_edges;
 double num_nodes;
 std::string dataset;
 std::string out_dir;
-std::unordered_map<node_id_t, node_id_t> remap;
+bool map_exit = false;
 
-typedef std::shared_mutex Lock;
-typedef std::unique_lock<Lock> WriteLock;
-typedef std::shared_lock<Lock> ReadLock;
+hash_t remap;
 
-Lock lock;
-
-void construct_vertex_mapping(node_id_t line_num)
+int64_t construct_vertex_mapping(node_id_t beg, node_id_t end)
 {
     std::string filename = dataset + "_nodes";
     std::ifstream nodefile(filename.c_str());
+    int64_t line = 0;
+
     if (nodefile.is_open())
     {
         std::string tp;
-        node_id_t line = 0;
-        while (getline(nodefile, tp))
+        while (getline(nodefile, tp) && line < end)
         {
-            if (line < line_num)
+            if (line < beg)
             {
                 line++;
                 continue;
@@ -49,9 +56,7 @@ void construct_vertex_mapping(node_id_t line_num)
                 node_id_t val;
                 std::stringstream s_str(tp);
                 s_str >> val;
-                WriteLock writer(lock);
-                remap[val] = line;  // key is old id, val is new_id
-                writer.unlock();
+                remap[val] = line;
                 line++;
             }
         }
@@ -61,43 +66,47 @@ void construct_vertex_mapping(node_id_t line_num)
     {
         std::cout << "failed;";
     }
+    return line;
 }
-void convert_edge_list(node_id_t beg_offset,
-                       node_id_t end_offset,
-                       node_id_t t_id)
+
+int64_t convert_edge_list(node_id_t beg_offset,
+                          node_id_t end_offset,
+                          node_id_t t_id)
 {
     std::ifstream edgefile(dataset.c_str());
 
     char c = (char)(97 + t_id);
-    std::string out_filename;
+    std::string out_filename = dataset + "_edges";
+
     out_filename.push_back('a');
     out_filename.push_back(c);
     std::ofstream outfile(out_filename.c_str());
+    node_id_t line = 0;
     if (edgefile.is_open())
     {
         std::string tp;
-        node_id_t line = 0;
-        while (getline(edgefile, tp))
+        while (getline(edgefile, tp) && line < end_offset)
         {
             if (line < beg_offset)
             {
                 line++;
                 continue;
             }
-            else if (line >= beg_offset && line < end_offset)
+            else
             {
                 node_id_t src, dst;
                 std::stringstream s_str(tp);
                 s_str >> src;
                 s_str >> dst;
+                outfile << remap[src] << ":" << remap[dst] << "\n";
 
-                outfile << remap[src] << " " << remap[dst] << "\n";
                 line++;
             }
         }
         edgefile.close();
         outfile.close();
     }
+    return line;
 }
 
 void help()
@@ -118,6 +127,7 @@ int main(int argc, char *argv[])
     static struct option long_opts[] = {{"edges", required_argument, 0, 'e'},
                                         {"nodes", required_argument, 0, 'n'},
                                         {"file", required_argument, 0, 'f'},
+                                        {"make-map", optional_argument, 0, 'm'},
                                         {0, 0, 0, 0}};
     int option_idx = 0;
     int c;
@@ -127,7 +137,7 @@ int main(int argc, char *argv[])
         exit(-1);
     }
 
-    while ((c = getopt_long(argc, argv, "e:n:f:", long_opts, &option_idx)) !=
+    while ((c = getopt_long(argc, argv, "e:n:f:md", long_opts, &option_idx)) !=
            -1)
     {
         switch (c)
@@ -141,6 +151,9 @@ int main(int argc, char *argv[])
             case 'f':
                 dataset = optarg;
                 break;
+            case 'm':
+                map_exit = true;
+                break;
             case ':':
             /* missing option argument */
             case '?':
@@ -150,28 +163,57 @@ int main(int argc, char *argv[])
         }
     }
 
+    int64_t offsets[NUM_THREADS];
+    int64_t end_offsets[NUM_THREADS];
 #pragma omp parallel for num_threads(NUM_THREADS) shared(num_nodes)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        node_id_t offset = ((i * num_nodes) / NUM_THREADS);
-
-        construct_vertex_mapping(offset);
+        node_id_t beg = ((i * num_nodes) / NUM_THREADS);
+        node_id_t end = (((i + 1) * num_nodes) / NUM_THREADS);
+        offsets[i] = beg;
+        end_offsets[i] = construct_vertex_mapping(beg, end);
     }
 
+    auto shoulda = num_nodes / NUM_THREADS;
+    int i = 0;
+    for (auto x : offsets)
+    {
+        std::cout << (i * shoulda) << "\t(" << x << "," << end_offsets[i] << ")"
+                  << std::endl;
+        i++;
+    }
     std::filesystem::path path(dataset);
     std::string out_filename = path.parent_path().string() + "/dense_map.txt";
+    std::cout << "\ndense_map file is :" << out_filename << std::endl;
     std::ofstream out(out_filename.c_str());
     for (auto iter = remap.begin(); iter != remap.end(); ++iter)
     {
-        out << iter->first << " : " << iter->second << std::endl;
+        out << iter->first << ":" << iter->second << std::endl;
+    }
+    out.close();
+    if (map_exit)
+    {
+        exit(EXIT_SUCCESS);
     }
 
+    int64_t e_offsets[NUM_THREADS];
+    int64_t e_end_offsets[NUM_THREADS];
 #pragma omp parallel for num_threads(NUM_THREADS) shared(num_edges)
     for (int i = 0; i < NUM_THREADS; i++)
     {
         node_id_t beg_offset = ((i * num_edges) / NUM_THREADS);
         node_id_t end_offset = ((i + 1) * num_edges) / NUM_THREADS;
-        convert_edge_list(beg_offset, end_offset, i);
+        e_offsets[i] = beg_offset;
+        e_end_offsets[i] = convert_edge_list(beg_offset, end_offset, i);
+    }
+    std::cout << "-----------------\n\n";
+    i = 0;
+    shoulda = num_edges / NUM_THREADS;
+    for (auto x : e_offsets)
+    {
+        std::cout << (i * shoulda) << "\t(" << x << "," << e_end_offsets[i]
+                  << ")" << std::endl;
+        i++;
     }
     return (EXIT_SUCCESS);
 }

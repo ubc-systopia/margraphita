@@ -15,7 +15,7 @@
 #include "common.h"
 #include "reader.h"
 
-#define NUM_THREADS 10
+#define NUM_THREADS 16
 
 extern std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;
 extern std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;
