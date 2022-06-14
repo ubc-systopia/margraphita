@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -17,6 +18,11 @@ const std::string GRAPH_PREFIX = "adj";
 AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
 
 {
+    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    {
+        std::filesystem::create_directories(opts.stat_log);
+    }
+
     if (opt_params.create_new)
     {
         create_new_graph();
