@@ -1100,7 +1100,7 @@ void EdgeKey::create_indices()
     // Index on (DST,SRC) columns of the edge table
     // Used for adjacency neighbourhood iterators
     edge_table_idx = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
-    edge_table_idx_conf = "columns=(" + DST + "," + SRC + ")";
+    edge_table_idx_conf = "columns=(" + DST + "," + SRC + "," + ATTR+ ")";
     if (session->create(
             session, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
     {
@@ -1181,6 +1181,22 @@ WT_CURSOR *EdgeKey::get_dst_idx_cursor()
     return dst_idx_cursor;
 }
 
+WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
+{
+    if (dst_src_idx_cursor == nullptr)
+    {
+        string projection = "(" + SRC + "," + DST + "," + ATTR + ")";
+        if (_get_index_cursor(
+                EDGE_TABLE, DST_SRC_INDEX, projection, &dst_src_idx_cursor) !=
+            0)
+        {
+            throw GraphException("Could not get a cursor to DST_SRC_INDEX");
+        }
+    }
+
+    return dst_src_idx_cursor;
+}
+
 OutCursor *EdgeKey::get_outnbd_iter()
 {
     uint64_t num_nodes = this->get_num_nodes();
@@ -1209,7 +1225,7 @@ EdgeCursor *EdgeKey::get_edge_iter()
     return new EkeyEdgeCursor(get_edge_cursor(), session);
 }
 
-WT_CURSOR *EdgeKey::get_node_cursor() { return get_dst_idx_cursor(); }
+WT_CURSOR *EdgeKey::get_node_cursor() { return get_dst_src_idx_cursor(); }
 
 node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
 {

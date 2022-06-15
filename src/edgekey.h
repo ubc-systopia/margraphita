@@ -410,6 +410,17 @@ class EkeyNodeCursor : public NodeCursor
         if (cursor->next(cursor) == 0)
         {
         first_time_skip_next:
+
+            cursor->get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
+            char *buf;
+            cursor->get_value(cursor, &curr_edge.dst_id, &curr_edge.src_id, &buf);
+
+            std::string str(buf);
+            int a = 0, b = 0;
+            CommonUtil::extract_from_string(str, &a, &b);
+            found->in_degree = a;
+            found->out_degree = b;
+
             CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
             if (keys.end != -1 && curr_edge.src_id > keys.end)
             {
@@ -544,6 +555,7 @@ class EdgeKey : public GraphBase
     void init_cursors();  // todo <-- implement this
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
+    WT_CURSOR *get_dst_src_idx_cursor();
     WT_CURSOR *get_node_cursor();
     WT_CURSOR *get_edge_cursor();
     void make_indexes();
@@ -554,6 +566,7 @@ class EdgeKey : public GraphBase
     WT_CURSOR *metadata_cursor = nullptr;
     WT_CURSOR *src_idx_cursor = nullptr;
     WT_CURSOR *dst_idx_cursor = nullptr;
+    WT_CURSOR *dst_src_idx_cursor = nullptr;
 
     // structure of the graph
     vector<string> edge_columns = {SRC, DST, ATTR};

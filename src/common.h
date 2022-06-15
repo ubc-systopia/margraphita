@@ -524,6 +524,7 @@ class CommonUtil
     inline static void __record_to_node_ekey(WT_CURSOR *cur, node *found)
     {
         char *packed_vec;
+        // std::cout << cur->value_format << std::endl;
         int ret = cur->get_value(cur, &packed_vec);
         if (ret != 0)
         {
@@ -531,7 +532,25 @@ class CommonUtil
         }
         std::string str(packed_vec);
         int a = 0, b = 0;
-        extract_from_string(packed_vec, &a, &b);
+        extract_from_string(str, &a, &b);
+        found->in_degree = a;
+        found->out_degree = b;
+    }
+
+    inline static void __record_to_node_ekeyidx(WT_CURSOR *idx_cursor,
+                                                node *found)
+    {
+        const char *packed_vec;
+        node temp;
+        std::cout << idx_cursor->key_format << "\t" << idx_cursor->value_format
+                  << std::endl;
+        if (idx_cursor->get_value(idx_cursor, &packed_vec) != 0)
+        {
+            throw GraphException("Cannot obtain idx cursor value");
+        }
+        std::string str(packed_vec);
+        int a = 0, b = 0;
+        extract_from_string(str, &a, &b);
         found->in_degree = a;
         found->out_degree = b;
     }
