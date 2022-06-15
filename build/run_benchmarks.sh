@@ -10,7 +10,7 @@ exit 1;}
 
 TYPES=( "adj" "std" "ekey" )
 DATASETS=( "s10_e8" )
-RESULT=/home/jackli/margraphita/outputs/on_mars
+RESULT=$GRAPH_PROJECT_DIR/outputs/on_mars
 COUNTS=10
 
 while getopts ":d:h" o; do

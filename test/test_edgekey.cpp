@@ -435,7 +435,7 @@ int main()
     opts.db_name = "test_eKey";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = "/home/jackgong/margraphita/profile/test";
+    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
     EdgeKeyTester graph = EdgeKeyTester(opts);
     create_init_nodes(graph, opts.is_directed);

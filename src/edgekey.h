@@ -411,17 +411,18 @@ class EkeyNodeCursor : public NodeCursor
         {
         first_time_skip_next:
 
-            cursor->get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
+            // cursor->get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
             char *buf;
-            cursor->get_value(cursor, &curr_edge.dst_id, &curr_edge.src_id, &buf);
+            cursor->get_value(
+                cursor, &curr_edge.dst_id, &curr_edge.src_id, &buf);
 
             std::string str(buf);
             int a = 0, b = 0;
             CommonUtil::extract_from_string(str, &a, &b);
             found->in_degree = a;
             found->out_degree = b;
-
-            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            found->id = curr_edge.src_id;
+            // CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
             if (keys.end != -1 && curr_edge.src_id > keys.end)
             {
                 goto no_next;
@@ -431,8 +432,6 @@ class EkeyNodeCursor : public NodeCursor
             {
                 goto no_next;
             }
-            found->id = curr_edge.src_id;
-            CommonUtil::__record_to_node_ekey(cursor, found);
         }
         else
         {

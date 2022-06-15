@@ -1100,7 +1100,7 @@ void EdgeKey::create_indices()
     // Index on (DST,SRC) columns of the edge table
     // Used for adjacency neighbourhood iterators
     edge_table_idx = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
-    edge_table_idx_conf = "columns=(" + DST + "," + SRC + "," + ATTR+ ")";
+    edge_table_idx_conf = "columns=(" + DST + "," + SRC + ")";
     if (session->create(
             session, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
     {
@@ -1185,7 +1185,7 @@ WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
 {
     if (dst_src_idx_cursor == nullptr)
     {
-        string projection = "(" + SRC + "," + DST + "," + ATTR + ")";
+        string projection = "(" + DST + "," + SRC + "," + ATTR + ")";
         if (_get_index_cursor(
                 EDGE_TABLE, DST_SRC_INDEX, projection, &dst_src_idx_cursor) !=
             0)
