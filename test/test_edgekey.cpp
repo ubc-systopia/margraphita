@@ -354,11 +354,11 @@ void test_NodeCursor(EdgeKey graph)
 {
     INFO();
     NodeCursor *node_cursor = graph.get_node_iter();
-    node found;
+    node found = {0, 0, 0};
     int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
     int i = 0;
     node_cursor->next(&found);
-    while (found.id != -1)
+    while (found.id != -1 && i < 7)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
