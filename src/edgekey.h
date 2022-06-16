@@ -382,6 +382,12 @@ class EkeyNodeCursor : public NodeCursor
     // Takes a composite index cursor on (dst, src)
     EkeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, OutOfBand_ID, keys.start);
+    }
+
     void next(node *found)
     {
         if (!has_next)
@@ -411,18 +417,20 @@ class EkeyNodeCursor : public NodeCursor
         {
         first_time_skip_next:
 
-            // cursor->get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
             char *buf;
             cursor->get_value(
-                cursor, &curr_edge.dst_id, &curr_edge.src_id, &buf);
-
+                cursor,
+                &curr_edge.dst_id,
+                &curr_edge.src_id,
+                &buf);  // getting all of dst, src, in/out degrees at once
             std::string str(buf);
             int a = 0, b = 0;
             CommonUtil::extract_from_string(str, &a, &b);
+
             found->in_degree = a;
             found->out_degree = b;
             found->id = curr_edge.src_id;
-            // CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+
             if (keys.end != -1 && curr_edge.src_id > keys.end)
             {
                 goto no_next;
@@ -499,7 +507,7 @@ class EkeyEdgeCursor : public EdgeCursor
 
     edge_found:
         // If end_edge is set
-        if (end_edge.src_id != -2)
+        if (end_edge.src_id != -1)
         {
             // If found > end edge
             if (!(found->src_id < end_edge.src_id ||

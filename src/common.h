@@ -218,7 +218,7 @@ class NodeCursor : public table_iterator
      * @param _keys the key range object. Set the end key to INT_MAX if you want
      * to get all the nodes from start node.
      */
-    void set_key_range(key_range _keys)
+    virtual void set_key_range(key_range _keys)  // overrided by edgekey
     {
         keys = _keys;
         cursor->set_key(cursor, keys.start);

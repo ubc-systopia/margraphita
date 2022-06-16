@@ -578,7 +578,7 @@ int main()
     opts.db_dir = "./db";
     opts.db_name = "test_adj";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = "/home/puneet/scratch/margraphita/profile/test";
+    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
     AdjList graph = AdjList(opts);
     create_init_nodes(graph, opts.is_directed);

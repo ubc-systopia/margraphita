@@ -1202,7 +1202,7 @@ OutCursor *EdgeKey::get_outnbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new EkeyOutCursor(get_src_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, num_nodes - 1});
+    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
     return toReturn;
 }
 
@@ -1211,7 +1211,7 @@ InCursor *EdgeKey::get_innbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new EkeyInCursor(get_dst_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, num_nodes - 1});
+    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
     return toReturn;
 }
 
