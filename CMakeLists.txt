@@ -118,6 +118,7 @@ SET(PATH_SRC    "${PROJECT_SOURCE_DIR}/src")
 SET(PATH_TEST   "${PROJECT_SOURCE_DIR}/test")
 SET(BENCHMARK   "${PROJECT_SOURCE_DIR}/benchmark")
 SET(UTILS       "${PROJECT_SOURCE_DIR}/utils")
+SET(PMAP        "${UTILS}/parallel_hashmap")
 
 #Create GraphAPI static library
 add_subdirectory(src)

@@ -16,6 +16,10 @@ const std::string GRAPH_PREFIX = "std";
 
 StandardGraph::StandardGraph(graph_opts &opt_params) : GraphBase(opt_params)
 {
+    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    {
+        std::filesystem::create_directories(opts.stat_log);
+    }
     if (opts.create_new)
     {
         create_new_graph();
@@ -842,7 +846,7 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
     }
 
     WT_CURSOR *cursor = get_src_idx_cursor();
-    cursor->reset(cursor);
+    // cursor->reset(cursor);
     cursor->set_key(cursor, node_id);
 
     node_id_t temp = -1;
@@ -866,6 +870,7 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
             }
         }
     }
+    cursor->reset(cursor);
     return edges;
 }
 

@@ -90,13 +90,8 @@ void insert_stats_to_session(WT_SESSION *session, int edgeNo, int nodeNo)
     cursor->set_key(cursor, node_count.c_str());
     cursor->set_value(cursor, buffer);
     cursor->insert(cursor);
-
     sprintf(buffer, "%d", edgeNo);
-    if (session->open_cursor(session, "table:metadata", NULL, NULL, &cursor) !=
-        0)
-    {
-        std::cout << "Failed to open metadata table";
-    }
+
     memset(buffer, 0, BUFFER_LENGTH);
     sprintf(buffer, "%d", nodeNo);
     cursor->set_key(cursor, node_count.c_str());

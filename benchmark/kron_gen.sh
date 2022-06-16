@@ -23,6 +23,6 @@ for ((scale=10; scale <=15; scale ++ )); do
 		${KRON_GEN_PATH} $nEdges $scale 0 0 > $dirname/$filename
 	elif [[ $KRON_GEN == 'parmat' ]]
 	then
-		${KRON_GEN_PATH} -nEdges $nEdges -nVertices $nVertices -noEdgeToSeld -noDuplicateEdges -output $dirname/$filename
+		${KRON_GEN_PATH} -nEdges $nEdges -nVertices $nVertices -noEdgeToSelf -noDuplicateEdges -sorted -output $dirname/$filename
 	fi
 done

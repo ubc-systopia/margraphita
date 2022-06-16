@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -17,6 +18,10 @@ const std::string GRAPH_PREFIX = "edgekey";
 
 EdgeKey::EdgeKey(graph_opts opt_params) : GraphBase(opt_params)
 {
+    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    {
+        std::filesystem::create_directories(opts.stat_log);
+    }
     if (opts.create_new)
     {
         create_new_graph();
