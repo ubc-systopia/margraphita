@@ -305,12 +305,13 @@ void StandardGraph::add_node(node to_insert)
 bool StandardGraph::has_node(node_id_t node_id)
 {
     int ret = 0;
-    if (this->node_cursor == NULL)
+    if (node_cursor == NULL)
     {
         ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
     }
-    this->node_cursor->set_key(this->node_cursor, node_id);
-    ret = this->node_cursor->search(this->node_cursor);
+    node_cursor->set_key(node_cursor, node_id);
+    ret = node_cursor->search(node_cursor);
+    node_cursor->reset(node_cursor);
     if (ret == 0)
     {
         return true;
@@ -909,7 +910,6 @@ vector<node_id_t> StandardGraph::get_out_nodes_id(node_id_t node_id)
 {
     vector<edge> out_edges;
     vector<node_id_t> node_ids;
-    WT_CURSOR *cursor = get_node_cursor();
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
@@ -919,7 +919,6 @@ vector<node_id_t> StandardGraph::get_out_nodes_id(node_id_t node_id)
     {
         node_ids.push_back(out_edge.dst_id);
     }
-    cursor->reset(cursor);
     return node_ids;
 }
 

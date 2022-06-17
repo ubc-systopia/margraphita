@@ -271,9 +271,10 @@ void EdgeKey::add_node(node to_insert)
 bool EdgeKey::has_node(node_id_t node_id)
 {
     WT_CURSOR *e_cur = get_edge_cursor();
-
     e_cur->set_key(e_cur, node_id, OutOfBand_ID);
-    if (e_cur->search(e_cur) == 0)
+    int ret = e_cur->search(e_cur);
+    e_cur->reset(e_cur);
+    if (ret == 0)
     {
         return true;
     }

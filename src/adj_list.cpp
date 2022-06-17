@@ -52,13 +52,13 @@ AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
 bool AdjList::has_node(node_id_t node_id)
 {
     int ret = 0;
-    if (this->node_cursor == NULL)
+    if (node_cursor == NULL)
     {
-        ret =
-            _get_table_cursor(NODE_TABLE, &(this->node_cursor), session, false);
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
     }
-    this->node_cursor->set_key(this->node_cursor, node_id);
-    ret = this->node_cursor->search(this->node_cursor);
+    node_cursor->set_key(node_cursor, node_id);
+    ret = node_cursor->search(node_cursor);
+    node_cursor->reset(node_cursor);
     if (ret == 0)
     {
         return true;
