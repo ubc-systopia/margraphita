@@ -546,6 +546,11 @@ class EdgeKey : public GraphBase
     WT_CURSOR *get_dst_idx_cursor();
     WT_CURSOR *get_node_cursor();
     WT_CURSOR *get_edge_cursor();
+
+    WT_CURSOR *get_new_src_idx_cursor();
+    WT_CURSOR *get_new_dst_idx_cursor();
+    WT_CURSOR *get_new_node_cursor();
+    WT_CURSOR *get_new_edge_cursor();
     void make_indexes();
 
    private:

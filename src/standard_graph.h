@@ -524,6 +524,12 @@ class StandardGraph : public GraphBase
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
     WT_CURSOR *get_src_dst_idx_cursor();
+
+    WT_CURSOR *get_new_node_cursor();
+    WT_CURSOR *get_new_edge_cursor();
+    WT_CURSOR *get_new_src_idx_cursor();
+    WT_CURSOR *get_new_dst_idx_cursor();
+    WT_CURSOR *get_new_src_dst_idx_cursor();
     std::vector<edge> test_cursor_iter(node_id_t node_id);
     void make_indexes();
 

@@ -1075,6 +1075,18 @@ WT_CURSOR *StandardGraph::get_node_cursor()
     return node_cursor;
 }
 
+WT_CURSOR *StandardGraph::get_new_node_cursor()
+{
+    WT_CURSOR *new_node_cursor = nullptr;
+    int ret = _get_table_cursor(NODE_TABLE, &new_node_cursor, session, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a node cursor");
+    }
+
+    return new_node_cursor;
+}
+
 WT_CURSOR *StandardGraph::get_edge_cursor()
 {
     if (edge_cursor == nullptr)
@@ -1088,6 +1100,19 @@ WT_CURSOR *StandardGraph::get_edge_cursor()
 
     return edge_cursor;
 }
+
+WT_CURSOR *StandardGraph::get_new_edge_cursor()
+{
+    WT_CURSOR *new_edge_cursor = nullptr;
+    int ret = _get_table_cursor(EDGE_TABLE, &new_edge_cursor, session, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get an edge cursor");
+    }
+
+    return new_edge_cursor;
+}
+
 WT_CURSOR *StandardGraph::get_src_idx_cursor()
 {
     string projection = "(" + SRC + "," + DST + ")";
@@ -1101,6 +1126,20 @@ WT_CURSOR *StandardGraph::get_src_idx_cursor()
     return src_index_cursor;
 }
 
+WT_CURSOR *StandardGraph::get_new_src_idx_cursor()
+{
+    WT_CURSOR *new_src_index_cursor = nullptr;
+    string projection = "(" + SRC + "," + DST + ")";
+    if (_get_index_cursor(
+            EDGE_TABLE, SRC_INDEX, projection, &new_src_index_cursor) != 0)
+    {
+        throw GraphException(
+            "Could not get a SRC index cursor on the edge table");
+    }
+
+    return new_src_index_cursor;
+}
+
 WT_CURSOR *StandardGraph::get_dst_idx_cursor()
 {
     string projection = "(" + SRC + "," + DST + ")";
@@ -1112,6 +1151,20 @@ WT_CURSOR *StandardGraph::get_dst_idx_cursor()
     }
 
     return dst_index_cursor;
+}
+
+WT_CURSOR *StandardGraph::get_new_dst_idx_cursor()
+{
+    WT_CURSOR *new_dst_index_cursor = nullptr;
+    string projection = "(" + SRC + "," + DST + ")";
+    if (_get_index_cursor(
+            EDGE_TABLE, DST_INDEX, projection, &new_dst_index_cursor) != 0)
+    {
+        throw GraphException(
+            "Could not get a DST index cursor on the edge table");
+    }
+
+    return new_dst_index_cursor;
 }
 
 WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
@@ -1128,10 +1181,25 @@ WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
     return src_dst_index_cursor;
 }
 
+WT_CURSOR *StandardGraph::get_new_src_dst_idx_cursor()
+{
+    WT_CURSOR *new_src_dst_index_cursor = nullptr;
+    string projection = "(" + SRC + "," + DST + ")";
+    if (_get_index_cursor(
+            EDGE_TABLE, SRC_DST_INDEX, projection, &new_src_dst_index_cursor) !=
+        0)
+    {
+        throw GraphException(
+            "Could not get a DST index cursor on the edge table");
+    }
+
+    return new_src_dst_index_cursor;
+}
+
 OutCursor *StandardGraph::get_outnbd_iter()
 {
     uint64_t num_nodes = this->get_num_nodes();
-    OutCursor *toReturn = new StdOutCursor(get_src_idx_cursor(), session);
+    OutCursor *toReturn = new StdOutCursor(get_new_src_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
     toReturn->set_key_range({-1, num_nodes - 1});
     return toReturn;
@@ -1140,7 +1208,7 @@ OutCursor *StandardGraph::get_outnbd_iter()
 InCursor *StandardGraph::get_innbd_iter()
 {
     uint64_t num_nodes = this->get_num_nodes();
-    InCursor *toReturn = new StdInCursor(get_dst_idx_cursor(), session);
+    InCursor *toReturn = new StdInCursor(get_new_dst_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
     toReturn->set_key_range({-1, num_nodes - 1});
     return toReturn;
@@ -1148,12 +1216,12 @@ InCursor *StandardGraph::get_innbd_iter()
 
 NodeCursor *StandardGraph::get_node_iter()
 {
-    return new StdNodeCursor(get_node_cursor(), session);
+    return new StdNodeCursor(get_new_node_cursor(), session);
 }
 
 EdgeCursor *StandardGraph::get_edge_iter()
 {
-    return new StdEdgeCursor(get_edge_cursor(), session);
+    return new StdEdgeCursor(get_new_edge_cursor(), session);
 }
 
 /**
