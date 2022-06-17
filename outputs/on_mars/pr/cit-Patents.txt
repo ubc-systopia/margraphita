@@ -1,5 +1,1 @@
---------------------------------
-Fri 10 Jun 2022 01:32:41 PM PDT
-Running PageRank
-terminate called after throwing an instance of 'GraphException'
-  what():  Could not find the expected WT DB directory - /home/jackli/margraphita/db/cit-Patents/adj_rd_cit-Patents
+
