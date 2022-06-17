@@ -1181,12 +1181,28 @@ WT_CURSOR *EdgeKey::get_dst_idx_cursor()
     return dst_idx_cursor;
 }
 
+WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
+{
+    if (dst_src_idx_cursor == nullptr)
+    {
+        string projection = "(" + DST + "," + SRC + "," + ATTR + ")";
+        if (_get_index_cursor(
+                EDGE_TABLE, DST_SRC_INDEX, projection, &dst_src_idx_cursor) !=
+            0)
+        {
+            throw GraphException("Could not get a cursor to DST_SRC_INDEX");
+        }
+    }
+
+    return dst_src_idx_cursor;
+}
+
 OutCursor *EdgeKey::get_outnbd_iter()
 {
     uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new EkeyOutCursor(get_src_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, num_nodes - 1});
+    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
     return toReturn;
 }
 
@@ -1195,7 +1211,7 @@ InCursor *EdgeKey::get_innbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new EkeyInCursor(get_dst_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, num_nodes - 1});
+    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
     return toReturn;
 }
 
@@ -1209,7 +1225,7 @@ EdgeCursor *EdgeKey::get_edge_iter()
     return new EkeyEdgeCursor(get_edge_cursor(), session);
 }
 
-WT_CURSOR *EdgeKey::get_node_cursor() { return get_dst_idx_cursor(); }
+WT_CURSOR *EdgeKey::get_node_cursor() { return get_dst_src_idx_cursor(); }
 
 node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
 {

@@ -354,8 +354,8 @@ void test_NodeCursor(EdgeKey graph)
 {
     INFO();
     NodeCursor *node_cursor = graph.get_node_iter();
-    node found;
-    int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
+    node found = {0, 0, 0};
+    int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 11};
     int i = 0;
     node_cursor->next(&found);
     while (found.id != -1)
@@ -435,7 +435,7 @@ int main()
     opts.db_name = "test_eKey";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = "/home/puneet/scratch/margraphita/profile/test";
+    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
     EdgeKeyTester graph = EdgeKeyTester(opts);
     create_init_nodes(graph, opts.is_directed);
@@ -456,6 +456,7 @@ int main()
 
     test_InCursor(graph);
     test_OutCursor(graph);
+
     test_NodeCursor(graph);
     test_NodeCursor_Range(graph);
     test_EdgeCursor(graph);
