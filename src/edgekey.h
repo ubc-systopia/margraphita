@@ -562,7 +562,6 @@ class EdgeKey : public GraphBase
     void init_cursors();  // todo <-- implement this
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
-    WT_CURSOR *get_dst_src_idx_cursor();
     WT_CURSOR *get_node_cursor();
     WT_CURSOR *get_edge_cursor();
 
@@ -571,8 +570,9 @@ class EdgeKey : public GraphBase
     WT_CURSOR *get_new_node_cursor();
     WT_CURSOR *get_new_edge_cursor();
 
-    WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
-        WT_CURSOR *EdgeKey::get_new_dst_src_idx_cursor() void make_indexes();
+    WT_CURSOR *get_dst_src_idx_cursor();
+    WT_CURSOR *get_new_dst_src_idx_cursor();
+    void make_indexes();
 
    private:
     // Cursors
