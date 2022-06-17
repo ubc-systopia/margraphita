@@ -1,0 +1,528 @@
+Running TC
+Graph loaded in 760370
+Trust TriangleCounting completed in : 294947
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 210850
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 225594
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105318
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221944
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105398
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 222886
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105373
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221959
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104981
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 222031
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104974
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221753
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105146
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 222586
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105681
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 222964
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105057
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 222611
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105271
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 266045
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 186899
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 320376
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 111418
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 222125
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105050
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 231772
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105366
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 305056
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 203210
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 290131
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105789
+Cycle Triangles count = 3346
+Running TC
+Graph loaded in 1.01451e+06
+Trust TriangleCounting completed in : 264083
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 207790
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 324992
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103166
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218398
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103340
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218487
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103402
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218218
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103346
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221160
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103692
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218715
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103177
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218388
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103487
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218083
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103463
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218898
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103174
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218645
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103163
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218548
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103835
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218252
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103330
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218609
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103203
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218696
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103148
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218327
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103434
+Cycle Triangles count = 3346
+Running TC
+Graph loaded in 1.01144e+06
+Trust TriangleCounting completed in : 222945
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 199496
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 373621
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104117
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220428
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103967
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219832
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103980
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220175
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103687
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 222958
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104095
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220057
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103879
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219735
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104005
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220040
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103769
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220399
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103477
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219615
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104039
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219759
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103924
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220202
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103628
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219830
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103583
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219791
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103905
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219745
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103887
+Cycle Triangles count = 3346
+Running TC
+Graph loaded in 764705
+Trust TriangleCounting completed in : 229709
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108604
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 229030
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 107879
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 228980
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108651
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 231194
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108332
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 229028
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108369
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 228857
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108431
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 229400
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108053
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 229224
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108206
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 228845
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108519
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 228511
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108029
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 229440
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108382
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 229460
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108361
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 227632
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 107788
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 227770
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 107753
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 228998
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108393
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 233140
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 108467
+Cycle Triangles count = 3346
+Running TC
+Graph loaded in 782510
+Trust TriangleCounting completed in : 225162
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 156255
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 415616
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104123
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219477
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104271
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220433
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103968
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219241
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103828
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218675
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103661
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218526
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104175
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218699
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103933
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219012
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103608
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219011
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103621
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218241
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103894
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218800
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103879
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219588
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103457
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218897
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103554
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 218487
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103920
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 222618
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104091
+Cycle Triangles count = 3346
+Running TC
+Graph loaded in 763487
+Trust TriangleCounting completed in : 225349
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105464
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221450
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105013
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221827
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 110004
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 364953
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 204334
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 225892
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 106690
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 225897
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 106518
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 225169
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 106889
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 225223
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 106938
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 225711
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105523
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221836
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104690
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221098
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104626
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221256
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104208
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220917
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104115
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220398
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104597
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221463
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104359
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 227094
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104185
+Cycle Triangles count = 3346
+Running TC
+Graph loaded in 764929
+Trust TriangleCounting completed in : 222690
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 190439
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 383877
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104001
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220209
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104038
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 221734
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104462
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219855
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104097
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220672
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104057
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220322
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103830
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219928
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104325
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219576
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 110247
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 303873
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103697
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 285498
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 206581
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 303330
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104345
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219688
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105629
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220567
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 103829
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 220351
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 107010
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 219918
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 104414
+Cycle Triangles count = 3346
+Running TC
+Graph loaded in 759744
+Trust TriangleCounting completed in : 289307
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 212096
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 302826
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 114750
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 224604
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 205056
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 318800
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 187446
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 374487
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105671
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 223577
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 106144
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 223096
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105262
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 225647
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 107264
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 230064
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 110697
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 442945
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 128405
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 228214
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105509
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 223588
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105661
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 223428
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 106199
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 224697
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105906
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 224397
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 105857
+Cycle Triangles count = 3346
+Trust TriangleCounting completed in : 223876
+Trust Triangles count = 11369
+Cycle TriangleCounting  completed in : 106211
+Cycle Triangles count = 3346
