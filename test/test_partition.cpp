@@ -26,14 +26,15 @@ int main()
     opts.db_dir = "/home/puneet/scratch/margraphita/db/s10_e8";
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = "/home/puneet/scratch/margraphita/profile/test";
-    opts.type = GraphType::EKey;
+    opts.type = GraphType::Std;
 
     // Test graph setup
     EdgeKey *graph = new EdgeKey(opts);
     std::vector<key_range> node_offsets;
     std::vector<edge_range> edge_offsets;
     WT_CURSOR *ecur = graph->get_edge_cursor();
-    calculate_thread_offsets(10, 989, 8192, node_offsets, edge_offsets, ecur);
+    calculate_thread_offsets(
+        10, 989, 8192, node_offsets, edge_offsets, opts.type, ecur);
 
     for (auto x : node_offsets)
     {

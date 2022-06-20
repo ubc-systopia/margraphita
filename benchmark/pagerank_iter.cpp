@@ -20,11 +20,13 @@
 #include "standard_graph.h"
 #include "thread_utils.h"
 #include "times.h"
+#include "utils/pvector.h"
+#include "utils/thread_utils.h"
 
 const float dampness = 0.85;
 int p_cur = 0;
 int p_next = 1;
-
+typedef float ScoreT;
 typedef struct pr_map
 {
     int id;
@@ -36,10 +38,25 @@ typedef struct pr_map
 } pr_map;
 
 pr_map *ptr;  // pointer to mmap region
+std::vector<key_range> &node_ranges;
+std::vector<edge_range> &edge_offsets;
+
+pvector<ScoreT> PageRankPull(const GraphBase *graph,
+                             int max_iters,
+                             dounle epsilon = 0)
+{
+    uint64_t num_nodes = graph->get_num_nodes();
+    const ScoreT init_score = 1.0f / num_nodes;
+    const ScoreT base_score = (1.0f - dampness) / num_nodes;
+
+    pvector<ScoreT> scores(num_nodes, init_score);
+    pvector<ScoreT> outgoing_contrib(num_nodes);
+    // Assign thread ranges
+}
 
 /**
- * @brief This function takes a single parameter - the number of nodes in the
- * graph. We then allocate a memory region of size N*sizeof(pr_map) and
+ * @brief This function takes a single parameter - the number of nodes in
+ * the graph. We then allocate a memory region of size N*sizeof(pr_map) and
  * initialize the memory region with 1/N.
  *
  * @param N
@@ -240,66 +257,38 @@ int main(int argc, char *argv[])
     std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = pr_log + "/" + opts.db_name;
 
-    if (ç && pr_cli.get_graph_type() != "adj" &&
-        pr_cli.get_graph_type() != "ekey")
-    {
-        std::cout << "Unrecognized graph representation";
-    }
-    else
-    {
-        GraphBase *graph;
-        auto start = chrono::steady_clock::now();
-        if (pr_cli.get_graph_type() == "std")
-        {
-            StandardGraph tempGraph(opts);
-            graph = &tempGraph;
-        }
-        else if (pr_cli.get_graph_type() == "adj")
-        {
-            AdjList tempGraph(opts);
-            graph = &tempGraph;
-        }
-        else
-        {
-            EdgeKey tempGraph(opts);
-            graph = &tempGraph;
-        }
+    Times t;
+    t.start();
+    GraphFactory f;
+    GraphBase *graph = f.CreateGraph(opts);
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 
-        auto start = chrono::steady_clock::now();
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
+    if (pr_cli.is_exit_on_create())  // Exit after creating the db
+    {
+        if (pr_cli.get_graph_type() == GraphType::EKey)
         {
-            if (pr_cli.get_graph_type() == "std")
-            {
-                graph->close();
-            }
-            exit(0);
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-
-        // create_indices does not apply to adjacency lists
-        if (pr_cli.is_index_create() && pr_cli.get_graph_type() != "adj")
-        {
-            start = chrono::steady_clock::now();
-            graph->create_indices();
-            end = chrono::steady_clock::now();
-            cout << "Indices created in "
-                 << chrono::duration_cast<chrono::microseconds>(end - start)
-                        .count()
-                 << endl;
             graph->close();
-            exit(0);
         }
-
-        // Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(*graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
-        end = chrono::steady_clock::now();
-        cout << "PR  completed in : "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        graph->close();
+        exit(0);
     }
+
+    // create_indices does not apply to adjacency lists
+    if (pr_cli.is_index_create() && pr_cli.get_graph_type() != GraphType::Adj)
+    {
+        t.start();
+        = chrono::steady_clock::now();
+        graph->create_indices();
+        t.stop();
+        cout << "Indices created in " << t.t_micros() << endl;
+        graph->close();
+        exit(0);
+    }
+
+    // Now run PR
+    t.start();
+    pagerank(*graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
+    t.end();
+    cout << "PR  completed in : " << t.t_micros() << endl;
+    graph->close();
 }
