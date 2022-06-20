@@ -75,8 +75,8 @@ struct graph_opts
 
 typedef struct wt_conn_info
 {
+    WT_CONNECTION *conn;
     WT_SESSION *session;
-    WT_CURSOR *cursor;
 } wt_conn;
 
 typedef struct node
