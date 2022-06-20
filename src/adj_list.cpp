@@ -42,6 +42,19 @@ AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
     }
 }
 
+AdjList::AdjList(graph_opts &opt_params, wt_conn &connection)
+    : GraphBase(opt_params)
+
+{
+    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    {
+        std::filesystem::create_directories(opts.stat_log);
+    }
+
+    conn = connection.conn;
+    session = connection.session;
+}
+
 /**
  * @brief This function is used to check if a node identified by node_id exists
  * in the node table.
@@ -286,7 +299,8 @@ void AdjList::add_node(node to_insert)
     // Now add the adjlist entires
     add_adjlist(in_adj_cur, to_insert.id);
     add_adjlist(out_adj_cur, to_insert.id);
-    set_num_nodes(get_num_nodes() + 1, metadata_cursor);
+    init_metadata_cursor();
+    // set_num_nodes(get_num_nodes() + 1, metadata_cursor);
 }
 
 void AdjList::add_node(node_id_t to_insert,

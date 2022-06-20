@@ -390,6 +390,7 @@ class AdjList : public GraphBase
 {
    public:
     AdjList(graph_opts &opt_params);
+    AdjList(graph_opts &opt_params, wt_conn &connection);
     void create_new_graph();
     void add_node(node to_insert);
     void add_node(node_id_t to_insert,
