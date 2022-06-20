@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
         tc_info info(0);
         // Count Trust Triangles
         t.start();
-        info.trust_count = trust_tc_iter(graph);
+        info.trust_count = trust_tc(graph);
         t.stop();
 
         info.trust_time = t.t_micros();
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
 
         // Count Cycle Triangles
         t.start();
-        info.cycle_count = cycle_tc_iter(graph);
+        info.cycle_count = cycle_tc(graph);
         t.stop();
         info.cycle_time = t.t_micros();
         std::cout << "Cycle TriangleCounting  completed in : "
