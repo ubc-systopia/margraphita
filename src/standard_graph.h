@@ -488,7 +488,6 @@ class StandardGraph : public GraphBase
     StandardGraph(graph_opts &opt_params);
     void create_new_graph();
     void add_node(node to_insert);
-
     bool has_node(node_id_t node_id);
     node get_node(node_id_t node_id);
     void delete_node(node_id_t node_id);
