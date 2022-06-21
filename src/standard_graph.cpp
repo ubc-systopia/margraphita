@@ -51,6 +51,18 @@ StandardGraph::StandardGraph(graph_opts &opt_params) : GraphBase(opt_params)
     }
 }
 
+StandardGraph::StandardGraph(graph_opts &opt_params, wt_conn &connection)
+    : GraphBase(opt_params)
+{
+    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    {
+        std::filesystem::create_directories(opts.stat_log);
+    }
+
+    conn = connection.connection;
+    session = connection.session;
+}
+
 void StandardGraph::create_new_graph()
 {
     int ret;
