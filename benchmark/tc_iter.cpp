@@ -90,51 +90,68 @@ std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
 }
 
 template <typename Graph>
-int64_t trust_tc(Graph &graph)
+int64_t trust_tc_iter(Graph &graph)
 {
     int64_t count = 0;
-    vector<node> nodes = graph->get_nodes();
-    for (node u : nodes)
+    OutCursor *out_cursor = graph->get_outnbd_iter();
+    adjlist found = {0};
+
+    out_cursor->next(&found);
+    while (found.node_id != -1)
     {
-        vector<node_id_t> u_out_ids = graph->get_out_nodes_id(u.id);
-        for (node_id_t v : u_out_ids)
+        std::vector<node_id_t> out_nbrhood = found.edgelist;
+        for (node_id_t node : out_nbrhood)
         {
-            vector<node_id_t> v_out_ids = graph->get_out_nodes_id(v);
+            std::vector<node_id_t> node_out_nbrhood =
+                graph->get_out_nodes_id(node);
             std::vector<node_id_t> intersect =
-                intersection_id(u_out_ids, v_out_ids);
+                intersection_id(out_nbrhood, node_out_nbrhood);
             count += intersect.size();
         }
+        out_cursor->next(&found);
     }
 
     return count;
 }
 
 template <typename Graph>
-int64_t cycle_tc(Graph &graph)
+int64_t cycle_tc_iter(Graph &graph)
 {
     int64_t count = 0;
-    vector<node> nodes = graph->get_nodes();
-    for (node u : nodes)
+    InCursor *in_cursor = graph->get_innbd_iter();
+    OutCursor *out_cursor = graph->get_outnbd_iter();
+    adjlist found = {0};
+    adjlist found_out = {0};
+
+    in_cursor->next(&found);
+    out_cursor->next(&found_out);
+
+    while (found.node_id != -1)
     {
-        vector<node_id_t> u_out_ids = graph->get_out_nodes_id(u.id);
-        for (node_id_t v : u_out_ids)
+        std::vector<node_id_t> in_nbrhood = found.edgelist;
+        std::vector<node_id_t> out_nbrhood = found_out.edgelist;
+        for (node_id_t node : out_nbrhood)
         {
-            if (u.id < v)
+            if (found.node_id < node)
             {
-                vector<node_id_t> v_out_ids = graph->get_out_nodes_id(v);
-                vector<node_id_t> u_in_ids = graph->get_in_nodes_id(u.id);
+                std::vector<node_id_t> node_out_nbrhood =
+                    graph->get_out_nodes_id(node);
                 std::vector<node_id_t> intersect =
-                    intersection_id(v_out_ids, u_in_ids);
-                for (node_id_t w : intersect)
+                    intersection_id(in_nbrhood, node_out_nbrhood);
+
+                for (node_id_t itsc : intersect)
                 {
-                    if (u.id < w)
+                    if (found.node_id < itsc)
                     {
                         count += 1;
                     }
                 }
             }
         }
+        in_cursor->next(&found);
+        out_cursor->next(&found_out);
     }
+
     return count;
 }
 
@@ -174,21 +191,21 @@ int main(int argc, char *argv[])
         tc_info info(0);
         // Count Trust Triangles
         t.start();
-        info.trust_count = trust_tc(graph);
+        info.trust_count = trust_tc_iter(graph);
         t.stop();
 
         info.trust_time = t.t_micros();
-        std::cout << "Trust TriangleCounting completed in : " << info.trust_time
-                  << std::endl;
+        std::cout << "Trust Triangle_Counting_ITER completed in : "
+                  << info.trust_time << std::endl;
         std::cout << "Trust Triangles count = " << info.trust_count
                   << std::endl;
 
         // Count Cycle Triangles
         t.start();
-        info.cycle_count = cycle_tc(graph);
+        info.cycle_count = cycle_tc_iter(graph);
         t.stop();
         info.cycle_time = t.t_micros();
-        std::cout << "Cycle TriangleCounting  completed in : "
+        std::cout << "Cycle TriangleCounting_ITER completed in : "
                   << info.cycle_time << std::endl;
         std::cout << "Cycle Triangles count = " << info.cycle_count
                   << std::endl;

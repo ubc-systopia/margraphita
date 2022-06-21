@@ -12,3 +12,5 @@ DB_DIR=$GRAPH_PROJECT_DIR/db
 PROFILE_PATH=$GRAPH_PROJECT_DIR/build/profile
 RELEASE_PATH=$GRAPH_PROJECT_DIR/build/release
 STATS_PATH=$GRAPH_PROJECT_DIR/build/wt_stats
+
+# export GRAPH_PROJECT_DIR=/home/jackli/margraphita/

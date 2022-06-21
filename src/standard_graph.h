@@ -490,7 +490,6 @@ class StandardGraph : public GraphBase
                   wt_conn &connection);  // TODO: merge the 2 constructors
     void create_new_graph();
     void add_node(node to_insert);
-
     bool has_node(node_id_t node_id);
     node get_node(node_id_t node_id);
     void delete_node(node_id_t node_id);
