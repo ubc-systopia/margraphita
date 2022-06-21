@@ -51,7 +51,7 @@ AdjList::AdjList(graph_opts &opt_params, wt_conn &connection)
         std::filesystem::create_directories(opts.stat_log);
     }
 
-    conn = connection.conn;
+    conn = connection.connection;
     session = connection.session;
 }
 
