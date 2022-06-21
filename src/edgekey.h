@@ -532,6 +532,8 @@ class EdgeKey : public GraphBase
 {
    public:
     EdgeKey(graph_opts opt_params);
+    EdgeKey(graph_opts &opt_params,
+            wt_conn &connection);  // TODO: merge the 2 constructors
     void create_new_graph();
     void add_node(node to_insert);
 

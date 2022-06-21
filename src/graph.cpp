@@ -107,7 +107,11 @@ int GraphBase::_get_table_cursor(std::string table,
     return 0;
 }
 
-void GraphBase::close() { CommonUtil::close_connection(conn); }
+void GraphBase::close()
+{
+    CommonUtil::close_connection(
+        conn);  // To update to close sessions in new design
+}
 
 // Close, restore from DB, create/drop indices
 void GraphBase::__restore_from_db(std::string db_name)
@@ -129,13 +133,13 @@ void GraphBase::__restore_from_db(std::string db_name)
 
         if (strcmp(key, DB_DIR.c_str()) == 0)
         {
-            this->opts.db_dir =
-                value;  // CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_dir = value;  // CommonUtil::unpack_string_wt(value,
+                                        // this->session);
         }
         else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
-            this->opts.db_name =
-                value;  // CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_name = value;  // CommonUtil::unpack_string_wt(value,
+                                         // this->session);
         }
         // restore nNodes & nEdges
         else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
@@ -175,9 +179,8 @@ void GraphBase::__restore_from_db(std::string db_name)
 }
 
 /**
- * @brief Returns the metadata associated with the key param from the METADATA
- * table.
- * Same from standard_graph implementation
+ * @brief Returns the metadata associated with the key param from the
+ * METADATA table. Same from standard_graph implementation
  */
 
 std::string GraphBase::get_metadata(const std::string &key)
@@ -209,10 +212,11 @@ std::string GraphBase::get_metadata(const std::string &key)
 /**
  * @brief Generic function to create the indexes on a table
  *
- * @param table_name The name of the table on which the index is to be created.
+ * @param table_name The name of the table on which the index is to be
+ * created.
  * @param idx_name The name of the index
- * @param projection The columns that are to be included in the index. This is
- * in the format "(col1,col2,..)"
+ * @param projection The columns that are to be included in the index. This
+ * is in the format "(col1,col2,..)"
  * @param cursor This is the cursor variable that needs to be set.
  * @return 0 if the index could be set
  */
