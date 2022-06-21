@@ -1126,12 +1126,15 @@ WT_CURSOR *StandardGraph::get_new_edge_cursor()
 
 WT_CURSOR *StandardGraph::get_src_idx_cursor()
 {
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(
-            EDGE_TABLE, SRC_INDEX, projection, &(src_index_cursor)) != 0)
+    if (src_index_cursor == nullptr)
     {
-        throw GraphException(
-            "Could not get a SRC index cursor on the edge table");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(
+                EDGE_TABLE, SRC_INDEX, projection, &(src_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a SRC index cursor on the edge table");
+        }
     }
 
     return src_index_cursor;
@@ -1153,12 +1156,15 @@ WT_CURSOR *StandardGraph::get_new_src_idx_cursor()
 
 WT_CURSOR *StandardGraph::get_dst_idx_cursor()
 {
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(
-            EDGE_TABLE, DST_INDEX, projection, &(dst_index_cursor)) != 0)
+    if (dst_index_cursor == nullptr)
     {
-        throw GraphException(
-            "Could not get a DST index cursor on the edge table");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(
+                EDGE_TABLE, DST_INDEX, projection, &(dst_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a DST index cursor on the edge table");
+        }
     }
 
     return dst_index_cursor;
@@ -1180,13 +1186,17 @@ WT_CURSOR *StandardGraph::get_new_dst_idx_cursor()
 
 WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
 {
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(
-            EDGE_TABLE, SRC_DST_INDEX, projection, &(src_dst_index_cursor)) !=
-        0)
+    if (src_dst_index_cursor == nullptr)
     {
-        throw GraphException(
-            "Could not get a DST index cursor on the edge table");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(EDGE_TABLE,
+                              SRC_DST_INDEX,
+                              projection,
+                              &(src_dst_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a DST index cursor on the edge table");
+        }
     }
 
     return src_dst_index_cursor;
