@@ -1,0 +1,401 @@
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: application work units currently queued
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: merge work units currently queued
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: rows merged in an LSM tree
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: sleep for LSM checkpoint throttle
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: sleep for LSM merge throttle
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: switch work units currently queued
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: tree maintenance operations discarded
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: tree maintenance operations executed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: tree maintenance operations scheduled
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 LSM: tree queue hit maximum
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: current work queue length
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: maximum work queue length
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: number of allocation state races
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: number of flush calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: number of operation slots viewed for allocation
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: number of times operation allocation failed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: number of times worker found no work
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: total allocations
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: total compact calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: total insert calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: total remove calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: total search calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 async: total update calls
+Jun 17 14:04:00 6 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 block-manager: blocks pre-loaded
+Jun 17 14:04:00 16 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 block-manager: blocks read
+Jun 17 14:04:00 8 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 block-manager: blocks written
+Jun 17 14:04:00 135168 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 block-manager: bytes read
+Jun 17 14:04:00 40960 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 block-manager: bytes written
+Jun 17 14:04:00 40960 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 block-manager: bytes written for checkpoint
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 block-manager: mapped blocks read
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 block-manager: mapped bytes read
+Jun 17 14:04:00 5 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: application threads page read from disk to cache count
+Jun 17 14:04:00 128 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: application threads page read from disk to cache time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: application threads page write from cache to disk count
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: application threads page write from cache to disk time (usecs)
+Jun 17 14:04:00 91609 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: bytes belonging to page images in the cache
+Jun 17 14:04:00 182 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: bytes belonging to the cache overflow table in the cache
+Jun 17 14:04:00 112156 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: bytes currently in the cache
+Jun 17 14:04:00 19897 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: bytes dirty in the cache cumulative
+Jun 17 14:04:00 20547 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: bytes not belonging to page images in the cache
+Jun 17 14:04:00 84824 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: bytes read into cache
+Jun 17 14:04:00 14304 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: bytes written from cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: cache overflow cursor application thread wait time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: cache overflow cursor internal thread wait time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: cache overflow score
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: cache overflow table entries
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: cache overflow table insert calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: cache overflow table max on-disk size
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: cache overflow table on-disk size
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: cache overflow table remove calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: checkpoint blocked page eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction calls to get a page
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction calls to get a page found queue empty
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction calls to get a page found queue empty after locking
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction currently operating in aggressive mode
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction empty score
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction passes of a file
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction server candidate queue empty when topping up
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction server candidate queue not empty when topping up
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction server evicting pages
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction server slept, because we did not make progress with eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction server unable to reach eviction goal
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction server waiting for a leaf page
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction server waiting for an internal page sleep (usec)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction server waiting for an internal page yields
+Jun 17 14:04:00 128 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction state
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walk target pages histogram - 0-9
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walk target pages histogram - 10-31
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walk target pages histogram - 128 and higher
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walk target pages histogram - 32-63
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walk target pages histogram - 64-128
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walks abandoned
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walks gave up because they restarted their walk twice
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walks gave up because they saw too many pages and found no candidates
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walks gave up because they saw too many pages and found too few candidates
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walks reached end of tree
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walks started from root of tree
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction walks started from saved location in tree
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction worker thread active
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction worker thread created
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction worker thread evicting pages
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction worker thread removed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: eviction worker thread stable number
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: files with active eviction walks
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: files with new eviction walks started
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: force re-tuning of eviction workers once in a while
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: forced eviction - pages evicted that were clean count
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: forced eviction - pages evicted that were clean time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: forced eviction - pages evicted that were dirty count
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: forced eviction - pages evicted that were dirty time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: forced eviction - pages selected because of too many deleted items count
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: forced eviction - pages selected count
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: forced eviction - pages selected unable to be evicted count
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: forced eviction - pages selected unable to be evicted time
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: hazard pointer blocked page eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: hazard pointer check calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: hazard pointer check entries walked
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: hazard pointer maximum array length
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: in-memory page passed criteria to be split
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: in-memory page splits
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: internal pages evicted
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: internal pages split during eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: leaf pages split during eviction
+Jun 17 14:04:00 10737418240 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: maximum bytes configured
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: maximum page size at eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: modified pages evicted
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: modified pages evicted by application threads
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: operations timed out waiting for space in cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: overflow pages read into cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: page split during eviction deepened the tree
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: page written requiring cache overflow records
+Jun 17 14:04:00 11 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages currently held in the cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages evicted by application threads
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages queued for eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages queued for eviction post lru sorting
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages queued for urgent eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages queued for urgent eviction during walk
+Jun 17 14:04:00 10 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages read into cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages read into cache after truncate
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages read into cache after truncate in prepare state
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages read into cache requiring cache overflow entries
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages read into cache requiring cache overflow for checkpoint
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages read into cache skipping older cache overflow entries
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages read into cache with skipped cache overflow entries needed later
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages read into cache with skipped cache overflow entries needed later by checkpoint
+Jun 17 14:04:00 101591 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages requested from the cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages seen by eviction walk
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages selected for eviction unable to be evicted
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages walked for eviction
+Jun 17 14:04:00 4 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages written from cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: pages written requiring in-memory restoration
+Jun 17 14:04:00 8 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: percentage overhead
+Jun 17 14:04:00 1477 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: tracked bytes belonging to internal pages in the cache
+Jun 17 14:04:00 110679 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: tracked bytes belonging to leaf pages in the cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: tracked dirty bytes in the cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: tracked dirty pages in the cache
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cache: unmodified pages evicted
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: background fsync file handles considered
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: background fsync file handles synced
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: background fsync time (msecs)
+Jun 17 14:04:00 110592 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: bytes read
+Jun 17 14:04:00 14202 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: bytes written for checkpoint
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: bytes written for eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: bytes written for log
+Jun 17 14:04:00 14202 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: bytes written total
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: threshold to call fsync
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: time waiting due to total capacity (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: time waiting during checkpoint (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: time waiting during eviction (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: time waiting during logging (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 capacity: time waiting during read (usecs)
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: auto adjusting condition resets
+Jun 17 14:04:00 2 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: auto adjusting condition wait calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: detected system time went backwards
+Jun 17 14:04:00 7 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: files currently open
+Jun 17 14:04:00 11601 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: memory allocations
+Jun 17 14:04:00 11202 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: memory frees
+Jun 17 14:04:00 36 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: memory re-allocations
+Jun 17 14:04:00 11 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: pthread mutex condition wait calls
+Jun 17 14:04:00 114 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: pthread mutex shared lock read-lock calls
+Jun 17 14:04:00 33 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: pthread mutex shared lock write-lock calls
+Jun 17 14:04:00 8 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: total fsync I/Os
+Jun 17 14:04:00 30 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: total read I/Os
+Jun 17 14:04:00 11 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 connection: total write I/Os
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cached cursor count
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor bulk loaded cursor insert calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor close calls that result in cache
+Jun 17 14:04:00 29 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor create calls
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor insert calls
+Jun 17 14:04:00 852 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor insert key and value bytes
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor modify calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor modify key and value bytes affected
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor modify value bytes modified
+Jun 17 14:04:00 998 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor next calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor operation restarted
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor prev calls
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor remove calls
+Jun 17 14:04:00 22 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor remove key bytes removed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor reserve calls
+Jun 17 14:04:00 9847 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor reset calls
+Jun 17 14:04:00 101583 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor search calls
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor search near calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor sweep buckets
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor sweep cursors closed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor sweep cursors examined
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor sweeps
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor truncate calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor update calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor update key and value bytes
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursor update value size change
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: cursors reused from cache
+Jun 17 14:04:00 21 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 cursor: open cursor count
+Jun 17 14:04:00 424 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: connection data handle size
+Jun 17 14:04:00 8 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: connection data handles currently active
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: connection sweep candidate became referenced
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: connection sweep dhandles closed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: connection sweep dhandles removed from hash list
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: connection sweep time-of-death sets
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: connection sweeps
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: session dhandles swept
+Jun 17 14:04:00 18 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 data-handle: session sweep attempts
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: checkpoint lock acquisitions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: checkpoint lock application thread wait time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: checkpoint lock internal thread wait time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: dhandle lock application thread time waiting (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: dhandle lock internal thread time waiting (usecs)
+Jun 17 14:04:00 2 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: dhandle read lock acquisitions
+Jun 17 14:04:00 8 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: dhandle write lock acquisitions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: durable timestamp queue lock application thread time waiting (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: durable timestamp queue lock internal thread time waiting (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: durable timestamp queue read lock acquisitions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: durable timestamp queue write lock acquisitions
+Jun 17 14:04:00 3 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: metadata lock acquisitions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: metadata lock application thread wait time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: metadata lock internal thread wait time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: read timestamp queue lock application thread time waiting (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: read timestamp queue lock internal thread time waiting (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: read timestamp queue read lock acquisitions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: read timestamp queue write lock acquisitions
+Jun 17 14:04:00 10 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: schema lock acquisitions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: schema lock application thread wait time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: schema lock internal thread wait time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: table lock application thread time waiting for the table lock (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: table lock internal thread time waiting for the table lock (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: table read lock acquisitions
+Jun 17 14:04:00 4 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: table write lock acquisitions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: txn global lock application thread time waiting (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: txn global lock internal thread time waiting (usecs)
+Jun 17 14:04:00 2 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: txn global read lock acquisitions
+Jun 17 14:04:00 3 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 lock: txn global write lock acquisitions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: busy returns attempting to switch slots
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: force archive time sleeping (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log bytes of payload data
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log bytes written
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log files manually zero-filled
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log flush operations
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log force write operations
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log force write operations skipped
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log records compressed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log records not compressed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log records too small to compress
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log release advances write LSN
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log scan operations
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log scan records requiring two reads
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log server thread advances write LSN
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log server thread write LSN walk skipped
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log sync operations
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log sync time duration (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log sync_dir operations
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log sync_dir time duration (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: log write operations
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: logging bytes consolidated
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: maximum log file size
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: number of pre-allocated log files to create
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: pre-allocated log files not ready and missed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: pre-allocated log files prepared
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: pre-allocated log files used
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: records processed by log scan
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot close lost race
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot close unbuffered waits
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot closures
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot join atomic update races
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot join calls atomic updates raced
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot join calls did not yield
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot join calls found active slot closed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot join calls slept
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot join calls yielded
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot join found active slot closed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot joins yield time (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot transitions unable to find free slot
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: slot unbuffered writes
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: total in-memory size of compressed records
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: total log buffer size
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: total size of compressed records
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: written slots coalesced
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 log: yields waiting for previous log file close
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system read latency histogram (bucket 1) - 10-49ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system read latency histogram (bucket 2) - 50-99ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system read latency histogram (bucket 3) - 100-249ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system read latency histogram (bucket 4) - 250-499ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system read latency histogram (bucket 5) - 500-999ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system read latency histogram (bucket 6) - 1000ms+
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system write latency histogram (bucket 1) - 10-49ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system write latency histogram (bucket 2) - 50-99ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system write latency histogram (bucket 3) - 100-249ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system write latency histogram (bucket 4) - 250-499ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system write latency histogram (bucket 5) - 500-999ms
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: file system write latency histogram (bucket 6) - 1000ms+
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation read latency histogram (bucket 1) - 100-249us
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation read latency histogram (bucket 2) - 250-499us
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation read latency histogram (bucket 3) - 500-999us
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation read latency histogram (bucket 4) - 1000-9999us
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation read latency histogram (bucket 5) - 10000us+
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation write latency histogram (bucket 1) - 100-249us
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation write latency histogram (bucket 2) - 250-499us
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation write latency histogram (bucket 3) - 500-999us
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation write latency histogram (bucket 4) - 1000-9999us
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 perf: operation write latency histogram (bucket 5) - 10000us+
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 reconciliation: fast-path pages deleted
+Jun 17 14:04:00 4 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 reconciliation: page reconciliation calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 reconciliation: page reconciliation calls for eviction
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 reconciliation: pages deleted
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 reconciliation: split bytes currently awaiting free
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 reconciliation: split objects currently awaiting free
+Jun 17 14:04:00 17 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: open session count
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: session query timestamp calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table alter failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table alter successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table alter unchanged and skipped
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table compact failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table compact successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table create failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table create successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table drop failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table drop successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table import failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table import successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table rebalance failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table rebalance successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table rename failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table rename successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table salvage failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table salvage successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table truncate failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table truncate successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table verify failed calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 session: table verify successful calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-state: active filesystem fsync calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-state: active filesystem read calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-state: active filesystem write calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: application thread time evicting (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: application thread time waiting for cache (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: connection close blocked waiting for transaction state stabilization
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: connection close yielded for lsm manager shutdown
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: data handle lock yielded
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: get reference for page index and slot time sleeping (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: log server sync yielded for log write
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: page access yielded due to prepare state change
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: page acquire busy blocked
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: page acquire eviction blocked
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: page acquire locked blocked
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: page acquire read blocked
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: page acquire time sleeping (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: page delete rollback time sleeping for state change (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 thread-yield: page reconciliation yielded due to child modification
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: Number of prepared updates
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: Number of prepared updates added to cache overflow
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: Number of prepared updates resolved
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: durable timestamp queue entries walked
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: durable timestamp queue insert to empty
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: durable timestamp queue inserts to head
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: durable timestamp queue inserts total
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: durable timestamp queue length
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: number of named snapshots created
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: number of named snapshots dropped
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: prepared transactions
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: prepared transactions committed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: prepared transactions currently active
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: prepared transactions rolled back
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: query timestamp calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: read timestamp queue entries walked
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: read timestamp queue insert to empty
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: read timestamp queue inserts to head
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: read timestamp queue inserts total
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: read timestamp queue length
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: rollback to stable calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: rollback to stable updates aborted
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: rollback to stable updates removed from cache overflow
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: set timestamp calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: set timestamp durable calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: set timestamp durable updates
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: set timestamp oldest calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: set timestamp oldest updates
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: set timestamp stable calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: set timestamp stable updates
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction begins
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoint currently running
+Jun 17 14:04:00 2 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoint generation
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoint max time (msecs)
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoint min time (msecs)
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoint most recent time (msecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoint scrub dirty target
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoint scrub time (msecs)
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoint total time (msecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoints
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction checkpoints skipped because database was clean
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction failures due to cache overflow
+Jun 17 14:04:00 1 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction fsync calls for checkpoint after allocating the transaction ID
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction fsync duration for checkpoint after allocating the transaction ID (usecs)
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction range of IDs currently pinned
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction range of IDs currently pinned by a checkpoint
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction range of IDs currently pinned by named snapshots
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction range of timestamps currently pinned
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction range of timestamps pinned by a checkpoint
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction range of timestamps pinned by the oldest active read timestamp
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction range of timestamps pinned by the oldest timestamp
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction read timestamp of the oldest active reader
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transaction sync calls
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transactions committed
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: transactions rolled back
+Jun 17 14:04:00 0 /home/jackli/margraphita/db/s10_e8/adj_rd_s10_e8 transaction: update conflicts

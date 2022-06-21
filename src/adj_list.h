@@ -436,6 +436,11 @@ class AdjList : public GraphBase
     WT_CURSOR *get_in_adjlist_cursor();
     WT_CURSOR *get_out_adjlist_cursor();
 
+    WT_CURSOR *get_new_node_cursor();
+    WT_CURSOR *get_new_edge_cursor();
+    WT_CURSOR *get_new_in_adjlist_cursor();
+    WT_CURSOR *get_new_out_adjlist_cursor();
+
     void make_indexes() { return; };
 
    private:

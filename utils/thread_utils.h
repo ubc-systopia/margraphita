@@ -8,7 +8,6 @@
 
 #include "common.h"
 
-GraphType type = GraphType::EKey;
 /**
  * @brief We use this function to assign a thread to a specific subset of the
  * node list. This is important for the deterministic run of benchmarks.
@@ -23,6 +22,7 @@ void calculate_thread_offsets(int thread_max,
                               node_id_t num_edges,
                               std::vector<key_range> &node_ranges,
                               std::vector<edge_range> &edge_offsets,
+                              GraphType type,
                               WT_CURSOR *ecur)
 {
     /*

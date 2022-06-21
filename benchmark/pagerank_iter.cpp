@@ -11,11 +11,13 @@
 #include <shared_mutex>
 #include <vector>
 
+#include "GraphCreate.h"
 #include "adj_list.h"
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
 #include "graph_exception.h"
+#include "pvector.h"
 #include "reader.h"
 #include "standard_graph.h"
 #include "thread_utils.h"
@@ -24,7 +26,7 @@
 const float dampness = 0.85;
 int p_cur = 0;
 int p_next = 1;
-
+typedef float ScoreT;
 typedef struct pr_map
 {
     int id;
@@ -38,14 +40,13 @@ typedef struct pr_map
 pr_map *ptr;  // pointer to mmap region
 
 /**
- * @brief This function takes a single parameter - the number of nodes in the
- * graph. We then allocate a memory region of size N*sizeof(pr_map) and
+ * @brief This function takes a single parameter - the number of nodes in
+ * the graph. We then allocate a memory region of size N*sizeof(pr_map) and
  * initialize the memory region with 1/N.
  *
  * @param N
  */
-template <typename Graph>
-void init_pr_map(int N, Graph g)
+void init_pr_map(int N)
 {
     ptr = (pr_map *)mmap(NULL,
                          sizeof(pr_map) * N,
@@ -69,13 +70,6 @@ void init_pr_map(int N, Graph g)
         exit(1);
     }
     float init_val = 1.0f / N;
-    // std::vector<node> *nodes = new std::vector<node>(N);
-    // g.get_node_degrees(nodes);
-    /*
-    What I want to do here: each thread gets an offset into the nodes range.
-    Based on where they are in the array, we use the cursor->search_near() to
-    get the first valid node_id in that range.
-    */
 
 #pragma omp parallel for
     for (int i = 0; i < N; i++)
@@ -84,30 +78,30 @@ void init_pr_map(int N, Graph g)
                          // at this point.
         ptr[i].p_rank[0] = init_val;
         ptr[i].p_rank[1] = 0.0f;
-        ptr[i].in_deg = nodes->at(i).in_deg;
-        ptr[i].out_deg = nodes->at(i).out_deg;
+        ptr[i].in_deg = 0;
+        ptr[i].out_deg = 0;
     }
 }
 
-void print_map(std::vector<node> &nodes)
+void print_map(int N)
 {
     ofstream FILE;
     FILE.open("pr_out.txt", ios::out | ios::ate);
-    for (node n : nodes)
+    for (int i = 0; i < N; i++)
     {
-        FILE << n.id << "\t" << ptr[n.id].p_rank[p_next] << "\n";
+        FILE << ptr[i].id << "\t" << ptr[i].p_rank[p_next] << "\n";
     }
     FILE.close();
 }
 
-void delete_map() { munmap(ptr, sizeof(pr_map) * N); }
+void delete_map(int N) { munmap(ptr, sizeof(pr_map) * N); }
 
 void print_to_csv(std::string name,
-                  std::vector<int64_t> &times,
+                  std::vector<double> &times,
                   std::string csv_logdir)
 {
     fstream FILE;
-    std::string _name = csv_logdir + "/" + name + "_pr.csv";
+    std::string _name = csv_logdir + "/" + name + "_pr_iter.csv";
     if (access(_name.c_str(), F_OK) == -1)
     {
         // The file does not exist yet.
@@ -141,83 +135,64 @@ void print_to_csv(std::string name,
  * pr_map. init_pr_map would need to be called prior to this function. Extend
  * PR_map to have a lock.
  */
-template <typename Graph>
-void pagerank(Graph &graph,
+void pagerank(GraphBase *graph,
               graph_opts opts,
               int iterations,
               double tolerance,
               string csv_logdir)
 {
-    auto start = chrono::steady_clock::now();
-    int num_nodes = graph.get_num_nodes();
+    Times t;
+    t.start();
+    int num_nodes = graph->get_num_nodes();
     init_pr_map(num_nodes);
-    auto end = chrono::steady_clock::now();
-    cout << "Loading the nodes and constructing the map took "
-         << to_string(chrono::duration_cast<chrono::microseconds>(end - start)
-                          .count())
+    t.stop();
+    cout << "Loading the nodes and constructing the map took " << t.t_micros()
          << endl;
-
-    std::vector<int64_t> times;
-    times.push_back(
-        chrono::duration_cast<chrono::microseconds>(end - start).count());
+    std::vector<double> times;
+    times.push_back(t.t_micros());
 
     double diff = 1.0;
     int iter_count = 0;
     float constant = (1 - dampness) / num_nodes;
-    auto in_cursor = graph.get_innbd_cursor();  // Have to use type inference
-                                                // coz of template
+
     while (iter_count < iterations)
     {
-        auto start = chrono::steady_clock::now();
+        t.start();
         int i = 0;
 
-        adjlist found = {0};
         int index = 0;
-        while (in_cursor.has_more())
+        adjlist found = {0};
+        node curr_node = {0};
+        InCursor *in_cursor = graph->get_innbd_iter();
+        in_cursor->next(&found);
+
+        while (found.node_id != -1)
         {
-            in_cursor.next(&found);
-            if (found.node_id != -1)
+            if (iter_count == 0)
             {
-                if (iter_count == 0)
-                {
-                    ptr[index].id = found.node_id;
-                }
-                float sum = 0.0f;
-                for (int in_node : found.edgelist)
-                {
-                    std::shared_lock<std::shared_mutex> lock(
-                        ptr[in_node].mutex);  // read lock
-                    sum +=
-                        (ptr[in_node].p_rank[p_cur]) / ptr[in_node].out_degree;
-                }
-                std::unique_lock<std::shared_mutex> lock(
-                    ptr[index].mutex);  // write lock
-                ptr[index].p_rank[p_next] = constant + (dampness * sum);
-                index++;
+                ptr[index].id = found.node_id;
             }
-            else
+            float sum = 0.0f;
+            for (int in_node : found.edgelist)
             {
-                break;
+                sum += (ptr[in_node].p_rank[p_cur]) / ptr[in_node].out_deg;
             }
+            ptr[index].p_rank[p_next] = constant + (dampness * sum);
+            index++;
+            in_cursor->next(&found);
         }
         iter_count++;
-        in_cursor.reset();
 
         p_cur = 1 - p_cur;
         p_next = 1 - p_next;
 
-        auto end = chrono::steady_clock::now();
-        cout << "Iter " << iter_count << "took \t"
-             << to_string(
-                    chrono::duration_cast<chrono::microseconds>(end - start)
-                        .count())
-             << endl;
-        times.push_back(
-            chrono::duration_cast<chrono::microseconds>(end - start).count());
+        t.stop();
+        cout << "Iter " << iter_count << "took \t" << t.t_micros() << endl;
+        times.push_back(t.t_micros());
     }
     print_to_csv(opts.db_name, times, csv_logdir);
-    print_map(nodes);
-    delete_map();
+    print_map(num_nodes);
+    delete_map(num_nodes);
 }
 
 int main(int argc, char *argv[])
@@ -239,67 +214,41 @@ int main(int argc, char *argv[])
     opts.db_dir = pr_cli.get_db_path();
     std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = pr_log + "/" + opts.db_name;
+    opts.stat_log = pr_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
+    opts.type = pr_cli.get_graph_type();
 
-    if (ç && pr_cli.get_graph_type() != "adj" &&
-        pr_cli.get_graph_type() != "ekey")
+    Times t;
+    t.start();
+    GraphFactory f;
+    GraphBase *graph = f.CreateGraph(opts);
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+
+    if (pr_cli.is_exit_on_create())  // Exit after creating the db
     {
-        std::cout << "Unrecognized graph representation";
-    }
-    else
-    {
-        GraphBase *graph;
-        auto start = chrono::steady_clock::now();
-        if (pr_cli.get_graph_type() == "std")
+        if (pr_cli.get_graph_type() == GraphType::EKey)
         {
-            StandardGraph tempGraph(opts);
-            graph = &tempGraph;
-        }
-        else if (pr_cli.get_graph_type() == "adj")
-        {
-            AdjList tempGraph(opts);
-            graph = &tempGraph;
-        }
-        else
-        {
-            EdgeKey tempGraph(opts);
-            graph = &tempGraph;
-        }
-
-        auto start = chrono::steady_clock::now();
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
-        {
-            if (pr_cli.get_graph_type() == "std")
-            {
-                graph->close();
-            }
-            exit(0);
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-
-        // create_indices does not apply to adjacency lists
-        if (pr_cli.is_index_create() && pr_cli.get_graph_type() != "adj")
-        {
-            start = chrono::steady_clock::now();
-            graph->create_indices();
-            end = chrono::steady_clock::now();
-            cout << "Indices created in "
-                 << chrono::duration_cast<chrono::microseconds>(end - start)
-                        .count()
-                 << endl;
             graph->close();
-            exit(0);
         }
-
-        // Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(*graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
-        end = chrono::steady_clock::now();
-        cout << "PR  completed in : "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        graph->close();
+        exit(0);
     }
+
+    // create_indices does not apply to adjacency lists
+    if (pr_cli.is_index_create() && pr_cli.get_graph_type() != GraphType::Adj)
+    {
+        t.start();
+        graph->make_indexes();
+        t.stop();
+        cout << "Indices created in " << t.t_micros() << endl;
+        graph->close();
+        exit(0);
+    }
+
+    // Now run PR
+    t.start();
+    pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
+    t.stop();
+    cout << "PR  completed in : " << t.t_micros() << endl;
+    graph->close();
 }

@@ -9,7 +9,7 @@ echo "log_dir : the absolute path to the directory where the benchmark results w
 exit 1;}
 
 TYPES=( "adj" "std" "ekey" )
-DATASETS=( "s10_e8" "cit-Patents" )
+DATASETS=( "s10_e8" ) #"cit-Patents" )
 RESULT=$GRAPH_PROJECT_DIR/outputs/on_mars
 COUNTS=10
 
@@ -38,9 +38,9 @@ mkdir -p ${RESULT}/pr
 mkdir -p ${RESULT}/tc
 mkdir -p ${RESULT}/bfs
 
-# for ((scale=11; scale <=20; scale ++ )); do
-#     DATASETS+=( "s${scale}_e8" )
-# done
+for ((scale=11; scale <=20; scale ++ )); do
+    DATASETS+=( "s${scale}_e8" )
+done
 
 run_pagerank()
 {
@@ -54,13 +54,22 @@ do
 
         echo  "--------------------------------"  >>  ${RESULT}/pr/${ds}.txt
         date +"%c" >> ${RESULT}/pr/${ds}.txt
-        ${RELEASE_PATH}/benchmark/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001 &>> ${RESULT}/pr/${ds}.txt
+        ${RELEASE_PATH}/benchmark/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001 &>> ${RESULT}/pr/${type}_rd_${ds}.txt
+        ${RELEASE_PATH}/benchmark/pr_iter -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001 &>> ${RESULT}/pr/${type}_rd_${ds}_iter.txt
         done
 
-        # #Run to collect WT_STATS
-        # ${PROFILE_PATH}/benchmark/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001
-        # #Run with perf
-        # perf record -a --call-graph fp -o ${RESULT}/pr/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001
+        #Run to collect WT_STATS
+        mkdir -p ${RESULT}/pr/wt_stats
+        ${PROFILE_PATH}/benchmark/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr/wt_stats/ -r -d -l $type -i 10 -t 0.0001
+        mkdir -p ${RESULT}/pr/wt_stats/iter
+        ${PROFILE_PATH}/benchmark/pr_iter -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr/wt_stats/iter/ -r -d -l $type -i 10 -t 0.0001
+
+
+        #Run with perf
+        perf record -a --call-graph fp -o ${RESULT}/pr/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/pagerank -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001
+        perf record -a --call-graph fp -o ${RESULT}/pr/${type}_rd_${ds}_iter_perf.dat ${STATS_PATH}/benchmark/pr_iter -m ${type}_rd_${ds} -b PR -a $DB_DIR/${ds} -s $ds -f ${RESULT}/pr -r -d -l $type -i 10 -t 0.0001
+
+
     done
 done
 }
@@ -71,18 +80,18 @@ for ds in "${DATASETS[@]}"
 do
     for type in "${TYPES[@]}"
     do
-    # The bfs binary handles running the tests 10 times for 10 different random nodes. 
+    # The bfs binary handles running the tests 10 times for 10 different random nodes.
     echo  "--------------------------------" >> ${RESULT}/bfs/${ds}.txt
     date +"%c" >> ${RESULT}/bfs/${ds}.txt
     ${RELEASE_PATH}/benchmark/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type &>> ${RESULT}/bfs/${type}_rd_${ds}.txt
 
-    # #Run to collect WT_STATS
-    # ${PROFILE_PATH}/benchmark/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type &>> ${RESULT}/bfs/${type}_rd_${ds}.txt
+    #Run to collect WT_STATS
+    ${PROFILE_PATH}/benchmark/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type &>> ${RESULT}/bfs/${type}_rd_${ds}.txt
 
-    # #Run with perf
-    # perf record -a --call-graph fp -o ${RESULT}/pr/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type
+    #Run with perf
+    perf record -a --call-graph fp -o ${RESULT}/bfs/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type
     done
-    
+
 done
 }
 
@@ -99,15 +108,15 @@ do
         ${RELEASE_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
         done
 
-    #     #Run to collect WT_STATS
-    #     ${PROFILE_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
+        #Run to collect WT_STATS
+        ${PROFILE_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
 
-    #     #Run with perf
-    #     perf record -a --call-graph fp -o ${RESULT}/pr/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type
+        #Run with perf
+        perf record -a --call-graph fp -o ${RESULT}/tc/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type
     done
 done
 }
 
-# run_pagerank
-# run_bfs
+run_pagerank
+run_bfs
 run_tc

@@ -1,100 +1,50 @@
 Running BFS
-Graph loaded in 760911
+Graph loaded in 760067
 600
 random start vertex is 600
-BFS  completed in : 279655
+BFS  completed in : 272738
 715
 random start vertex is 715
-BFS  completed in : 427031
+BFS  completed in : 271545
 1016
 random start vertex is 1016
-BFS  completed in : 362067
+BFS  completed in : 271197
 901
 random start vertex is 901
-BFS  completed in : 271205
+BFS  completed in : 271359
 532
 random start vertex is 532
-BFS  completed in : 269653
+BFS  completed in : 271705
 544
 random start vertex is 544
-BFS  completed in : 269800
+BFS  completed in : 271466
 301
 random start vertex is 301
-BFS  completed in : 270155
+BFS  completed in : 271729
 89
 random start vertex is 89
-BFS  completed in : 270457
+BFS  completed in : 271571
 328
 random start vertex is 328
-BFS  completed in : 270294
+BFS  completed in : 271517
 819
 random start vertex is 819
-BFS  completed in : 269817
+BFS  completed in : 271734
 314
 random start vertex is 314
-BFS  completed in : 270017
+BFS  completed in : 272026
 867
 random start vertex is 867
-BFS  completed in : 270034
+BFS  completed in : 272029
 745
 random start vertex is 745
-BFS  completed in : 270365
+BFS  completed in : 271624
 517
 random start vertex is 517
-BFS  completed in : 270294
+BFS  completed in : 271974
 550
 random start vertex is 550
-BFS  completed in : 271243
+BFS  completed in : 271895
 798
 random start vertex is 798
-BFS  completed in : 270394
-Running BFS
-Graph loaded in 1.00959e+06
-600
-random start vertex is 600
-BFS  completed in : 278569
-715
-random start vertex is 715
-BFS  completed in : 522016
-1016
-random start vertex is 1016
-BFS  completed in : 276437
-901
-random start vertex is 901
-BFS  completed in : 273570
-532
-random start vertex is 532
-BFS  completed in : 273550
-544
-random start vertex is 544
-BFS  completed in : 273595
-301
-random start vertex is 301
-BFS  completed in : 274158
-89
-random start vertex is 89
-BFS  completed in : 273806
-328
-random start vertex is 328
-BFS  completed in : 273526
-819
-random start vertex is 819
-BFS  completed in : 274055
-314
-random start vertex is 314
-BFS  completed in : 274136
-867
-random start vertex is 867
-BFS  completed in : 274164
-745
-random start vertex is 745
-BFS  completed in : 273532
-517
-random start vertex is 517
-BFS  completed in : 273803
-550
-random start vertex is 550
-BFS  completed in : 274104
-798
-random start vertex is 798
-BFS  completed in : 273907
+BFS  completed in : 272272
