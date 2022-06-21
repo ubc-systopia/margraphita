@@ -300,7 +300,7 @@ void AdjList::add_node(node to_insert)
     add_adjlist(in_adj_cur, to_insert.id);
     add_adjlist(out_adj_cur, to_insert.id);
     init_metadata_cursor();
-    // set_num_nodes(get_num_nodes() + 1, metadata_cursor);
+    set_num_nodes(get_num_nodes() + 1, metadata_cursor);
 }
 
 void AdjList::add_node(node_id_t to_insert,
