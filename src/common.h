@@ -40,11 +40,24 @@ extern const std::string EDGE_TABLE;
 extern const std::string SRC_INDEX;
 extern const std::string DST_INDEX;
 extern const std::string SRC_DST_INDEX;
+extern const std::string DST_SRC_INDEX;
 // specific to AdjList implementation
 extern const std::string IN_ADJLIST;   // New
 extern const std::string OUT_ADJLIST;  // New
 extern const std::string node_count;
 extern const std::string edge_count;
+
+typedef int64_t node_id_t;
+typedef int32_t edgeweight_t;
+typedef uint32_t degree_t;
+const node_id_t OutOfBand_ID = -1;
+
+typedef enum GraphType
+{
+    Std,
+    Adj,
+    EKey,
+} GraphType;
 
 struct graph_opts
 {
@@ -57,6 +70,7 @@ struct graph_opts
     bool optimize_create;  // directs when the index should be created
     std::string conn_config;
     std::string stat_log;
+    GraphType type;
 };
 
 typedef struct wt_conn_info
@@ -67,40 +81,46 @@ typedef struct wt_conn_info
 
 typedef struct node
 {
-    int id;  // node ID
-    int in_degree = 0;
-    int out_degree = 0;
+    node_id_t id;  // node ID
+    degree_t in_degree = 0;
+    degree_t out_degree = 0;
 } node;
 
 typedef struct edge
 {
-    int id;
-    int src_id;
-    int dst_id;
-    int edge_weight;  // uint8_t should get transparently cast to int
-                      // (unweighted). We need two fields for weights if the
-                      // graph is undirected.
+    // int32_t id;
+    node_id_t src_id;
+    node_id_t dst_id;
+    edgeweight_t edge_weight;
 } edge;
 
 typedef struct edge_index
 {
-    int src_id;
-    int dst_id;
+    node_id_t src_id;
+    node_id_t dst_id;
 } edge_index;
 
 typedef struct edge_index key_pair;
 
 typedef struct key_range
 {
-    int start;
-    int end;
+    node_id_t start;
+    node_id_t end;
 } key_range;
+
+typedef struct edge_range
+{
+    key_pair start;
+    key_pair end;
+
+    edge_range(key_pair _start, key_pair _end) : start(_start), end(_end) {}
+} edge_range;
 
 typedef struct adjlist
 {
-    int node_id;
-    int degree;
-    std::vector<int> edgelist;
+    node_id_t node_id;
+    degree_t degree;
+    std::vector<node_id_t> edgelist;
 } adjlist;
 
 class table_iterator
@@ -120,7 +140,7 @@ class table_iterator
     // know which table to provide a cursor for. This is guaranteed to cause
     // bugs.
    public:
-    void set_key(int key) { cursor->set_key(cursor, key); }
+    void set_key(node_id_t key) { cursor->set_key(cursor, key); }
     bool has_more() { return has_next; };
     virtual void reset()
     {
@@ -129,6 +149,112 @@ class table_iterator
         has_next = true;
     }
 };
+
+class OutCursor : public table_iterator
+{
+   protected:
+    key_range keys;
+    int num_nodes;
+
+   public:
+    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
+
+    void set_num_nodes(int num) { num_nodes = num; }
+
+    virtual void next(adjlist *found) = 0;
+    virtual void next(adjlist *found, node_id_t key) = 0;
+};
+
+class InCursor : public table_iterator
+{
+   protected:
+    key_range keys;
+    int num_nodes;
+
+   public:
+    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
+
+    void set_num_nodes(int num) { num_nodes = num; }
+
+    virtual void next(adjlist *found) = 0;
+    virtual void next(adjlist *found, node_id_t key) = 0;
+};
+
+class NodeCursor : public table_iterator
+{
+   protected:
+    key_range keys;
+
+   public:
+    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
+    {
+        init(node_cur, sess);
+        keys = {-1, -1};
+    }
+
+    /**
+     * @brief Set the key range object
+     *
+     * @param _keys the key range object. Set the end key to INT_MAX if you want
+     * to get all the nodes from start node.
+     */
+    virtual void set_key_range(key_range _keys)  // overrided by edgekey
+    {
+        keys = _keys;
+        cursor->set_key(cursor, keys.start);
+    }
+
+    virtual void next(node *found) = 0;
+};
+
+class EdgeCursor : public table_iterator
+{
+   protected:
+    key_pair start_edge;
+    key_pair end_edge;
+
+   public:
+    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
+    {
+        init(composite_edge_cur, sess);
+        start_edge = {-1, -1};
+        end_edge = {-1, -1};
+    }
+
+    // Overwrites set_key(int key) implementation in table_iterator
+    void set_key(int key) = delete;
+
+    void set_key(key_pair start, key_pair end)
+    {
+        start_edge = start;
+        end_edge = end;
+        cursor->set_key(cursor, start.src_id, start.dst_id);
+    }
+
+    virtual void next(edge *found) = 0;
+};
+
+// TODO: remove unused functions from this class.
 
 class CommonUtil
 {
@@ -193,11 +319,11 @@ class CommonUtil
     static std::vector<int> unpack_int_vector_std(std::string packed_str);
 
     static char *pack_int_vector_wti(WT_SESSION *session,
-                                     std::vector<int> to_pack,
+                                     std::vector<node_id_t> to_pack,
                                      size_t *size);
-    static std::vector<int> unpack_int_vector_wti(WT_SESSION *session,
-                                                  size_t size,
-                                                  char *packed_str);
+    static std::vector<node_id_t> unpack_int_vector_wti(WT_SESSION *session,
+                                                        size_t size,
+                                                        char *packed_str);
 
     // WT Session and Cursor wrangling operations
     static int open_cursor(WT_SESSION *session,
@@ -238,7 +364,7 @@ class CommonUtil
 
     /********************************************************************************************
      *            Serialization/ Deserialization methods common to all
-     *representations           *
+     *                             *representations*
      ********************************************************************************************/
 
     /**
@@ -350,7 +476,7 @@ class CommonUtil
                                            WT_CURSOR *cursor,
                                            adjlist *found)
     {
-        int degree;
+        int32_t degree;
         WT_ITEM item;
         cursor->get_value(cursor, &degree, &item);
         found->edgelist = CommonUtil::unpack_int_vector_wti(
@@ -398,6 +524,7 @@ class CommonUtil
     inline static void __record_to_node_ekey(WT_CURSOR *cur, node *found)
     {
         char *packed_vec;
+        // std::cout << cur->value_format << std::endl;
         int ret = cur->get_value(cur, &packed_vec);
         if (ret != 0)
         {
@@ -405,7 +532,25 @@ class CommonUtil
         }
         std::string str(packed_vec);
         int a = 0, b = 0;
-        extract_from_string(packed_vec, &a, &b);
+        extract_from_string(str, &a, &b);
+        found->in_degree = a;
+        found->out_degree = b;
+    }
+
+    inline static void __record_to_node_ekeyidx(WT_CURSOR *idx_cursor,
+                                                node *found)
+    {
+        const char *packed_vec;
+        node temp;
+        std::cout << idx_cursor->key_format << "\t" << idx_cursor->value_format
+                  << std::endl;
+        if (idx_cursor->get_value(idx_cursor, &packed_vec) != 0)
+        {
+            throw GraphException("Cannot obtain idx cursor value");
+        }
+        std::string str(packed_vec);
+        int a = 0, b = 0;
+        extract_from_string(str, &a, &b);
         found->in_degree = a;
         found->out_degree = b;
     }

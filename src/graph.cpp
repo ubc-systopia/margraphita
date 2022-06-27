@@ -137,6 +137,7 @@ void GraphBase::__restore_from_db(std::string db_name)
             this->opts.db_name =
                 value;  // CommonUtil::unpack_string_wt(value, this->session);
         }
+        // restore nNodes & nEdges
         else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
         {
             if (strcmp(value, "true") == 0)
@@ -234,27 +235,27 @@ int GraphBase::_get_index_cursor(std::string table_name,
     return 0;
 }
 
-void GraphBase::set_num_nodes(int numNodes, WT_CURSOR *metadata_cursor)
+void GraphBase::set_num_nodes(uint64_t numNodes, WT_CURSOR *metadata_cursor)
 {
     return insert_metadata(node_count,
                            const_cast<char *>(std::to_string(numNodes).c_str()),
                            metadata_cursor);
 }
 
-void GraphBase::set_num_edges(int numEdges, WT_CURSOR *metadata_cursor)
+void GraphBase::set_num_edges(uint64_t numEdges, WT_CURSOR *metadata_cursor)
 {
     return insert_metadata(edge_count,
                            const_cast<char *>(std::to_string(numEdges).c_str()),
                            metadata_cursor);
 }
 
-int GraphBase::get_num_nodes()
+uint64_t GraphBase::get_num_nodes()
 {
     std::string found = get_metadata(node_count);
     return std::stoi(found);
 }
 
-int GraphBase::get_num_edges()
+uint64_t GraphBase::get_num_edges()
 {
     std::string found = get_metadata(edge_count);
     return std::stoi(found);

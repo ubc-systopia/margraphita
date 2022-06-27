@@ -1,0 +1,50 @@
+Running BFS
+Graph loaded in 1.01264e+06
+980
+random start vertex is 980
+BFS  completed in : 70007
+224
+random start vertex is 224
+BFS  completed in : 69197.4
+437
+random start vertex is 437
+BFS  completed in : 69390.3
+130
+random start vertex is 130
+BFS  completed in : 69465.6
+728
+random start vertex is 728
+BFS  completed in : 69430.7
+361
+random start vertex is 361
+BFS  completed in : 69574.9
+201
+random start vertex is 201
+BFS  completed in : 69721
+549
+random start vertex is 549
+BFS  completed in : 69748.1
+94
+random start vertex is 94
+BFS  completed in : 69878.3
+5
+random start vertex is 5
+BFS  completed in : 70002.9
+521
+random start vertex is 521
+BFS  completed in : 70192.9
+696
+random start vertex is 696
+BFS  completed in : 70219.1
+12
+random start vertex is 12
+BFS  completed in : 70059.9
+90
+random start vertex is 90
+BFS  completed in : 70376.2
+467
+random start vertex is 467
+BFS  completed in : 70373.8
+894
+random start vertex is 894
+BFS  completed in : 70629.5

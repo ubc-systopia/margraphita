@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -17,6 +18,11 @@ const std::string GRAPH_PREFIX = "adj";
 AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
 
 {
+    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    {
+        std::filesystem::create_directories(opts.stat_log);
+    }
+
     if (opt_params.create_new)
     {
         create_new_graph();
@@ -43,16 +49,16 @@ AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
  * @param node_id the node_id to be searched.
  * @return true if the node is found; false otherwise.
  */
-bool AdjList::has_node(int node_id)
+bool AdjList::has_node(node_id_t node_id)
 {
     int ret = 0;
-    if (this->node_cursor == NULL)
+    if (node_cursor == NULL)
     {
-        ret =
-            _get_table_cursor(NODE_TABLE, &(this->node_cursor), session, false);
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
     }
-    this->node_cursor->set_key(this->node_cursor, node_id);
-    ret = this->node_cursor->search(this->node_cursor);
+    node_cursor->set_key(node_cursor, node_id);
+    ret = node_cursor->search(node_cursor);
+    node_cursor->reset(node_cursor);
     if (ret == 0)
     {
         return true;
@@ -89,7 +95,6 @@ void AdjList::create_new_graph()
     // AdjList has no edge id in the edge table but we are using the same
     // structure as used by Standardgraph. So, the edge_id value will be -999
     // for all edges in the AdjList implementation.
-    edge_id = -999;  // edge_id is uninterpreted
 
     // Set up the node table
     // The node entry is of the form: <id>,<in_degree>,<out_degree>
@@ -108,8 +113,6 @@ void AdjList::create_new_graph()
         node_value_format = "s";  // 1 byte fixed length char[] to hold ""
     }
     // Now Create the Node Table
-    //! What happens when the table is not read-optimized? I store "" <-ok?
-
     CommonUtil::set_table(
         session, NODE_TABLE, node_columns, node_key_format, node_value_format);
 
@@ -120,7 +123,7 @@ void AdjList::create_new_graph()
     if (opts.is_weighted)
     {
         edge_columns.push_back(WEIGHT);
-        edge_value_format += "I";
+        edge_value_format += "i";
     }
     else
     {
@@ -162,12 +165,7 @@ void AdjList::create_new_graph()
         fprintf(stderr, "Failed to create the metadata table ");
     }
 
-    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, session, false)) !=
-        0)
-    {
-        fprintf(stderr, "Failed to create cursor to the metadata table.");
-        exit(-1);
-    }
+    init_metadata_cursor();
 
     // DB_NAME
     string db_name_fmt;
@@ -291,9 +289,9 @@ void AdjList::add_node(node to_insert)
     set_num_nodes(get_num_nodes() + 1, metadata_cursor);
 }
 
-void AdjList::add_node(int to_insert,
-                       std::vector<int> &inlist,
-                       std::vector<int> &outlist)
+void AdjList::add_node(node_id_t to_insert,
+                       std::vector<node_id_t> &inlist,
+                       std::vector<node_id_t> &outlist)
 {
     int ret = 0;
     WT_CURSOR *in_adj_cur, *out_adj_cur, *n_cur = nullptr;
@@ -332,7 +330,7 @@ void AdjList::add_node(int to_insert,
  **/
 // TODO:create an overloaded function that accepts a fully formed in adj list
 // and adds it directly.
-void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
+void AdjList::add_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 {
     int ret = 0;
     // Check if the cursor is not NULL, else throw exception
@@ -354,8 +352,8 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, int node_id)
 }
 
 void AdjList::add_adjlist(WT_CURSOR *cursor,
-                          int node_id,
-                          std::vector<int> &list)
+                          node_id_t node_id,
+                          std::vector<node_id_t> &list)
 {
     int ret = 0;
     // Check if the cursor is not NULL, else throw exception
@@ -383,7 +381,7 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
  * @brief Delete the record of the node_id in the in or out
  * adjlist as pointed by the cursor.
  **/
-void AdjList::delete_adjlist(WT_CURSOR *cursor, int node_id)
+void AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 {
     int ret = 0;
     // Check if the cursor is not NULL, else throw exception
@@ -423,7 +421,6 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 
     // We don't need to check if the edge exists already -- overwrite it
     // regardless
-    to_insert.id = -1;  // uninterpreted
     cursor->set_key(cursor, to_insert.src_id, to_insert.dst_id);
     // cout << "New Edge ID inserted" << endl;
 
@@ -537,7 +534,7 @@ node AdjList::get_random_node()
  *
  * @param node_id the node to be removed
  */
-void AdjList::delete_node(int node_id)
+void AdjList::delete_node(node_id_t node_id)
 {
     // Delete Edges
     delete_related_edges_and_adjlists(node_id);
@@ -574,7 +571,7 @@ void AdjList::delete_node(int node_id)
  * @param node_id ID for which in_degree is required
  * @return int in degree of the node node_id
  */
-int AdjList::get_in_degree(int node_id)
+uint32_t AdjList::get_in_degree(node_id_t node_id)
 {
     int ret = 0;
     WT_CURSOR *cursor;
@@ -617,7 +614,7 @@ int AdjList::get_in_degree(int node_id)
  * @param node_id The ID of the node for which the degree is sought
  * @return int the node degree for the node with ID node_id.
  */
-int AdjList::get_out_degree(int node_id)
+uint32_t AdjList::get_out_degree(node_id_t node_id)
 {
     int ret = 0;
     WT_CURSOR *cursor = get_node_cursor();
@@ -681,7 +678,7 @@ std::vector<node> AdjList::get_nodes()
  * @param node_id the Node ID
  * @return node the node struct containing the node
  */
-node AdjList::get_node(int node_id)
+node AdjList::get_node(node_id_t node_id)
 {
     int ret = 0;
     WT_CURSOR *n_cursor = get_node_cursor();
@@ -726,9 +723,9 @@ std::vector<edge> AdjList::get_edges()
  * @param dst_id destination id
  * @return edge edge identified by (src,dst) pair
  */
-edge AdjList::get_edge(int src_id, int dst_id)
+edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {0};
+    edge found = {-1, -1, -1};
     found.src_id = src_id;
     found.dst_id = dst_id;
     if (!opts.is_weighted)
@@ -742,7 +739,7 @@ edge AdjList::get_edge(int src_id, int dst_id)
     ret = e_cursor->search(e_cursor);
     if (ret != 0)
     {
-        found = {0};
+        found = {-1, -1, -1};
         return found;
     }
     else
@@ -760,7 +757,7 @@ edge AdjList::get_edge(int src_id, int dst_id)
  * @return true if the edge exists
  * @return false if the edge does not exist
  */
-bool AdjList::has_edge(int src_id, int dst_id)
+bool AdjList::has_edge(node_id_t src_id, node_id_t dst_id)
 {
     int ret = 0;
 
@@ -779,7 +776,7 @@ bool AdjList::has_edge(int src_id, int dst_id)
  * @throws GraphExpection If the graph is not weighted or if an edge is not
  * found
  */
-int AdjList::get_edge_weight(int src_id, int dst_id)
+edgeweight_t AdjList::get_edge_weight(node_id_t src_id, node_id_t dst_id)
 {
     if (!this->opts.is_weighted)
     {
@@ -815,9 +812,9 @@ int AdjList::get_edge_weight(int src_id, int dst_id)
  *
  */
 void AdjList::update_node_degree(WT_CURSOR *cursor,
-                                 int node_id,
-                                 int in_degree,
-                                 int out_degree)
+                                 node_id_t node_id,
+                                 uint32_t in_degree,
+                                 uint32_t out_degree)
 {
     cursor->set_key(cursor, node_id);
     cursor->set_value(cursor, in_degree, out_degree);
@@ -839,33 +836,49 @@ void AdjList::update_node_degree(WT_CURSOR *cursor,
  * out_adjlist tables; if a dst node was found in the adj_list for node_id but
  * does not exist in the node table
  */
-std::vector<node> AdjList::get_out_nodes(int node_id)
+std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
 {
     std::vector<node> out_nodes;
     WT_CURSOR *outadj_cursor = get_out_adjlist_cursor();
-    WT_CURSOR *n_cursor = get_node_cursor();
-
-    std::vector<int> adjlist = get_adjlist(outadj_cursor, node_id);
-
-    for (int dst_id : adjlist)
+    if (!has_node(node_id))
     {
-        n_cursor->set_key(n_cursor, dst_id);
-        node found = {0};
-        if (n_cursor->search(n_cursor) == 0)
-        {
-            CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
-            found.id = dst_id;
-            out_nodes.push_back(found);
-        }
-        else
-        {
-            throw GraphException("node with ID " + std::to_string(dst_id) +
-                                 "found in adjlist for " +
-                                 std::to_string(node_id) +
-                                 " but not in node table");
-        }
+        throw GraphException("There is no node with ID " + to_string(node_id));
     }
+    std::vector<node_id_t> adjlist = get_adjlist(outadj_cursor, node_id);
+
+    for (auto dst_id : adjlist)
+    {
+        out_nodes.push_back(get_node(dst_id));
+    }
+    out_adjlist_cursor->reset(out_adjlist_cursor);
     return out_nodes;
+}
+
+/**
+ * @brief Get a list of ids of nodes that have an incoming edge from node_id
+ * (are out nodes for node_id); does one less cursor search than get_out_nodes
+ *
+ * @param node_id The node which is being queried.
+ * @return std::vector<node> The vector of out nodes
+ * @throws GraphException if could not acquire cursors to node table or the
+ * out_adjlist tables;
+ */
+std::vector<node_id_t> AdjList::get_out_nodes_id(node_id_t node_id)
+{
+    std::vector<node_id_t> out_nodes_id;
+    WT_CURSOR *outadj_cursor = get_out_adjlist_cursor();
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    std::vector<node_id_t> adjlist = get_adjlist(outadj_cursor, node_id);
+
+    for (auto dst_id : adjlist)
+    {
+        out_nodes_id.push_back(dst_id);
+    }
+    out_adjlist_cursor->reset(out_adjlist_cursor);
+    return out_nodes_id;
 }
 
 /**
@@ -874,17 +887,20 @@ std::vector<node> AdjList::get_out_nodes(int node_id)
  * @param node_id The source node
  * @return std::vector<edge> the vector of all edges which have node_id as src
  */
-std::vector<edge> AdjList::get_out_edges(int node_id)
+std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
 {
     int ret = 0;
     std::vector<edge> out_edges;
-    std::vector<int> dst_nodes;
+    std::vector<node_id_t> dst_nodes;
     WT_CURSOR *out_adj_cur = get_out_adjlist_cursor();
     WT_CURSOR *e_cur = get_edge_cursor();
-
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
     dst_nodes = get_adjlist(out_adj_cur, node_id);
 
-    for (int dst : dst_nodes)
+    for (auto dst : dst_nodes)
     {
         e_cur->set_key(e_cur, node_id, dst);
         ret = e_cur->search(e_cur);
@@ -913,32 +929,49 @@ std::vector<edge> AdjList::get_out_edges(int node_id)
  * in_adjlist tables; if a src node was found in the in_adj_list for node_id but
  * does not exist in the node table
  */
-std::vector<node> AdjList::get_in_nodes(int node_id)
+std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
 {
     std::vector<node> in_nodes;
     WT_CURSOR *inadj_cursor = get_in_adjlist_cursor();
-    WT_CURSOR *n_cursor = get_node_cursor();
-
-    std::vector<int> adjlist = get_adjlist(inadj_cursor, node_id);
-    node found = {0};
-    for (int src_id : adjlist)
+    if (!has_node(node_id))
     {
-        n_cursor->set_key(n_cursor, src_id);
-        if (n_cursor->search(n_cursor) == 0)
-        {
-            CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
-            found.id = src_id;
-            in_nodes.push_back(found);
-        }
-        else
-        {
-            throw GraphException("node with ID " + std::to_string(src_id) +
-                                 "found in adjlist for " +
-                                 std::to_string(node_id) +
-                                 " but not in node table");
-        }
+        throw GraphException("There is no node with ID " + to_string(node_id));
     }
+    std::vector<node_id_t> adjlist = get_adjlist(inadj_cursor, node_id);
+    node found = {0};
+    for (auto src_id : adjlist)
+    {
+        in_nodes.push_back(get_node(src_id));
+    }
+    inadj_cursor->reset(inadj_cursor);
     return in_nodes;
+}
+
+/**
+ * @brief Get a list of ids of nodes that have an outgoing edge to node_id (are
+ * in nodes for node_id); does one less cursor search than get_in_nodes
+ *
+ * @param node_id The node which is being queried.
+ * @return std::vector<node> the vector of in nodes
+ * @throws GraphException if could not acquire cursors to node table or the
+ * in_adjlist tables
+ */
+std::vector<node_id_t> AdjList::get_in_nodes_id(node_id_t node_id)
+{
+    std::vector<node_id_t> in_nodes_id;
+    WT_CURSOR *inadj_cursor = get_in_adjlist_cursor();
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    std::vector<node_id_t> adjlist = get_adjlist(inadj_cursor, node_id);
+    node found = {0};
+    for (auto src_id : adjlist)
+    {
+        in_nodes_id.push_back(src_id);
+    }
+    inadj_cursor->reset(inadj_cursor);
+    return in_nodes_id;
 }
 
 /**
@@ -947,17 +980,17 @@ std::vector<node> AdjList::get_in_nodes(int node_id)
  * @param node_id the destination node
  * @return std::vector<edge> the vector of all edges that have node_id as dst
  */
-std::vector<edge> AdjList::get_in_edges(int node_id)
+std::vector<edge> AdjList::get_in_edges(node_id_t node_id)
 {
     std::vector<edge> in_edges;
-    std::vector<int> src_nodes;
+    std::vector<node_id_t> src_nodes;
     int ret = 0;
     WT_CURSOR *e_cur = get_edge_cursor();
     WT_CURSOR *in_adj_cur = get_in_adjlist_cursor();
 
     src_nodes = get_adjlist(in_adj_cur, node_id);
 
-    for (int src : src_nodes)
+    for (auto src : src_nodes)
     {
         e_cur->set_key(e_cur, src, node_id);
         ret = e_cur->search(e_cur);
@@ -985,7 +1018,7 @@ std::vector<edge> AdjList::get_in_edges(int node_id)
  * @throw GraphException if could not delete the edge or if the node degree
  * could not be updated.
  */
-void AdjList::delete_edge(int src_id, int dst_id)
+void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
     // Delete (src_id, dst_id) from edge table
     int ret = 0;
@@ -1081,7 +1114,9 @@ void AdjList::delete_edge(int src_id, int dst_id)
  * @throws GraphException if trying to update weight for an unweighted graph, if
  * the edge cursor could not be found, or if the update operation fails.
  */
-void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
+void AdjList::update_edge_weight(node_id_t src_id,
+                                 node_id_t dst_id,
+                                 int32_t edge_weight)
 {
     if (!opts.is_weighted)
     {
@@ -1116,7 +1151,8 @@ void AdjList::update_edge_weight(int src_id, int dst_id, int edge_weight)
  * @param node_id Node ID for which the adjlist is to be read from cursor.
  * @return std::vector<int> The AdjList for the node.
  */
-std::vector<int> AdjList::get_adjlist(WT_CURSOR *cursor, int node_id)
+std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
+                                            node_id_t node_id)
 {
     int ret;
     adjlist adj_list;
@@ -1137,7 +1173,9 @@ std::vector<int> AdjList::get_adjlist(WT_CURSOR *cursor, int node_id)
     return adj_list.edgelist;
 }
 
-void AdjList::add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
+void AdjList::add_to_adjlists(WT_CURSOR *cursor,
+                              node_id_t node_id,
+                              node_id_t to_insert)
 {
     // Not checking for directional or undirectional that would be taken care by
     // the caller.
@@ -1152,8 +1190,6 @@ void AdjList::add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
                              " in the AdjList");
     }
 
-    // ! APT: Check below lines with Puneet and we need __adjlist_to_record,
-    // correct? Verify with Puneet!
     adjlist found;
     found.node_id = node_id;
     CommonUtil::__record_to_adjlist(
@@ -1165,8 +1201,8 @@ void AdjList::add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert)
 }
 
 void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
-                                   int node_id,
-                                   int to_delete)
+                                   node_id_t node_id,
+                                   node_id_t to_delete)
 {
     // Not checking for directional or undirectional that would be taken care by
     // the caller.
@@ -1184,7 +1220,7 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
     adjlist found;
     found.node_id = node_id;
     CommonUtil::__record_to_adjlist(session, cursor, &found);
-    for (int i = 0; i < found.edgelist.size(); i++)
+    for (size_t i = 0; i < found.edgelist.size(); i++)
     {
         if (found.edgelist.at(i) == to_delete)
         {
@@ -1198,13 +1234,13 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
     CommonUtil::__adjlist_to_record(session, cursor, found);
 }
 
-void AdjList::delete_node_from_adjlists(int node_id)
+void AdjList::delete_node_from_adjlists(node_id_t node_id)
 {
     // We need to delete the node from both tables
     // and go through all the adjlist values, iterate over its edgelist and
     // correspondingly delete the node_id from the edgelist of its neighbors.
-    std::vector<int> in_edgelist;
-    std::vector<int> out_edgelist;
+    std::vector<node_id_t> in_edgelist;
+    std::vector<node_id_t> out_edgelist;
 
     WT_CURSOR *in_cursor = nullptr;
     int ret = _get_table_cursor(IN_ADJLIST, &in_cursor, session, false);
@@ -1223,7 +1259,7 @@ void AdjList::delete_node_from_adjlists(int node_id)
     WT_CURSOR *out_cursor = nullptr;
     ret = _get_table_cursor(OUT_ADJLIST, &out_cursor, session, false);
 
-    for (int neighbor : in_edgelist)
+    for (auto neighbor : in_edgelist)
     {
         delete_from_adjlists(out_cursor, neighbor, node_id);
     }
@@ -1242,7 +1278,7 @@ void AdjList::delete_node_from_adjlists(int node_id)
     out_edgelist = get_adjlist(out_cursor, node_id);
 
     // Now, go to IN_TABLE and delete node_id from its tables in edgelist
-    for (int neighbor : out_edgelist)
+    for (auto neighbor : out_edgelist)
     {
         delete_from_adjlists(in_cursor, neighbor, node_id);
     }
@@ -1274,53 +1310,73 @@ void AdjList::delete_node_from_adjlists(int node_id)
 
  * @param node_id node ID which has to be deleted from edge and adjlist tables
  */
-void AdjList::delete_related_edges_and_adjlists(int node_id)
+void AdjList::delete_related_edges_and_adjlists(node_id_t node_id)
 {
     // initialize all the cursors
-    WT_CURSOR *e_cursor, *inadj_cursor, *outadj_cursor = nullptr;
-    e_cursor = get_edge_cursor();
+    WT_CURSOR *inadj_cursor, *outadj_cursor = nullptr;
     inadj_cursor = get_in_adjlist_cursor();
     outadj_cursor = get_out_adjlist_cursor();
 
     // Get outgoing nodes
-    std::vector<int> out_nodes = get_adjlist(outadj_cursor, node_id);
+    std::vector<node_id_t> out_nodes = get_adjlist(outadj_cursor, node_id);
 
     // Get incoming nodes
-    std::vector<int> in_nodes = get_adjlist(inadj_cursor, node_id);
-    for (int dst : out_nodes)
+    std::vector<node_id_t> in_nodes = get_adjlist(inadj_cursor, node_id);
+    for (auto dst : out_nodes)
     {
         delete_edge(node_id, dst);
     }
-    for (int src : in_nodes)
+    for (auto src : in_nodes)
     {
         delete_edge(src, node_id);
     }
     cout << std::endl;
 }
 
-AdjIterator::OutCursor AdjList::get_outnbd_iter()
+OutCursor *AdjList::get_outnbd_iter()
 {
-    return AdjIterator::OutCursor(get_out_adjlist_cursor(), session);
+    uint64_t num_nodes = this->get_num_nodes();
+    OutCursor *toReturn =
+        new AdjOutCursor(get_new_out_adjlist_cursor(), session);
+    toReturn->set_num_nodes(num_nodes);
+    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
+    return toReturn;
 }
 
-AdjIterator::InCursor AdjList::get_innbd_iter()
+InCursor *AdjList::get_innbd_iter()
 {
-    return AdjIterator::InCursor(get_in_adjlist_cursor(), session);
+    uint64_t num_nodes = this->get_num_nodes();
+    InCursor *toReturn = new AdjInCursor(get_new_in_adjlist_cursor(), session);
+    toReturn->set_num_nodes(num_nodes);
+    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
+    return toReturn;
 }
 
-AdjIterator::NodeCursor AdjList::get_node_iter()
+NodeCursor *AdjList::get_node_iter()
 {
-    return AdjIterator::NodeCursor(get_node_cursor(), session);
+    return new AdjNodeCursor(get_new_node_cursor(), session);
 }
 
-AdjIterator::EdgeCursor AdjList::get_edge_iter()
+EdgeCursor *AdjList::get_edge_iter()
 {
-    return AdjIterator::EdgeCursor(get_edge_cursor(), session);
+    return new AdjEdgeCursor(get_new_edge_cursor(), session);
 }
 
 /*
 Get test cursors
 */
+void AdjList::init_metadata_cursor()
+{
+    if (metadata_cursor == nullptr)
+    {
+        int ret = _get_table_cursor(METADATA, &metadata_cursor, session, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a metadata cursor");
+        }
+    }
+}
+
 WT_CURSOR *AdjList::get_node_cursor()
 {
     if (node_cursor == nullptr)
@@ -1333,6 +1389,17 @@ WT_CURSOR *AdjList::get_node_cursor()
     }
 
     return node_cursor;
+}
+
+WT_CURSOR *AdjList::get_new_node_cursor()
+{
+    WT_CURSOR *new_node_cursor = nullptr;
+    int ret = _get_table_cursor(NODE_TABLE, &new_node_cursor, session, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test node cursor");
+    }
+    return new_node_cursor;
 }
 
 WT_CURSOR *AdjList::get_edge_cursor()
@@ -1354,6 +1421,17 @@ WT_CURSOR *AdjList::get_edge_cursor()
     // }
     // return cursor;
     return edge_cursor;
+}
+
+WT_CURSOR *AdjList::get_new_edge_cursor()
+{
+    WT_CURSOR *new_edge_cursor = nullptr;
+    int ret = _get_table_cursor(EDGE_TABLE, &new_edge_cursor, session, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test edge cursor");
+    }
+    return new_edge_cursor;
 }
 
 WT_CURSOR *AdjList::get_in_adjlist_cursor()
@@ -1378,6 +1456,18 @@ WT_CURSOR *AdjList::get_in_adjlist_cursor()
     return in_adjlist_cursor;
 }
 
+WT_CURSOR *AdjList::get_new_in_adjlist_cursor()
+{
+    WT_CURSOR *new_in_adjlist_cursor = nullptr;
+    int ret =
+        _get_table_cursor(IN_ADJLIST, &new_in_adjlist_cursor, session, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test in_adjlist cursor");
+    }
+    return new_in_adjlist_cursor;
+}
+
 WT_CURSOR *AdjList::get_out_adjlist_cursor()
 {
     if (out_adjlist_cursor == nullptr)
@@ -1400,6 +1490,18 @@ WT_CURSOR *AdjList::get_out_adjlist_cursor()
     return out_adjlist_cursor;
 }
 
+WT_CURSOR *AdjList::get_new_out_adjlist_cursor()
+{
+    WT_CURSOR *new_out_adjlist_cursor = nullptr;
+    int ret =
+        _get_table_cursor(OUT_ADJLIST, &new_out_adjlist_cursor, session, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test out_adjlist cursor");
+    }
+    return new_out_adjlist_cursor;
+}
+
 node AdjList::get_next_node(WT_CURSOR *n_cur)
 {
     node found = {0};
@@ -1417,7 +1519,7 @@ node AdjList::get_next_node(WT_CURSOR *n_cur)
 
 edge AdjList::get_next_edge(WT_CURSOR *e_cur)
 {
-    edge found = {-1};
+    edge found = {0};
     if (e_cur->next(e_cur) == 0)
     {
         e_cur->get_key(e_cur, &found.src_id, &found.dst_id);
@@ -1428,7 +1530,7 @@ edge AdjList::get_next_edge(WT_CURSOR *e_cur)
     }
     else
     {
-        found.id = -1;
+        found = {-1, -1, -1};
     }
     return found;
 }

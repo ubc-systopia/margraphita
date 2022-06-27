@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "common.h"
+
 class CmdLineBase
 {
    protected:
@@ -15,10 +17,11 @@ class CmdLineBase
     std::string argstr_ =
         "m:a:nrdhwl:ob:s:ef:";  //! Construct this after you finish the rest of
                                 //! this thing
+    //"m:a:nrdhwl:ob:s:ef:z";
     std::vector<std::string> help_strings_;
 
     std::string db_name;
-    std::string graph_type;
+    enum GraphType graph_type;
     std::string benchmark;
     std::string dataset;
     std::string log_dir;
@@ -28,6 +31,7 @@ class CmdLineBase
     bool weighted = false;
     bool optimized_create = false;
     bool exit_on_create = false;
+    std::string conn_config;
 
     std::string db_path;  // This contains the path to the db dir.
 
@@ -66,6 +70,7 @@ class CmdLineBase
             'e', "exit_on_create", "Use falg to create the DB and exit");
         add_help_message('f', "csv logdir", "output dir for log");
         add_help_message('h', "h", "Print this help message");
+        add_help_message('z', "conn_config", "connection config");
     }
 
     bool parse_args()
@@ -80,13 +85,6 @@ class CmdLineBase
         {
             std::cout << "There is no input graph specified for insertion into "
                          "the database. Use -h for help."
-                      << std::endl;
-            return false;
-        }
-        if (graph_type == "")
-        {
-            std::cout << "Please specify the graph representation being used "
-                         "for this benchmark. Use -h for help."
                       << std::endl;
             return false;
         }
@@ -127,7 +125,7 @@ class CmdLineBase
                 directed = true;
                 break;
             case 'l':
-                graph_type = std::string(opt_arg);
+                graph_type = handle_graph_type(opt_arg);
                 break;
             case 'o':
                 optimized_create = true;
@@ -135,7 +133,38 @@ class CmdLineBase
             case 'b':
                 benchmark = std::string(opt_arg);
                 break;
+            case 'z':
+                conn_config = std::string(opt_arg);
+                break;
         }
+    }
+
+    GraphType handle_graph_type(char *opt_arg)
+    {
+        GraphType type;
+        if (strcmp(opt_arg, "std") == 0)
+        {
+            type = GraphType::Std;
+        }
+        else if (strcmp(opt_arg, "adj") == 0)
+        {
+            type = GraphType::Adj;
+        }
+        else if (strcmp(opt_arg, "ekey") == 0)
+        {
+            type = GraphType::EKey;
+        }
+        else if (strcmp(opt_arg, "") == 0)
+        {
+            throw(
+                "Please specify the graph representation being used "
+                "for this benchmark. Use -h for help.");
+        }
+        else
+        {
+            throw "Unrecognized graph representation";
+        }
+        return type;
     }
 
     void print_help()
@@ -145,7 +174,7 @@ class CmdLineBase
     }
 
     std::string get_db_name() const { return db_name; }
-    std::string get_graph_type() const { return graph_type; }
+    GraphType get_graph_type() const { return graph_type; }
     std::string get_db_path() const { return db_path; }
     std::string get_dataset() const { return dataset; }
     std::string get_benchmark() const { return benchmark; }
@@ -156,12 +185,13 @@ class CmdLineBase
     bool is_weighted() const { return weighted; }
     bool is_create_optimized() const { return optimized_create; }
     bool is_exit_on_create() const { return exit_on_create; }
+    // std::string get_conn_config() const { return conn_config; }
 };
 
 class CmdLineApp : public CmdLineBase
 {
     int num_trials = 16;
-    int start_vertex_ = -1;
+    node_id_t start_vertex_ = -1;
 
    public:
     CmdLineApp(int argc, char **argv) : CmdLineBase(argc, argv)
@@ -192,7 +222,7 @@ class CmdLineApp : public CmdLineBase
         }
     }
     int get_num_trials() const { return num_trials; }
-    int start_vertex() const { return start_vertex_; }
+    node_id_t start_vertex() const { return start_vertex_; }
 };
 
 class PageRankOpts : public CmdLineApp
