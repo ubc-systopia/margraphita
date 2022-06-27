@@ -98,7 +98,7 @@ int64_t convert_edge_list(node_id_t beg_offset,
                 std::stringstream s_str(tp);
                 s_str >> src;
                 s_str >> dst;
-                outfile << remap[src] << ":" << remap[dst] << "\n";
+                outfile << remap[src] << "\t" << remap[dst] << "\n";
 
                 line++;
             }
@@ -173,6 +173,7 @@ int main(int argc, char *argv[])
         offsets[i] = beg;
         end_offsets[i] = construct_vertex_mapping(beg, end);
     }
+    assert(remap.size() == num_nodes);
 
     auto shoulda = num_nodes / NUM_THREADS;
     int i = 0;
@@ -215,5 +216,8 @@ int main(int argc, char *argv[])
                   << ")" << std::endl;
         i++;
     }
+
+    // test the combined file with map
+
     return (EXIT_SUCCESS);
 }

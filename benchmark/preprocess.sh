@@ -82,7 +82,7 @@ fi
 if [ $preprocess -eq 1 ]
 then
     ##remove all lines that begin with a comment
-    cp ${graph} ${graph}_orig
+    #cp ${graph} ${graph}_orig
     sed -e 's/\t/\n/g' ${graph} | sort -u -g > ${graph}_nodes
     nodecnt=$(wc -l ${graph}_nodes | cut -d' '  -f1)
     edgecnt=$(wc -l ${graph})

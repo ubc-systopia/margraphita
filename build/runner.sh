@@ -30,24 +30,24 @@ fi
 # echo "---------NOW MAKING A PROFILE BUILD------------"
 
 # mkdir ${PROFILE_PATH}
-# cd ${PROFILE_PATH}
-# cmake -DCMAKE_BUILD_TYPE=DEBUG ../.. && make -j16
+ cd ${PROFILE_PATH}
+ cmake -DCMAKE_BUILD_TYPE=DEBUG ../.. && make -j16
 
 # echo "---------NOW MAKING A STATS BUILD------------"
 
 # mkdir ${STATS_PATH}
-# cd ${STATS_PATH}
-# cmake -DCMAKE_BUILD_TYPE=DEBUG -Dstat=true ../.. && make -j16
+ cd ${STATS_PATH}
+ cmake -DCMAKE_BUILD_TYPE=DEBUG -Dstat=true ../.. && make -j16
 
 # #Now create the log directory
-#commit_id=`git rev-parse --short HEAD`
+commit_id=`git rev-parse --short HEAD`
 
 # #create directory where the scripts will insert logs
-dir="${HOME}/margraphita/outputs/${commit_id}"
+dir="${OUTPUT_PATH}/${commit_id}"
 mkdir -p $dir
 
 # #pass this dir to bulk_insert
-# /bin/bash /home/jackli/margraphita/build/release/benchmark/insert_kron.sh -l ${dir}
+/bin/bash ${RELEASE_PATH}/benchmark/insert_kron.sh -l ${dir}
 
 # #now pass this commit_id to run_benchmarks.sh
-# /bin/bash /home/jackli/margraphita/build/release/benchmark/run_benchmarks.sh -d ${dir}
+/bin/bash ${RELEASE_PATH}/benchmark/run_benchmarks.sh -d ${dir}
