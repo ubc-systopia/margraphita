@@ -1,9 +1,17 @@
 #include <math.h>
+#include <omp.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 #include <cassert>
+#include <chrono>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <mutex>
+#include <shared_mutex>
+#include <sstream>
 #include <vector>
 
 #include "GraphCreate.h"
@@ -13,11 +21,9 @@
 #include "edgekey.h"
 #include "graph.h"
 #include "graph_exception.h"
-#include "reader.h"
 #include "standard_graph.h"
 #include "times.h"
 
-using namespace std;
 const float dampness = 0.85;
 std::hash<int> hashfn;
 int N = 1610612741;  // Hash bucket size
@@ -186,24 +192,6 @@ int main(int argc, char *argv[])
     GraphBase *graph = f.CreateGraph(opts);
     t.stop();
     cout << "Graph loaded in " << t.t_micros() << endl;
-
-    // must use derived class object here
-    if (pr_cli.is_exit_on_create())  // Exit after creating the db
-    {
-        graph->close();
-        exit(0);
-    }
-
-    // create_indices does not apply to adjacency lists
-    if (pr_cli.is_index_create() && opts.type != GraphType::Adj)
-    {
-        t.start();
-        graph->make_indexes();
-        t.stop();
-        cout << "Indices created in " << t.t_micros() << endl;
-        graph->close();
-        exit(0);
-    }
 
     // Now run PR
     t.start();
