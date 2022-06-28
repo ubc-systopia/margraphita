@@ -193,24 +193,6 @@ int main(int argc, char *argv[])
     t.stop();
     cout << "Graph loaded in " << t.t_micros() << endl;
 
-    // must use derived class object here
-    if (pr_cli.is_exit_on_create())  // Exit after creating the db
-    {
-        graph->close();
-        exit(0);
-    }
-
-    // create_indices does not apply to adjacency lists
-    if (pr_cli.is_index_create() && opts.type != GraphType::Adj)
-    {
-        t.start();
-        graph->make_indexes();
-        t.stop();
-        cout << "Indices created in " << t.t_micros() << endl;
-        graph->close();
-        exit(0);
-    }
-
     // Now run PR
     t.start();
     pagerank(*graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
