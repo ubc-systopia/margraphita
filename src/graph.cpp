@@ -260,3 +260,8 @@ uint64_t GraphBase::get_num_edges()
     std::string found = get_metadata(edge_count);
     return std::stoi(found);
 }
+
+void GraphBase:: set_locks(LockSet* locks_ptr)
+{
+    locks = locks_ptr;
+}

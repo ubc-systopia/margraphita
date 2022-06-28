@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 #include "common.h"
+#include "lock.h"
 #include "graph_exception.h"
 
 class GraphBase
@@ -50,6 +51,8 @@ class GraphBase
     virtual NodeCursor *get_node_iter() = 0;
     virtual EdgeCursor *get_edge_iter() = 0;
 
+    virtual void set_locks(LockSet* locks_ptr) = 0;
+
     void close();
     uint64_t get_num_nodes();
     uint64_t get_num_edges();
@@ -69,6 +72,7 @@ class GraphBase
     graph_opts opts;
     WT_CONNECTION *conn;
     WT_SESSION *session;
+    LockSet* locks;
 
     WT_CONNECTION *get_db_conn() { return this->conn; }
     WT_SESSION *get_db_session() { return this->session; }
