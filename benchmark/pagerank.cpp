@@ -1,9 +1,17 @@
 #include <math.h>
+#include <omp.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
 #include <cassert>
+#include <chrono>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <mutex>
+#include <shared_mutex>
+#include <sstream>
 #include <vector>
 
 #include "GraphCreate.h"
@@ -13,11 +21,9 @@
 #include "edgekey.h"
 #include "graph.h"
 #include "graph_exception.h"
-#include "reader.h"
 #include "standard_graph.h"
 #include "times.h"
 
-using namespace std;
 const float dampness = 0.85;
 std::hash<int> hashfn;
 int N = 1610612741;  // Hash bucket size

@@ -7,8 +7,11 @@
 #include <cassert>
 #include <chrono>
 #include <cstring>
+#include <fstream>
+#include <iostream>
 #include <mutex>
 #include <shared_mutex>
+#include <sstream>
 #include <vector>
 
 #include "GraphCreate.h"
@@ -18,7 +21,6 @@
 #include "edgekey.h"
 #include "graph_exception.h"
 #include "pvector.h"
-#include "reader.h"
 #include "standard_graph.h"
 #include "thread_utils.h"
 #include "times.h"
@@ -213,7 +215,6 @@ int main(int argc, char *argv[])
     opts.db_name = pr_cli.get_db_name();  //${type}_rd_${ds}
     opts.db_dir = pr_cli.get_db_path();
     std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
-    opts.stat_log = pr_log + "/" + opts.db_name;
     opts.stat_log = pr_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
     opts.type = pr_cli.get_graph_type();
