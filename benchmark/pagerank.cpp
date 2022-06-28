@@ -4,16 +4,18 @@
 #include <unistd.h>
 
 #include <cassert>
-#include <chrono>
 #include <vector>
 
+#include "GraphCreate.h"
 #include "adj_list.h"
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
+#include "graph.h"
 #include "graph_exception.h"
 #include "reader.h"
 #include "standard_graph.h"
+#include "times.h"
 
 using namespace std;
 const float dampness = 0.85;
@@ -40,6 +42,8 @@ void init_pr_map(std::vector<node> &nodes)
                          MAP_PRIVATE | MAP_ANONYMOUS,
                          0,
                          0);
+    // since the access pattern is random and because the node id's
+    // non-continuous we cannot do any clever madvise tricks.
 
     float init_val = 1.0f / size;
 
@@ -50,10 +54,6 @@ void init_pr_map(std::vector<node> &nodes)
             ptr[n.id].id = n.id;
             ptr[n.id].p_rank[p_cur] = init_val;
             ptr[n.id].p_rank[p_next] = 0.0f;
-        }
-        else
-        {
-            cout << "collision at element " << n.id;
         }
     }
 }
@@ -72,7 +72,7 @@ void print_map(std::vector<node> &nodes)
 void delete_map() { munmap(ptr, sizeof(pr_map) * N); }
 
 void print_to_csv(std::string name,
-                  std::vector<int64_t> &times,
+                  std::vector<double> &times,
                   std::string csv_logdir)
 {
     fstream FILE;
@@ -90,10 +90,10 @@ void print_to_csv(std::string name,
     }
 
     FILE << name << ",pr,";
-    for (int i = 0; i < times.size(); i++)
+    for (int i = 0; i < (int)times.size(); i++)
     {
         FILE << times[i];
-        if (i != times.size() - 1)
+        if (i != (int)times.size() - 1)
         {
             FILE << ",";
         }
@@ -112,36 +112,23 @@ void pagerank(Graph &graph,
               double tolerance,
               string csv_logdir)
 {
+    Times t;
     int num_nodes = graph.get_num_nodes();
-    auto start = chrono::steady_clock::now();
+    t.start();
     std::vector<node> nodes = graph.get_nodes();
     init_pr_map(nodes);
-    std::vector<int64_t> times;
-    auto end = chrono::steady_clock::now();
-    cout << "Loading the nodes and constructing the map took "
-         << to_string(chrono::duration_cast<chrono::microseconds>(end - start)
-                          .count())
+    std::vector<double> times;
+    t.stop();
+    cout << "Loading the nodes and constructing the map took " << t.t_micros()
          << endl;
-    times.push_back(
-        chrono::duration_cast<chrono::microseconds>(end - start).count());
+    times.push_back(t.t_micros());
 
-    // ofstream FILE;
-    // FILE.open("nodes_info.txt", ios::out | ios::ate);
-    // for (node n : nodes)
-    // {
-    //     assert(ptr[hashfn(n.id)].id == n.id);
-    //     FILE << n.id << "\t" << n.in_degree << "\t" << n.out_degree << "\n";
-    // }
-    // FILE.close();
-
-    double diff = 1.0;
     int iter_count = 0;
     float constant = (1 - dampness) / num_nodes;
 
     while (iter_count < iterations)
     {
-        auto start = chrono::steady_clock::now();
-        int i = 0;
+        t.start();
         for (node n : nodes)
         {
             int index = hashfn(n.id) % N;
@@ -155,21 +142,16 @@ void pagerank(Graph &graph,
                 sum += (ptr[hashfn(in.id) % N].p_rank[p_cur]) / in.out_degree;
             }
             ptr[index].p_rank[p_next] = constant + (dampness * sum);
-            i++;
         }
         iter_count++;
 
         p_cur = 1 - p_cur;
         p_next = 1 - p_next;
 
-        auto end = chrono::steady_clock::now();
-        cout << "Iter " << iter_count << "took \t"
-             << to_string(
-                    chrono::duration_cast<chrono::microseconds>(end - start)
-                        .count())
+        t.stop();
+        cout << "Iter " << iter_count << "took \t" << to_string(t.t_micros())
              << endl;
-        times.push_back(
-            chrono::duration_cast<chrono::microseconds>(end - start).count());
+        times.push_back(t.t_micros());
     }
     print_to_csv(opts.db_name, times, csv_logdir);
     print_map(nodes);
@@ -196,101 +178,37 @@ int main(int argc, char *argv[])
     std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
     opts.stat_log = pr_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // pr_cli.get_conn_config();
+    opts.type = pr_cli.get_graph_type();
 
-    if (pr_cli.get_graph_type() == "std")
+    Times t;
+    t.start();
+    GraphFactory f;
+    GraphBase *graph = f.CreateGraph(opts);
+    t.stop();
+    cout << "Graph loaded in " << t.t_micros() << endl;
+
+    // must use derived class object here
+    if (pr_cli.is_exit_on_create())  // Exit after creating the db
     {
-        auto start = chrono::steady_clock::now();
-        StandardGraph graph(opts);
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
-        {
-            graph.close();
-            exit(0);
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-
-        if (pr_cli.is_index_create())
-        {
-            start = chrono::steady_clock::now();
-            graph.create_indices();
-            end = chrono::steady_clock::now();
-            cout << "Indices created in "
-                 << chrono::duration_cast<chrono::microseconds>(end - start)
-                        .count()
-                 << endl;
-            graph.close();
-            exit(0);
-        }
-
-        // Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
-        end = chrono::steady_clock::now();
-        cout << "PR  completed in : "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        graph.close();
+        graph->close();
+        exit(0);
     }
-    else if (pr_cli.get_graph_type() == "adj")
+
+    // create_indices does not apply to adjacency lists
+    if (pr_cli.is_index_create() && opts.type != GraphType::Adj)
     {
-        auto start = chrono::steady_clock::now();
-        AdjList graph(opts);
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
-        {
-            exit(0);
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        // Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
-        end = chrono::steady_clock::now();
-        cout << "PR  completed in : "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        graph.close();
+        t.start();
+        graph->make_indexes();
+        t.stop();
+        cout << "Indices created in " << t.t_micros() << endl;
+        graph->close();
+        exit(0);
     }
-    else if (pr_cli.get_graph_type() == "ekey")
-    {
-        auto start = chrono::steady_clock::now();
-        EdgeKey graph(opts);
-        if (pr_cli.is_exit_on_create())  // Exit after creating the db
-        {
-            exit(0);
-        }
-        auto end = chrono::steady_clock::now();
-        cout << "Graph loaded in "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
 
-        if (pr_cli.is_index_create())
-        {
-            start = chrono::steady_clock::now();
-            graph.create_indices();
-            end = chrono::steady_clock::now();
-            cout << "Indices created in "
-                 << chrono::duration_cast<chrono::microseconds>(end - start)
-                        .count()
-                 << endl;
-            graph.close();
-            exit(0);
-        }
-
-        // Now run PR
-        start = chrono::steady_clock::now();
-        pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
-        end = chrono::steady_clock::now();
-        cout << "PR  completed in : "
-             << chrono::duration_cast<chrono::microseconds>(end - start).count()
-             << endl;
-        graph.close();
-    }
-    else
-    {
-        std::cout << "Unrecognized graph representation";
-    }
+    // Now run PR
+    t.start();
+    pagerank(*graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
+    t.stop();
+    cout << "PR  completed in : " << t.t_micros() << endl;
+    graph->close();
 }

@@ -1,4 +1,5 @@
-
+#ifndef GRAPH_H
+#define GRAPH_H
 #include <wiredtiger.h>
 
 #include <algorithm>
@@ -14,55 +15,67 @@
 class GraphBase
 {
    public:
-    GraphBase(graph_opts opts);
-    GraphBase();
-    void insert_metadata(std::string key, char *value);
-    std::string get_metadata(std::string key);
-    node get_node(int node_id);
-    node get_random_node();
-    void create_new_graph();
-    void add_node(node to_insert);
-    bool has_node(int node_id);
-    void delete_node(int node_id);
-    void delete_related_edges(WT_CURSOR *idx_cursor,
-                              WT_CURSOR *edge_cur,
-                              int node_id);
-    void update_node_degree(int node_id, int indeg, int outdeg);
-    void add_edge(edge to_insert);
-    void bulk_add_edge(int src, int dst, int weight);
-    void delete_edge(int src_id, int dst_id);
-    edge get_edge(int src_id, int dst_id);
+    GraphBase(graph_opts opts);  // ✅
+    void insert_metadata(const std::string key,
+                         const char *value,
+                         WT_CURSOR *metadata_cursor);  // ✅ check if pvt
+    std::string get_metadata(std::string key, WT_CURSOR *metadata_cursor);  // ✅
+    virtual node get_node(node_id_t node_id) = 0;                      // ✅
+    virtual node get_random_node() = 0;                                // ✅
+    virtual void create_new_graph() = 0;                               // ✅
+    virtual void add_node(node to_insert) = 0;                         // ✅
+    virtual bool has_node(node_id_t node_id) = 0;                      // ✅
+    virtual void delete_node(node_id_t node_id) = 0;                   // ✅
+    virtual void add_edge(edge to_insert, bool is_bulk) = 0;           // ✅
+    virtual void delete_edge(node_id_t src_id, node_id_t dst_id) = 0;  // ✅
+    virtual edge get_edge(node_id_t src_id, node_id_t dst_id) = 0;     // ✅
     // void update_edge(edge to_update); no need to implement.
-    std::vector<node> get_nodes();
-    std::vector<edge> get_edges();
-    bool has_edge(int src_id, int dst_id);
-    int get_num_edges();
-    int get_num_nodes();
+    virtual std::vector<node> get_nodes() = 0;  // ✅
+    virtual std::vector<edge> get_edges() = 0;  // ✅
+    virtual bool has_edge(node_id_t src_id, node_id_t dst_id) = 0;
 
-    int get_out_degree(int node_id);
-    int get_in_degree(int node_id);
-    std::vector<edge> get_out_edges(int node_id);
-    std::vector<node> get_out_nodes(int node_id);
-    std::vector<edge> get_in_edges(int node_id);
-    std::vector<node> get_in_nodes(int node_id);
+    virtual degree_t get_out_degree(node_id_t node_id) = 0;          // ✅
+    virtual degree_t get_in_degree(node_id_t node_id) = 0;           // ✅
+    virtual std::vector<edge> get_out_edges(node_id_t node_id) = 0;  // ✅
+    virtual std::vector<node> get_out_nodes(node_id_t node_id) = 0;  // ✅
+
+    virtual std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) = 0;
+    virtual std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) = 0;
+
+    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;   // ✅
+    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;   // ✅
+
+    virtual OutCursor *get_outnbd_iter() = 0;
+    virtual InCursor *get_innbd_iter() = 0;
+    virtual NodeCursor *get_node_iter() = 0;
+    virtual EdgeCursor *get_edge_iter() = 0;
+
     void close();
-    //----------------^DONE
-    void create_indices();
-    WT_CURSOR *get_node_iter();
-    node get_next_node(WT_CURSOR *n_iter);
-    WT_CURSOR *get_edge_iter();
-    edge get_next_edge(WT_CURSOR *e_iter);
-    void close_all_cursors();
+    uint64_t get_num_nodes();
+    uint64_t get_num_edges();
+    void set_num_nodes(uint64_t num_nodes, WT_CURSOR *cursor);
+    void set_num_edges(uint64_t num_edges, WT_CURSOR *cursor);
+    virtual void make_indexes() = 0;
     std::string get_db_name() const { return opts.db_name; };
 
+    struct db_handle
+    {
+        WT_CONNECTION *conn;
+        WT_SESSION *session;
+        WT_CURSOR *cur;
+    };
+
    protected:
+    graph_opts opts;
     WT_CONNECTION *conn;
     WT_SESSION *session;
-    // create params
-    graph_opts opts;
+
+    WT_CONNECTION *get_db_conn() { return this->conn; }
+    WT_SESSION *get_db_session() { return this->session; }
 
     int _get_table_cursor(std::string table,
                           WT_CURSOR **cursor,
+                          WT_SESSION *session,
                           bool is_random);
     int _get_index_cursor(std::string table_name,
                           std::string idx_name,
@@ -71,4 +84,8 @@ class GraphBase
     void __restore_from_db(std::string db_name);
 
     void drop_indices();
+    void close_all_cursors();
+
+    std::string get_metadata(const std::string &key);
 };
+#endif

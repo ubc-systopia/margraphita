@@ -13,7 +13,7 @@
 #include <experimental/filesystem>
 #endif
 #ifdef LINUX
-#include <filesystem>>
+#include <filesystem>
 #endif
 
 const std::string METADATA = "metadata";
@@ -35,6 +35,8 @@ const std::string NODE_DATA = "data";
 const std::string IS_DIRECTED = "is_directed";
 const std::string IS_WEIGHTED = "is_weighted";
 const std::string CREATE_NEW = "create_new";
+const std::string node_count = "nNodes";
+const std::string edge_count = "nEdges";
 
 // Read Optimize columns
 const std::string IN_DEGREE = "in_degree";
@@ -53,6 +55,7 @@ const std::string IN_ADJLIST = "adjlistin";
 const std::string SRC_INDEX = "IX_edge_" + SRC;
 const std::string DST_INDEX = "IX_edge_" + DST;
 const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
+const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
 
 void CommonUtil::create_dir(std::string path)
 {
@@ -924,6 +927,7 @@ WT_ITEM CommonUtil::pack_items(WT_SESSION *session, std::string fmt, ...)
             wiredtiger_pack_str(pack_stream, val);
         }
     }
+    va_end(args);
     wiredtiger_pack_close(pack_stream, &size);  // get the bytes used.
 
     packed.data = data_buf;
@@ -940,9 +944,9 @@ std::vector<int> CommonUtil::unpack_vector_int(WT_SESSION *session,
 
     (void)wiredtiger_unpack_start(
         session, format.c_str(), packed.data, packed.size, &pack_stream);
-    for (int i = 0; i < format.length(); i++)
+    for (size_t i = 0; i < format.length(); i++)
     {
-        int64_t found;
+        node_id_t found;
         wiredtiger_unpack_int(pack_stream, &found);
         unpacked.push_back(found);
     }
@@ -964,9 +968,9 @@ std::vector<int> CommonUtil::unpack_vector_int(WT_SESSION *session,
  * @param to_unpack string that contains the packed vector
  * @return std::vector<int> unpacked buffer
  */
-std::vector<int> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
-                                                   size_t size,
-                                                   char *packed_str)
+std::vector<node_id_t> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
+                                                         size_t size,
+                                                         char *packed_str)
 {
     WT_PACK_STREAM *psp;
     WT_ITEM unpacked;
@@ -974,11 +978,11 @@ std::vector<int> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
     wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
     wiredtiger_unpack_item(psp, &unpacked);
     wiredtiger_pack_close(psp, &used);
-    std::vector<int> unpacked_vec;
+    std::vector<node_id_t> unpacked_vec;
 
-    int vec_size = (int)size / sizeof(int);
+    int vec_size = (int)size / sizeof(node_id_t);
     for (int i = 0; i < vec_size; i++)
-        unpacked_vec.push_back(((int *)unpacked.data)[i]);
+        unpacked_vec.push_back(((node_id_t *)unpacked.data)[i]);
     return unpacked_vec;
 }
 
@@ -995,19 +999,26 @@ std::vector<int> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
  * @return buffer containing the packed array.
  */
 char *CommonUtil::pack_int_vector_wti(WT_SESSION *session,
-                                      std::vector<int> to_pack,
+                                      std::vector<node_id_t> to_pack,
                                       size_t *size)
 {
     WT_PACK_STREAM *psp;
     WT_ITEM item;
     item.data = to_pack.data();
-    item.size = sizeof(int) * to_pack.size();
+    item.size = sizeof(node_id_t) * to_pack.size();
 
-    void *pack_buf = malloc(sizeof(int) * to_pack.size());
+    void *pack_buf = malloc(sizeof(node_id_t) * to_pack.size());
     int ret = wiredtiger_pack_start(session, "u", pack_buf, item.size, &psp);
-
-    wiredtiger_pack_item(psp, &item);
-    wiredtiger_pack_close(psp, size);
+    if (ret == 0)
+    {
+        wiredtiger_pack_item(psp, &item);
+        wiredtiger_pack_close(psp, size);
+    }
+    else
+    {
+        std::cerr << "Error in packing" << std::endl;
+        exit(-1);
+    }
 
     return (char *)pack_buf;
 }

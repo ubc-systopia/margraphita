@@ -8,229 +8,513 @@
 #include <unordered_map>
 
 #include "common.h"
+#include "graph.h"
 #include "graph_exception.h"
 
 using namespace std;
-namespace StdIterator
-{
-class InCursor : public table_iterator
+
+class StdInCursor : public InCursor
 {
    private:
-    int prev_node;
-    int cur_node;
+    bool data_remaining = true;
+    node_id_t next_expected = 0;
 
    public:
-    InCursor(WT_CURSOR *beg_cur, WT_SESSION *sess) { init(beg_cur, sess); }
-    void set_key(key_pair key)
-    {
-        cursor->set_key(cursor, key.dst_id);  // In Nbd
-    }
+    StdInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
-    // Return the next node in the graph. This function calls the cursor on dst
-    // column
     void next(adjlist *found)
     {
-        edge idx;
-        int ret = 0;
-        while ((ret = cursor->next(cursor)) == 0)
+        if (!has_next)
         {
-            cursor->get_key(cursor, &cur_node);
-            if (is_first)
-            {
-                prev_node = cur_node;
-                is_first = false;
-            }
-
-            CommonUtil::__read_from_edge_idx(cursor, &idx);
-            if (prev_node == idx.dst_id)
-            {
-                found->degree++;
-                found->edgelist.push_back(idx.src_id);  // in nbd;
-                found->node_id = idx.dst_id;
-            }
-            else  // We have moved to the next node id.
-            {
-                cursor->prev(cursor);
-                is_first = true;
-                break;
-            }
+            goto no_next;
         }
-        if (ret != 0)
+
+        if (!data_remaining)
         {
-            has_next = false;
+            goto no_data_remaining;
         }
-    }
 
-    void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-        prev_node = cur_node = 0;
-    }
+        node_id_t src;
+        node_id_t dst;
 
-    bool has_more() { return has_next; };
+        edge curr_edge;
 
-    void next(adjlist *found, key_pair key)
-    {
-        edge idx;
-        cursor->reset(cursor);
-        cursor->set_key(cursor, key.dst_id);
-        int ret = 0;
-        if (cursor->search(cursor) == 0 && has_next)
+        if (is_first)
         {
-            int iter_key;
-            do
+            is_first = false;
+
+            if (keys.start != -1)
             {
-                CommonUtil::__read_from_edge_idx(cursor, &idx);
-                found->edgelist.push_back(idx.src_id);
-                found->degree++;
-                found->node_id = key.dst_id;
-                // now check if the next key is still the same as the one we
-                // want
-                ret = cursor->next(cursor);
-                if (ret != 0)
+                next_expected = keys.start;
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
                 {
-                    has_next = false;
-                    return;
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_data_remaining;
+                    }
                 }
-                cursor->get_key(cursor, &iter_key);
-            } while (iter_key == key.dst_id);
-        }
-        else
-        {
-            found->node_id = -1;
-            cursor->reset(cursor);
-        }
-    }
-};
-
-class OutCursor : public table_iterator
-{
-   private:
-    int prev_node;
-    int cur_node;
-
-   public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
-    void set_key(key_pair key)
-    {
-        cursor->set_key(cursor, key.src_id);  // out Nbd
-    }
-
-    // This calls the next method on the src_index cursor
-    void next(adjlist *found)  //! Make this a reference not a pointer to use
-                               //! move semantics
-    {
-        edge idx;
-        int ret = 0;
-        while ((ret = cursor->next(cursor)) == 0)
-        {
-            cursor->get_key(cursor, &cur_node);
-            if (is_first)
-            {
-                prev_node = cur_node;
-                is_first = false;
-            }
-            CommonUtil ::__read_from_edge_idx(cursor, &idx);
-            if (prev_node == idx.src_id)
-            {
-                found->degree++;
-                found->edgelist.push_back(idx.dst_id);
-                found->node_id = idx.src_id;
             }
             else
             {
-                cursor->prev(cursor);
-                is_first = true;
-                break;
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_data_remaining;
+                }
             }
         }
 
-        if (ret != 0)
+        if (keys.end != -1 && next_expected > keys.end)
         {
-            has_next = false;
+            goto no_next;
         }
-    }
 
-    void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-        prev_node = cur_node = 0;
-    }
+        cursor->get_value(cursor, &src, &dst);
 
-    bool has_more() { return has_next; };
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = dst;
 
-    void next(adjlist *found, key_pair key)
-    {
-        edge idx;
-        cursor->set_key(cursor, key.src_id);
-        int ret = 0;
-        if (cursor->search(cursor) == 0 && has_next)
+        if (dst != next_expected)
         {
-            int iter_key;
-            do
+            found->node_id = next_expected;
+            next_expected += 1;
+            return;
+        }
+        next_expected += 1;
+
+        do
+        {
+            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            if (dst == curr_edge.dst_id)
             {
-                CommonUtil::__read_from_edge_idx(cursor, &idx);
-                found->edgelist.push_back(idx.dst_id);
                 found->degree++;
-                found->node_id = key.src_id;
-                // check if the next key is the same as the one we are currently
-                // looking for.
-                ret = cursor->next(cursor);
-                if (ret != 0)
+                found->edgelist.push_back(curr_edge.src_id);
+            }
+            else
+            {
+                return;
+            }
+        } while (cursor->next(cursor) == 0);
+
+        data_remaining = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+        return;
+    no_data_remaining:
+        if (keys.end != -1 && next_expected > keys.end)
+        {
+            goto no_next;
+        }
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = next_expected;
+        next_expected += 1;
+    }
+
+    void next(adjlist *found, node_id_t key)
+    {
+        // Must reset OutCursor if already no_next
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        next_expected = key + 1;
+
+        edge curr_edge;
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        data_remaining = true;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                data_remaining = false;
+                return;
+            }
+        }
+
+        do
+        {
+            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            if (curr_edge.dst_id != key)
+            {
+                if (keys.end != -1 && next_expected > keys.end)
                 {
                     has_next = false;
-                    return;
                 }
-                cursor->get_key(cursor, &iter_key);
-            } while (iter_key == key.src_id);
+                return;
+            }
+            found->edgelist.push_back(curr_edge.src_id);
+            found->degree++;
+        } while (cursor->next(cursor) == 0);
+
+        data_remaining = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+    }
+};
+
+class StdOutCursor : public OutCursor
+{
+    bool data_remaining = true;
+    node_id_t next_expected = 0;
+
+   public:
+    StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
+
+    void next(adjlist *found)
+    {
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        if (!data_remaining)
+        {
+            goto no_data_remaining;
+        }
+
+        node_id_t src;
+        node_id_t dst;
+
+        edge curr_edge;
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                next_expected = keys.start;
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
+                {
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_data_remaining;
+                    }
+                }
+            }
+            else
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_data_remaining;
+                }
+            }
+        }
+
+        if (keys.end != -1 && next_expected > keys.end)
+        {
+            goto no_next;
+        }
+
+        cursor->get_value(cursor, &src, &dst);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = src;
+
+        if (src != next_expected)
+        {
+            found->node_id = next_expected;
+            next_expected += 1;
+            return;
+        }
+        next_expected += 1;
+
+        do
+        {
+            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            if (src == curr_edge.src_id)
+            {
+                found->degree++;
+                found->edgelist.push_back(curr_edge.dst_id);
+            }
+            else
+            {
+                return;
+            }
+        } while (cursor->next(cursor) == 0);
+
+        data_remaining = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+        return;
+    no_data_remaining:
+        if (keys.end != -1 && next_expected > keys.end)
+        {
+            goto no_next;
+        }
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = next_expected;
+        next_expected += 1;
+    }
+
+    void next(adjlist *found, node_id_t key)
+    {
+        // Must reset OutCursor if already no_next
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        next_expected = key + 1;
+
+        edge curr_edge;
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        data_remaining = true;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                data_remaining = false;
+                return;
+            }
+        }
+
+        do
+        {
+            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            if (curr_edge.src_id != key)
+            {
+                if (keys.end != -1 && next_expected > keys.end)
+                {
+                    has_next = false;
+                }
+                return;
+            }
+            found->edgelist.push_back(curr_edge.dst_id);
+            found->degree++;
+        } while (cursor->next(cursor) == 0);
+
+        data_remaining = false;
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+    }
+};
+
+class StdNodeCursor : public NodeCursor
+{
+   public:
+    StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
+
+    void next(node *found)
+    {
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
+                {
+                    goto first_time_skip_next;
+                }
+            }
+        }
+
+        if (cursor->next(cursor) == 0)
+        {
+        first_time_skip_next:
+            // error_check(cursor->get_key(cursor, &found->id));
+            cursor->get_key(cursor, &found->id);
+            if (keys.end != -1 && found->id > keys.end)
+            {
+                goto no_next;
+            }
+
+            CommonUtil::__record_to_node(cursor, found, true);
         }
         else
         {
-            found->node_id = -1;
-            cursor->reset(cursor);
+        no_next:
+            found->id = -1;
+            found->in_degree = -1;
+            found->out_degree = -1;
+            has_next = false;
         }
     }
 };
-};  // namespace StdIterator
 
-class StandardGraph
+class StdEdgeCursor : public EdgeCursor
+{
+   public:
+    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
+
+    void next(edge *found)
+    {
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // If first time calling next, we want the exact record corresponding to
+        // the key_pair start or, if there is no such record, the smallest
+        // record larger than the key_pair
+        if (is_first)
+        {
+            is_first = false;
+
+            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
+                {
+                    goto first_time_skip_next;
+                }
+            }
+        }
+
+        // Check existence of next record
+        if (cursor->next(cursor) == 0)
+        {
+        first_time_skip_next:
+            // error_check(
+            //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
+            cursor->get_key(cursor, &found->src_id, &found->dst_id);
+
+            // If end_edge is set
+            if (end_edge.src_id != -1)
+            {
+                // If found > end edge
+                if (!(found->src_id < end_edge.src_id ||
+                      ((found->src_id == end_edge.src_id) &&
+                       (found->dst_id <= end_edge.dst_id))))
+                {
+                    goto no_next;
+                }
+            }
+
+            CommonUtil::__record_to_edge(cursor, found);
+        }
+        else
+        {
+        no_next:
+            found->src_id = -1;
+            found->dst_id = -1;
+            found->edge_weight = -1;
+            has_next = false;
+        }
+    }
+};
+
+class StandardGraph : public GraphBase
 {
    public:
     // create params
-    graph_opts opts;
     StandardGraph(graph_opts &opt_params);
-    StandardGraph();
     void create_new_graph();
     void add_node(node to_insert);
 
-    bool has_node(int node_id);
-    node get_node(int node_id);
-    void delete_node(int node_id);
+    bool has_node(node_id_t node_id);
+    node get_node(node_id_t node_id);
+    void delete_node(node_id_t node_id);
     node get_random_node();
-    int get_in_degree(int node_id);
-    int get_out_degree(int node_id);
+    degree_t get_in_degree(node_id_t node_id);
+    degree_t get_out_degree(node_id_t node_id);
     std::vector<node> get_nodes();
-    int get_num_nodes();
-    int get_num_edges();
     void add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(int src_id, int dst_id, edge *found);
-    void delete_edge(int src_id, int dst_id);
-    edge get_edge(int src_id, int dst_id);  // todo <-- implement this
+    bool has_edge(node_id_t src_id, node_id_t dst_id);
+    void delete_edge(node_id_t src_id, node_id_t dst_id);
+    edge get_edge(node_id_t src_id,
+                  node_id_t dst_id);  // todo <-- implement this
     std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(int node_id);
-    std::vector<node> get_out_nodes(int node_id);
-    std::vector<edge> get_in_edges(int node_id);
-    std::vector<node> get_in_nodes(int node_id);
-    void close();
+    std::vector<edge> get_out_edges(node_id_t node_id);
+    std::vector<node> get_out_nodes(node_id_t node_id);
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id);
+    std::vector<edge> get_in_edges(node_id_t node_id);
+    std::vector<node> get_in_nodes(node_id_t node_id);
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id);
+    void get_nodes(vector<node> &nodes);
     std::string get_db_name() const { return opts.db_name; };
-    void create_indices();
 
-    StdIterator::OutCursor get_outnbd_cursor();
-    StdIterator::InCursor get_innbd_cursor();
+    OutCursor *get_outnbd_iter();
+    InCursor *get_innbd_iter();
+    NodeCursor *get_node_iter();
+    EdgeCursor *get_edge_iter();
 
     // internal cursor methods
     //! Check if these should be public
@@ -240,14 +524,16 @@ class StandardGraph
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
     WT_CURSOR *get_src_dst_idx_cursor();
-    WT_CURSOR *get_node_iter();
-    WT_CURSOR *get_edge_iter();
-    std::vector<edge> test_cursor_iter(int node_id);
 
-   protected:
-    WT_CONNECTION *conn;
-    WT_SESSION *session;
+    WT_CURSOR *get_new_node_cursor();
+    WT_CURSOR *get_new_edge_cursor();
+    WT_CURSOR *get_new_src_idx_cursor();
+    WT_CURSOR *get_new_dst_idx_cursor();
+    WT_CURSOR *get_new_src_dst_idx_cursor();
+    std::vector<edge> test_cursor_iter(node_id_t node_id);
+    void make_indexes();
 
+   private:
     // Cursors
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
@@ -261,43 +547,22 @@ class StandardGraph
     vector<string> node_columns = {ID};  // Always there :)
     vector<string> edge_columns = {SRC, DST};
     string node_value_format;
-    string node_key_format = "I";
-    string edge_key_format = "II";
+    string node_key_format = "q";
+    string edge_key_format = "qq";
     string edge_value_format = "";  // I if weighted or b if unweighted.
 
-    string node_count = "nNodes";
-    string edge_count = "nEdges";
-
-    // // Serialization methods
-    // void __node_to_record(WT_CURSOR *cursor, node to_insert);
-    // void __record_to_node(WT_CURSOR *cursor, node *found);
-    // void __record_to_edge(WT_CURSOR *cursor, edge *found);
-    // void __read_from_edge_idx(WT_CURSOR *cursor, edge *e_idx);
-
     // Internal methods
-    int _get_table_cursor(string table, WT_CURSOR **cursor, bool is_random);
-    int _get_index_cursor(std::string table_name,
-                          std::string idx_name,
-                          std::string projection,
-                          WT_CURSOR **cursor);
+    void init_metadata_cursor();
     void drop_indices();
-    void set_num_nodes(int numNodes);
-    void set_num_edges(int numEdges);
-    void delete_related_edges(WT_CURSOR *index_cursor, int node_id);
+    void create_indices();
     void update_node_degree(WT_CURSOR *cursor,
-                            int node_id,
-                            int in_degree,
-                            int out_degree);
-    void update_edge_weight(int src_id, int dst_id, int edge_weight);
+                            node_id_t node_id,
+                            degree_t indeg,
+                            degree_t outdeg);
+    void delete_related_edges(WT_CURSOR *index_cursor, node_id_t node_id);
+
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
-
-    // Metadata and restore operations:
-    void insert_metadata(string key, string value_format, char *value);
-    string get_metadata(string key);
-    void __restore_from_db(string db_name);
-
-    WT_CONNECTION *get_db_conn() { return this->conn; }
 };
 
 #endif

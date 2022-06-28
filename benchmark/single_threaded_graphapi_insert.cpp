@@ -20,9 +20,9 @@
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 #define quote(x) #x
 
-std::unordered_map<int, std::vector<int>> in_adjlist;
-std::unordered_map<int, std::vector<int>> out_adjlist;
-std::set<int> nodes;
+std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;
+std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;
+std::set<node_id_t> nodes;
 
 typedef struct insert_time
 {
@@ -31,12 +31,12 @@ typedef struct insert_time
     int64_t adj_insert;
     int64_t ekey_insert;
     int64_t ekey_index;
-    insert_time(int _val)
+    insert_time(int64_t _val)
         : std_insert(_val),
           std_index(_val),
           adj_insert(_val),
-          ekey_index(_val),
-          ekey_insert(_val){};
+          ekey_insert(_val),
+          ekey_index(_val){};
 } insert_time;
 
 void print_csv_info(std::string log_dir, std::string name, insert_time *info)
@@ -81,7 +81,7 @@ void get_edge_entries(std::vector<edge> &edges,
 
             else
             {
-                int a, b;
+                node_id_t a, b;
                 std::stringstream s_stream(tp);
                 s_stream >> a;
                 s_stream >> b;
@@ -113,9 +113,9 @@ int64_t insert_adj(AdjList graph, std::string filename)
     std::vector<edge> edjlist;
     get_edge_entries(edjlist, filename, true);
 
-    for (int node : nodes)
+    for (node_id_t node : nodes)
     {
-        std::vector<int> innodes, outnodes;
+        std::vector<node_id_t> innodes, outnodes;
         try
         {
             innodes = in_adjlist.at(node);
@@ -155,9 +155,9 @@ int64_t create_init_nodes(Graph graph, std::string filename)
     std::vector<edge> edjlist;
     get_edge_entries(edjlist, filename, false);
 
-    for (int x : nodes)
+    for (node_id_t x : nodes)
     {
-        std::vector<int> indeg, outdeg;
+        std::vector<node_id_t> indeg, outdeg;
         node to_insert = {.id = x};
         try
         {
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
         StandardGraph graph1 = StandardGraph(opts);
         info->std_insert = create_init_nodes(graph1, filename);
         auto start = std::chrono::steady_clock::now();
-        graph1.create_indices();
+        graph1.make_indexes();
         auto end = std::chrono::steady_clock::now();
         info->std_index =
             std::chrono::duration_cast<std::chrono::microseconds>(end - start)
@@ -257,7 +257,7 @@ int main(int argc, char **argv)
         info->ekey_insert = create_init_nodes(graph3, filename);
         tearDown(graph3);
         start = std::chrono::steady_clock::now();
-        graph1.create_indices();
+        graph1.make_indexes();
         end = std::chrono::steady_clock::now();
         info->ekey_index =
             std::chrono::duration_cast<std::chrono::microseconds>(end - start)

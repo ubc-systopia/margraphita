@@ -8,138 +8,424 @@
 #include <unordered_map>
 
 #include "common.h"
+#include "graph.h"
 #include "graph_exception.h"
 
 using namespace std;
-namespace AdjIterator
-{
 
-class InCursor : public table_iterator
+class AdjInCursor : public InCursor
 {
    public:
-    InCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
-
-    void set_key(key_pair key)
-    {
-        cursor->set_key(cursor, key.dst_id);  // In neighbourhood
-    }
+    AdjInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
     void next(adjlist *found)
     {
-        if (cursor->next(cursor) == 0)
+        if (!has_next)
         {
-            CommonUtil::__record_to_adjlist(session, cursor, found);
-            cursor->get_key(cursor, &found->node_id);
+            goto no_next;
         }
-        else
-        {
-            found->node_id = -1;
-        }
-    }
 
-    void next(adjlist *found, key_pair keys) override
-    {
-        cursor->set_key(cursor, keys.dst_id);
-        if (cursor->search(cursor) == 0)
+        if (is_first)
         {
-            CommonUtil::__record_to_adjlist(session, cursor, found);
-            found->node_id = keys.dst_id;
-            cursor->reset(cursor);
-        }
-        else
-        {
-            found->node_id =
-                -1;  // check for out-of-band values in application program.
-            cursor->reset(cursor);
-        }
-    }
-};
+            is_first = false;
 
-class OutCursor : public table_iterator
-{
-   public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess) { init(cur, sess); }
-
-    void set_key(key_pair key)
-    {
-        cursor->set_key(cursor, key.src_id);  // Out neighbourhood.
-    }
-
-    void next(adjlist *found)
-    {
-        if (cursor->next(cursor) == 0)
-        {
-            CommonUtil::__record_to_adjlist(session, cursor, found);
-            cursor->get_key(cursor, &found->node_id);
-        }
-        else
-        {
-            found->node_id = -1;
-        }
-    }
-
-    void next(adjlist *found, key_pair keys) override
-    {
-        if (cursor->next(cursor) == 0)
-        {
-            cursor->get_key(cursor, &found->node_id);
-            if (found->node_id == keys.src_id)
+            if (keys.start != -1)
             {
-                CommonUtil::__record_to_adjlist(session, cursor, found);
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
+                {
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_next;
+                    }
+                }
             }
             else
             {
-                found->node_id = -1;
-                cursor->reset(cursor);
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_next;
+                }
             }
+        }
+
+        node_id_t curr_key;
+        cursor->get_key(cursor, &curr_key);
+
+        if (keys.end != -1 && curr_key > keys.end)
+        {
+            goto no_next;
+        }
+
+        CommonUtil::__record_to_adjlist(session, cursor, found);
+        found->node_id = curr_key;
+
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+        }
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+    }
+
+    void next(adjlist *found, node_id_t key)
+    {
+        // Must reset OutCursor if already no_next
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+
+        int curr_key;
+        cursor->get_key(cursor, &curr_key);
+
+        if (curr_key == key)
+        {
+            CommonUtil::__record_to_adjlist(session, cursor, found);
+        }
+
+        if (keys.end != -1 && curr_key > keys.end)
+        {
+            has_next = false;
+        }
+
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+        }
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+    }
+};
+
+class AdjOutCursor : public OutCursor
+{
+   public:
+    AdjOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
+
+    void next(adjlist *found)
+    {
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status < 0)
+                {
+                    // Advances the cursor
+                    if (cursor->next(cursor) != 0)
+                    {
+                        goto no_next;
+                    }
+                }
+            }
+            else
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    goto no_next;
+                }
+            }
+        }
+
+        int curr_key;
+        cursor->get_key(cursor, &curr_key);
+
+        if (keys.end != -1 && curr_key > keys.end)
+        {
+            goto no_next;
+        }
+
+        CommonUtil::__record_to_adjlist(session, cursor, found);
+        found->node_id = curr_key;
+
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+        }
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+    }
+
+    void next(adjlist *found, node_id_t key)
+    {
+        // Must reset OutCursor if already no_next
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // Access outside of range not permitted
+        if (keys.end != -1 && key > keys.end)
+        {
+            goto no_next;
+        }
+
+        if (keys.start != -1 && key < keys.start)
+        {
+            goto no_next;
+        }
+
+        cursor->set_key(cursor, key);
+
+        found->degree = 0;
+        found->edgelist.clear();
+        found->node_id = key;
+
+        int status;
+        // error_check(cursor->search_near(cursor, &status));
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+
+        int curr_key;
+        cursor->get_key(cursor, &curr_key);
+
+        if (curr_key == key)
+        {
+            CommonUtil::__record_to_adjlist(session, cursor, found);
+        }
+
+        if (keys.end != -1 && curr_key > keys.end)
+        {
+            has_next = false;
+        }
+
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+        }
+        return;
+
+    no_next:
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+    }
+};
+
+class AdjNodeCursor : public NodeCursor
+{
+   public:
+    AdjNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
+
+    // use key_pair to define start and end keys.
+    void next(node *found)
+    {
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        if (is_first)
+        {
+            is_first = false;
+
+            if (keys.start != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
+                {
+                    goto first_time_skip_next;
+                }
+            }
+        }
+
+        if (cursor->next(cursor) == 0)
+        {
+        first_time_skip_next:
+            // error_check(cursor->get_key(cursor, &found->id));
+            cursor->get_key(cursor, &found->id);
+            if (keys.end != -1 && found->id > keys.end)
+            {
+                goto no_next;
+            }
+
+            CommonUtil::__record_to_node(cursor, found, true);
         }
         else
         {
-            found->node_id = -1;
+        no_next:
+            found->id = -1;
+            found->in_degree = -1;
+            found->out_degree = -1;
+            has_next = false;
         }
     }
 };
-};  // namespace AdjIterator
 
-class AdjList
+class AdjEdgeCursor : public EdgeCursor
+{
+   public:
+    AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
+
+    void next(edge *found)
+    {
+        if (!has_next)
+        {
+            goto no_next;
+        }
+
+        // If first time calling next, we want the exact record corresponding to
+        // the key_pair start or, if there is no such record, the smallest
+        // record larger than the key_pair
+        if (is_first)
+        {
+            is_first = false;
+            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+            {
+                int status;
+                // error_check(cursor->search_near(cursor, &status));
+                cursor->search_near(cursor, &status);
+                if (status >= 0)
+                {
+                    goto first_time_skip_next;
+                }
+            }
+        }
+
+        // Check existence of next record
+        if (cursor->next(cursor) == 0)
+        {
+        first_time_skip_next:
+            // error_check(
+            //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
+            cursor->get_key(cursor, &found->src_id, &found->dst_id);
+
+            // If end_edge is set
+            if (end_edge.src_id != -1)
+            {
+                // If found > end edge
+                if (!(found->src_id < end_edge.src_id ||
+                      ((found->src_id == end_edge.src_id) &&
+                       (found->dst_id <= end_edge.dst_id))))
+                {
+                    goto no_next;
+                }
+            }
+
+            CommonUtil::__record_to_edge(cursor, found);
+        }
+        else
+        {
+        no_next:
+            found->src_id = -1;
+            found->dst_id = -1;
+            found->edge_weight = -1;
+            has_next = false;
+        }
+    }
+};
+
+class AdjList : public GraphBase
 {
    public:
     AdjList(graph_opts &opt_params);
-    AdjList();
     void create_new_graph();
     void add_node(node to_insert);
-    void add_node(int to_insert,
-                  std::vector<int> &inlist,
-                  std::vector<int> &outlist);
-    bool has_node(int node_id);
-    node get_node(int node_id);
-    void delete_node(int node_id);
+    void add_node(node_id_t to_insert,
+                  std::vector<node_id_t> &inlist,
+                  std::vector<node_id_t> &outlist);
+    bool has_node(node_id_t node_id);
+    node get_node(node_id_t node_id);
+    void delete_node(node_id_t node_id);
     node get_random_node();
-    int get_in_degree(int node_id);
-    int get_out_degree(int node_id);
+    degree_t get_in_degree(node_id_t node_id);
+    degree_t get_out_degree(node_id_t node_id);
     std::vector<node> get_nodes();
-    int get_num_nodes();
-    int get_num_edges();
-    void add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(int src_id, int dst_id);
-    void delete_edge(int src_id, int dst_id);
-    edge get_edge(int src_id, int dst_id);
-    std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(int node_id);
-    std::vector<node> get_out_nodes(int node_id);
-    std::vector<edge> get_in_edges(int node_id);
-    std::vector<node> get_in_nodes(int node_id);
-    void close();
-    std::string get_db_name() const { return opts.db_name; };
-    std::vector<int> get_adjlist(WT_CURSOR *cursor, int node_id);
-    AdjIterator::OutCursor get_outnbd_cursor();
-    AdjIterator::InCursor get_innbd_cursor();
 
-    int get_edge_weight(int src_id,
-                        int dst_id);  // todo <-- is this implemented?
-    void update_edge_weight(int src_id,
-                            int dst_id,
-                            int edge_weight);  // todo <-- is this implemented?
+    void add_edge(edge to_insert, bool is_bulk);
+    bool has_edge(node_id_t src_id, node_id_t dst_id);
+    void delete_edge(node_id_t src_id, node_id_t dst_id);
+    edge get_edge(node_id_t src_id, node_id_t dst_id);
+    std::vector<edge> get_edges();
+    std::vector<edge> get_out_edges(node_id_t node_id);
+    std::vector<node> get_out_nodes(node_id_t node_id);
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id);
+    std::vector<edge> get_in_edges(node_id_t node_id);
+    std::vector<node> get_in_nodes(node_id_t node_id);
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id);
+    std::string get_db_name() const { return opts.db_name; };
+    std::vector<node_id_t> get_adjlist(WT_CURSOR *cursor, node_id_t node_id);
+    OutCursor *get_outnbd_iter();
+    InCursor *get_innbd_iter();
+    NodeCursor *get_node_iter();
+    EdgeCursor *get_edge_iter();
+
+    edgeweight_t get_edge_weight(node_id_t src_id, node_id_t dst_id);
+    void update_edge_weight(
+        node_id_t src_id,
+        node_id_t dst_id,
+        edgeweight_t edge_weight);  // todo <-- is this implemented?
 
     // internal cursor operations:
     //! Check if these should be public:
@@ -148,16 +434,16 @@ class AdjList
     WT_CURSOR *get_edge_cursor();
     WT_CURSOR *get_in_adjlist_cursor();
     WT_CURSOR *get_out_adjlist_cursor();
-    WT_CURSOR *get_edge_iter();
-    WT_CURSOR *get_node_iter();
+
+    WT_CURSOR *get_new_node_cursor();
+    WT_CURSOR *get_new_edge_cursor();
+    WT_CURSOR *get_new_in_adjlist_cursor();
+    WT_CURSOR *get_new_out_adjlist_cursor();
+
+    void make_indexes() { return; };
 
    private:
-    WT_CONNECTION *conn;
-    WT_SESSION *session;
-    graph_opts opts;
-
     // structure of the graph
-    int edge_id;
     int node_attr_size = 0;  // set on checking the list len
 
     vector<string> node_columns = {ID};  // Always there :)
@@ -166,12 +452,14 @@ class AdjList
     vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
 
     string node_value_format;
-    string node_key_format = "I";
-    string edge_key_format = "II";  // SRC DST in the edge table
+    string node_key_format = "q";
+    string edge_key_format = "qq";  // SRC DST in the edge table
     string edge_value_format = "";  // Make I if weighted , x otherwise
-    string adjlist_key_format = "I";
+    string adjlist_key_format = "q";
     string adjlist_value_format =
         "Iu";  // This HAS to be u. S does not work. s needs the number.
+    string node_count = "nNodes";
+    string edge_count = "nEdges";
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
@@ -179,32 +467,31 @@ class AdjList
     WT_CURSOR *in_adjlist_cursor = NULL;
     WT_CURSOR *out_adjlist_cursor = NULL;
     WT_CURSOR *metadata_cursor = NULL;
-    // AdjIterator::InCursor in_cursor;
-    // AdjIterator::OutCursor out_cursor;
 
     // AdjList specific internal methods:
-    int _get_table_cursor(const string &table,
-                          WT_CURSOR **cursor,
-                          bool is_random);
-    void update_node_degree(WT_CURSOR *cursor,
-                            int node_id,
-                            int in_degree,
-                            int out_degree);
+    void init_metadata_cursor();
     node get_next_node(WT_CURSOR *n_cur);
     edge get_next_edge(WT_CURSOR *e_cur);
-    void add_adjlist(WT_CURSOR *cursor, int node_id);
-    void add_adjlist(WT_CURSOR *cursor, int node_id, std::vector<int> &list);
-    void delete_adjlist(WT_CURSOR *cursor, int node_id);
-    void delete_node_from_adjlists(int node_id);
-    void add_to_adjlists(WT_CURSOR *cursor, int node_id, int to_insert);
-    void delete_from_adjlists(WT_CURSOR *cursor, int node_id, int to_delete);
-    void delete_related_edges_and_adjlists(int node_id);
+    void add_adjlist(WT_CURSOR *cursor, node_id_t node_id);
+    void add_adjlist(WT_CURSOR *cursor,
+                     node_id_t node_id,
+                     std::vector<node_id_t> &list);
+    void delete_adjlist(WT_CURSOR *cursor, node_id_t node_id);
+    void delete_node_from_adjlists(node_id_t node_id);
+    void add_to_adjlists(WT_CURSOR *cursor,
+                         node_id_t node_id,
+                         node_id_t to_insert);
+    void delete_from_adjlists(WT_CURSOR *cursor,
+                              node_id_t node_id,
+                              node_id_t to_delete);
+    void delete_related_edges_and_adjlists(node_id_t node_id);
+    void update_node_degree(WT_CURSOR *cursor,
+                            node_id_t node_id,
+                            degree_t indeg,
+                            degree_t outdeg);
 
-    // Metadata operations:
-    void insert_metadata(const string &key, const char *value);
-    string get_metadata(const string &key);
-    void __restore_from_db(string db_name);
     void dump_tables();
+    void create_indices() { return; }  // here because defined in interface
 };
 
 /**

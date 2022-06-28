@@ -19,3 +19,8 @@ mt_test/
 profile/
 release/
 db/
+.vscode/
+workspace.code-workspace
+tasks.md
+build/paths.sh
+outputs/

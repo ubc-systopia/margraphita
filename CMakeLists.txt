@@ -9,14 +9,15 @@ else()
     MESSAGE("Building on Linux")
     add_compile_definitions(LINUX)
 endif()
-SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g -std=gnu++2a")
+set(CMAKE_CXX_STANDARD 20)
+SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -fopenmp -g")
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     MESSAGE("Generating a debug build")
     if(stat)
       MESSAGE("Enabling statistics")
       add_compile_definitions(STAT)
     endif()
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g  -fno-inline-functions -fno-omit-frame-pointer")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -fno-inline-functions -fno-omit-frame-pointer")
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
     SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
     IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -117,15 +118,24 @@ SET(PATH_SRC    "${PROJECT_SOURCE_DIR}/src")
 SET(PATH_TEST   "${PROJECT_SOURCE_DIR}/test")
 SET(BENCHMARK   "${PROJECT_SOURCE_DIR}/benchmark")
 SET(UTILS       "${PROJECT_SOURCE_DIR}/utils")
+SET(PMAP        "${UTILS}/parallel_hashmap")
 
 #Create GraphAPI static library
 add_subdirectory(src)
 
-#Create Test executables
-add_subdirectory(test)
-
 #Compile utilities
 add_subdirectory(utils)
 
+#Create Test executables
+add_subdirectory(test)
+
 #Compile all benchmarks
 add_subdirectory(benchmark)
+
+configure_file(${PROJECT_SOURCE_DIR}/.githooks/pre-commit ${PROJECT_SOURCE_DIR}/.git/hooks COPYONLY)
+execute_process(COMMAND cp -n .paths.sh paths.sh
+       RESULT_VARIABLE result
+       WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/build)
+   if(result)
+       message(FATAL_ERROR "Make sure that paths.sh file is correctly set")
+   endif()

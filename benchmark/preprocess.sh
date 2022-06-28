@@ -4,8 +4,8 @@ set -x
 
 source ../../paths.sh
 
-usage() { 
-echo "Usage: $0 [-d <graph_dir> -f <graph_filename> -o <output_path> -m <dataset_name> -n<edge count> -e<edge count> -t <type> -i -p -l <log_dir>"  
+usage() {
+echo "Usage: $0 [-d <graph_dir> -f <graph_filename> -o <output_path> -m <dataset_name> -n<edge count> -e<edge count> -t <type> -i -p -l <log_dir>"
 echo "graph_dir, graph_filename: directory where graph_filename is stored"
 echo "output_path: absolute path to the **directory** that should contain the output
 files"
@@ -68,8 +68,8 @@ while getopts "d:f:l:o:m:e:n:t:p:i:b:" o; do
     esac
 done
 
-NUM_THREADS=10
-NUM_FILES=10
+NUM_THREADS=16
+NUM_FILES=16
 
 if [[ $OSTYPE == 'darwin'* ]]; then
   TIME_CMD=/usr/local/bin/gtime
@@ -79,36 +79,23 @@ else
   NUM_LINES=$(wc -l ${graph} | cut -d' '  -f1)
 fi
 
-
 if [ $preprocess -eq 1 ]
 then
     ##remove all lines that begin with a comment
-    sort --parallel=$NUM_THREADS -k 1,2 ${graph} | parallel --pipe sed '/^#/d' > ${graph}_sorted.txt
-    mv ${graph} ${graph}_orig
-    mv ${graph}_sorted.txt ${graph} #overwrite the original file
-    # with the sorted, no comment version
+    #cp ${graph} ${graph}_orig
+    sed -e 's/\t/\n/g' ${graph} | sort -u -g > ${graph}_nodes
+    nodecnt=$(wc -l ${graph}_nodes | cut -d' '  -f1)
+    edgecnt=$(wc -l ${graph})
 
-    # ##Split the edges file
-    if [[ $OSTYPE == "darwin"* ]]; then
-        split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_edges"
-    elif [[ $OSTYPE == 'linux-gnu'* ]]; then
-        split --number=l/$NUM_FILES ${graph} "${graph}_edges"
-    else
-        echo "unknown platform $OSTYPE"
-        exit 1
-    fi
-
-
+    #CREATE NODEID MAP
+    ${RELEASE_PATH}/benchmark/dense_vertexranges -n ${nodecnt} -e ${edgecnt} -f ${graph}
+    
     #Create a nodes file
-    sed -e 's/\t/\n/g; s/\r//g' ${graph} | sort -u --parallel=$NUM_THREADS > ${graph}_nodes
-    if [[ $OSTYPE == 'darwin'* ]]; then
-        split -l `expr $NUM_LINES / $NUM_FILES` ${graph} "${graph}_nodes"
-    elif [[ $OSTYPE == 'linux-gnu'* ]]; then
-        split --number=l/$NUM_FILES ${graph}_nodes ${graph}_nodes
-    else
-        echo "unknown platform $OSTYPE"
-        exit 1
-    fi
+    cut -d':' -f2 ${graph_dir}/dense_map.txt | sort -u -g  > ${graph}_nodes
+    split --number=l/${NUM_FILES} ${graph}_nodes ${graph}_nodes
+
+    #construct sorted graph by merging edges files
+    sort -g ${graph}_edges* > ${graph}_sorted
 fi
 
 if [ $insert -eq 1 ]
@@ -116,21 +103,21 @@ then
 
 #Now create an empty DBs for all three representations for  insertion
 #Using pagerank for this. Too lazy to do any better :(
-# Here rd in the DB Name indicates the r(read optimize) and d(directed) flags 
+# Here rd in the DB Name indicates the r(read optimize) and d(directed) flags
 if [[ $type == "std" || $type == "all" ]]
-then 
+then
  ./pagerank -n -m std_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l std -e
  ./pagerank -n -m std_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l std -e
 fi
 
 if [[ $type == "adj" || $type == "all" ]]
-then 
+then
  ./pagerank -n -m adj_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -o -d -l adj -e
  ./pagerank -n -m adj_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l adj -e
 fi
 
 if [[ $type == "ekey" || $type == "all" ]]
-then 
+then
  ./pagerank -n -m ekey_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l ekey -e
  ./pagerank -n -m ekey_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l ekey -e
 fi
@@ -172,5 +159,5 @@ fi
 #fi
 # echo -ne '\007'
 # exit 1
-#CIT: -n 3774768 -e 16518948 
-#Twitter: -n 41652230 -e 1468365182 
+#CIT: -n 3774768 -e 16518948
+#Twitter: -n 41652230 -e 1468365182

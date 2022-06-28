@@ -8,7 +8,7 @@ then
     exit -1
 fi
 
-for ((scale=10; scale <=20; scale ++ )); do
+for ((scale=10; scale <=15; scale ++ )); do
 	nEdges=$(bc <<<"8*2^$scale")
 	nVertices=$(bc <<<"2^$scale")
 
@@ -23,6 +23,6 @@ for ((scale=10; scale <=20; scale ++ )); do
 		${KRON_GEN_PATH} $nEdges $scale 0 0 > $dirname/$filename
 	elif [[ $KRON_GEN == 'parmat' ]]
 	then
-		${KRON_GEN_PATH} -nEdges $nEdges -nVertices $nVertices -noEdgeToSeld -noDuplicateEdges -output $dirname/$filename
+		${KRON_GEN_PATH} -nEdges $nEdges -nVertices $nVertices -noEdgeToSelf -noDuplicateEdges -sorted -output $dirname/$filename
 	fi
 done

@@ -20,9 +20,10 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
+        std::cout << SampleGraph::test_edges.size() << "\n";
         assert(SampleGraph::test_edges.size() ==
-               6);  // checking if directed edges got created and stored in
-                    // test_edges
+               10);  // checking if directed edges got created and stored in
+                     // test_edges
     }
     int edge_cnt = 1;
     for (edge x : SampleGraph::test_edges)
@@ -58,46 +59,42 @@ void test_node_delete(StandardGraph graph, bool is_directed)
     assert(graph.has_node(to_delete.id) == false);
 
     // check if the edges have been deleted
-    edge test;
     if (is_directed)
     {
         assert(graph.has_edge(SampleGraph::edge1.src_id,
-                              SampleGraph::edge1.dst_id,
-                              &test) == false);
+                              SampleGraph::edge1.dst_id) == false);
         assert(graph.has_edge(SampleGraph::edge3.src_id,
-                              SampleGraph::edge3.dst_id,
-                              &test) == false);
+                              SampleGraph::edge3.dst_id) == false);
     }
     else
     {
         // edge from 1->2
         assert(graph.has_edge(SampleGraph::edge1.src_id,
-                              SampleGraph::edge1.dst_id,
-                              &test) == false);
+                              SampleGraph::edge1.dst_id) == false);
         // edge from 2->1
         assert(graph.has_edge(SampleGraph::edge1.dst_id,
-                              SampleGraph::edge1.src_id,
-                              &test) == false);
+                              SampleGraph::edge1.src_id) == false);
         // edge from 2->3
         assert(graph.has_edge(SampleGraph::edge3.src_id,
-                              SampleGraph::edge3.dst_id,
-                              &test) == false);
+                              SampleGraph::edge3.dst_id) == false);
         // edge from 3->2
         assert(graph.has_edge(SampleGraph::edge3.dst_id,
-                              SampleGraph::edge3.src_id,
-                              &test) == false);
+                              SampleGraph::edge3.src_id) == false);
     }
+
+    int isolatedNodeID = 11;
+    graph.delete_node(isolatedNodeID);
+    assert(graph.has_node(isolatedNodeID) == false);
 }
 
 void test_get_edge_id(StandardGraph graph)
 {
     INFO();
-    edge e;
-    assert(graph.has_edge(1, 2, &e) == true);  // Edge ID 1
-    assert(graph.has_edge(1, 3, &e) == true);  // Edge ID 2
-    assert(graph.has_edge(2, 3, &e) == true);  // Edge ID 3
+    assert(graph.has_edge(1, 2) == true);  // Edge ID 1
+    assert(graph.has_edge(1, 3) == true);  // Edge ID 2
+    assert(graph.has_edge(2, 3) == true);  // Edge ID 3
 
-    assert(graph.has_edge(10, 11, &e) == false);  // non-existent edge
+    assert(graph.has_edge(10, 11) == false);  // non-existent edge
 }
 
 void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
@@ -105,13 +102,33 @@ void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
     INFO();
     if (is_directed)
     {
-        assert(graph.get_num_nodes() == 4);
-        assert(graph.get_num_edges() == 3);
+        assert(graph.get_num_nodes() == 6);
+        assert(graph.get_num_edges() == 6);
     }
     else
     {
-        assert(graph.get_num_nodes() == 4);
-        assert(graph.get_num_edges() == 6);
+        assert(graph.get_num_nodes() == 6);
+        assert(graph.get_num_edges() == 10);
+    }
+}
+
+void test_add_edge(StandardGraph graph, bool is_directed)
+{
+    INFO();
+    edge to_insert = {
+        .src_id = 5,
+        .dst_id = 6,
+        .edge_weight = 333};  // node 5 and 6 dont exist yet so we must also
+                              // check if the nodes get created
+    int test_id1 = 5, test_id2 = 6;
+    graph.add_edge(to_insert, false);
+    edge found = graph.get_edge(test_id1, test_id2);
+    CommonUtil::dump_edge(found);
+    assert(found.edge_weight == 333);
+    if (!is_directed)
+    {
+        found = graph.get_edge(test_id2, test_id1);
+        assert(found.edge_weight == 333);
     }
 }
 
@@ -130,12 +147,16 @@ void test_get_in_degree(StandardGraph graph, bool is_directed)
         assert(graph.get_in_degree(1) == 0);
         assert(graph.get_in_degree(2) == 1);
         assert(graph.get_in_degree(3) == 2);
+        assert(graph.get_in_degree(7) == 2);
+        assert(graph.get_in_degree(8) == 1);
     }
     else
     {
-        assert(graph.get_in_degree(1) == 2);
+        assert(graph.get_in_degree(1) == 3);
         assert(graph.get_in_degree(2) == 2);
         assert(graph.get_in_degree(3) == 2);
+        assert(graph.get_in_degree(7) == 2);
+        assert(graph.get_in_degree(8) == 1);
     }
 }
 
@@ -144,13 +165,13 @@ void test_get_out_degree(StandardGraph graph, bool is_directed)
     INFO();
     if (is_directed)
     {
-        assert(graph.get_out_degree(1) == 2);
+        assert(graph.get_out_degree(1) == 3);
         assert(graph.get_out_degree(2) == 1);
         assert(graph.get_out_degree(3) == 0);
     }
     else
     {
-        assert(graph.get_out_degree(1) == 2);
+        assert(graph.get_out_degree(1) == 3);
         assert(graph.get_out_degree(2) == 2);
         assert(graph.get_out_degree(3) == 2);
     }
@@ -165,50 +186,147 @@ void test_get_nodes(StandardGraph graph)
     }
 }
 
-void test_get_in_nodes_and_edges(StandardGraph graph, bool is_directed)
+void test_get_out_edges(StandardGraph graph)
 {
     INFO();
-    vector<edge> got_e = graph.get_in_edges(3);
-    vector<node> got_n = graph.get_in_nodes(3);
-    if (is_directed)
+    int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
+    std::vector<edge> edges = graph.get_out_edges(test_id1);
+    assert(edges.size() == 3);
+    // compare edge0
+    assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
+    assert(edges.at(0).dst_id == SampleGraph::edge1.dst_id);
+    // compare edge1
+    assert(edges.at(1).src_id == SampleGraph::edge2.src_id);
+    assert(edges.at(1).dst_id == SampleGraph::edge2.dst_id);
+    // compare edge4
+    assert(edges.at(2).src_id == SampleGraph::edge4.src_id);
+    assert(edges.at(2).dst_id == SampleGraph::edge4.dst_id);
+
+    // Now test for a node that has no out edge
+    edges = graph.get_out_edges(test_id2);
+    assert(edges.size() == 0);
+
+    // Now try getting out edges for a node that does not exist
+    bool assert_fail = false;
+    try
     {
-        assert(got_e.size() == 2);
-        assert(got_n.size() == 2);
+        edges = graph.get_out_edges(test_id3);
     }
-    else
+    catch (GraphException &ex)
     {
-        assert(got_e.size() == 2);
-        assert(got_n.size() == 2);
+        cout << ex.what() << endl;
+        assert_fail = true;
     }
-    assert(graph.get_in_degree(3) == got_n.size());
-    assert(graph.get_in_degree(3) == got_e.size());
+    assert(assert_fail);
 }
 
-void test_get_out_nodes_and_edges(StandardGraph graph, bool is_directed)
+void test_get_out_nodes(StandardGraph graph)
 {
     INFO();
-    vector<edge> got_e = graph.get_out_edges(3);
-    vector<node> got_n = graph.get_out_nodes(3);
-    if (!is_directed)
-    {
-        assert(got_e.size() == 2);
-        assert(got_n.size() == 2);
-    }
-    else
-    {
-        assert(got_e.size() == 0);
-        assert(got_n.size() == 0);
-    }
+    int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
+    std::vector<node> nodes = graph.get_out_nodes(test_id1);
+    std::vector<node_id_t> nodes_id = graph.get_out_nodes_id(test_id1);
+    assert(nodes.size() == 3);
+    assert(nodes_id.size() == 3);
+    assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
+    assert(nodes.at(0).id == nodes_id.at(0));
+    assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
+    assert(nodes.at(1).id == nodes_id.at(1));
+    assert(nodes.at(2).id == SampleGraph::node7.id);  // edge(1->7)
+    assert(nodes.at(2).id == nodes_id.at(2));
 
-    for (edge x : got_e)
-    {
-        CommonUtil::dump_edge(x);
-    }
+    // test for a node that has no out-edge
+    nodes = graph.get_out_nodes(test_id2);
+    nodes_id = graph.get_out_nodes_id(test_id2);
+    assert(nodes.size() == 0);
+    assert(nodes_id.size() == 0);
 
-    for (node x : got_n)
+    // test for a node that does not exist
+    bool assert_fail = false;
+    try
     {
-        CommonUtil::dump_node(x);
+        nodes = graph.get_out_nodes(test_id3);
     }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+
+    assert_fail = false;
+    try
+    {
+        nodes_id = graph.get_out_nodes_id(test_id3);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_in_nodes(StandardGraph graph)
+{
+    INFO();
+    std::vector<node> nodes = graph.get_in_nodes(3);
+    std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
+    assert(nodes.size() == 2);
+    assert(nodes_id.size() == 2);
+    assert(nodes.at(0).id == SampleGraph::node1.id);
+    assert(nodes.at(0).id == nodes_id.at(0));
+    assert(nodes.at(1).id == SampleGraph::node2.id);
+    assert(nodes.at(1).id == nodes_id.at(1));
+
+    // test for a node that has no in_edge
+    nodes = graph.get_in_nodes(4);
+    nodes_id = graph.get_in_nodes_id(4);
+    assert(nodes.size() == 0);
+    assert(nodes_id.size() == 0);
+
+    // test for a node that does not exist
+    bool assert_fail = false;
+    try
+    {
+        nodes = graph.get_in_nodes(1500);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_in_edges(StandardGraph graph)
+{
+    INFO();
+    std::vector<edge> edges = graph.get_in_edges(3);
+    assert(edges.size() == 2);
+    // Check edge0
+    assert(edges.at(0).src_id == SampleGraph::edge2.src_id);
+    assert(edges.at(0).dst_id == SampleGraph::edge2.dst_id);
+    // Check edge1
+    assert(edges.at(1).src_id == SampleGraph::edge3.src_id);
+    assert(edges.at(1).dst_id == SampleGraph::edge3.dst_id);
+
+    // now test for a node that has no in-edge
+    edges = graph.get_in_edges(4);
+    assert(edges.size() == 0);
+
+    // Now try getting in edges for a node that does not exist.
+    bool assert_fail = false;
+    try
+    {
+        edges = graph.get_out_edges(1500);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
 }
 
 void test_cursor(StandardGraph graph)
@@ -223,20 +341,28 @@ void test_cursor(StandardGraph graph)
 void test_get_edges(StandardGraph graph, bool is_directed)
 {
     INFO();
-    edge found;
-    graph.has_edge(1, 2, &found);
-    CommonUtil::dump_edge(found);
-
     vector<edge> edges = graph.get_edges();
 
     if (!is_directed)
     {
-        assert(edges.size() == 6);
+        assert(edges.size() == 12);
     }
     else
     {
-        assert(edges.size() == 3);
+        assert(edges.size() == 7);
     }
+    edge found =
+        graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
+    assert(found.src_id == SampleGraph::edge1.src_id);
+    assert(found.dst_id == SampleGraph::edge1.dst_id);
+    // not testing weight since not set
+
+    // Now get a non-existent edge
+    int test_id1 = 222, test_id2 = 333;
+    found = graph.get_edge(test_id1, test_id2);
+    assert(found.src_id == -1);
+    assert(found.dst_id == -1);
+    assert(found.edge_weight == -1);
 }
 
 void print_delim() { cout << endl << "--------------------" << endl; }
@@ -244,26 +370,19 @@ void print_delim() { cout << endl << "--------------------" << endl; }
 void test_InCursor(StandardGraph graph)
 {
     INFO();
-    StdIterator::InCursor in_cursor = graph.get_innbd_cursor();
+    InCursor *in_cursor = graph.get_innbd_iter();
     adjlist found = {0};
-    while (in_cursor.has_more())
+    in_cursor->next(&found);
+    while (found.node_id != -1)
     {
-        in_cursor.next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-            found = {0};
-        }
-        else
-        {
-            break;
-        }
+        CommonUtil::dump_adjlist(found);
+        found = {0};
+        in_cursor->next(&found);
     }
 
-    in_cursor.reset();
+    in_cursor->reset();
 
-    key_pair kp = {.src_id = 0, .dst_id = 3};
-    in_cursor.next(&found, kp);
+    in_cursor->next(&found, 3);
     assert(found.node_id == 3);
     assert(found.edgelist.size() ==
            1);  // size is 1 after deleting node 2; 2 if not deleted
@@ -272,27 +391,20 @@ void test_InCursor(StandardGraph graph)
 void test_OutCursor(StandardGraph graph)
 {
     INFO();
-    StdIterator::OutCursor out_cursor = graph.get_outnbd_cursor();
+    OutCursor *out_cursor = graph.get_outnbd_iter();
     adjlist found = {0};
-    while (out_cursor.has_more())
+    out_cursor->next(&found);
+    while (found.node_id != -1)
     {
-        out_cursor.next(&found);
-        if (found.node_id != -1)
-        {
-            CommonUtil::dump_adjlist(found);
-            found = {0};
-        }
-        else
-        {
-            break;
-        }
+        CommonUtil::dump_adjlist(found);
+        found = {0};
+        out_cursor->next(&found);
     }
 
-    out_cursor.reset();
-    key_pair kp = {.src_id = 1, .dst_id = 0};
-    out_cursor.next(&found, kp);
+    out_cursor->reset();
+    out_cursor->next(&found, 1);
     assert(found.node_id == 1);
-    assert(found.edgelist.size() == 1);
+    assert(found.edgelist.size() == 2);
 }
 
 void test_index_cursor(StandardGraph graph)
@@ -317,6 +429,80 @@ void test_index_cursor(StandardGraph graph)
     }
 }
 
+void test_NodeCursor(StandardGraph graph)
+{
+    INFO();
+    NodeCursor *node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
+    int i = 0;
+    node_cursor->next(&found);
+    while (found.id != -1)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor->next(&found);
+        i++;
+    }
+}
+
+void test_NodeCursor_Range(StandardGraph graph)
+{
+    INFO();
+    NodeCursor *node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {3, 4, 5, 6};
+    int i = 0;
+    node_cursor->set_key_range(key_range{.start = 3, .end = 6});
+    node_cursor->next(&found);
+    while (found.id != -1)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor->next(&found);
+        i++;
+    }
+}
+
+void test_EdgeCursor(StandardGraph graph)
+{
+    INFO();
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge found;
+    int srcIdList[] = {1, 1, 5, 7, 8};
+    int dstIdList[] = {3, 7, 6, 8, 7};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
+    }
+}
+
+void test_EdgeCursor_Range(StandardGraph graph)
+{
+    INFO();
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge_cursor->set_key({1, 4}, {8, 1});
+    edge found;
+    int srcIdList[] = {1, 5, 7};
+    int dstIdList[] = {7, 6, 8};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
+    }
+}
+
 int main()
 {
     graph_opts opts;
@@ -330,7 +516,7 @@ int main()
     opts.db_name = "test_std";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = "/home/puneet/scratch/margraphita/profile/test";
+    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
     // Test std_graph setup
     StandardGraphTester graph = StandardGraphTester(opts);
@@ -339,7 +525,7 @@ int main()
     print_delim();
 
     test_index_cursor(graph);
-
+    print_delim();
     // Test num_get_nodes and num_get_edges
 
     test_get_num_nodes_and_edges(graph, opts.is_directed);
@@ -365,6 +551,8 @@ int main()
     test_node_add(graph, opts.read_optimize);
     print_delim();
 
+    test_add_edge(graph, opts.is_directed);
+
     // test get_edge_id()
     test_get_edge_id(graph);
     print_delim();
@@ -376,11 +564,13 @@ int main()
     // test_cursor(graph);
 
     // test get_in_nodes_and_edges
-    test_get_in_nodes_and_edges(graph, opts.is_directed);
+    test_get_in_edges(graph);
+    test_get_in_nodes(graph);
     print_delim();
 
     // test get_out_nodes_and_edges
-    test_get_out_nodes_and_edges(graph, opts.is_directed);
+    test_get_out_edges(graph);
+    test_get_out_nodes(graph);
     print_delim();
 
     // Test deleting a node
@@ -388,6 +578,10 @@ int main()
 
     test_InCursor(graph);
     test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
 
     // Test std_graph teardown
     tearDown(graph);

@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstring>
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -18,6 +19,7 @@
 #include "reader.h"
 
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
+const static int BUFFER_LENGTH = 20;
 double num_edges;
 double num_nodes;
 std::string dataset;
@@ -25,14 +27,14 @@ int read_optimized = 0;
 int is_directed = 1;
 
 std::vector<std::string> types;
-std::unordered_map<int, node> nodelist;
-std::unordered_map<int, std::vector<int>> in_adjlist;
-std::unordered_map<int, std::vector<int>> out_adjlist;
+std::unordered_map<node_id_t, node> nodelist;
+std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;
+std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;
 std::mutex lock;
 
-int nodelist_size;
+uint64_t nodelist_size;
 
-std::string pack_int_to_str(int a, int b)
+std::string pack_int_to_str(int32_t a, int32_t b)
 {
     std::stringstream sstream;
     sstream << a << " " << b;
@@ -43,8 +45,8 @@ typedef struct time_info
 {
     int64_t insert_time;
     int64_t read_time;
-    int num_inserted;
-    time_info(int _val)
+    int64_t num_inserted;
+    time_info(int64_t _val)
         : insert_time(_val), read_time(_val), num_inserted(_val){};
 } time_info;
 
@@ -73,6 +75,57 @@ void print_time_csvline(std::string db_name,
              << edget->insert_time << "," << nodet->read_time << ","
              << nodet->insert_time << "\n";
     log_file.close();
+}
+
+void insert_stats_to_session(WT_SESSION *session, int edgeNo, int nodeNo)
+{
+    WT_CURSOR *cursor;
+    if (session->open_cursor(session, "table:metadata", NULL, NULL, &cursor) !=
+        0)
+    {
+        std::cout << "Failed to open metadata table";
+    }
+    char buffer[BUFFER_LENGTH];
+    sprintf(buffer, "%d", nodeNo);
+    cursor->set_key(cursor, node_count.c_str());
+    cursor->set_value(cursor, buffer);
+    cursor->insert(cursor);
+    sprintf(buffer, "%d", edgeNo);
+
+    memset(buffer, 0, BUFFER_LENGTH);
+    sprintf(buffer, "%d", nodeNo);
+    cursor->set_key(cursor, node_count.c_str());
+    cursor->set_value(cursor, buffer);
+    cursor->insert(cursor);
+
+    sprintf(buffer, "%d", edgeNo);
+    cursor->set_key(cursor, edge_count.c_str());
+    cursor->set_value(cursor, std::to_string(edgeNo).c_str());
+    cursor->insert(cursor);
+
+    cursor->close(cursor);
+}
+
+void insert_stats(int edgeNo, int nodeNo)
+{
+    WT_SESSION *session;
+    for (std::string type : types)
+    {
+        if (type == "std")
+        {
+            conn_std->open_session(conn_std, NULL, NULL, &session);
+        }
+        else if (type == "adj")
+        {
+            conn_adj->open_session(conn_adj, NULL, NULL, &session);
+        }
+        else if (type == "ekey")
+        {
+            conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
+        }
+        insert_stats_to_session(session, edgeNo, nodeNo);
+        session->close(session, NULL);
+    }
 }
 
 time_info *insert_edge_thread(int _tid)
@@ -214,7 +267,7 @@ time_info *insert_node(int _tid)
             }
             else if (type == "ekey")
             {
-                ekey_cur->set_key(ekey_cur, to_insert.id, -1);
+                ekey_cur->set_key(ekey_cur, to_insert.id, OutOfBand_ID);
                 if (read_optimized)
                 {
                     std::string packed = pack_int_to_str(to_insert.in_degree,
@@ -441,7 +494,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    int i;
     // pthread_t threads[NUM_THREADS];
 
     auto start = std::chrono::steady_clock::now();
@@ -455,7 +507,8 @@ int main(int argc, char *argv[])
         edge_times->num_inserted += this_thread_time->num_inserted;
         edge_times->read_time += this_thread_time->read_time;
     }
-
+    // TODO: #55 insert into the metadata table nEdges =
+    // edge_times->num_inserted
     auto end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert edges was "
               << std::chrono::duration_cast<std::chrono::microseconds>(end -
@@ -473,6 +526,7 @@ int main(int argc, char *argv[])
         node_times->num_inserted += this_thread_time->num_inserted;
         node_times->read_time += this_thread_time->read_time;
     }
+    insert_stats(edge_times->num_inserted, node_times->num_inserted);
 
     end = std::chrono::steady_clock::now();
     std::cout << " Total time to insert nodes was "
