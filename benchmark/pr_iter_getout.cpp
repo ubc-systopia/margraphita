@@ -7,8 +7,11 @@
 #include <cassert>
 #include <chrono>
 #include <cstring>
+#include <fstream>
+#include <iostream>
 #include <mutex>
 #include <shared_mutex>
+#include <sstream>
 #include <vector>
 
 #include "GraphCreate.h"
@@ -18,7 +21,6 @@
 #include "edgekey.h"
 #include "graph_exception.h"
 #include "pvector.h"
-#include "reader.h"
 #include "standard_graph.h"
 #include "thread_utils.h"
 #include "times.h"
