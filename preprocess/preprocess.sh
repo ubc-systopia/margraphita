@@ -88,7 +88,7 @@ then
     edgecnt=$(wc -l ${graph})
 
     #CREATE NODEID MAP
-    ${RELEASE_PATH}/benchmark/dense_vertexranges -n ${nodecnt} -e ${edgecnt} -f ${graph}
+    ${RELEASE_PATH}/preprocess/dense_vertexranges -n ${nodecnt} -e ${edgecnt} -f ${graph}
     
     #Create a nodes file
     cut -d':' -f2 ${graph_dir}/dense_map.txt | sort -u -g  > ${graph}_nodes
@@ -106,20 +106,20 @@ then
 # Here rd in the DB Name indicates the r(read optimize) and d(directed) flags
 if [[ $type == "std" || $type == "all" ]]
 then
- ./pagerank -n -m std_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l std -e
- ./pagerank -n -m std_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l std -e
+  ${RELEASE_PATH}/preprocess/init_db -n -m std_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l std -e
+  ${RELEASE_PATH}/preprocess/init_db -n -m std_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l std -e
 fi
 
 if [[ $type == "adj" || $type == "all" ]]
 then
- ./pagerank -n -m adj_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -o -d -l adj -e
- ./pagerank -n -m adj_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l adj -e
+  ${RELEASE_PATH}/preprocess/init_db -n -m adj_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -o -d -l adj -e
+  ${RELEASE_PATH}/preprocess/init_db -n -m adj_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l adj -e
 fi
 
 if [[ $type == "ekey" || $type == "all" ]]
 then
- ./pagerank -n -m ekey_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l ekey -e
- ./pagerank -n -m ekey_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l ekey -e
+  ${RELEASE_PATH}/preprocess/init_db -n -m ekey_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l ekey -e
+  ${RELEASE_PATH}/preprocess/init_db -n -m ekey_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l ekey -e
 fi
 
 # # Here : n (new graph) m (name of db) b(benchmark-- useless in this context but
@@ -135,9 +135,9 @@ echo "#Inserting ${dataset}" >> insert_time.txt
 echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> ${RESULT}/insert_time.txt
 echo "#${dataset}:" >> ${RESULT}/insert_time.txt
 echo "#${dataset}:" >> ${RESULT}/insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
 
 fi
 
@@ -145,16 +145,11 @@ if [ $index_create -eq 1 ]
 then
     if [[ $type == "std" || $type == "ekey" ]]
     then
-	    $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ${type}_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ${type} -x &> ${RESULT}/insert_log.txt
-	    $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ${type}_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ${type} -x &> ${RESULT}/insert_log.txt
+	    $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/init_db -m ${type}_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ${type} -x &> ${RESULT}/insert_log.txt
+	    $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/init_db -m ${type}_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ${type} -x &> ${RESULT}/insert_log.txt
 
     fi
 fi
-# $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l adj -x &> ${RESULT}/insert_log.txt
-# $TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m adj_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l adj -x &> ${RESULT}/insert_log.txt
-
-#$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_rd_${dataset}  -b PR -a ${output} -s ${dataset} -r -d -l ekey -x &> ${RESULT}/insert_log.txt
-#$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append ./pagerank -m ekey_d_${dataset}  -b PR -a ${output} -s ${dataset} -d -l ekey -x &> ${RESULT}/insert_log.txt
 
 #fi
 # echo -ne '\007'

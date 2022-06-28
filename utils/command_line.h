@@ -15,8 +15,8 @@ class CmdLineBase
     int argc_;
     char **argv_;
     std::string argstr_ =
-        "m:a:nrdhwl:ob:s:ef:";  //! Construct this after you finish the rest of
-                                //! this thing
+        "m:a:nrdhwl:ob:s:ef:x";  //! Construct this after you finish the rest of
+                                 //! this thing
     //"m:a:nrdhwl:ob:s:ef:z";
     std::vector<std::string> help_strings_;
 
@@ -31,6 +31,7 @@ class CmdLineBase
     bool weighted = false;
     bool optimized_create = false;
     bool exit_on_create = false;
+    bool create_indices = false;
     std::string conn_config;
 
     std::string db_path;  // This contains the path to the db dir.
@@ -71,6 +72,10 @@ class CmdLineBase
         add_help_message('f', "csv logdir", "output dir for log");
         add_help_message('h', "h", "Print this help message");
         add_help_message('z', "conn_config", "connection config");
+        add_help_message('x',
+                         "x",
+                         "Used to specify if indices need to be created. "
+                         "Defaults to false. ");
     }
 
     bool parse_args()
@@ -136,6 +141,9 @@ class CmdLineBase
             case 'z':
                 conn_config = std::string(opt_arg);
                 break;
+            case 'x':
+                create_indices = true;
+                break;
         }
     }
 
@@ -185,6 +193,7 @@ class CmdLineBase
     bool is_weighted() const { return weighted; }
     bool is_create_optimized() const { return optimized_create; }
     bool is_exit_on_create() const { return exit_on_create; }
+    int is_index_create() const { return create_indices; }
     // std::string get_conn_config() const { return conn_config; }
 };
 
@@ -246,10 +255,6 @@ class PageRankOpts : public CmdLineApp
             "t",
             "the tolerance to use for terminating PR. Defaults to " +
                 std::to_string(tolerance));
-        add_help_message('x',
-                         "x",
-                         "Used to specify if indices need to be created. "
-                         "Defaults to false. ");
     }
 
     void handle_args(signed char opt, char *opt_arg) override
@@ -262,16 +267,12 @@ class PageRankOpts : public CmdLineApp
             case 't':
                 _tolerance = std::stod(opt_arg);
                 break;
-            case 'x':
-                create_indices = true;
-                break;
             default:
                 CmdLineApp::handle_args(opt, opt_arg);
         }
     }
     double tolerance() const { return _tolerance; }
     int iterations() const { return _iterations; }
-    int is_index_create() const { return create_indices; }
 };
 
 #endif

@@ -220,26 +220,6 @@ int main(int argc, char *argv[])
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 
-    if (pr_cli.is_exit_on_create())  // Exit after creating the db
-    {
-        if (pr_cli.get_graph_type() == GraphType::EKey)
-        {
-            graph->close();
-        }
-        exit(0);
-    }
-
-    // create_indices does not apply to adjacency lists
-    if (pr_cli.is_index_create() && pr_cli.get_graph_type() != GraphType::Adj)
-    {
-        t.start();
-        graph->make_indexes();
-        t.stop();
-        cout << "Indices created in " << t.t_micros() << endl;
-        graph->close();
-        exit(0);
-    }
-
     // Now run PR
     t.start();
     pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
