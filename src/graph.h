@@ -10,8 +10,8 @@
 #include <unordered_map>
 
 #include "common.h"
-#include "lock.h"
 #include "graph_exception.h"
+#include "lock.h"
 
 class GraphBase
 {
@@ -43,15 +43,15 @@ class GraphBase
     virtual std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) = 0;
     virtual std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) = 0;
 
-    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;   // ✅
-    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;   // ✅
+    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;  // ✅
+    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;  // ✅
 
     virtual OutCursor *get_outnbd_iter() = 0;
     virtual InCursor *get_innbd_iter() = 0;
     virtual NodeCursor *get_node_iter() = 0;
     virtual EdgeCursor *get_edge_iter() = 0;
 
-    virtual void set_locks(LockSet* locks_ptr) = 0;
+    void set_locks(LockSet *locks_ptr);
 
     void close();
     uint64_t get_num_nodes();
@@ -72,7 +72,7 @@ class GraphBase
     graph_opts opts;
     WT_CONNECTION *conn;
     WT_SESSION *session;
-    LockSet* locks;
+    LockSet *locks;
 
     WT_CONNECTION *get_db_conn() { return this->conn; }
     WT_SESSION *get_db_session() { return this->session; }
