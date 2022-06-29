@@ -12,7 +12,7 @@
 
 #include "common.h"
 #include "graph_exception.h"
-
+using namespace std;
 GraphBase::GraphBase(graph_opts opt_params)
 {
     opts = opt_params;
@@ -25,6 +25,75 @@ GraphBase::GraphBase(graph_opts opt_params)
     {
         std::cout << G.what() << std::endl;
     }
+}
+
+static void create_new_graph(graph_opts &opts, WT_CONNECTION *conn)
+{
+    WT_SESSION *session;
+    if (CommonUtil::open_session(conn, &session) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
+
+    /* Now doing the metadata table creation.
+    function This table stores the graph metadata
+    value_format:string (S)
+    key_format: string (S)
+    */
+    string metadata_table_name = "table:" + string(METADATA);
+    if (session->create(session,
+                        metadata_table_name.c_str(),
+                        "key_format=S,value_format=S") > 0)
+    {
+        fprintf(stderr, "Failed to create the metadata table ");
+    }
+    WT_CURSOR *metadata_cursor;
+    int ret = GraphBase::_get_table_cursor(
+        METADATA, &metadata_cursor, session, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a metadata cursor");
+    }
+
+    // DB_NAME
+    string db_name_fmt;
+    GraphBase::insert_metadata(
+        DB_NAME, const_cast<char *>(opts.db_name.c_str()), metadata_cursor);
+
+    // DB_DIR
+    GraphBase::insert_metadata(
+        DB_DIR, const_cast<char *>(opts.db_dir.c_str()), metadata_cursor);
+
+    // READ_OPTIMIZE
+    string read_optimized_str = opts.read_optimize ? "true" : "false";
+    GraphBase::insert_metadata(READ_OPTIMIZE,
+                               const_cast<char *>(read_optimized_str.c_str()),
+                               metadata_cursor);
+
+    // IS_DIRECTED
+    string is_directed_str = opts.is_directed ? "true" : "false";
+    GraphBase::insert_metadata(IS_DIRECTED,
+                               const_cast<char *>(is_directed_str.c_str()),
+                               metadata_cursor);
+
+    // is_weighted
+    string is_weighted_str = opts.is_weighted ? "true" : "false";
+    GraphBase::insert_metadata(IS_WEIGHTED,
+                               const_cast<char *>(is_weighted_str.c_str()),
+                               metadata_cursor);
+
+    // NUM_NODES = 0
+    GraphBase::insert_metadata(node_count,
+                               const_cast<char *>(std::to_string(0).c_str()),
+                               metadata_cursor);
+
+    // NUM_EDGES = 0
+    GraphBase::insert_metadata(edge_count,
+                               const_cast<char *>(std::to_string(0).c_str()),
+                               metadata_cursor);
+
+    metadata_cursor->close(metadata_cursor);
+    session->close(session, NULL);
 }
 
 /**

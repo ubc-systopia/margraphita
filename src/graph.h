@@ -16,13 +16,16 @@ class GraphBase
 {
    public:
     GraphBase(graph_opts opts);  // ✅
-    void insert_metadata(const std::string key,
-                         const char *value,
-                         WT_CURSOR *metadata_cursor);  // ✅ check if pvt
+    static void insert_metadata(const std::string key,
+                                const char *value,
+                                WT_CURSOR *metadata_cursor);  // ✅ check if pvt
     std::string get_metadata(std::string key, WT_CURSOR *metadata_cursor);  // ✅
-    virtual node get_node(node_id_t node_id) = 0;                      // ✅
-    virtual node get_random_node() = 0;                                // ✅
-    virtual void create_new_graph() = 0;                               // ✅
+    virtual node get_node(node_id_t node_id) = 0;  // ✅
+    virtual node get_random_node() = 0;            // ✅
+    static void create_new_graph(
+        graph_opts &opts,
+        WT_CONNECTION *conn);             // Used during first-time init of DB
+    virtual void create_new_graph() = 0;  // ✅
     virtual void add_node(node to_insert) = 0;                         // ✅
     virtual bool has_node(node_id_t node_id) = 0;                      // ✅
     virtual void delete_node(node_id_t node_id) = 0;                   // ✅
@@ -42,8 +45,8 @@ class GraphBase
     virtual std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) = 0;
     virtual std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) = 0;
 
-    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;   // ✅
-    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;   // ✅
+    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;  // ✅
+    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;  // ✅
 
     virtual OutCursor *get_outnbd_iter() = 0;
     virtual InCursor *get_innbd_iter() = 0;
@@ -58,12 +61,10 @@ class GraphBase
     virtual void make_indexes() = 0;
     std::string get_db_name() const { return opts.db_name; };
 
-    struct db_handle
-    {
-        WT_CONNECTION *conn;
-        WT_SESSION *session;
-        WT_CURSOR *cur;
-    };
+    static int _get_table_cursor(std::string table,
+                                 WT_CURSOR **cursor,
+                                 WT_SESSION *session,
+                                 bool is_random);
 
    protected:
     graph_opts opts;
@@ -72,11 +73,6 @@ class GraphBase
 
     WT_CONNECTION *get_db_conn() { return this->conn; }
     WT_SESSION *get_db_session() { return this->session; }
-
-    int _get_table_cursor(std::string table,
-                          WT_CURSOR **cursor,
-                          WT_SESSION *session,
-                          bool is_random);
     int _get_index_cursor(std::string table_name,
                           std::string idx_name,
                           std::string projection,
