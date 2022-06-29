@@ -8,28 +8,42 @@ GraphEngine::GraphEngine(graph_engine_opts engine_opts)
     opts = engine_opts.opts;
     check_opts_valid();
     locks = new LockSet();
+    open_connection();
 }
 
-GraphEngine::~GraphEngine() { delete locks; }
+GraphEngine::~GraphEngine()
+{
+    delete locks;
+    close_connection();
+}
 
 GraphBase *GraphEngine::create_graph_handle()
 {
+    if (!conn)
+    {
+        throw GraphException("DB Path not set");
+    }
+
+    WT_SESSION *sess;
+    CommonUtil::open_session(conn, &sess);
+    wt_conn t{.connection = conn, .session = sess};
+
     GraphBase *ptr = nullptr;
     if (opts.type == GraphType::Std)
     {
-        ptr = new StandardGraph(opts);
+        ptr = new StandardGraph(opts, t);
         ptr->set_locks(locks);
         return ptr;
     }
     else if (opts.type == GraphType::Adj)
     {
-        ptr = new AdjList(opts);
+        ptr = new AdjList(opts, t);
         ptr->set_locks(locks);
         return ptr;
     }
     else if (opts.type == GraphType::EKey)
     {
-        ptr = new EdgeKey(opts);
+        ptr = new EdgeKey(opts, t);
         ptr->set_locks(locks);
         return ptr;
     }
@@ -60,12 +74,19 @@ void GraphEngine::check_opts_valid()
     {
         std::string dirname = opts.db_dir + "/" + opts.db_name;
         CommonUtil::create_dir(dirname);
-        if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
-                                        opts.stat_log,
-                                        opts.conn_config,
-                                        &conn) < 0)
-        {
-            throw GraphException("Cannot open connection to new DB");
-        };
     }
 }
+
+void GraphEngine::open_connection(graph_opts opts, string db_name)
+{
+    std::string dirname = opts.db_dir + "/" + opts.db_name;
+    if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
+                                    opts.stat_log,
+                                    opts.conn_config,
+                                    &conn) < 0)
+    {
+        throw GraphException("Cannot open connection to new DB");
+    };
+}
+
+void GraphEngine::close_connection() { CommonUtil::close_connection(conn); }
