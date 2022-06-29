@@ -19,11 +19,6 @@ GraphEngine::~GraphEngine()
 
 GraphBase *GraphEngine::create_graph_handle()
 {
-    if (!conn)
-    {
-        throw GraphException("DB Path not set");
-    }
-
     WT_SESSION *sess;
     CommonUtil::open_session(conn, &sess);
     wt_conn t{.connection = conn, .session = sess};
@@ -85,7 +80,7 @@ void GraphEngine::open_connection(graph_opts opts, string db_name)
                                     opts.conn_config,
                                     &conn) < 0)
     {
-        throw GraphException("Cannot open connection to new DB");
+        throw GraphException("Cannot open connection");
     };
 }
 
