@@ -11,8 +11,10 @@
 
 #include "GraphCreate.h"
 #include "adj_list.h"
+#include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common.h"
+#include "csv_log.h"
 #include "edgekey.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
@@ -22,17 +24,6 @@
 /**
  * This runs the BFS on the graph using src as the starting node.
  */
-
-using namespace std;
-
-typedef struct bfs_info
-{
-    int num_visited;
-    int sum_out_deg;
-    double time_taken;
-    bfs_info(int _val)
-        : num_visited(_val), sum_out_deg(_val), time_taken(_val){};
-} bfs_info;
 
 template <typename Graph>
 bfs_info *bfs(Graph &graph, node_id_t src)
@@ -71,32 +62,6 @@ bfs_info *bfs(Graph &graph, node_id_t src)
     return info;
 }
 
-void print_csv_info(std::string name,
-                    int starting_node,
-                    bfs_info *info,
-                    double time_from_outside,
-                    std::string csv_logdir)
-{
-    fstream FILE;
-    std::string _name = csv_logdir + "/" + name + "_bfs.csv";
-    if (access(_name.c_str(), F_OK) == -1)
-    {
-        // The file does not exist yet.
-        FILE.open(_name, ios::out | ios::app);
-        FILE << "#db_name, benchmark, starting node_id, num_visited, "
-                "sum_out_deg, total_time_taken_usecs, time_from_main\n";
-    }
-    else
-    {
-        FILE.open(_name, ios::out | ios::app);
-    }
-
-    FILE << name << ",bfs," << starting_node << "," << info->num_visited << ","
-         << info->sum_out_deg << "," << info->time_taken << ","
-         << time_from_outside << "\n";
-
-    FILE.close();
-}
 template <typename Graph>
 node_id_t find_random_start(Graph &graph)
 {

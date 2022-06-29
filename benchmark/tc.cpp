@@ -12,8 +12,10 @@
 
 #include "GraphCreate.h"
 #include "adj_list.h"
+#include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common.h"
+#include "csv_log.h"
 #include "edgekey.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
@@ -22,41 +24,6 @@
 /**
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts
  */
-
-typedef struct tc_info
-{
-    int64_t cycle_count;
-    int64_t trust_count;
-    double trust_time;
-    double cycle_time;
-    tc_info(int _val)
-        : cycle_count(_val),
-          trust_count(_val),
-          trust_time(_val),
-          cycle_time(_val){};
-} tc_info;
-
-void print_csv_info(std::string name, tc_info &info, std::string csv_logdir)
-{
-    fstream FILE;
-    std::string _name = csv_logdir + "/" + name + "_tc.csv";
-    if (access(_name.c_str(), F_OK) == -1)
-    {
-        // The file does not exist yet.
-        FILE.open(_name, ios::out | ios::app);
-        FILE << "#db_name, benchmark, cycle_count, cycle_time_usec, "
-                "trust_count, trust_time_usecs\n";
-    }
-    else
-    {
-        FILE.open(_name, ios::out | ios::app);
-    }
-
-    FILE << name << ",tc," << info.cycle_count << "," << info.cycle_time << ","
-         << info.trust_count << "," << info.trust_time << "\n";
-
-    FILE.close();
-}
 
 bool id_compare(node_id_t a, node_id_t b) { return (a < b); }
 
