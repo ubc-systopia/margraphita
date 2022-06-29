@@ -73,7 +73,7 @@ class GraphBase
     graph_opts opts;
     WT_CONNECTION *conn;
     WT_SESSION *session;
-    LockSet *locks;
+    LockSet *locks = nullptr;
 
     WT_CONNECTION *get_db_conn() { return this->conn; }
     WT_SESSION *get_db_session() { return this->session; }

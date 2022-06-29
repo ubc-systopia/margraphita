@@ -361,7 +361,17 @@ void StandardGraph::add_node(node to_insert)
                              std::to_string(to_insert.id));
     }
     init_metadata_cursor();
-    set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_num_lock());
+        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+        omp_unset_lock(locks->get_node_num_lock());
+    }
+    else
+    {
+        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+    }
 }
 
 /**
@@ -542,7 +552,17 @@ void StandardGraph::delete_node(node_id_t node_id)
         throw GraphException("Could not delete node with ID " +
                              to_string(node_id));
     }
-    set_num_nodes(get_num_nodes() - 1, metadata_cursor);
+
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_num_lock());
+        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
+        omp_unset_lock(locks->get_node_num_lock());
+    }
+    else
+    {
+        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
+    }
 }
 
 degree_t StandardGraph::get_in_degree(node_id_t node_id)
@@ -733,7 +753,17 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
                              to_string(to_insert.dst_id));
     }
 
-    set_num_edges(get_num_edges() + 1, metadata_cursor);
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_edge_num_lock());
+        set_num_edges(get_num_edges() + 1, metadata_cursor);
+        omp_unset_lock(locks->get_edge_num_lock());
+    }
+    else
+    {
+        set_num_edges(get_num_edges() + 1, metadata_cursor);
+    }
+
     // FIXME: This does not handle the undirected scenario
     if (!is_bulk)
     {
@@ -751,6 +781,11 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
                                      to_string(to_insert.src_id));
             }
             node found;
+
+            if (locks != nullptr)
+            {
+                omp_set_lock(locks->get_node_degree_lock());
+            }
             CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
             found.id = to_insert.src_id;
             found.out_degree = found.out_degree + 1;
@@ -760,15 +795,29 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
                 found.in_degree,
                 found.out_degree);  //! pass the cursor to this function
 
+            if (locks != nullptr)
+            {
+                omp_unset_lock(locks->get_node_degree_lock());
+            }
+
             // update in/out degrees for the dst node in the NODE_TABLE
             n_cursor->reset(n_cursor);
             n_cursor->set_key(n_cursor, to_insert.dst_id);
             n_cursor->search(n_cursor);
+
+            if (locks != nullptr)
+            {
+                omp_set_lock(locks->get_node_degree_lock());
+            }
             CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
             found.id = to_insert.dst_id;
             found.in_degree = found.in_degree + 1;
             update_node_degree(
                 n_cursor, found.id, found.in_degree, found.out_degree);
+            if (locks != nullptr)
+            {
+                omp_unset_lock(locks->get_node_degree_lock());
+            }
         }
     }
 }
@@ -789,7 +838,16 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
     CommonUtil::check_return(ret,
                              "Failed to delete edge (" + to_string(src_id) +
                                  "," + to_string(dst_id));
-    set_num_edges(get_num_edges() - 1, metadata_cursor);
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_edge_num_lock());
+        set_num_edges(get_num_edges() - 1, metadata_cursor);
+        omp_unset_lock(locks->get_edge_num_lock());
+    }
+    else
+    {
+        set_num_edges(get_num_edges() - 1, metadata_cursor);
+    }
     // Delete reverse edge if the graph is undirected.
     if (!opts.is_directed)
     {
@@ -802,7 +860,16 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
         CommonUtil::check_return(ret,
                                  "Failed to delete edge (" + to_string(src_id) +
                                      "," + to_string(dst_id));
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_edge_num_lock());
+            set_num_edges(get_num_edges() - 1, metadata_cursor);
+            omp_unset_lock(locks->get_edge_num_lock());
+        }
+        else
+        {
+            set_num_edges(get_num_edges() - 1, metadata_cursor);
+        }
     }
 
     // Update in/out degrees for the src and dst nodes if the graph is read
@@ -813,6 +880,11 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
     n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
     n_cursor->set_key(n_cursor, n_found.id);
     n_cursor->search(n_cursor);
+
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_degree_lock());
+    }
     CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
 
     // Assert that the out degree and later on in degree are > 0.
@@ -834,11 +906,19 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
     }
     update_node_degree(
         n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
+    if (locks != nullptr)
+    {
+        omp_unset_lock(locks->get_node_degree_lock());
+    }
 
     // Update dst node's in/out degrees
     n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
     n_cursor->set_key(n_cursor, n_found.id);
     n_cursor->search(n_cursor);
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_degree_lock());
+    }
     CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
 
     if ((opts.is_directed and n_found.in_degree == 0) or
@@ -856,6 +936,10 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
     }
     update_node_degree(
         n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
+    if (locks != nullptr)
+    {
+        omp_unset_lock(locks->get_node_degree_lock());
+    }
 }
 
 void StandardGraph::update_node_degree(WT_CURSOR *cursor,

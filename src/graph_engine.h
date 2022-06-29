@@ -23,7 +23,6 @@ class GraphEngine
     GraphEngine(graph_engine_opts engine_opts);
     ~GraphEngine();
     GraphBase* create_graph_handle();
-    void close_graph();  // TODO
 
    private:
     void check_opts_valid();
