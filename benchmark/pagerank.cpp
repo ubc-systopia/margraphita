@@ -1,7 +1,6 @@
 #include <math.h>
 #include <omp.h>
 #include <stdio.h>
-#include <sys/mman.h>
 #include <unistd.h>
 
 #include <cassert>
@@ -16,8 +15,10 @@
 
 #include "GraphCreate.h"
 #include "adj_list.h"
+#include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common.h"
+#include "csv_log.h"
 #include "edgekey.h"
 #include "graph.h"
 #include "graph_exception.h"
@@ -29,28 +30,18 @@ std::hash<int> hashfn;
 int N = 1610612741;  // Hash bucket size
 int p_cur = 0;
 int p_next = 1;
-typedef struct pr_map
-{
-    int id;
-    float p_rank[2];
-} pr_map;
 
-pr_map *ptr;  // pointer to mmap region
+pr_map *ptr = nullptr;  // pointer to mmap region
 // float *pr_cur, *pr_next;
 
 void init_pr_map(std::vector<node> &nodes)
 {
     int size = nodes.size();
     // cout << size;
-    ptr = (pr_map *)mmap(NULL,
-                         sizeof(pr_map) * N,
-                         PROT_READ | PROT_WRITE,
-                         MAP_PRIVATE | MAP_ANONYMOUS,
-                         0,
-                         0);
+    make_pr_mmap(size, &ptr);
     // since the access pattern is random and because the node id's
     // non-continuous we cannot do any clever madvise tricks.
-
+    assert(ptr != nullptr);
     float init_val = 1.0f / size;
 
     for (node n : nodes)
@@ -64,52 +55,7 @@ void init_pr_map(std::vector<node> &nodes)
     }
 }
 
-void print_map(std::vector<node> &nodes)
-{
-    ofstream FILE;
-    FILE.open("pr_out.txt", ios::out | ios::ate);
-    for (node n : nodes)
-    {
-        FILE << n.id << "\t" << ptr[n.id].p_rank[p_next] << "\n";
-    }
-    FILE.close();
-}
-
-void delete_map() { munmap(ptr, sizeof(pr_map) * N); }
-
-void print_to_csv(std::string name,
-                  std::vector<double> &times,
-                  std::string csv_logdir)
-{
-    fstream FILE;
-    std::string _name = csv_logdir + "/" + name + "_pr.csv";
-    if (access(_name.c_str(), F_OK) == -1)
-    {
-        // The file does not exist yet.
-        FILE.open(_name, ios::out | ios::app);
-        FILE << "#db_name,bmark,map_t,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9"
-             << "\n ";
-    }
-    else
-    {
-        FILE.open(_name, ios::out | ios::app);
-    }
-
-    FILE << name << ",pr,";
-    for (int i = 0; i < (int)times.size(); i++)
-    {
-        FILE << times[i];
-        if (i != (int)times.size() - 1)
-        {
-            FILE << ",";
-        }
-        else
-        {
-            FILE << "\n";
-        }
-    }
-    FILE.close();
-}
+void delete_map(int num_nodes) { munmap(ptr, sizeof(pr_map) * num_nodes); }
 
 template <typename Graph>
 void pagerank(Graph &graph,
@@ -159,9 +105,10 @@ void pagerank(Graph &graph,
              << endl;
         times.push_back(t.t_micros());
     }
-    print_to_csv(opts.db_name, times, csv_logdir);
-    print_map(nodes);
-    delete_map();
+    print_to_csv(
+        opts.db_name, times, csv_logdir + "/" + opts.db_name + "_old_pr.csv");
+    print_map(num_nodes, ptr, p_next);
+    delete_map(num_nodes);
 }
 
 int main(int argc, char *argv[])

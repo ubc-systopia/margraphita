@@ -13,6 +13,7 @@
 #include "common.h"
 
 using namespace std;
+
 const std::string GRAPH_PREFIX = "adj";
 
 AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
@@ -42,6 +43,19 @@ AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
     }
 }
 
+AdjList::AdjList(graph_opts &opt_params, wt_conn &connection)
+    : GraphBase(opt_params)
+
+{
+    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    {
+        std::filesystem::create_directories(opts.stat_log);
+    }
+
+    conn = connection.connection;
+    session = connection.session;
+}
+
 /**
  * @brief This function is used to check if a node identified by node_id exists
  * in the node table.
@@ -68,7 +82,89 @@ bool AdjList::has_node(node_id_t node_id)
         return false;
     }
 }
+void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
+{
+    // Initialize edge ID for the edge table
+    // AdjList has no edge id in the edge table but we are using the same
+    // structure as used by Standardgraph. So, the edge_id value will be -999
+    // for all edges in the AdjList implementation.
 
+    // Set up the node table
+    // The node entry is of the form: <id>,<in_degree>,<out_degree>
+    // If the graph is opts.read_optimized, add columns and format for in/out
+    // degrees
+    WT_SESSION *sess;
+    if (CommonUtil::open_session(conn, &sess) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
+    vector<string> node_columns = {ID};
+    string node_value_format;
+    string node_key_format = "q";
+    if (opts.read_optimize)
+    {
+        node_columns.push_back(IN_DEGREE);
+        node_columns.push_back(OUT_DEGREE);
+        node_value_format = "II";
+    }
+    else
+    {
+        node_columns.push_back(
+            "na");  // have to do this because the column count must match
+        node_value_format = "s";  // 1 byte fixed length char[] to hold ""
+    }
+    // Now Create the Node Table
+    CommonUtil::set_table(
+        sess, NODE_TABLE, node_columns, node_key_format, node_value_format);
+
+    // ******** Now set up the Edge Table     **************
+    // Edge Column Format : <src><dst><weight>
+    // Now prepare the edge value format. starts with II for src,dst. Add
+    // another I if weighted
+    vector<string> edge_columns = {SRC, DST};
+    string edge_key_format = "qq";  // SRC DST in the edge table
+    string edge_value_format = "";  // Make I if weighted , x otherwise
+    if (opts.is_weighted)
+    {
+        edge_columns.push_back(WEIGHT);
+        edge_value_format += "i";
+    }
+    else
+    {
+        edge_columns.push_back("NA");
+        edge_value_format +=
+            "b";  // uses 8 bits, which is the smallest possible value (?) other
+                  // than x -- padded byte which I don't fully understand
+        // TODO: check if this is referrred anywhere in the unweighted code path
+    }
+
+    // Create edge table
+    CommonUtil::set_table(
+        sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
+
+    vector<string> in_adjlist_columns = {ID, IN_DEGREE, IN_ADJLIST};
+    vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
+    string adjlist_key_format = "q";
+    string adjlist_value_format =
+        "Iu";  // This HAS to be u. S does not work. s needs the number.
+    string node_count = "nNodes";
+    string edge_count = "nEdges";
+
+    // Create adjlist_in_edges table
+    CommonUtil::set_table(sess,
+                          IN_ADJLIST,
+                          in_adjlist_columns,
+                          adjlist_key_format,
+                          adjlist_value_format);
+
+    // Create adjlist_out_edges table
+    CommonUtil::set_table(sess,
+                          OUT_ADJLIST,
+                          out_adjlist_columns,
+                          adjlist_key_format,
+                          adjlist_value_format);
+    sess->close(sess, NULL);
+}
 void AdjList::create_new_graph()
 {
     int ret;
@@ -286,6 +382,7 @@ void AdjList::add_node(node to_insert)
     // Now add the adjlist entires
     add_adjlist(in_adj_cur, to_insert.id);
     add_adjlist(out_adj_cur, to_insert.id);
+    init_metadata_cursor();
     set_num_nodes(get_num_nodes() + 1, metadata_cursor);
 }
 

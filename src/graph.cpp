@@ -12,7 +12,7 @@
 
 #include "common.h"
 #include "graph_exception.h"
-
+using namespace std;
 GraphBase::GraphBase(graph_opts opt_params)
 {
     opts = opt_params;
@@ -25,6 +25,75 @@ GraphBase::GraphBase(graph_opts opt_params)
     {
         std::cout << G.what() << std::endl;
     }
+}
+
+void GraphBase::create_metadata_table(graph_opts &opts, WT_CONNECTION *conn)
+{
+    WT_SESSION *session;
+    if (CommonUtil::open_session(conn, &session) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
+
+    /* Now doing the metadata table creation.
+    function This table stores the graph metadata
+    value_format:string (S)
+    key_format: string (S)
+    */
+    string metadata_table_name = "table:" + string(METADATA);
+    if (session->create(session,
+                        metadata_table_name.c_str(),
+                        "key_format=S,value_format=S") > 0)
+    {
+        fprintf(stderr, "Failed to create the metadata table ");
+    }
+    WT_CURSOR *metadata_cursor;
+    int ret = GraphBase::_get_table_cursor(
+        METADATA, &metadata_cursor, session, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a metadata cursor");
+    }
+
+    // DB_NAME
+    string db_name_fmt;
+    GraphBase::insert_metadata(
+        DB_NAME, const_cast<char *>(opts.db_name.c_str()), metadata_cursor);
+
+    // DB_DIR
+    GraphBase::insert_metadata(
+        DB_DIR, const_cast<char *>(opts.db_dir.c_str()), metadata_cursor);
+
+    // READ_OPTIMIZE
+    string read_optimized_str = opts.read_optimize ? "true" : "false";
+    GraphBase::insert_metadata(READ_OPTIMIZE,
+                               const_cast<char *>(read_optimized_str.c_str()),
+                               metadata_cursor);
+
+    // IS_DIRECTED
+    string is_directed_str = opts.is_directed ? "true" : "false";
+    GraphBase::insert_metadata(IS_DIRECTED,
+                               const_cast<char *>(is_directed_str.c_str()),
+                               metadata_cursor);
+
+    // is_weighted
+    string is_weighted_str = opts.is_weighted ? "true" : "false";
+    GraphBase::insert_metadata(IS_WEIGHTED,
+                               const_cast<char *>(is_weighted_str.c_str()),
+                               metadata_cursor);
+
+    // NUM_NODES = 0
+    GraphBase::insert_metadata(node_count,
+                               const_cast<char *>(std::to_string(0).c_str()),
+                               metadata_cursor);
+
+    // NUM_EDGES = 0
+    GraphBase::insert_metadata(edge_count,
+                               const_cast<char *>(std::to_string(0).c_str()),
+                               metadata_cursor);
+
+    metadata_cursor->close(metadata_cursor);
+    session->close(session, NULL);
 }
 
 /**
@@ -107,7 +176,11 @@ int GraphBase::_get_table_cursor(std::string table,
     return 0;
 }
 
-void GraphBase::close() { CommonUtil::close_connection(conn); }
+void GraphBase::close()
+{
+    CommonUtil::close_connection(
+        conn);  // To update to close sessions in new design
+}
 
 // Close, restore from DB, create/drop indices
 void GraphBase::__restore_from_db(std::string db_name)
@@ -129,13 +202,13 @@ void GraphBase::__restore_from_db(std::string db_name)
 
         if (strcmp(key, DB_DIR.c_str()) == 0)
         {
-            this->opts.db_dir =
-                value;  // CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_dir = value;  // CommonUtil::unpack_string_wt(value,
+                                        // this->session);
         }
         else if (strcmp(key, DB_NAME.c_str()) == 0)
         {
-            this->opts.db_name =
-                value;  // CommonUtil::unpack_string_wt(value, this->session);
+            this->opts.db_name = value;  // CommonUtil::unpack_string_wt(value,
+                                         // this->session);
         }
         // restore nNodes & nEdges
         else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
@@ -175,9 +248,8 @@ void GraphBase::__restore_from_db(std::string db_name)
 }
 
 /**
- * @brief Returns the metadata associated with the key param from the METADATA
- * table.
- * Same from standard_graph implementation
+ * @brief Returns the metadata associated with the key param from the
+ * METADATA table. Same from standard_graph implementation
  */
 
 std::string GraphBase::get_metadata(const std::string &key)
@@ -209,10 +281,11 @@ std::string GraphBase::get_metadata(const std::string &key)
 /**
  * @brief Generic function to create the indexes on a table
  *
- * @param table_name The name of the table on which the index is to be created.
+ * @param table_name The name of the table on which the index is to be
+ * created.
  * @param idx_name The name of the index
- * @param projection The columns that are to be included in the index. This is
- * in the format "(col1,col2,..)"
+ * @param projection The columns that are to be included in the index. This
+ * is in the format "(col1,col2,..)"
  * @param cursor This is the cursor variable that needs to be set.
  * @return 0 if the index could be set
  */
@@ -261,7 +334,4 @@ uint64_t GraphBase::get_num_edges()
     return std::stoi(found);
 }
 
-void GraphBase:: set_locks(LockSet* locks_ptr)
-{
-    locks = locks_ptr;
-}
+void GraphBase::set_locks(LockSet *locks_ptr) { locks = locks_ptr; }

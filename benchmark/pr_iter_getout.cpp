@@ -1,7 +1,6 @@
 #include <math.h>
 #include <omp.h>
 #include <stdio.h>
-#include <sys/mman.h>
 #include <unistd.h>
 
 #include <cassert>
@@ -16,8 +15,10 @@
 
 #include "GraphCreate.h"
 #include "adj_list.h"
+#include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common.h"
+#include "csv_log.h"
 #include "edgekey.h"
 #include "graph_exception.h"
 #include "pvector.h"
@@ -29,13 +30,6 @@ const float dampness = 0.85;
 int p_cur = 0;
 int p_next = 1;
 typedef float ScoreT;
-typedef struct pr_map
-{
-    int id;
-    float p_rank[2];
-    // mutable std::shared_mutex mutex{};
-
-} pr_map;
 
 pr_map *ptr;  // pointer to mmap region
 
@@ -48,27 +42,7 @@ pr_map *ptr;  // pointer to mmap region
  */
 void init_pr_map(int N)
 {
-    ptr = (pr_map *)mmap(NULL,
-                         sizeof(pr_map) * N,
-                         PROT_READ | PROT_WRITE,
-                         MAP_SHARED | MAP_ANONYMOUS,
-                         -1,
-                         0);  // Should I make this file-backed?
-    if (ptr == MAP_FAILED)
-    {
-        perror("mmap failed");
-        exit(1);
-    }
-    int ret =
-        madvise(ptr,
-                sizeof(pr_map) * N,
-                MADV_SEQUENTIAL);  // we are guranteed to read this sequentially
-    if (ret != 0)
-    {
-        fprintf(
-            stderr, "madvise failed with error code: %s\n", strerror(errno));
-        exit(1);
-    }
+    make_pr_mmap(N, &ptr);
     float init_val = 1.0f / N;
 
 #pragma omp parallel for
@@ -79,52 +53,7 @@ void init_pr_map(int N)
     }
 }
 
-void print_map(int N)
-{
-    ofstream FILE;
-    FILE.open("pr_out.txt", ios::out | ios::ate);
-    for (int i = 0; i < N; i++)
-    {
-        FILE << ptr[i].id << "\t" << ptr[i].p_rank[p_next] << "\n";
-    }
-    FILE.close();
-}
-
 void delete_map(int N) { munmap(ptr, sizeof(pr_map) * N); }
-
-void print_to_csv(std::string name,
-                  std::vector<double> &times,
-                  std::string csv_logdir)
-{
-    fstream FILE;
-    std::string _name = csv_logdir + "/" + name + "_pr_iter_getout.csv";
-    if (access(_name.c_str(), F_OK) == -1)
-    {
-        // The file does not exist yet.
-        FILE.open(_name, ios::out | ios::app);
-        FILE << "#db_name,bmark,map_t,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9"
-             << "\n ";
-    }
-    else
-    {
-        FILE.open(_name, ios::out | ios::app);
-    }
-
-    FILE << name << ",pr,";
-    for (int i = 0; i < times.size(); i++)
-    {
-        FILE << times[i];
-        if (i != times.size() - 1)
-        {
-            FILE << ",";
-        }
-        else
-        {
-            FILE << "\n";
-        }
-    }
-    FILE.close();
-}
 
 /**
  * !If we want to parallelize this function, we need per-thread offsets into the
@@ -185,8 +114,10 @@ void pagerank(GraphBase *graph,
 
         times.push_back(t.t_micros());
     }
-    print_to_csv(opts.db_name, times, csv_logdir);
-    print_map(num_nodes);
+    print_to_csv(opts.db_name,
+                 times,
+                 csv_logdir + "/" + opts.db_name + "_iter_getoutdeg.csv");
+    print_map(num_nodes, ptr, p_next);
     delete_map(num_nodes);
 }
 

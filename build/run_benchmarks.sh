@@ -2,7 +2,7 @@
 set -x
 set -e
 ### HELLO
-source ../../paths.sh
+source $GRAPH_PROJECT_DIR/build/paths.sh
 usage() {
 echo "Usage: $0 [-d log_dir -r run_type]"
 echo "log_dir : the absolute path to the directory where the benchmark results will be stored"

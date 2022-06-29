@@ -51,6 +51,75 @@ StandardGraph::StandardGraph(graph_opts &opt_params) : GraphBase(opt_params)
     }
 }
 
+StandardGraph::StandardGraph(graph_opts &opt_params, wt_conn &connection)
+    : GraphBase(opt_params)
+{
+    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    {
+        std::filesystem::create_directories(opts.stat_log);
+    }
+
+    conn = connection.connection;
+    session = connection.session;
+}
+
+void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
+{
+    WT_SESSION *sess;
+    if (CommonUtil::open_session(conn, &sess) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
+    // Set up the node table
+    // The node entry is of the form: <id>,<in_degree><out_degree>
+    // If the graph is opts.read_optimized, add columns and format for in/out
+    // degrees
+    vector<string> node_columns = {ID};  // Always there :)
+    string node_value_format;
+    string node_key_format = "q";
+    if (opts.read_optimize)
+    {
+        node_columns.push_back(IN_DEGREE);
+        node_columns.push_back(OUT_DEGREE);
+        node_value_format = "II";
+    }
+    else
+    {
+        node_columns.push_back(
+            "na");  // have to do this because the column count must match.
+        node_value_format = "s";  // 1 byte fixed length char[] to hold ""
+    }
+    // Now Create the Node Table
+    //! What happens when the table is not read-optimized? I store "" <-ok?
+
+    CommonUtil::set_table(
+        sess, NODE_TABLE, node_columns, node_key_format, node_value_format);
+
+    // ******** Now set up the Edge Table     **************
+    // Edge Column Format : <src><dst><weight>
+    // Now prepare the edge value format. starts with II for src,dst. Add
+    // another I if weighted
+    vector<string> edge_columns = {SRC, DST};
+    string edge_key_format = "qq";
+    string edge_value_format = "";  // I if weighted or b if unweighted.
+
+    if (opts.is_weighted)
+    {
+        edge_columns.push_back(WEIGHT);
+        edge_value_format += "i";
+    }
+    else
+    {
+        edge_columns.push_back("na");
+        edge_value_format += 'b';  // One byte to store ""
+    }
+
+    // Create edge table
+    CommonUtil::set_table(
+        sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
+    sess->close(sess, NULL);
+}
+
 void StandardGraph::create_new_graph()
 {
     int ret;
@@ -1114,12 +1183,15 @@ WT_CURSOR *StandardGraph::get_new_edge_cursor()
 
 WT_CURSOR *StandardGraph::get_src_idx_cursor()
 {
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(
-            EDGE_TABLE, SRC_INDEX, projection, &(src_index_cursor)) != 0)
+    if (src_index_cursor == nullptr)
     {
-        throw GraphException(
-            "Could not get a SRC index cursor on the edge table");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(
+                EDGE_TABLE, SRC_INDEX, projection, &(src_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a SRC index cursor on the edge table");
+        }
     }
 
     return src_index_cursor;
@@ -1141,12 +1213,15 @@ WT_CURSOR *StandardGraph::get_new_src_idx_cursor()
 
 WT_CURSOR *StandardGraph::get_dst_idx_cursor()
 {
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(
-            EDGE_TABLE, DST_INDEX, projection, &(dst_index_cursor)) != 0)
+    if (dst_index_cursor == nullptr)
     {
-        throw GraphException(
-            "Could not get a DST index cursor on the edge table");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(
+                EDGE_TABLE, DST_INDEX, projection, &(dst_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a DST index cursor on the edge table");
+        }
     }
 
     return dst_index_cursor;
@@ -1168,13 +1243,17 @@ WT_CURSOR *StandardGraph::get_new_dst_idx_cursor()
 
 WT_CURSOR *StandardGraph::get_src_dst_idx_cursor()
 {
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(
-            EDGE_TABLE, SRC_DST_INDEX, projection, &(src_dst_index_cursor)) !=
-        0)
+    if (src_dst_index_cursor == nullptr)
     {
-        throw GraphException(
-            "Could not get a DST index cursor on the edge table");
+        string projection = "(" + SRC + "," + DST + ")";
+        if (_get_index_cursor(EDGE_TABLE,
+                              SRC_DST_INDEX,
+                              projection,
+                              &(src_dst_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a DST index cursor on the edge table");
+        }
     }
 
     return src_dst_index_cursor;

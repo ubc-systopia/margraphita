@@ -1,5 +1,6 @@
 #include "graph_engine.h"
 
+#include <filesystem>
 using namespace std;
 
 GraphEngine::GraphEngine(graph_engine_opts engine_opts)
@@ -8,14 +9,17 @@ GraphEngine::GraphEngine(graph_engine_opts engine_opts)
     opts = engine_opts.opts;
     check_opts_valid();
     locks = new LockSet();
-    open_connection();
+    if (opts.create_new)
+    {
+        create_new_graph();
+    }
+    else
+    {
+        open_connection();
+    }
 }
 
-GraphEngine::~GraphEngine()
-{
-    delete locks;
-    close_connection();
-}
+GraphEngine::~GraphEngine() { delete locks; }
 
 GraphBase *GraphEngine::create_graph_handle()
 {
@@ -27,24 +31,24 @@ GraphBase *GraphEngine::create_graph_handle()
     if (opts.type == GraphType::Std)
     {
         ptr = new StandardGraph(opts, t);
-        ptr->set_locks(locks);
-        return ptr;
     }
     else if (opts.type == GraphType::Adj)
     {
         ptr = new AdjList(opts, t);
-        ptr->set_locks(locks);
-        return ptr;
     }
     else if (opts.type == GraphType::EKey)
     {
         ptr = new EdgeKey(opts, t);
-        ptr->set_locks(locks);
-        return ptr;
     }
-
-    throw GraphException("Failed to create graph object");
+    else
+    {
+        throw GraphException("Failed to create graph object");
+    }
+    // ptr->set_locks();
+    return ptr;
 }
+
+void GraphEngine::close_graph() { close_connection(); }
 
 void GraphEngine::check_opts_valid()
 {
@@ -65,14 +69,37 @@ void GraphEngine::check_opts_valid()
     {
         std::filesystem::create_directories(opts.stat_log);
     }
-    if (opts.create_new)
-    {
-        std::string dirname = opts.db_dir + "/" + opts.db_name;
-        CommonUtil::create_dir(dirname);
-    }
 }
 
-void GraphEngine::open_connection(graph_opts opts, string db_name)
+void GraphEngine::create_new_graph()
+{
+    std::string dirname = opts.db_dir + "/" + opts.db_name;
+    CommonUtil::create_dir(dirname);
+    if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
+                                    opts.stat_log,
+                                    opts.conn_config,
+                                    &conn) < 0)
+    {
+        throw GraphException("Cannot open connection to new DB");
+    };
+
+    if (opts.type == GraphType::Std)
+    {
+        StandardGraph::create_wt_tables(opts, conn);
+    }
+    else if (opts.type == GraphType::Adj)
+    {
+        AdjList::create_wt_tables(opts, conn);
+    }
+    else if (opts.type == GraphType::EKey)
+    {
+        EdgeKey::create_wt_tables(opts, conn);
+    }
+
+    GraphBase::create_metadata_table(opts, conn);
+}
+
+void GraphEngine::open_connection()
 {
     std::string dirname = opts.db_dir + "/" + opts.db_name;
     if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
