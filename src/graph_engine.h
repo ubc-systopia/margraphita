@@ -25,9 +25,12 @@ class GraphEngine
     public:
     GraphEngine(graph_engine_opts engine_opts);
     GraphBase* create_graph_handle();
+    void close_graph(); // TODO
 
 
     private:
+    void check_opts_valid();
+    WT_CONNECTION *conn;
     LockSet* locks;
     int num_threads;
     graph_opts opts;
