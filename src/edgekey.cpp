@@ -159,6 +159,30 @@ void EdgeKey::create_new_graph()
 }
 
 /**
+ * @brief Create a new graph object
+ * The edge table has : <src> <dst> <values>
+ * if this is a node: <node_id> <-1> <in_degree, out_degree>
+ * if this is an edge : <src><dst><edge_weight>
+ */
+void EdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
+{
+    WT_SESSION *sess;
+    if (CommonUtil::open_session(conn, &sess) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
+    // Set up the edge table
+    // Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
+    // Edge Column Format: iiS
+    vector<string> edge_columns = {SRC, DST, ATTR};
+    string edge_key_format = "qq";   // SRC DST
+    string edge_value_format = "S";  // Packed binary
+    CommonUtil::set_table(
+        sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
+    sess->close(sess, NULL);
+}
+
+/**
  * @brief get the node identified by node_id
  *
  * @param node_id the Node ID

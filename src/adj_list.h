@@ -392,9 +392,8 @@ class AdjList : public GraphBase
     AdjList(graph_opts &opt_params);
     AdjList(graph_opts &opt_params,
             wt_conn &connection);  // TODO: merge the 2 constructors
-    static void create_new_graph(
-        std::string db_dir,
-        WT_CONNECTION *conn);  // Need this to create graph db
+    static void create_wt_tables(
+        graph_opts &opts, WT_CONNECTION *conn);  // Need this to init graph db
     void create_new_graph();
     void add_node(node to_insert);
     void add_node(node_id_t to_insert,

@@ -10,8 +10,8 @@
 #include <unordered_map>
 
 #include "common.h"
-#include "lock.h"
 #include "graph_exception.h"
+#include "lock.h"
 
 class GraphBase
 {
@@ -23,7 +23,7 @@ class GraphBase
     std::string get_metadata(std::string key, WT_CURSOR *metadata_cursor);  // ✅
     virtual node get_node(node_id_t node_id) = 0;  // ✅
     virtual node get_random_node() = 0;            // ✅
-    static void create_new_graph(
+    static void create_metadata_table(
         graph_opts &opts,
         WT_CONNECTION *conn);             // Used during first-time init of DB
     virtual void create_new_graph() = 0;  // ✅
@@ -54,7 +54,7 @@ class GraphBase
     virtual NodeCursor *get_node_iter() = 0;
     virtual EdgeCursor *get_edge_iter() = 0;
 
-    virtual void set_locks(LockSet* locks_ptr) = 0;
+    void set_locks(LockSet *locks_ptr);
 
     void close();
     uint64_t get_num_nodes();
@@ -73,7 +73,7 @@ class GraphBase
     graph_opts opts;
     WT_CONNECTION *conn;
     WT_SESSION *session;
-    LockSet* locks;
+    LockSet *locks;
 
     WT_CONNECTION *get_db_conn() { return this->conn; }
     WT_SESSION *get_db_session() { return this->session; }

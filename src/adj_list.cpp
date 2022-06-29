@@ -82,7 +82,7 @@ bool AdjList::has_node(node_id_t node_id)
         return false;
     }
 }
-static void create_wt_tables(graph_opts &opts, WT_SESSION *sess)
+void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 {
     // Initialize edge ID for the edge table
     // AdjList has no edge id in the edge table but we are using the same
@@ -93,6 +93,11 @@ static void create_wt_tables(graph_opts &opts, WT_SESSION *sess)
     // The node entry is of the form: <id>,<in_degree>,<out_degree>
     // If the graph is opts.read_optimized, add columns and format for in/out
     // degrees
+    WT_SESSION *sess;
+    if (CommonUtil::open_session(conn, &sess) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
     vector<string> node_columns = {ID};
     string node_value_format;
     string node_key_format = "q";
@@ -158,6 +163,7 @@ static void create_wt_tables(graph_opts &opts, WT_SESSION *sess)
                           out_adjlist_columns,
                           adjlist_key_format,
                           adjlist_value_format);
+    sess->close(sess, NULL);
 }
 void AdjList::create_new_graph()
 {

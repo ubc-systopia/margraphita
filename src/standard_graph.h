@@ -488,6 +488,7 @@ class StandardGraph : public GraphBase
     StandardGraph(graph_opts &opt_params);
     StandardGraph(graph_opts &opt_params,
                   wt_conn &connection);  // TODO: merge the 2 constructors
+    static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
     void create_new_graph();
     void add_node(node to_insert);
     bool has_node(node_id_t node_id);

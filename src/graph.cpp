@@ -27,7 +27,7 @@ GraphBase::GraphBase(graph_opts opt_params)
     }
 }
 
-static void create_new_graph(graph_opts &opts, WT_CONNECTION *conn)
+void GraphBase::create_metadata_table(graph_opts &opts, WT_CONNECTION *conn)
 {
     WT_SESSION *session;
     if (CommonUtil::open_session(conn, &session) != 0)
@@ -334,7 +334,4 @@ uint64_t GraphBase::get_num_edges()
     return std::stoi(found);
 }
 
-void GraphBase:: set_locks(LockSet* locks_ptr)
-{
-    locks = locks_ptr;
-}
+void GraphBase::set_locks(LockSet *locks_ptr) { locks = locks_ptr; }
