@@ -10,11 +10,11 @@
 #include <set>
 #include <vector>
 
-#include "GraphCreate.h"
 #include "adj_list.h"
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
 #include "times.h"
@@ -176,13 +176,16 @@ int main(int argc, char *argv[])
     opts.stat_log = tc_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
     opts.type = tc_cli.get_graph_type();
+    const int THREAD_NUM = 1;
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
 
     int num_trials = tc_cli.get_num_trials();
 
     Times t;
     t.start();
-    GraphFactory f;
-    GraphBase *graph = f.CreateGraph(opts);
+    GraphEngine graphEngine(engine_opts);
+    GraphBase *graph = graphEngine.create_graph_handle();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 
@@ -212,4 +215,6 @@ int main(int argc, char *argv[])
 
         print_csv_info(opts.db_name, info, tc_log);
     }
+    graph->close();
+    graphEngine.close_graph();
 }

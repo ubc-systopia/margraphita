@@ -187,11 +187,7 @@ int GraphBase::_get_table_cursor(std::string table,
     return 0;
 }
 
-void GraphBase::close()
-{
-    CommonUtil::close_connection(
-        connection);  // To update to close sessions in new design
-}
+void GraphBase::close() { CommonUtil::close_session(session); }
 
 // Close, restore from DB, create/drop indices
 void GraphBase::__restore_from_db()

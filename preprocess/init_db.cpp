@@ -14,12 +14,12 @@
 #include <sstream>
 #include <vector>
 
-#include "GraphCreate.h"
 #include "adj_list.h"
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
 #include "graph.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
 #include "times.h"
@@ -49,18 +49,20 @@ int main(int argc, char *argv[])
     opts.stat_log = init_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // init_cli.get_conn_config();
     opts.type = init_cli.get_graph_type();
+    const int THREAD_NUM = 1;
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
 
     Times t;
     t.start();
-    GraphFactory f;
-    GraphBase *graph = f.CreateGraph(opts);
+    GraphEngine graphEngine(engine_opts);
     t.stop();
     cout << "Graph created in " << t.t_micros() << endl;
 
     // must use derived class object here
     if (init_cli.is_exit_on_create())  // Exit after creating the db
     {
-        graph->close();
+        graphEngine.close_graph();
         exit(0);
     }
 
@@ -68,10 +70,12 @@ int main(int argc, char *argv[])
     if (init_cli.is_index_create() && opts.type != GraphType::Adj)
     {
         t.start();
+        GraphBase *graph = graphEngine.create_graph_handle();
         graph->make_indexes();
         t.stop();
         cout << "Indices created in " << t.t_micros() << endl;
         graph->close();
+        graphEngine.close_graph();
         exit(0);
     }
 }

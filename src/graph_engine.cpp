@@ -19,7 +19,14 @@ GraphEngine::GraphEngine(graph_engine_opts engine_opts)
     }
 }
 
-GraphEngine::~GraphEngine() { delete locks; }
+GraphEngine::~GraphEngine()
+{
+    delete locks;
+    if (conn != NULL)
+    {
+        close_connection();
+    }
+}
 
 GraphBase *GraphEngine::create_graph_handle()
 {
@@ -111,6 +118,10 @@ void GraphEngine::open_connection()
     };
 }
 
-void GraphEngine::close_connection() { CommonUtil::close_connection(conn); }
+void GraphEngine::close_connection()
+{
+    CommonUtil::close_connection(conn);
+    conn = NULL;
+}
 
 WT_CONNECTION *GraphEngine::get_connection() { return conn; };

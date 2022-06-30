@@ -9,13 +9,13 @@
 #include <set>
 #include <vector>
 
-#include "GraphCreate.h"
 #include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common.h"
 #include "csv_log.h"
 #include "edgekey.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
 #include "thread_utils.h"
@@ -104,10 +104,14 @@ int main(int argc, char *argv[])
     opts.conn_config = "cache_size=10GB";  // bfs_cli.get_conn_config();
     opts.type = bfs_cli.get_graph_type();
 
+    const int THREAD_NUM = 1;
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
+
     Times timer;
     timer.start();
-    GraphFactory f;
-    GraphBase *graph = f.CreateGraph(opts);
+    GraphEngine graphEngine(engine_opts);
+    GraphBase *graph = graphEngine.create_graph_handle();
     timer.stop();
     std::cout << "Graph loaded in " << timer.t_micros() << std::endl;
 
@@ -133,4 +137,5 @@ int main(int argc, char *argv[])
             opts.db_name, start_vertex, bfs_run, time_from_outside, bfs_log);
     }
     graph->close();
+    graphEngine.close_graph();
 }
