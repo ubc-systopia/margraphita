@@ -54,38 +54,7 @@ class GraphFactory
      * @return a GraphBase pointer
      */
 
-    GraphBase *CreateGraphHandle(
-        graph_opts &opts)  // TODO: merge with CreateGraph
-    {
-        if (!conn)
-        {
-            throw GraphException("DB Path not set");
-        }
-        WT_SESSION *sess;
-        CommonUtil::open_session(conn, &sess);
-        wt_conn t{.connection = conn, .session = sess};
-
-        GraphBase *ptr = nullptr;
-        if (opts.type == GraphType::Std)
-        {
-            ptr = new StandardGraph(opts, t);
-            return ptr;
-        }
-        else if (opts.type == GraphType::Adj)
-        {
-            ptr = new AdjList(opts, t);
-            return ptr;
-        }
-        else if (opts.type == GraphType::EKey)
-        {
-            ptr = new EdgeKey(opts, t);
-            return ptr;
-        }
-
-        throw GraphException("Failed to create graph object");
-    }
-
-    /**
+        /**
      * @brief Closes connection to the DB, commits all changes
      */
     void CloseGraph() { CommonUtil::close_connection(conn); }

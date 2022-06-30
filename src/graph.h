@@ -17,6 +17,7 @@ class GraphBase
 {
    public:
     GraphBase(graph_opts opts);  // ✅
+    GraphBase(graph_opts opt_params, WT_CONNECTION *conn);
     static void insert_metadata(const std::string key,
                                 const char *value,
                                 WT_CURSOR *metadata_cursor);  // ✅ check if pvt
@@ -71,16 +72,17 @@ class GraphBase
 
    protected:
     graph_opts opts;
-    WT_CONNECTION *conn;
+    WT_CONNECTION *connection;
     WT_SESSION *session;
     LockSet *locks;
 
-    WT_CONNECTION *get_db_conn() { return this->conn; }
+    WT_CONNECTION *get_db_conn() { return this->connection; }
     WT_SESSION *get_db_session() { return this->session; }
     int _get_index_cursor(std::string table_name,
                           std::string idx_name,
                           std::string projection,
                           WT_CURSOR **cursor);
+    void __restore_from_db();
     void __restore_from_db(std::string db_name);
 
     void drop_indices();

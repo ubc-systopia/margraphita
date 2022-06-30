@@ -23,8 +23,8 @@ int main()
     opts.type = GraphType::Adj;
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = 8, .opts = opts};
 
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = 8, .opts = opts};
     GraphEngine myEngine(engine_opts);
 
 #pragma omp parallel for

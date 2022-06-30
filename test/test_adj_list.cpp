@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "common.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "sample_graph.h"
 
@@ -569,18 +570,24 @@ void test_EdgeCursor_Range(AdjList graph)
 
 int main()
 {
+    const int THREAD_NUM = 1;
     graph_opts opts;
     opts.create_new = true;
     opts.optimize_create = false;
     opts.is_directed = true;
     opts.read_optimize = true;
     opts.is_weighted = true;
+    opts.type = GraphType::Adj;
     opts.db_dir = "./db";
     opts.db_name = "test_adj";
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
-    AdjList graph = AdjList(opts);
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
+    GraphEngineTest myEngine(engine_opts);
+    WT_CONNECTION *conn = myEngine.public_get_connection();
+    AdjList graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
     test_get_nodes(graph);
     test_get_node(graph);

@@ -43,17 +43,11 @@ AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
     }
 }
 
-AdjList::AdjList(graph_opts &opt_params, wt_conn &connection)
-    : GraphBase(opt_params)
+AdjList::AdjList(graph_opts &opt_params, WT_CONNECTION *conn)
+    : GraphBase(opt_params, conn)
 
 {
-    if (!CommonUtil::check_dir_exists(opts.stat_log))
-    {
-        std::filesystem::create_directories(opts.stat_log);
-    }
-
-    conn = connection.connection;
-    session = connection.session;
+    init_metadata_cursor();
 }
 
 /**
@@ -176,13 +170,13 @@ void AdjList::create_new_graph()
     if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
                                     opts.stat_log,
                                     opts.conn_config,
-                                    &conn) < 0)
+                                    &connection) < 0)
     {
         exit(-1);
     };
 
     // Open a session handle for the database
-    if (CommonUtil::open_session(conn, &session) != 0)
+    if (CommonUtil::open_session(connection, &session) != 0)
     {
         exit(-1);
     }

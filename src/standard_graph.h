@@ -487,7 +487,7 @@ class StandardGraph : public GraphBase
     // create params
     StandardGraph(graph_opts &opt_params);
     StandardGraph(graph_opts &opt_params,
-                  wt_conn &connection);  // TODO: merge the 2 constructors
+                  WT_CONNECTION *conn);  // TODO: merge the 2 constructors
     static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
     void create_new_graph();
     void add_node(node to_insert);
@@ -556,7 +556,7 @@ class StandardGraph : public GraphBase
     // Internal methods
     void init_metadata_cursor();
     void drop_indices();
-    void create_indices();
+    static void create_indices(WT_SESSION *sess);
     void update_node_degree(WT_CURSOR *cursor,
                             node_id_t node_id,
                             degree_t indeg,
