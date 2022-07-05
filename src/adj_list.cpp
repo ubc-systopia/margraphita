@@ -365,7 +365,7 @@ void AdjList::add_node(node to_insert)
 
     if (opts.read_optimize)
     {
-        n_cur->set_value(n_cur, 0, 0);
+        n_cur->set_value(n_cur, to_insert.in_degree, to_insert.out_degree);
     }
     else
     {
@@ -383,7 +383,17 @@ void AdjList::add_node(node to_insert)
     add_adjlist(in_adj_cur, to_insert.id);
     add_adjlist(out_adj_cur, to_insert.id);
     init_metadata_cursor();
-    set_num_nodes(get_num_nodes() + 1, metadata_cursor);
+
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_num_lock());
+        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+        omp_unset_lock(locks->get_node_num_lock());
+    }
+    else
+    {
+        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+    }
 }
 
 void AdjList::add_node(node_id_t to_insert,
@@ -401,7 +411,7 @@ void AdjList::add_node(node_id_t to_insert,
 
     if (opts.read_optimize)
     {
-        n_cur->set_value(n_cur, inlist.size(), outlist.size());
+        n_cur->set_value(n_cur, 0, 0);
     }
     else
     {
@@ -418,6 +428,19 @@ void AdjList::add_node(node_id_t to_insert,
     // Now add the adjlist entires
     add_adjlist(in_adj_cur, to_insert, inlist);
     add_adjlist(out_adj_cur, to_insert, outlist);
+
+    init_metadata_cursor();
+
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_num_lock());
+        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+        omp_unset_lock(locks->get_node_num_lock());
+    }
+    else
+    {
+        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+    }
 }
 
 /**
@@ -448,6 +471,8 @@ void AdjList::add_adjlist(WT_CURSOR *cursor, node_id_t node_id)
     }
 }
 
+// TODO: Clarify use case of this method, may result in inconsistencies between
+// in/out adjlist tables and in/out degree within node table
 void AdjList::add_adjlist(WT_CURSOR *cursor,
                           node_id_t node_id,
                           std::vector<node_id_t> &list)
@@ -536,7 +561,18 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
                              to_string(to_insert.src_id) + "," +
                              to_string(to_insert.dst_id));
     }
-    set_num_edges(get_num_edges() + 1, metadata_cursor);
+
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_edge_num_lock());
+        set_num_edges(get_num_edges() + 1, metadata_cursor);
+        omp_unset_lock(locks->get_edge_num_lock());
+    }
+    else
+    {
+        set_num_edges(get_num_edges() + 1, metadata_cursor);
+    }
+
     // insert the reverse edge if undirected
     if (!opts.is_directed)
     {
@@ -549,7 +585,16 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         {
             cursor->set_value(cursor, 0);
         }
-        set_num_edges(get_num_edges() + 1, metadata_cursor);
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_edge_num_lock());
+            set_num_edges(get_num_edges() + 1, metadata_cursor);
+            omp_unset_lock(locks->get_edge_num_lock());
+        }
+        else
+        {
+            set_num_edges(get_num_edges() + 1, metadata_cursor);
+        }
         cursor->reset(cursor);
     }
     // cursor->close(cursor);
@@ -558,6 +603,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         return;  // we have already added adjlists while adding nodes.
     }
     //! This assumes that there are no duplicate edges.
+    // Concurrency control for add_to_adjlists handled within add_to_adjlists
     add_to_adjlists(out_adjlist_cursor, to_insert.src_id, to_insert.dst_id);
     add_to_adjlists(in_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
     if (!opts.is_directed)
@@ -583,6 +629,10 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         }
         // TODO: do a check
         node found = {.id = to_insert.src_id};
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_node_degree_lock());
+        }
         CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
         // found.id = to_insert.src_id;
         found.out_degree = found.out_degree + 1;
@@ -591,17 +641,29 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
             found.id,
             found.in_degree,
             found.out_degree);  //! pass the cursor to this function
+        if (locks != nullptr)
+        {
+            omp_unset_lock(locks->get_node_degree_lock());
+        }
 
         // update in/out degrees for the dst node in the NODE_TABLE
         cursor->reset(cursor);
         cursor->set_key(cursor, to_insert.dst_id);
         cursor->search(cursor);
         found = {.id = to_insert.dst_id, .in_degree = 0, .out_degree = 0};
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_node_degree_lock());
+        }
         CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
         found.id = to_insert.dst_id;
         found.in_degree = found.in_degree + 1;
         update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
         // cursor->close(cursor);
+        if (locks != nullptr)
+        {
+            omp_unset_lock(locks->get_node_degree_lock());
+        }
     }
 }
 
@@ -634,6 +696,7 @@ node AdjList::get_random_node()
 void AdjList::delete_node(node_id_t node_id)
 {
     // Delete Edges
+    // Concurrency handled within delete_related_edges_and_adjlists
     delete_related_edges_and_adjlists(node_id);
 
     WT_CURSOR *cursor;
@@ -648,6 +711,16 @@ void AdjList::delete_node(node_id_t node_id)
     {
         throw GraphException("failed to delete node with ID " +
                              std::to_string(node_id));
+    }
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_num_lock());
+        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
+        omp_unset_lock(locks->get_node_num_lock());
+    }
+    else
+    {
+        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
     }
     // cursor->close(cursor);
 
@@ -908,6 +981,8 @@ edgeweight_t AdjList::get_edge_weight(node_id_t src_id, node_id_t dst_id)
  * @throws GraphException if the node degree could not be updated
  *
  */
+// Concurrency handled by caller, do not set node degree locks here! will
+// deadlock
 void AdjList::update_node_degree(WT_CURSOR *cursor,
                                  node_id_t node_id,
                                  uint32_t in_degree,
@@ -1128,7 +1203,16 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
                              std::to_string(dst_id) + ")");
     }
 
-    set_num_edges(get_num_edges() - 1, metadata_cursor);
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_edge_num_lock());
+        set_num_edges(get_num_edges() - 1, metadata_cursor);
+        omp_unset_lock(locks->get_edge_num_lock());
+    }
+    else
+    {
+        set_num_edges(get_num_edges() - 1, metadata_cursor);
+    }
     // delete (dst_id, src_id) from edge table if undirected
     if (!opts.is_directed)
     {
@@ -1139,7 +1223,16 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
                                  std::to_string(dst_id) + ", " +
                                  std::to_string(src_id) + ")");
         }
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_edge_num_lock());
+            set_num_edges(get_num_edges() - 1, metadata_cursor);
+            omp_unset_lock(locks->get_edge_num_lock());
+        }
+        else
+        {
+            set_num_edges(get_num_edges() - 1, metadata_cursor);
+        }
     }
     out_adjlist_cursor->reset(out_adjlist_cursor);
     in_adjlist_cursor->reset(in_adjlist_cursor);
@@ -1175,6 +1268,10 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
                                  " in the node table");
         }
         node found = {0};
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_node_degree_lock());
+        }
         CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
         found.id = src_id;
         found.out_degree--;
@@ -1183,6 +1280,10 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
             found.in_degree--;
         }
         CommonUtil::__node_to_record(n_cursor, found, opts.read_optimize);
+        if (locks != nullptr)
+        {
+            omp_unset_lock(locks->get_node_degree_lock());
+        }
 
         n_cursor->set_key(n_cursor, dst_id);
         ret = n_cursor->search(n_cursor);
@@ -1190,6 +1291,10 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
         {
             throw GraphException("Could not find " + std::to_string(dst_id) +
                                  " in the node table");
+        }
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_node_degree_lock());
         }
         CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
         found.id = dst_id;
@@ -1199,6 +1304,10 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
             found.out_degree--;
         }
         CommonUtil::__node_to_record(n_cursor, found, opts.read_optimize);
+        if (locks != nullptr)
+        {
+            omp_unset_lock(locks->get_node_degree_lock());
+        }
     }
 }
 
@@ -1289,12 +1398,20 @@ void AdjList::add_to_adjlists(WT_CURSOR *cursor,
 
     adjlist found;
     found.node_id = node_id;
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_degree_lock());
+    }
     CommonUtil::__record_to_adjlist(
         session, cursor, &found);  //<-- This works just fine.
     found.edgelist.push_back(to_insert);
     found.degree += 1;
 
     CommonUtil::__adjlist_to_record(session, cursor, found);
+    if (locks != nullptr)
+    {
+        omp_unset_lock(locks->get_node_degree_lock());
+    }
 }
 
 void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
@@ -1316,6 +1433,10 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
 
     adjlist found;
     found.node_id = node_id;
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_degree_lock());
+    }
     CommonUtil::__record_to_adjlist(session, cursor, &found);
     for (size_t i = 0; i < found.edgelist.size(); i++)
     {
@@ -1329,8 +1450,13 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
                         // going negative.
 
     CommonUtil::__adjlist_to_record(session, cursor, found);
+    if (locks != nullptr)
+    {
+        omp_unset_lock(locks->get_node_degree_lock());
+    }
 }
 
+// CONCURRENCY CONTROL NOT IMPLEMENTED FOR THIS METHOD YET
 void AdjList::delete_node_from_adjlists(node_id_t node_id)
 {
     // We need to delete the node from both tables

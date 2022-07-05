@@ -23,12 +23,12 @@ class GraphEngine
     GraphEngine(graph_engine_opts engine_opts);
     ~GraphEngine();
     GraphBase* create_graph_handle();
+    void close_connection();
 
    private:
     void check_opts_valid();
     void create_new_graph();
     void open_connection();
-    void close_connection();
     WT_CONNECTION* conn = nullptr;
     LockSet* locks;
     int num_threads;

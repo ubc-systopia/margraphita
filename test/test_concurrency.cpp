@@ -31,12 +31,12 @@ int main()
     for (int i = 0; i < THREAD_NUM; i++)
     {
         GraphBase *graph = myEngine.create_graph_handle();
-        id_t id = rand() % 99 + 20;
-        graph->add_node({.id = id});
-        cout << "added " << id << '\n';
-        node n = graph->get_random_node();
-        CommonUtil::dump_node(n);
+        node new_node = {.id = 15, .in_degree = 1, .out_degree = i};
+        graph->add_node(new_node);
+        cout << "added " << i << '\n';
+        // node n = graph->get_random_node();
+        // CommonUtil::dump_node(n);
     }
-    myEngine.close_graph();
+    myEngine.close_connection();
     return 0;
 }
