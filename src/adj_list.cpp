@@ -43,17 +43,11 @@ AdjList::AdjList(graph_opts &opt_params) : GraphBase(opt_params)
     }
 }
 
-AdjList::AdjList(graph_opts &opt_params, wt_conn &connection)
-    : GraphBase(opt_params)
+AdjList::AdjList(graph_opts &opt_params, WT_CONNECTION *conn)
+    : GraphBase(opt_params, conn)
 
 {
-    if (!CommonUtil::check_dir_exists(opts.stat_log))
-    {
-        std::filesystem::create_directories(opts.stat_log);
-    }
-
-    conn = connection.connection;
-    session = connection.session;
+    init_metadata_cursor();
 }
 
 /**
@@ -82,7 +76,7 @@ bool AdjList::has_node(node_id_t node_id)
         return false;
     }
 }
-static void create_wt_tables(graph_opts &opts, WT_SESSION *sess)
+void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 {
     // Initialize edge ID for the edge table
     // AdjList has no edge id in the edge table but we are using the same
@@ -93,6 +87,11 @@ static void create_wt_tables(graph_opts &opts, WT_SESSION *sess)
     // The node entry is of the form: <id>,<in_degree>,<out_degree>
     // If the graph is opts.read_optimized, add columns and format for in/out
     // degrees
+    WT_SESSION *sess;
+    if (CommonUtil::open_session(conn, &sess) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
     vector<string> node_columns = {ID};
     string node_value_format;
     string node_key_format = "q";
@@ -158,6 +157,7 @@ static void create_wt_tables(graph_opts &opts, WT_SESSION *sess)
                           out_adjlist_columns,
                           adjlist_key_format,
                           adjlist_value_format);
+    sess->close(sess, NULL);
 }
 void AdjList::create_new_graph()
 {
@@ -170,13 +170,13 @@ void AdjList::create_new_graph()
     if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
                                     opts.stat_log,
                                     opts.conn_config,
-                                    &conn) < 0)
+                                    &connection) < 0)
     {
         exit(-1);
     };
 
     // Open a session handle for the database
-    if (CommonUtil::open_session(conn, &session) != 0)
+    if (CommonUtil::open_session(connection, &session) != 0)
     {
         exit(-1);
     }

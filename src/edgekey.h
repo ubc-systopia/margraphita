@@ -533,7 +533,8 @@ class EdgeKey : public GraphBase
    public:
     EdgeKey(graph_opts opt_params);
     EdgeKey(graph_opts &opt_params,
-            wt_conn &connection);  // TODO: merge the 2 constructors
+            WT_CONNECTION *conn);  // TODO: merge the 2 constructors
+    static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
     void create_new_graph();
     void add_node(node to_insert);
 
@@ -600,7 +601,7 @@ class EdgeKey : public GraphBase
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
 
-    void create_indices();
+    static void create_indices(WT_SESSION *session);
     void drop_indices();
     void close_all_cursors();
 };

@@ -27,7 +27,7 @@ EdgeKey::EdgeKey(graph_opts opt_params) : GraphBase(opt_params)
         create_new_graph();
         if (opt_params.optimize_create == false)
         {
-            create_indices();
+            create_indices(session);
         }
     }
     else
@@ -46,16 +46,14 @@ EdgeKey::EdgeKey(graph_opts opt_params) : GraphBase(opt_params)
     }
 }
 
-EdgeKey::EdgeKey(graph_opts &opt_params, wt_conn &connection)
-    : GraphBase(opt_params)
+EdgeKey::EdgeKey(graph_opts &opt_params, WT_CONNECTION *conn)
+    : GraphBase(opt_params, conn)
 {
-    if (!CommonUtil::check_dir_exists(opts.stat_log))
+    if (_get_table_cursor(METADATA, &metadata_cursor, session, false) != 0)
     {
-        std::filesystem::create_directories(opts.stat_log);
+        fprintf(stderr, "Failed to create cursor to the metadata table.");
+        exit(-1);
     }
-
-    conn = connection.connection;
-    session = connection.session;
 }
 
 /**
@@ -75,14 +73,14 @@ void EdgeKey::create_new_graph()
     ret = CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
                                       opts.stat_log,
                                       opts.conn_config,
-                                      &conn);
+                                      &connection);
     if (ret != 0)
     {
         throw GraphException("Could not open a connection to the DB" +
                              string(wiredtiger_strerror(ret)));
         exit(-1);
     }
-    if (CommonUtil::open_session(conn, &session) != 0)
+    if (CommonUtil::open_session(connection, &session) != 0)
     {
         exit(-1);
     }
@@ -156,6 +154,34 @@ void EdgeKey::create_new_graph()
     insert_metadata(edge_count,
                     const_cast<char *>(std::to_string(0).c_str()),
                     this->metadata_cursor);
+}
+
+/**
+ * @brief Create a new graph object
+ * The edge table has : <src> <dst> <values>
+ * if this is a node: <node_id> <-1> <in_degree, out_degree>
+ * if this is an edge : <src><dst><edge_weight>
+ */
+void EdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
+{
+    WT_SESSION *sess;
+    if (CommonUtil::open_session(conn, &sess) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
+    // Set up the edge table
+    // Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
+    // Edge Column Format: iiS
+    vector<string> edge_columns = {SRC, DST, ATTR};
+    string edge_key_format = "qq";   // SRC DST
+    string edge_value_format = "S";  // Packed binary
+    CommonUtil::set_table(
+        sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
+    if (opts.optimize_create == false)
+    {
+        create_indices(sess);
+    }
+    sess->close(sess, NULL);
 }
 
 /**
@@ -1064,19 +1090,7 @@ std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
     return in_nodes_id;
 }
 
-void EdgeKey::make_indexes() { create_indices(); }
-/**
- * @brief Creates the indices on the SRC and the DST column of the edge table.
- * These are not (and should not be) used for inserting data into the edge
- * table if write_optimize is on. Once the data has been inserted, the
- * create_indices function must be called separately.
- *
- * This function requires exclusive access to the table on which it operates.
- * If there are any open cursors, or if the table has any other operation
- * ongoing, WT throws a Resource Busy error.
- *
- */
-void EdgeKey::create_indices()
+void EdgeKey::make_indexes()
 {
     if (edge_cursor != nullptr)
     {
@@ -1090,12 +1104,27 @@ void EdgeKey::create_indices()
     {
         CommonUtil::close_cursor(dst_idx_cursor);
     }
+    create_indices(session);
+}
+/**
+ * @brief Creates the indices on the SRC and the DST column of the edge table.
+ * These are not (and should not be) used for inserting data into the edge
+ * table if write_optimize is on. Once the data has been inserted, the
+ * create_indices function must be called separately.
+ *
+ * This function requires exclusive access to the table on which it operates.
+ * If there are any open cursors, or if the table has any other operation
+ * ongoing, WT throws a Resource Busy error.
+ *
+ */
+void EdgeKey::create_indices(WT_SESSION *sess)
+{
     // Index on SRC column of edge table
     string edge_table_idx, edge_table_idx_conf;
     edge_table_idx = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
     edge_table_idx_conf = "columns=(" + SRC + ")";
-    if (session->create(
-            session, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
+    if (sess->create(
+            sess, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
     {
         throw GraphException("Failed to create SRC_INDEX on the edge table");
     }
@@ -1103,8 +1132,8 @@ void EdgeKey::create_indices()
     // Index on the DST column of the edge table
     edge_table_idx = "index:" + EDGE_TABLE + ":" + DST_INDEX;
     edge_table_idx_conf = "columns=(" + DST + ")";
-    if (session->create(
-            session, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
+    if (sess->create(
+            sess, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
     {
         throw GraphException(
             "Failed to create an index on the DST column of the edge table");
@@ -1114,8 +1143,8 @@ void EdgeKey::create_indices()
     // Used for adjacency neighbourhood iterators
     edge_table_idx = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
     edge_table_idx_conf = "columns=(" + DST + "," + SRC + ")";
-    if (session->create(
-            session, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
+    if (sess->create(
+            sess, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
     {
         throw GraphException(
             "Failed to create DST_SRC_INDEX on the edge table");

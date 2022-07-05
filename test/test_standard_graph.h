@@ -4,24 +4,17 @@
 #include <cassert>
 
 #include "common.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "sample_graph.h"
 #include "standard_graph.h"
 
-WT_CONNECTION *conn;
-WT_CURSOR *cursor;
-WT_SESSION *session;
-const char *home;
-
-class StandardGraphTester : public StandardGraph
+// Need new class to access protected method
+class GraphEngineTest : public GraphEngine
 {
    public:
-    StandardGraphTester(graph_opts opts) : StandardGraph(opts) {}
+    GraphEngineTest(graph_engine_opts engine_opts) : GraphEngine(engine_opts) {}
+    WT_CONNECTION* public_get_connection() { return get_connection(); }
 };
-
-void tearDown(StandardGraph graph);
-void create_init_nodes(StandardGraph graph);
-void dump_node(node to_print);
-void test_node_add(StandardGraph graph);
 
 #endif
