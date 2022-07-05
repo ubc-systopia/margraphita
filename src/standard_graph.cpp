@@ -32,7 +32,7 @@ StandardGraph::StandardGraph(graph_opts &opt_params) : GraphBase(opt_params)
              * nodes/edges have been added to graph.
              * This is done to improve performance of bulk-loading.
              */
-            create_indices();
+            create_indices(session);
         }
     }
     else
@@ -51,16 +51,10 @@ StandardGraph::StandardGraph(graph_opts &opt_params) : GraphBase(opt_params)
     }
 }
 
-StandardGraph::StandardGraph(graph_opts &opt_params, wt_conn &connection)
-    : GraphBase(opt_params)
+StandardGraph::StandardGraph(graph_opts &opt_params, WT_CONNECTION *conn)
+    : GraphBase(opt_params, conn)
 {
-    if (!CommonUtil::check_dir_exists(opts.stat_log))
-    {
-        std::filesystem::create_directories(opts.stat_log);
-    }
-
-    conn = connection.connection;
-    session = connection.session;
+    init_metadata_cursor();
 }
 
 void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
@@ -117,6 +111,18 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // Create edge table
     CommonUtil::set_table(
         sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
+
+    if (opts.optimize_create == false)
+    {
+        /**
+         *  Create indices with graph.
+         * NOTE: If user opts to optimize graph creation, then they're
+         * responsible for calling create_indices() AFTER all the
+         * nodes/edges have been added to graph.
+         * This is done to improve performance of bulk-loading.
+         */
+        create_indices(sess);
+    }
     sess->close(sess, NULL);
 }
 
@@ -131,13 +137,13 @@ void StandardGraph::create_new_graph()
     if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
                                     opts.stat_log,
                                     opts.conn_config,
-                                    &conn) < 0)
+                                    &connection) < 0)
     {
         exit(-1);
     };
 
     // Open a session handle for the database
-    if (CommonUtil::open_session(conn, &session) != 0)
+    if (CommonUtil::open_session(connection, &session) != 0)
     {
         exit(-1);
     }
@@ -236,18 +242,7 @@ void StandardGraph::create_new_graph()
                     this->metadata_cursor);
 }
 
-void StandardGraph::make_indexes() { create_indices(); }
-/**
- * @brief Creates the indices not required for adding nodes/edges.
- * Used for optimized bulk loading: User should call drop_indices() before
- * bulk loading nodes/edges. Once nodes/edges are added, user must
- * call create_indices() for the graph API to work.
- *
- * This method requires exclusive access to the specified data source(s). If
- * any cursors are open with the specified name(s) or a data source is
- * otherwise in use, the call will fail and return EBUSY.
- */
-void StandardGraph::create_indices()
+void StandardGraph::make_indexes()
 {
     if (this->edge_cursor != nullptr)
     {
@@ -265,16 +260,29 @@ void StandardGraph::create_indices()
     {
         CommonUtil::close_cursor(this->dst_index_cursor);
     }
-
+    create_indices(session);
+}
+/**
+ * @brief Creates the indices not required for adding nodes/edges.
+ * Used for optimized bulk loading: User should call drop_indices() before
+ * bulk loading nodes/edges. Once nodes/edges are added, user must
+ * call create_indices() for the graph API to work.
+ *
+ * This method requires exclusive access to the specified data source(s). If
+ * any cursors are open with the specified name(s) or a data source is
+ * otherwise in use, the call will fail and return EBUSY.
+ */
+void StandardGraph::create_indices(WT_SESSION *sess)
+{
     // Create table index on (src, dst)
     int ret = 0;
     string edge_table_index_str, edge_table_index_conf_str;
     edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_DST_INDEX;
     edge_table_index_conf_str = "columns=(" + SRC + "," + DST + ")";
     // THere is likely a util fucntion for this
-    if ((ret = session->create(session,
-                               edge_table_index_str.c_str(),
-                               edge_table_index_conf_str.c_str())) > 0)
+    if ((ret = sess->create(sess,
+                            edge_table_index_str.c_str(),
+                            edge_table_index_conf_str.c_str())) > 0)
     {
         fprintf(stderr,
                 "Failed to create index SRC_DST_INDEX in the edge table");
@@ -282,18 +290,18 @@ void StandardGraph::create_indices()
     // Create index on SRC column
     edge_table_index_str = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
     edge_table_index_conf_str = "columns=(" + SRC + ")";
-    if ((ret = session->create(session,
-                               edge_table_index_str.c_str(),
-                               edge_table_index_conf_str.c_str())) > 0)
+    if ((ret = sess->create(sess,
+                            edge_table_index_str.c_str(),
+                            edge_table_index_conf_str.c_str())) > 0)
     {
         fprintf(stderr, "Failed to create index SRC_INDEX in the edge table");
     }
     // Create index on DST column
     edge_table_index_str = "index:" + EDGE_TABLE + ":" + DST_INDEX;
     edge_table_index_conf_str = "columns=(" + DST + ")";
-    if ((ret = session->create(session,
-                               edge_table_index_str.c_str(),
-                               edge_table_index_conf_str.c_str())) > 0)
+    if ((ret = sess->create(sess,
+                            edge_table_index_str.c_str(),
+                            edge_table_index_conf_str.c_str())) > 0)
     {
         fprintf(stderr, "Failed to create index DST_INDEX in the edge table");
     }

@@ -505,6 +505,7 @@ void test_EdgeCursor_Range(StandardGraph graph)
 
 int main()
 {
+    const int THREAD_NUM = 1;
     graph_opts opts;
     opts.create_new = true;
     opts.optimize_create = false;
@@ -513,14 +514,19 @@ int main()
     // opts.read_optimize = false;
     opts.read_optimize = true;
     opts.is_weighted = true;
+    opts.type = GraphType::Std;
     opts.db_name = "test_std";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
     // Test std_graph setup
-    StandardGraphTester graph = StandardGraphTester(opts);
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
+    GraphEngineTest myEngine(engine_opts);
+    WT_CONNECTION *conn = myEngine.public_get_connection();
 
+    StandardGraph graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
     print_delim();
 

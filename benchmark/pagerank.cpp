@@ -13,7 +13,6 @@
 #include <sstream>
 #include <vector>
 
-#include "GraphCreate.h"
 #include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
@@ -21,6 +20,7 @@
 #include "csv_log.h"
 #include "edgekey.h"
 #include "graph.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
 #include "times.h"
@@ -133,10 +133,14 @@ int main(int argc, char *argv[])
     opts.conn_config = "cache_size=10GB";  // pr_cli.get_conn_config();
     opts.type = pr_cli.get_graph_type();
 
+    const int THREAD_NUM = 1;
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
+
     Times t;
     t.start();
-    GraphFactory f;
-    GraphBase *graph = f.CreateGraph(opts);
+    GraphEngine graphEngine(engine_opts);
+    GraphBase *graph = graphEngine.create_graph_handle();
     t.stop();
     cout << "Graph loaded in " << t.t_micros() << endl;
 
@@ -146,4 +150,5 @@ int main(int argc, char *argv[])
     t.stop();
     cout << "PR  completed in : " << t.t_micros() << endl;
     graph->close();
+    graphEngine.close_graph();
 }

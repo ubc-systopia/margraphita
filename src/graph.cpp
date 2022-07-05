@@ -27,6 +27,17 @@ GraphBase::GraphBase(graph_opts opt_params)
     }
 }
 
+GraphBase::GraphBase(graph_opts opt_params, WT_CONNECTION *conn)
+{
+    opts = opt_params;
+    connection = conn;
+    if (CommonUtil::open_session(conn, &session) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
+    __restore_from_db();
+}
+
 void GraphBase::create_metadata_table(graph_opts &opts, WT_CONNECTION *conn)
 {
     WT_SESSION *session;
@@ -176,10 +187,65 @@ int GraphBase::_get_table_cursor(std::string table,
     return 0;
 }
 
-void GraphBase::close()
+void GraphBase::close() { CommonUtil::close_session(session); }
+
+// Close, restore from DB, create/drop indices
+void GraphBase::__restore_from_db()
 {
-    CommonUtil::close_connection(
-        conn);  // To update to close sessions in new design
+    WT_CURSOR *cursor = nullptr;
+    int ret = _get_table_cursor(METADATA, &cursor, session, false);
+
+    const char *key, *value;
+    while ((ret = cursor->next(cursor)) == 0)
+    {
+        ret = cursor->get_key(cursor, &key);
+        ret = cursor->get_value(cursor, &value);
+
+        if (strcmp(key, DB_DIR.c_str()) == 0)
+        {
+            this->opts.db_dir = value;  // CommonUtil::unpack_string_wt(value,
+                                        // this->session);
+        }
+        else if (strcmp(key, DB_NAME.c_str()) == 0)
+        {
+            this->opts.db_name = value;  // CommonUtil::unpack_string_wt(value,
+                                         // this->session);
+        }
+        // restore nNodes & nEdges
+        else if (strcmp(key, READ_OPTIMIZE.c_str()) == 0)
+        {
+            if (strcmp(value, "true") == 0)
+            {
+                this->opts.read_optimize = true;
+            }
+            else
+            {
+                this->opts.read_optimize = false;
+            }
+        }
+        else if (strcmp(key, IS_DIRECTED.c_str()) == 0)
+        {
+            if (strcmp(value, "true") == 0)
+            {
+                this->opts.is_directed = true;
+            }
+            else
+            {
+                this->opts.is_directed = false;
+            }
+        }
+        else if (strcmp(key, IS_WEIGHTED.c_str()) == 0)
+        {
+            if (strcmp(value, "true") == 0)
+            {
+                this->opts.is_weighted = true;
+            }
+            else
+            {
+                this->opts.is_weighted = false;
+            }
+        }
+    }
 }
 
 // Close, restore from DB, create/drop indices
@@ -188,10 +254,10 @@ void GraphBase::__restore_from_db(std::string db_name)
     int ret = CommonUtil::open_connection(const_cast<char *>(db_name.c_str()),
                                           opts.stat_log,
                                           opts.conn_config,
-                                          &conn);
+                                          &connection);
     WT_CURSOR *cursor = nullptr;
 
-    ret = CommonUtil::open_session(conn, &session);
+    ret = CommonUtil::open_session(connection, &session);
     const char *key, *value;
     ret = _get_table_cursor(METADATA, &cursor, session, false);
 
