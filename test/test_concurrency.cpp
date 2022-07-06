@@ -1,3 +1,4 @@
+#include <bitset>
 #include <cassert>
 #include <thread>
 #include <vector>
@@ -11,7 +12,20 @@
 #define TEST_NUM 100
 using namespace std;
 
-void runTest()
+int bitToInt(bool* array)
+{
+    int sum = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        int toAdd = (int)array[i];
+        int toShift = 7 - i;
+        toAdd = toAdd << toShift;
+        sum += toAdd;
+    }
+    return sum;
+}
+
+int runTest()
 {
     graph_opts opts;
     opts.create_new = true;
@@ -56,20 +70,27 @@ void runTest()
         }
     }
     myEngine.close_graph();
-    for (int i = 0; i < 8; i++)
-    {
-        cout << results[i];
-        if (i == 7)
-        {
-            cout << "\n";
-        }
-    }
+    return bitToInt(results);
 }
 
 int main()
 {
+    int toCSV[256];
+
+    for (int j = 0; j < 256; j++)
+    {
+        toCSV[j] = 0;
+    }
+
     for (int i = 0; i < TEST_NUM; i++)
     {
-        runTest();
+        int retVal = runTest();
+        toCSV[retVal] += 1;
+    }
+
+    for (int j = 0; j < 256; j++)
+    {
+        std::bitset<8> binString(j);
+        cout << binString << ": " << toCSV[j] << "\n";
     }
 }
