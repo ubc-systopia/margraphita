@@ -8,9 +8,18 @@
 #include "sample_graph.h"
 
 #define THREAD_NUM 2
+#define TEST_NUM 100
 using namespace std;
 
 int main()
+{
+    for (int i = 0; i < TEST_NUM; i++)
+    {
+        runTest();
+    }
+}
+
+void runTest()
 {
     graph_opts opts;
     opts.create_new = true;
@@ -32,13 +41,19 @@ int main()
         GraphBase* graph = myEngine.createGraphHandle();
         if (i = 1)
         {
+            // node 1 exists?
+            // node 2 exists?
             // insert node 1
+            // node 1 exists?
             // node 2 exists?
         }
         else if (i = 2)
         {
+            // node 1 exists?
+            // node 2 exists?
             // insert node 2
             // node 1 exists?
+            // node 2 exists?
         }
         else
         {
