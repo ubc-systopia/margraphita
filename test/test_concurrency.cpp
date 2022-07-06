@@ -32,7 +32,7 @@ void runTest()
     for (int i = 0; i < THREAD_NUM; i++)
     {
         GraphBase* graph = myEngine.create_graph_handle();
-        if (i == 1)
+        if (i == 0)
         {
             node node1 = {.id = 1};
             results[0] = graph->has_node(1);
@@ -41,7 +41,7 @@ void runTest()
             results[2] = graph->has_node(1);
             results[3] = graph->has_node(2);
         }
-        else if (i == 2)
+        else if (i == 1)
         {
             node node2 = {.id = 2};
             results[4] = graph->has_node(1);
@@ -61,7 +61,7 @@ void runTest()
         cout << results[i];
         if (i == 7)
         {
-            cout << "/d";
+            cout << "\n";
         }
     }
 }
