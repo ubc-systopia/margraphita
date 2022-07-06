@@ -122,4 +122,6 @@ void GraphEngine::close_connection()
     conn = NULL;
 }
 
-WT_CONNECTION *GraphEngine::get_connection() { return conn; };
+WT_CONNECTION *GraphEngine::get_connection() { return conn; }
+
+void GraphEngine::close_graph() { close_connection(); }
