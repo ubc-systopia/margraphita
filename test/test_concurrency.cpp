@@ -9,7 +9,7 @@
 #include "sample_graph.h"
 
 #define THREAD_NUM 2
-#define TEST_NUM 100
+#define TEST_NUM 1000
 using namespace std;
 
 int bitToInt(bool* array)
@@ -90,7 +90,10 @@ int main()
 
     for (int j = 0; j < 256; j++)
     {
-        std::bitset<8> binString(j);
-        cout << binString << ": " << toCSV[j] << "\n";
+        if (toCSV[j] != 0)
+        {
+            std::bitset<8> binString(j);
+            cout << binString << ": " << toCSV[j] << "\n";
+        }
     }
 }
