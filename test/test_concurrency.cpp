@@ -11,14 +11,6 @@
 #define TEST_NUM 100
 using namespace std;
 
-int main()
-{
-    for (int i = 0; i < TEST_NUM; i++)
-    {
-        runTest();
-    }
-}
-
 void runTest()
 {
     graph_opts opts;
@@ -35,25 +27,28 @@ void runTest()
 
     GraphEngine::graph_engine_opts engine_opts{.num_threads = 8, .opts = opts};
     GraphEngine myEngine(engine_opts);
+    bool results[8];
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)
     {
-        GraphBase* graph = myEngine.createGraphHandle();
-        if (i = 1)
+        GraphBase* graph = myEngine.create_graph_handle();
+        if (i == 1)
         {
-            // node 1 exists?
-            // node 2 exists?
-            // insert node 1
-            // node 1 exists?
-            // node 2 exists?
+            node node1 = {.id = 1};
+            results[0] = graph->has_node(1);
+            results[1] = graph->has_node(2);
+            graph->add_node(node1);
+            results[2] = graph->has_node(1);
+            results[3] = graph->has_node(2);
         }
-        else if (i = 2)
+        else if (i == 2)
         {
-            // node 1 exists?
-            // node 2 exists?
-            // insert node 2
-            // node 1 exists?
-            // node 2 exists?
+            node node2 = {.id = 2};
+            results[4] = graph->has_node(1);
+            results[5] = graph->has_node(2);
+            graph->add_node(node2);
+            results[6] = graph->has_node(1);
+            results[7] = graph->has_node(2);
         }
         else
         {
@@ -61,4 +56,20 @@ void runTest()
         }
     }
     myEngine.close_graph();
+    for (int i = 0; i < 8; i++)
+    {
+        cout << results[i];
+        if (i == 7)
+        {
+            cout << "/d";
+        }
+    }
+}
+
+int main()
+{
+    for (int i = 0; i < TEST_NUM; i++)
+    {
+        runTest();
+    }
 }
