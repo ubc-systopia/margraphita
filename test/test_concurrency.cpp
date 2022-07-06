@@ -9,7 +9,7 @@
 #include "sample_graph.h"
 
 #define THREAD_NUM 2
-#define TEST_NUM 1000
+#define TEST_NUM 10000
 using namespace std;
 
 int bitToInt(bool* array)
@@ -48,21 +48,27 @@ int runTest()
         GraphBase* graph = myEngine.create_graph_handle();
         if (i == 0)
         {
+            WT_SESSION* session1 = graph->get_session_for_testing();
+            session1->begin_transaction(session1, NULL);
             node node1 = {.id = 1};
             results[0] = graph->has_node(1);
             results[1] = graph->has_node(2);
             graph->add_node(node1);
             results[2] = graph->has_node(1);
             results[3] = graph->has_node(2);
+            session1->commit_transaction(session1, NULL);
         }
         else if (i == 1)
         {
+            WT_SESSION* session2 = graph->get_session_for_testing();
+            session2->begin_transaction(session2, NULL);
             node node2 = {.id = 2};
             results[4] = graph->has_node(1);
             results[5] = graph->has_node(2);
             graph->add_node(node2);
             results[6] = graph->has_node(1);
             results[7] = graph->has_node(2);
+            session2->commit_transaction(session2, NULL);
         }
         else
         {
@@ -84,6 +90,10 @@ int main()
 
     for (int i = 0; i < TEST_NUM; i++)
     {
+        if (i % 100 == 0)
+        {
+            cout << i << "/" << TEST_NUM << "\n";
+        }
         int retVal = runTest();
         toCSV[retVal] += 1;
     }
