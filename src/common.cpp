@@ -758,7 +758,14 @@ int CommonUtil::open_connection(char *db_name,
 
 int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
 {
-    if (conn->open_session(conn, NULL, NULL, session) != 0)
+    // if (conn->open_session(conn, NULL, NULL, session) != 0)
+    // {
+    //     fprintf(stderr, "Failed to open session\n");
+    //     return (-1);
+    // }
+    // return 0;
+    if (conn->open_session(conn, NULL, "isolation=read-uncommitted", session) !=
+        0)
     {
         fprintf(stderr, "Failed to open session\n");
         return (-1);

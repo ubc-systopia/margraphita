@@ -9,7 +9,7 @@
 #include "sample_graph.h"
 
 #define THREAD_NUM 2
-#define TEST_NUM 10000
+#define TEST_NUM 50000
 using namespace std;
 
 int bitToInt(bool* array)
