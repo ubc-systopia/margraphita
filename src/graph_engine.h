@@ -23,7 +23,7 @@ class GraphEngine
     GraphEngine(graph_engine_opts engine_opts);
     ~GraphEngine();
     GraphBase* create_graph_handle();
-    void close_graph();  // TODO
+    void close_graph();
 
    protected:
     WT_CONNECTION* conn = nullptr;

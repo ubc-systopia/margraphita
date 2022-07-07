@@ -401,3 +401,5 @@ uint64_t GraphBase::get_num_edges()
 }
 
 void GraphBase::set_locks(LockSet *locks_ptr) { locks = locks_ptr; }
+
+WT_SESSION *GraphBase::get_session_for_testing() { return session; }

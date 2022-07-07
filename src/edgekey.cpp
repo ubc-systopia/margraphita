@@ -297,7 +297,16 @@ void EdgeKey::add_node(node to_insert)
                              std::to_string(to_insert.id) +
                              " into the edge table");
     }
-    set_num_nodes(get_num_nodes() + 1, metadata_cursor);
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_num_lock());
+        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+        omp_unset_lock(locks->get_node_num_lock());
+    }
+    else
+    {
+        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+    }
 }
 
 /**
@@ -360,7 +369,16 @@ void EdgeKey::delete_node(node_id_t node_id)
     }
     delete_related_edges(src_cur, e_cur, node_id);
     delete_related_edges(dst_cur, e_cur, node_id);
-    set_num_nodes(get_num_nodes() - 1, metadata_cursor);
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_num_lock());
+        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
+        omp_unset_lock(locks->get_node_num_lock());
+    }
+    else
+    {
+        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
+    }
 }
 
 void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
@@ -386,6 +404,10 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
         if (opts.read_optimize)
         {
             node temp;
+            if (locks != nullptr)
+            {
+                omp_set_lock(locks->get_node_degree_lock());
+            }
             if (src != node_id)
             {
                 temp = get_node(src);
@@ -397,6 +419,10 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
                 temp = get_node(dst);
                 temp.in_degree--;
                 update_node_degree(temp.id, temp.in_degree, temp.out_degree);
+            }
+            if (locks != nullptr)
+            {
+                omp_unset_lock(locks->get_node_degree_lock());
             }
         }
         while (idx_cur->next(idx_cur) == 0 &&
@@ -414,6 +440,10 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
             if (opts.read_optimize)
             {
                 node temp;
+                if (locks != nullptr)
+                {
+                    omp_set_lock(locks->get_node_degree_lock());
+                }
                 if (src != node_id)
                 {
                     temp = get_node(src);
@@ -427,6 +457,10 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
                     temp.in_degree--;
                     update_node_degree(
                         temp.id, temp.in_degree, temp.out_degree);
+                }
+                if (locks != nullptr)
+                {
+                    omp_unset_lock(locks->get_node_degree_lock());
                 }
             }
         }
@@ -499,7 +533,16 @@ void EdgeKey::add_edge(edge to_insert, bool is_bulk)
                              std::to_string(to_insert.src_id) + " and " +
                              std::to_string(to_insert.dst_id));
     }
-    set_num_edges(get_num_edges() + 1, metadata_cursor);
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_edge_num_lock());
+        set_num_edges(get_num_edges() + 1, metadata_cursor);
+        omp_unset_lock(locks->get_edge_num_lock());
+    }
+    else
+    {
+        set_num_edges(get_num_edges() + 1, metadata_cursor);
+    }
     // insert reverse edge if undirected
     if (!opts.is_directed)
     {
@@ -519,13 +562,27 @@ void EdgeKey::add_edge(edge to_insert, bool is_bulk)
                                  std::to_string(to_insert.src_id) + " and " +
                                  std::to_string(to_insert.dst_id));
         }
-        set_num_edges(get_num_edges() + 1, metadata_cursor);
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_edge_num_lock());
+            set_num_edges(get_num_edges() + 1, metadata_cursor);
+            omp_unset_lock(locks->get_edge_num_lock());
+        }
+        else
+        {
+            set_num_edges(get_num_edges() + 1, metadata_cursor);
+        }
     }
     if (!is_bulk)
     {
         // Update the in/out degrees if opts.read_optimize
         if (opts.read_optimize)
         {
+            if (locks != nullptr)
+            {
+                omp_set_lock(locks->get_node_degree_lock());
+            }
+
             node src = get_node(to_insert.src_id);
             src.out_degree++;
             if (!opts.is_directed)
@@ -541,6 +598,11 @@ void EdgeKey::add_edge(edge to_insert, bool is_bulk)
                 dst.out_degree++;
             }
             update_node_degree(dst.id, dst.in_degree, dst.out_degree);
+
+            if (locks != nullptr)
+            {
+                omp_unset_lock(locks->get_node_degree_lock());
+            }
         }
     }
 }
@@ -562,7 +624,16 @@ void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
                              std::to_string(src_id) + " and " +
                              std::to_string(dst_id));
     }
-    set_num_edges(get_num_edges() - 1, metadata_cursor);
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_edge_num_lock());
+        set_num_edges(get_num_edges() - 1, metadata_cursor);
+        omp_unset_lock(locks->get_edge_num_lock());
+    }
+    else
+    {
+        set_num_edges(get_num_edges() - 1, metadata_cursor);
+    }
     // delete reverse edge
     if (!opts.is_directed)
     {
@@ -573,12 +644,26 @@ void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
                                  std::to_string(src_id) + " and " +
                                  to_string(dst_id));
         }
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_edge_num_lock());
+            set_num_edges(get_num_edges() - 1, metadata_cursor);
+            omp_unset_lock(locks->get_edge_num_lock());
+        }
+        else
+        {
+            set_num_edges(get_num_edges() - 1, metadata_cursor);
+        }
     }
 
     // update node degrees
     if (opts.read_optimize)
     {
+        if (locks != nullptr)
+        {
+            omp_set_lock(locks->get_node_degree_lock());
+        }
+
         node src = get_node(src_id);
 
         if (src.out_degree > 0)
@@ -602,6 +687,11 @@ void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
             dst.out_degree--;
         }
         update_node_degree(dst_id, dst.in_degree, dst.out_degree);
+
+        if (locks != nullptr)
+        {
+            omp_unset_lock(locks->get_node_degree_lock());
+        }
     }
 }
 
