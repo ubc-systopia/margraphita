@@ -764,6 +764,12 @@ int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
         return (-1);
     }
     return 0;
+    // if (conn->open_session(conn, NULL, "isolation=snapshot", session) != 0)
+    // {
+    //     fprintf(stderr, "Failed to open session\n");
+    //     return (-1);
+    // }
+    // return 0;
 }
 
 int CommonUtil::open_cursor(WT_SESSION *session,

@@ -9,7 +9,7 @@
 #include "sample_graph.h"
 
 #define THREAD_NUM 2
-#define TEST_NUM 50000
+#define TEST_NUM 1000
 using namespace std;
 
 int bitToInt(bool* array)
@@ -50,7 +50,7 @@ int runTest()
         {
             WT_SESSION* session1 = graph->get_session_for_testing();
             session1->begin_transaction(session1, NULL);
-            node node1 = {.id = 1};
+            node node1 = {1, 0, 0};
             results[0] = graph->has_node(1);
             results[1] = graph->has_node(2);
             graph->add_node(node1);
@@ -62,7 +62,7 @@ int runTest()
         {
             WT_SESSION* session2 = graph->get_session_for_testing();
             session2->begin_transaction(session2, NULL);
-            node node2 = {.id = 2};
+            node node2 = {1, 1, 1};
             results[4] = graph->has_node(1);
             results[5] = graph->has_node(2);
             graph->add_node(node2);
@@ -75,6 +75,10 @@ int runTest()
             // pass
         }
     }
+    GraphBase* graph = myEngine.create_graph_handle();
+    node newNode = {};
+    newNode = graph->get_node(1);
+    cout << newNode.in_degree << newNode.out_degree << "\n";
     myEngine.close_graph();
     return bitToInt(results);
 }
