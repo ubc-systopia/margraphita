@@ -359,7 +359,9 @@ void AdjList::add_node(node to_insert)
 
     if (opts.read_optimize)
     {
-        n_cur->set_value(n_cur, to_insert.in_degree, to_insert.out_degree);
+        // for testing
+        // n_cur->set_value(n_cur, to_insert.in_degree, to_insert.out_degree);
+        n_cur->set_value(n_cur, 0, 0);
     }
     else
     {
@@ -371,7 +373,8 @@ void AdjList::add_node(node to_insert)
     if (ret != 0)
     {
         throw GraphException("Failed to add node_id" +
-                             std::to_string(to_insert.id));
+                             std::to_string(to_insert.id) + "\n" +
+                             wiredtiger_strerror(ret));
     }
     // Now add the adjlist entires
     add_adjlist(in_adj_cur, to_insert.id);
@@ -405,7 +408,7 @@ void AdjList::add_node(node_id_t to_insert,
 
     if (opts.read_optimize)
     {
-        n_cur->set_value(n_cur, 0, 0);
+        n_cur->set_value(n_cur, inlist.size(), outlist.size());
     }
     else
     {
