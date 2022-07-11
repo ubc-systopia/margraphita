@@ -126,12 +126,15 @@ void CommonUtil::set_table(WT_SESSION *session,
         {
             concat += "," + *ptr;
         }
+
         // Now insert in WT
         std::string table_name = "table:" + prefix;
         std::string wt_format_string = "key_format=" + key_fmt +
                                        ",value_format=" + val_fmt +
                                        ",columns=(" + concat + ")";
-        session->create(session, table_name.c_str(), wt_format_string.c_str());
+        char *n = const_cast<char *>(table_name.c_str());
+        char *f = const_cast<char *>(wt_format_string.c_str());
+        session->create(session, n, f);
     }
     else
     {
