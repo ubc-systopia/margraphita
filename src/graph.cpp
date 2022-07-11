@@ -119,9 +119,9 @@ void GraphBase::insert_metadata(const std::string key,
     int ret = 0;
     metadata_cursor->set_key(metadata_cursor, key.c_str());
     metadata_cursor->set_value(metadata_cursor, value);
-    if ((ret = metadata_cursor->insert(metadata_cursor)) != 0)
+    if ((ret = metadata_cursor->update(metadata_cursor)) != 0)
     {
-        fprintf(stderr, "failed to insert metadata for key %s", key.c_str());
+        cerr << "Failed " + key + "\n" + wiredtiger_strerror(ret);
         // TODO(puneet): Maybe create a GraphException?
     }
 }
