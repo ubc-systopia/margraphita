@@ -565,6 +565,9 @@ class StandardGraph : public GraphBase
 
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
+
+    void add_to_nnodes(int amnt);
+    void add_to_nedges(int amnt);
 };
 
 #endif

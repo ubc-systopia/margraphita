@@ -496,6 +496,9 @@ class AdjList : public GraphBase
 
     void dump_tables();
     void create_indices() { return; }  // here because defined in interface
+
+    void add_to_nnodes(int amnt);
+    void add_to_nedges(int amnt);
 };
 
 /**
