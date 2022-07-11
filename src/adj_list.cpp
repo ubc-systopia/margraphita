@@ -1811,3 +1811,31 @@ void AdjList::dump_tables()
         CommonUtil::dump_adjlist(found);
     }
 }
+
+void AdjList::add_to_nnodes(int amnt)
+{
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_node_num_lock());
+        set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
+        omp_unset_lock(locks->get_node_num_lock());
+    }
+    else
+    {
+        set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
+    }
+}
+
+void AdjList::add_to_nedges(int amnt)
+{
+    if (locks != nullptr)
+    {
+        omp_set_lock(locks->get_edge_num_lock());
+        set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
+        omp_unset_lock(locks->get_edge_num_lock());
+    }
+    else
+    {
+        set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
+    }
+}
