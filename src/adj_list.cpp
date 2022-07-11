@@ -349,6 +349,12 @@ void AdjList::init_cursors()
 void AdjList::add_node(node to_insert)
 {
     int ret = 0;
+    session->begin_transaction(session, "isolation=snapshot");
+    if (has_node(to_insert.id))
+    {
+        session->rollback_transaction(session, NULL);
+        return;
+    }
     WT_CURSOR *in_adj_cur, *out_adj_cur, *n_cur = nullptr;
 
     in_adj_cur = get_in_adjlist_cursor();
@@ -368,7 +374,36 @@ void AdjList::add_node(node to_insert)
         n_cur->set_value(n_cur, "");
     }
 
-    ret = n_cur->insert(n_cur);
+    switch (n_cur->insert(n_cur))
+    {
+        case 0: /* Update success */
+            add_adjlist(in_adj_cur, to_insert.id);
+            add_adjlist(out_adj_cur, to_insert.id);
+            init_metadata_cursor();
+            session->commit_transaction(session, NULL);
+            if (locks != nullptr)
+            {
+                omp_set_lock(locks->get_node_num_lock());
+                set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+                omp_unset_lock(locks->get_node_num_lock());
+            }
+            else
+            {
+                set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
+            }
+
+            /*
+             * If commit_transaction succeeds, cursors remain positioned; if
+             * commit_transaction fails, the transaction was rolled-back and all
+             * cursors are reset.
+             */
+            break;
+        case WT_ROLLBACK: /* Update conflict */
+        default:          /* Other error */
+            session->rollback_transaction(session, NULL);
+            /* The rollback_transaction call resets all cursors. */
+            break;
+    }
 
     if (ret != 0)
     {
@@ -377,20 +412,6 @@ void AdjList::add_node(node to_insert)
                              wiredtiger_strerror(ret));
     }
     // Now add the adjlist entires
-    add_adjlist(in_adj_cur, to_insert.id);
-    add_adjlist(out_adj_cur, to_insert.id);
-    init_metadata_cursor();
-
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_num_lock());
-        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-        omp_unset_lock(locks->get_node_num_lock());
-    }
-    else
-    {
-        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-    }
 }
 
 void AdjList::add_node(node_id_t to_insert,
@@ -601,8 +622,10 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     }
     //! This assumes that there are no duplicate edges.
     // Concurrency control for add_to_adjlists handled within add_to_adjlists
-    add_to_adjlists(out_adjlist_cursor, to_insert.src_id, to_insert.dst_id);
-    add_to_adjlists(in_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
+    add_to_adjlists(
+        get_out_adjlist_cursor(), to_insert.src_id, to_insert.dst_id);
+    add_to_adjlists(
+        get_in_adjlist_cursor(), to_insert.dst_id, to_insert.src_id);
     if (!opts.is_directed)
     {
         add_to_adjlists(out_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
@@ -615,7 +638,6 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     {
         // update in/out degrees for src node in NODE_TABLE
         cursor = get_node_cursor();
-
         cursor->set_key(cursor, to_insert.src_id);
         ret = cursor->search(cursor);
         if (ret != 0)
@@ -645,6 +667,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 
         // update in/out degrees for the dst node in the NODE_TABLE
         cursor->reset(cursor);
+
         cursor->set_key(cursor, to_insert.dst_id);
         cursor->search(cursor);
         found = {.id = to_insert.dst_id, .in_degree = 0, .out_degree = 0};
@@ -662,6 +685,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
             omp_unset_lock(locks->get_node_degree_lock());
         }
     }
+    // session->commit_transaction(session, NULL);
 }
 
 node AdjList::get_random_node()
