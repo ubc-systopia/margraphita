@@ -446,9 +446,6 @@ class AdjList : public GraphBase
 
     void make_indexes() { return; };
 
-    void add_to_nnodes(int amnt);
-    void add_to_nedges(int amnt);
-
    private:
     // structure of the graph
     int node_attr_size = 0;  // set on checking the list len
@@ -499,6 +496,9 @@ class AdjList : public GraphBase
 
     void dump_tables();
     void create_indices() { return; }  // here because defined in interface
+
+    void add_to_nnodes(int amnt);
+    void add_to_nedges(int amnt);
 };
 
 /**

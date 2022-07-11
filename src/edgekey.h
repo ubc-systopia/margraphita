@@ -604,5 +604,8 @@ class EdgeKey : public GraphBase
     static void create_indices(WT_SESSION *session);
     void drop_indices();
     void close_all_cursors();
+
+    void add_to_nnodes(int amnt);
+    void add_to_nedges(int amnt);
 };
 #endif

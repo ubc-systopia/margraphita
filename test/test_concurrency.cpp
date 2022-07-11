@@ -46,22 +46,14 @@ void runTest()
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)
     {
-        GraphBase* graph = myEngine.create_graph_handle();
+        AdjList* graph = (AdjList*)myEngine.create_graph_handle();
         if (i == 0)
         {
             WT_SESSION* session1 = graph->get_session_for_testing();
-            session1->begin_transaction(session1, NULL);
-            graph->add_to_nnodes(2);
-            cout << "adding thread 0 \n";
-            session1->commit_transaction(session1, NULL);
         }
         else if (i == 1)
         {
             WT_SESSION* session2 = graph->get_session_for_testing();
-            session2->begin_transaction(session2, NULL);
-            graph->add_to_nnodes(2);
-            cout << "adding thread 1 \n";
-            session2->commit_transaction(session2, NULL);
         }
         else
         {
