@@ -442,9 +442,9 @@ class CommonUtil
      * to by the cursor.
      * @throws GraphException If insertion into the table fails
      */
-    inline static void __adjlist_to_record(WT_SESSION *session,
-                                           WT_CURSOR *cursor,
-                                           adjlist to_insert)
+    inline static int __adjlist_to_record(WT_SESSION *session,
+                                          WT_CURSOR *cursor,
+                                          adjlist to_insert)
     {
         cursor->reset(cursor);
         cursor->set_key(cursor, to_insert.node_id);
@@ -457,12 +457,7 @@ class CommonUtil
 
         cursor->set_value(cursor, to_insert.degree, &item);
         int ret = cursor->insert(cursor);
-        if (ret != 0)
-        {
-            throw GraphException("Could not insert adjlist for " +
-                                 std::to_string(to_insert.node_id) +
-                                 " into the adjlist table");
-        }
+        return ret;
     }
 
     /**
