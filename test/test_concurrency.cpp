@@ -1,4 +1,3 @@
-#include <bitset>
 #include <cassert>
 #include <thread>
 #include <vector>
@@ -8,24 +7,10 @@
 #include "graph_exception.h"
 #include "sample_graph.h"
 
-#define THREAD_NUM 2
-#define TEST_NUM 1000
+#define THREAD_NUM 8
 using namespace std;
 
-int bitToInt(bool* array)
-{
-    int sum = 0;
-    for (int i = 0; i < 8; i++)
-    {
-        int toAdd = (int)array[i];
-        int toShift = 7 - i;
-        toAdd = toAdd << toShift;
-        sum += toAdd;
-    }
-    return sum;
-}
-
-void runTest()
+int main()
 {
     graph_opts opts;
     opts.create_new = true;
@@ -39,39 +24,26 @@ void runTest()
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = 8, .opts = opts};
     GraphEngine myEngine(engine_opts);
-    bool results[8];
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)
     {
-        AdjList* graph = (AdjList*)myEngine.create_graph_handle();
-        if (i == 0)
+        GraphBase* graph = myEngine.create_graph_handle();
+        if (i % 2 == 0)
         {
-            WT_SESSION* session1 = graph->get_session_for_testing();
-        }
-        else if (i == 1)
-        {
-            WT_SESSION* session2 = graph->get_session_for_testing();
+            graph->add_node(node{.id = i + 100});
         }
         else
         {
-            // pass
+            graph->add_edge(edge{.src_id = 1, .dst_id = i - 1 + 100}, false);
         }
+        graph->close();
     }
-    GraphBase* graph = myEngine.create_graph_handle();
-    myEngine.close_graph();
-}
 
-int main()
-{
-    for (int i = 0; i < TEST_NUM; i++)
-    {
-        if (i % 100 == 0)
-        {
-            cout << i << "/" << TEST_NUM << "\n";
-        }
-        runTest();
-    }
+    GraphBase* report = myEngine.create_graph_handle();
+    cout << "No. of nodes: " << report->get_num_nodes() << '\n';
+    cout << "No. of edges: " << report->get_num_edges() << '\n';
+    cout << "No. of outdeg from 1: " << report->get_out_degree(1) << '\n';
+    myEngine.close_graph();
 }
