@@ -19,12 +19,13 @@ int main()
     opts.read_optimize = true;
     opts.is_weighted = true;
     opts.db_dir = "./db";
-    opts.db_name = "test_adj";
-    opts.type = GraphType::Adj;
+    opts.db_name = "test_ekey";
+    opts.type = GraphType::EKey;
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = 8, .opts = opts};
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
     GraphEngine myEngine(engine_opts);
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)

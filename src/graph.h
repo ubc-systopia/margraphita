@@ -56,7 +56,6 @@ class GraphBase
     virtual EdgeCursor *get_edge_iter() = 0;
 
     void set_locks(LockSet *locks_ptr);
-    WT_SESSION *get_session_for_testing();
 
     void close();
     uint64_t get_num_nodes();

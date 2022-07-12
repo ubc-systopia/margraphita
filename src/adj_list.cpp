@@ -355,6 +355,7 @@ void AdjList::add_node(node to_insert)
         session->rollback_transaction(session, NULL);
         return;
     }
+
     WT_CURSOR *in_adj_cur, *out_adj_cur, *n_cur = nullptr;
 
     in_adj_cur = get_in_adjlist_cursor();
@@ -381,16 +382,8 @@ void AdjList::add_node(node to_insert)
             add_adjlist(out_adj_cur, to_insert.id);
             init_metadata_cursor();
             session->commit_transaction(session, NULL);
-            if (locks != nullptr)
-            {
-                omp_set_lock(locks->get_node_num_lock());
-                set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-                omp_unset_lock(locks->get_node_num_lock());
-            }
-            else
-            {
-                set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-            }
+
+            add_to_nnodes(1);
 
             /*
              * If commit_transaction succeeds, cursors remain positioned; if
