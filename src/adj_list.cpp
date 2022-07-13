@@ -543,19 +543,13 @@ void AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 {
     int ret = 0;
-    // Add dst and src nodes if they don't exist.
-    if (!has_node(to_insert.src_id))
-    {
-        node src = {0};
-        src.id = to_insert.src_id;
-        add_node(src);
-    }
-    if (!has_node(to_insert.dst_id))
-    {
-        node dst = {0};
-        dst.id = to_insert.dst_id;
-        add_node(dst);
-    }
+
+    node src = {0};
+    src.id = to_insert.src_id;
+    add_node(src);
+    node dst = {0};
+    dst.id = to_insert.dst_id;
+    add_node(dst);
 
     WT_CURSOR *cursor = get_edge_cursor();
 
@@ -1361,7 +1355,7 @@ void AdjList::add_to_adjlists(WT_CURSOR *cursor,
     session->begin_transaction(session, "isolation=snapshot");
     cursor->set_key(cursor, node_id);
     ret = cursor->search(cursor);
-    if (ret == WT_ROLLBACK)
+    if (ret == WT_ROLLBACK || ret == WT_NOTFOUND)
     {
         session->rollback_transaction(session, NULL);
         add_to_adjlists(cursor, node_id, to_insert);
@@ -1825,7 +1819,7 @@ void AdjList::add_one_node_degree(WT_CURSOR *cursor,
     session->begin_transaction(session, "isolation=snapshot");
     cursor->set_key(cursor, to_update);
     int ret = cursor->search(cursor);
-    if (ret == WT_ROLLBACK)
+    if (ret == WT_ROLLBACK || ret == WT_NOTFOUND)
     {
         session->rollback_transaction(session, NULL);
         add_one_node_degree(cursor, to_update, is_out_degree);
