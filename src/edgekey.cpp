@@ -573,7 +573,6 @@ start:
 
             default:
                 session->rollback_transaction(session, NULL);
-
                 throw GraphException(
                     "Failed to insert the reverse edge between " +
                     std::to_string(to_insert.src_id) + " and " +
@@ -594,10 +593,11 @@ start:
         // Update the in/out degrees if opts.read_optimize
         if (opts.read_optimize)
         {
+            node src = {0};
         retry_src:
             session->begin_transaction(session, "isolation=snapshot");
 
-            node src = get_node(to_insert.src_id);
+            src = get_node(to_insert.src_id);
             src.out_degree++;
             if (!opts.is_directed)
             {
@@ -611,6 +611,8 @@ start:
                     break;
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, NULL);
+                    cout << "retrying src"
+                         << "\n";
                     goto retry_src;
                     break;
                 default:
@@ -619,10 +621,11 @@ start:
                                          std::to_string(src.id));
             }
 
+            node dst = {0};
         retry_dst:
             session->begin_transaction(session, "isolation=snapshot");
 
-            node dst = get_node(to_insert.dst_id);
+            dst = get_node(to_insert.dst_id);
             dst.in_degree++;
             if (!opts.is_directed)
             {
@@ -636,6 +639,8 @@ start:
                     break;
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, NULL);
+                    cout << "retrying dst"
+                         << "\n";
                     goto retry_dst;
                     break;
                 default:

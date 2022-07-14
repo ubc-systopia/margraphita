@@ -12,6 +12,7 @@ using namespace std;
 
 int main()
 {
+    cout << "START" << '\n';
     graph_opts opts;
     opts.create_new = true;
     opts.optimize_create = false;
@@ -46,5 +47,16 @@ int main()
     cout << "No. of nodes: " << report->get_num_nodes() << '\n';
     cout << "No. of edges: " << report->get_num_edges() << '\n';
     cout << "No. of outdeg from 1: " << report->get_out_degree(1) << '\n';
+    // std::vector<node> nodes = report->get_nodes();
+    // for (auto i : nodes)
+    // {
+    //     CommonUtil::dump_node(i);
+    // }
+    // std::vector<edge> edges = report->get_edges();
+    // for (auto j : edges)
+    // {
+    //     CommonUtil::dump_edge(j);
+    // }
     myEngine.close_graph();
+    cout << "END" << '\n';
 }
