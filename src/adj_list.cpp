@@ -349,17 +349,15 @@ void AdjList::init_cursors()
 void AdjList::add_node(node to_insert)
 {
     int ret = 0;
-    session->begin_transaction(session, "isolation=snapshot");
-    if (has_node(to_insert.id))
-    {
-        session->rollback_transaction(session, NULL);
-        return;
-    }
     WT_CURSOR *in_adj_cur, *out_adj_cur, *n_cur = nullptr;
 
     in_adj_cur = get_in_adjlist_cursor();
     out_adj_cur = get_out_adjlist_cursor();
-    n_cur = get_node_cursor();
+    session->open_cursor(session,
+                         "table:node",
+                         NULL,
+                         "overwrite=false",
+                         &n_cur);  // TODO: abstract this away
 
     n_cur->set_key(n_cur, to_insert.id);
 
@@ -377,30 +375,15 @@ void AdjList::add_node(node to_insert)
     switch (n_cur->insert(n_cur))
     {
         case 0: /* Update success */
+            session->begin_transaction(session, "isolation=snapshot");
             add_adjlist(in_adj_cur, to_insert.id);
             add_adjlist(out_adj_cur, to_insert.id);
             init_metadata_cursor();
             session->commit_transaction(session, NULL);
-            if (locks != nullptr)
-            {
-                omp_set_lock(locks->get_node_num_lock());
-                set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-                omp_unset_lock(locks->get_node_num_lock());
-            }
-            else
-            {
-                set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-            }
-
-            /*
-             * If commit_transaction succeeds, cursors remain positioned; if
-             * commit_transaction fails, the transaction was rolled-back and all
-             * cursors are reset.
-             */
+            add_to_nnodes(1);
             break;
-        case WT_ROLLBACK: /* Update conflict */
-        default:          /* Other error */
-            session->rollback_transaction(session, NULL);
+        case WT_DUPLICATE_KEY: /* Update conflict */
+        default:               /* Other error */
             /* The rollback_transaction call resets all cursors. */
             break;
     }
