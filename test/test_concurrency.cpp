@@ -58,5 +58,6 @@ int main()
     //     CommonUtil::dump_edge(j);
     // }
     myEngine.close_graph();
-    cout << "END" << '\n';
+    cout << "END"
+         << "\n \n";
 }
