@@ -277,10 +277,6 @@ retry_add_node:
     if (has_node(to_insert.id))
     {
         session->rollback_transaction(session, NULL);
-        if (to_insert.id == 1)
-        {
-            cout << "Node 1 ALREADY EXISTS \n";
-        }
         return;
     }
 
@@ -302,31 +298,20 @@ retry_add_node:
     {
         case 0:
             session->commit_transaction(session, NULL);
-            if (to_insert.id == 1)
-            {
-                cout << "Node 1 ADDED \n";
-            }
             add_to_nnodes(1);
             break;
 
         case WT_ROLLBACK:
             session->rollback_transaction(session, NULL);
             goto retry_add_node;
-            if (to_insert.id == 1)
-            {
-                cout << "Node 1 ROLLBACK \n";
-            }
             break;
 
         default:
             session->rollback_transaction(session, NULL);
             if (to_insert.id == 1)
-            {
-                cout << "Node 1 DEFAULT \n";
-            }
-            throw GraphException("Failed to insert a node with ID " +
-                                 std::to_string(to_insert.id) +
-                                 " into the edge table");
+                throw GraphException("Failed to insert a node with ID " +
+                                     std::to_string(to_insert.id) +
+                                     " into the edge table");
     }
 }
 
@@ -631,9 +616,6 @@ start:
                     break;
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, NULL);
-                    cout << "retrying src: "
-                         << "IN: " << src.in_degree << "| OUT "
-                         << src.out_degree << "\n";
                     goto retry_src;
                     break;
                 default:
@@ -660,8 +642,6 @@ start:
                     break;
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, NULL);
-                    cout << "retrying dst"
-                         << "\n";
                     goto retry_dst;
                     break;
                 default:
