@@ -597,7 +597,7 @@ class EdgeKey : public GraphBase
     void delete_related_edges(WT_CURSOR *idx_cursor,
                               WT_CURSOR *edge_cur,
                               node_id_t node_id);
-    void update_node_degree(node_id_t node_id, degree_t indeg, degree_t outdeg);
+    int update_node_degree(node_id_t node_id, degree_t indeg, degree_t outdeg);
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
 
