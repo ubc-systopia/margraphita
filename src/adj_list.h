@@ -489,16 +489,20 @@ class AdjList : public GraphBase
                               node_id_t node_id,
                               node_id_t to_delete);
     void delete_related_edges_and_adjlists(node_id_t node_id);
-    void update_node_degree(WT_CURSOR *cursor,
-                            node_id_t node_id,
-                            degree_t indeg,
-                            degree_t outdeg);
+    int update_node_degree(WT_CURSOR *cursor,
+                           node_id_t node_id,
+                           degree_t indeg,
+                           degree_t outdeg);
 
     void dump_tables();
     void create_indices() { return; }  // here because defined in interface
 
     void add_to_nnodes(int amnt);
     void add_to_nedges(int amnt);
+
+    void add_one_node_degree(WT_CURSOR *cursor,
+                             node_id_t to_update,
+                             bool is_out_degree);
 };
 
 /**

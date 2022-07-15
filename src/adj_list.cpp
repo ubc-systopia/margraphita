@@ -349,18 +349,15 @@ void AdjList::init_cursors()
 void AdjList::add_node(node to_insert)
 {
     int ret = 0;
-    session->begin_transaction(session, "isolation=snapshot");
-    if (has_node(to_insert.id))
-    {
-        session->rollback_transaction(session, NULL);
-        return;
-    }
-
     WT_CURSOR *in_adj_cur, *out_adj_cur, *n_cur = nullptr;
 
     in_adj_cur = get_in_adjlist_cursor();
     out_adj_cur = get_out_adjlist_cursor();
-    n_cur = get_node_cursor();
+    session->open_cursor(session,
+                         "table:node",
+                         NULL,
+                         "overwrite=false",
+                         &n_cur);  // TODO: abstract this away
 
     n_cur->set_key(n_cur, to_insert.id);
 
@@ -378,22 +375,15 @@ void AdjList::add_node(node to_insert)
     switch (n_cur->insert(n_cur))
     {
         case 0: /* Update success */
+            session->begin_transaction(session, "isolation=snapshot");
             add_adjlist(in_adj_cur, to_insert.id);
             add_adjlist(out_adj_cur, to_insert.id);
             init_metadata_cursor();
             session->commit_transaction(session, NULL);
-
             add_to_nnodes(1);
-
-            /*
-             * If commit_transaction succeeds, cursors remain positioned; if
-             * commit_transaction fails, the transaction was rolled-back and all
-             * cursors are reset.
-             */
             break;
-        case WT_ROLLBACK: /* Update conflict */
-        default:          /* Other error */
-            session->rollback_transaction(session, NULL);
+        case WT_DUPLICATE_KEY: /* Update conflict */
+        default:               /* Other error */
             /* The rollback_transaction call resets all cursors. */
             break;
     }
@@ -536,26 +526,19 @@ void AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 {
     int ret = 0;
-    // Add dst and src nodes if they don't exist.
-    if (!has_node(to_insert.src_id))
-    {
-        node src = {0};
-        src.id = to_insert.src_id;
-        add_node(src);
-    }
-    if (!has_node(to_insert.dst_id))
-    {
-        node dst = {0};
-        dst.id = to_insert.dst_id;
-        add_node(dst);
-    }
+
+    node src = {0};
+    src.id = to_insert.src_id;
+    add_node(src);
+    node dst = {0};
+    dst.id = to_insert.dst_id;
+    add_node(dst);
 
     WT_CURSOR *cursor = get_edge_cursor();
 
     // We don't need to check if the edge exists already -- overwrite it
     // regardless
     cursor->set_key(cursor, to_insert.src_id, to_insert.dst_id);
-    // cout << "New Edge ID inserted" << endl;
 
     if (opts.is_weighted)
     {
@@ -608,7 +591,6 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         }
         cursor->reset(cursor);
     }
-    // cursor->close(cursor);
     if (is_bulk_insert)
     {
         return;  // we have already added adjlists while adding nodes.
@@ -629,56 +611,12 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     // table.
     if (this->opts.read_optimize)
     {
-        // update in/out degrees for src node in NODE_TABLE
-        cursor = get_node_cursor();
-        cursor->set_key(cursor, to_insert.src_id);
-        ret = cursor->search(cursor);
-        if (ret != 0)
-        {
-            throw GraphException(
-                "Could not find " + to_string(to_insert.src_id) +
-                " in the Node Table. At " + to_string(__LINE__));
-        }
-        // TODO: do a check
-        node found = {.id = to_insert.src_id};
-        if (locks != nullptr)
-        {
-            omp_set_lock(locks->get_node_degree_lock());
-        }
-        CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
-        // found.id = to_insert.src_id;
-        found.out_degree = found.out_degree + 1;
-        update_node_degree(
-            cursor,
-            found.id,
-            found.in_degree,
-            found.out_degree);  //! pass the cursor to this function
-        if (locks != nullptr)
-        {
-            omp_unset_lock(locks->get_node_degree_lock());
-        }
+        // update out degree for src node in NODE_TABLE
+        add_one_node_degree(get_node_cursor(), to_insert.src_id, true);
 
-        // update in/out degrees for the dst node in the NODE_TABLE
-        cursor->reset(cursor);
-
-        cursor->set_key(cursor, to_insert.dst_id);
-        cursor->search(cursor);
-        found = {.id = to_insert.dst_id, .in_degree = 0, .out_degree = 0};
-        if (locks != nullptr)
-        {
-            omp_set_lock(locks->get_node_degree_lock());
-        }
-        CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
-        found.id = to_insert.dst_id;
-        found.in_degree = found.in_degree + 1;
-        update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
-        // cursor->close(cursor);
-        if (locks != nullptr)
-        {
-            omp_unset_lock(locks->get_node_degree_lock());
-        }
+        // update in degree for the dst node in the NODE_TABLE
+        add_one_node_degree(get_node_cursor(), to_insert.dst_id, false);
     }
-    // session->commit_transaction(session, NULL);
 }
 
 node AdjList::get_random_node()
@@ -997,19 +935,15 @@ edgeweight_t AdjList::get_edge_weight(node_id_t src_id, node_id_t dst_id)
  */
 // Concurrency handled by caller, do not set node degree locks here! will
 // deadlock
-void AdjList::update_node_degree(WT_CURSOR *cursor,
-                                 node_id_t node_id,
-                                 uint32_t in_degree,
-                                 uint32_t out_degree)
+int AdjList::update_node_degree(WT_CURSOR *cursor,
+                                node_id_t node_id,
+                                uint32_t in_degree,
+                                uint32_t out_degree)
 {
     cursor->set_key(cursor, node_id);
     cursor->set_value(cursor, in_degree, out_degree);
     int ret = cursor->insert(cursor);
-    if (ret != 0)
-    {
-        throw GraphException("Could not update degrees for node with ID " +
-                             std::to_string(node_id));
-    }
+    return ret;
 }
 
 /**
@@ -1401,30 +1335,31 @@ void AdjList::add_to_adjlists(WT_CURSOR *cursor,
     // the caller.
 
     int ret;
-
+    session->begin_transaction(session, "isolation=snapshot");
     cursor->set_key(cursor, node_id);
     ret = cursor->search(cursor);
-    if (ret != 0)
+    if (ret == WT_ROLLBACK || ret == WT_NOTFOUND)
     {
-        throw GraphException("Could not find " + std::to_string(node_id) +
-                             " in the AdjList");
+        session->rollback_transaction(session, NULL);
+        add_to_adjlists(cursor, node_id, to_insert);
+        return;
     }
-
     adjlist found;
     found.node_id = node_id;
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_degree_lock());
-    }
     CommonUtil::__record_to_adjlist(
         session, cursor, &found);  //<-- This works just fine.
     found.edgelist.push_back(to_insert);
     found.degree += 1;
-
-    CommonUtil::__adjlist_to_record(session, cursor, found);
-    if (locks != nullptr)
+    switch (CommonUtil::__adjlist_to_record(session, cursor, found))
     {
-        omp_unset_lock(locks->get_node_degree_lock());
+        case 0:
+            session->commit_transaction(session, NULL);
+            break;
+        case WT_ROLLBACK:
+        default:
+            session->rollback_transaction(session, NULL);
+            add_to_adjlists(cursor, node_id, to_insert);
+            break;
     }
 }
 
@@ -1432,8 +1367,8 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
                                    node_id_t node_id,
                                    node_id_t to_delete)
 {
-    // Not checking for directional or undirectional that would be taken care by
-    // the caller.
+    // Not checking for directional or undirectional that would be taken
+    // care by the caller.
 
     int ret;
 
@@ -1460,8 +1395,8 @@ void AdjList::delete_from_adjlists(WT_CURSOR *cursor,
         }
     }
 
-    found.degree -= 1;  // FIXME: There is something not right. The degree is
-                        // going negative.
+    found.degree -= 1;  // FIXME: There is something not right. The degree
+                        // is going negative.
 
     CommonUtil::__adjlist_to_record(session, cursor, found);
     if (locks != nullptr)
@@ -1475,7 +1410,8 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
 {
     // We need to delete the node from both tables
     // and go through all the adjlist values, iterate over its edgelist and
-    // correspondingly delete the node_id from the edgelist of its neighbors.
+    // correspondingly delete the node_id from the edgelist of its
+    // neighbors.
     std::vector<node_id_t> in_edgelist;
     std::vector<node_id_t> out_edgelist;
 
@@ -1490,8 +1426,8 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
     }
 
     in_edgelist = get_adjlist(in_cursor, node_id);
-    // Iterate through the in_edgelist in the OUT_ADJLIST and delete the node_id
-    // from its neighbors
+    // Iterate through the in_edgelist in the OUT_ADJLIST and delete the
+    // node_id from its neighbors
 
     WT_CURSOR *out_cursor = nullptr;
     ret = _get_table_cursor(OUT_ADJLIST, &out_cursor, session, false);
@@ -1542,10 +1478,12 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
 
 /**
  * @brief Delete all edges related to the node node_id. This means deleting
- * edges that have node_id as either src or dst node. Entries are deleted from
+ * edges that have node_id as either src or dst node. Entries are deleted
+ from
  * the edge and the adjlist tables.
 
- * @param node_id node ID which has to be deleted from edge and adjlist tables
+ * @param node_id node ID which has to be deleted from edge and adjlist
+ tables
  */
 void AdjList::delete_related_edges_and_adjlists(node_id_t node_id)
 {
@@ -1854,5 +1792,50 @@ void AdjList::add_to_nedges(int amnt)
     else
     {
         set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
+    }
+}
+
+void AdjList::add_one_node_degree(WT_CURSOR *cursor,
+                                  node_id_t to_update,
+                                  bool is_out_degree)
+{
+    session->begin_transaction(session, "isolation=snapshot");
+    cursor->set_key(cursor, to_update);
+    int ret = cursor->search(cursor);
+    if (ret == WT_ROLLBACK || ret == WT_NOTFOUND)
+    {
+        session->rollback_transaction(session, NULL);
+        add_one_node_degree(cursor, to_update, is_out_degree);
+        return;
+    }
+    else if (ret != 0)
+    {
+        throw new GraphException("Failed to find node" +
+                                 std::to_string(to_update) +
+                                 wiredtiger_strerror(ret));
+    }
+    node found = {.id = to_update};
+    CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
+    if (is_out_degree)
+    {
+        found.out_degree++;
+    }
+    else
+    {
+        found.in_degree++;
+    }
+    ret =
+        update_node_degree(cursor, found.id, found.in_degree, found.out_degree);
+    switch (ret)
+    {
+        case 0:
+            session->commit_transaction(session, NULL);
+            cursor->reset(cursor);
+            break;
+        case WT_ROLLBACK:
+        default:
+            session->rollback_transaction(session, NULL);
+            add_one_node_degree(cursor, to_update, is_out_degree);
+            break;
     }
 }

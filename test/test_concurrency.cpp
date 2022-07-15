@@ -7,7 +7,7 @@
 #include "graph_exception.h"
 #include "sample_graph.h"
 
-#define THREAD_NUM 8
+#define THREAD_NUM 64
 using namespace std;
 
 int main()
