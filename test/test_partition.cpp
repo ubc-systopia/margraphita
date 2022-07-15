@@ -28,11 +28,17 @@ int main()
     opts.stat_log = "/home/puneet/scratch/margraphita/profile/test";
     opts.type = GraphType::Std;
 
-    // Test graph setup
-    EdgeKey *graph = new EdgeKey(opts);
+    const int THREAD_NUM = 1;
+
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
+    GraphEngineTest myEngine(engine_opts);
+    WT_CONNECTION *conn = myEngine.public_get_connection();
+    EdgeKey graph(opts, conn);
+
     std::vector<key_range> node_offsets;
     std::vector<edge_range> edge_offsets;
-    WT_CURSOR *ecur = graph->get_edge_cursor();
+    WT_CURSOR *ecur = graph.get_edge_cursor();
     calculate_thread_offsets(
         10, 989, 8192, node_offsets, edge_offsets, opts.type, ecur);
 
@@ -46,6 +52,6 @@ int main()
         std::cout << "(" << x.end.src_id << "," << x.end.dst_id << ")\n";
         std::cout << "------------\n";
     }
-    graph->close();
+    graph.close();
     return 0;
 }

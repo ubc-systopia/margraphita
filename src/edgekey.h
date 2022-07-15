@@ -531,11 +531,9 @@ class EkeyEdgeCursor : public EdgeCursor
 class EdgeKey : public GraphBase
 {
    public:
-    EdgeKey(graph_opts opt_params);
     EdgeKey(graph_opts &opt_params,
             WT_CONNECTION *conn);  // TODO: merge the 2 constructors
     static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
-    void create_new_graph();
     void add_node(node to_insert);
 
     bool has_node(node_id_t node_id);
@@ -580,17 +578,9 @@ class EdgeKey : public GraphBase
    private:
     // Cursors
     WT_CURSOR *edge_cursor = nullptr;
-    WT_CURSOR *metadata_cursor = nullptr;
     WT_CURSOR *src_idx_cursor = nullptr;
     WT_CURSOR *dst_idx_cursor = nullptr;
     WT_CURSOR *dst_src_idx_cursor = nullptr;
-
-    // structure of the graph
-    vector<string> edge_columns = {SRC, DST, ATTR};
-    string edge_key_format = "qq";   // SRC DST
-    string edge_value_format = "S";  // Packed binary
-    string node_count = "nNodes";
-    string edge_count = "nEdges";
 
     // internal methods
     WT_CURSOR *get_metadata_cursor();
@@ -604,8 +594,5 @@ class EdgeKey : public GraphBase
     static void create_indices(WT_SESSION *session);
     void drop_indices();
     void close_all_cursors();
-
-    void add_to_nnodes(int amnt);
-    void add_to_nedges(int amnt);
 };
 #endif

@@ -16,8 +16,7 @@
 class GraphBase
 {
    public:
-    GraphBase(graph_opts opts);  // ✅
-    GraphBase(graph_opts opt_params, WT_CONNECTION *conn);
+    GraphBase(graph_opts opt_params, WT_CONNECTION *conn);  // ✅
     static void insert_metadata(const std::string key,
                                 const char *value,
                                 WT_CURSOR *metadata_cursor);  // ✅ check if pvt
@@ -26,8 +25,7 @@ class GraphBase
     virtual node get_random_node() = 0;            // ✅
     static void create_metadata_table(
         graph_opts &opts,
-        WT_CONNECTION *conn);             // Used during first-time init of DB
-    virtual void create_new_graph() = 0;  // ✅
+        WT_CONNECTION *conn);  // Used during first-time init of DB
     virtual void add_node(node to_insert) = 0;                         // ✅
     virtual bool has_node(node_id_t node_id) = 0;                      // ✅
     virtual void delete_node(node_id_t node_id) = 0;                   // ✅
@@ -76,6 +74,8 @@ class GraphBase
     WT_SESSION *session;
     LockSet *locks = nullptr;
 
+    WT_CURSOR *metadata_cursor = NULL;
+
     WT_CONNECTION *get_db_conn() { return this->connection; }
     WT_SESSION *get_db_session() { return this->session; }
     int _get_index_cursor(std::string table_name,
@@ -87,6 +87,8 @@ class GraphBase
 
     void drop_indices();
     void close_all_cursors();
+    void add_to_nnodes(int amnt);
+    void add_to_nedges(int amnt);
 
     std::string get_metadata(const std::string &key);
 };

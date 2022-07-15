@@ -485,11 +485,9 @@ class StandardGraph : public GraphBase
 {
    public:
     // create params
-    StandardGraph(graph_opts &opt_params);
     StandardGraph(graph_opts &opt_params,
                   WT_CONNECTION *conn);  // TODO: merge the 2 constructors
     static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
-    void create_new_graph();
     void add_node(node to_insert);
     bool has_node(node_id_t node_id);
     node get_node(node_id_t node_id);
@@ -543,15 +541,6 @@ class StandardGraph : public GraphBase
     WT_CURSOR *src_dst_index_cursor = NULL;
     WT_CURSOR *src_index_cursor = NULL;
     WT_CURSOR *dst_index_cursor = NULL;
-    WT_CURSOR *metadata_cursor = NULL;
-
-    // structure of the graph
-    vector<string> node_columns = {ID};  // Always there :)
-    vector<string> edge_columns = {SRC, DST};
-    string node_value_format;
-    string node_key_format = "q";
-    string edge_key_format = "qq";
-    string edge_value_format = "";  // I if weighted or b if unweighted.
 
     // Internal methods
     void init_metadata_cursor();
@@ -565,9 +554,6 @@ class StandardGraph : public GraphBase
 
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
-
-    void add_to_nnodes(int amnt);
-    void add_to_nedges(int amnt);
 };
 
 #endif

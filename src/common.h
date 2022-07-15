@@ -73,12 +73,6 @@ struct graph_opts
     GraphType type;
 };
 
-typedef struct wt_conn_info
-{
-    WT_CONNECTION *connection;
-    WT_SESSION *session;
-} wt_conn;
-
 typedef struct node
 {
     node_id_t id;  // node ID
