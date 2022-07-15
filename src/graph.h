@@ -74,6 +74,8 @@ class GraphBase
     WT_SESSION *session;
     LockSet *locks = nullptr;
 
+    WT_CURSOR *metadata_cursor = NULL;
+
     WT_CONNECTION *get_db_conn() { return this->connection; }
     WT_SESSION *get_db_session() { return this->session; }
     int _get_index_cursor(std::string table_name,
@@ -85,6 +87,8 @@ class GraphBase
 
     void drop_indices();
     void close_all_cursors();
+    void add_to_nnodes(int amnt);
+    void add_to_nedges(int amnt);
 
     std::string get_metadata(const std::string &key);
 };

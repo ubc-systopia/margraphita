@@ -541,7 +541,6 @@ class StandardGraph : public GraphBase
     WT_CURSOR *src_dst_index_cursor = NULL;
     WT_CURSOR *src_index_cursor = NULL;
     WT_CURSOR *dst_index_cursor = NULL;
-    WT_CURSOR *metadata_cursor = NULL;
 
     // Internal methods
     void init_metadata_cursor();
@@ -555,9 +554,6 @@ class StandardGraph : public GraphBase
 
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
-
-    void add_to_nnodes(int amnt);
-    void add_to_nedges(int amnt);
 };
 
 #endif

@@ -1308,31 +1308,3 @@ vector<edge> StandardGraph::test_cursor_iter(node_id_t node_id)
     }
     return edges;
 }
-
-void StandardGraph::add_to_nnodes(int amnt)
-{
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_num_lock());
-        set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
-        omp_unset_lock(locks->get_node_num_lock());
-    }
-    else
-    {
-        set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
-    }
-}
-
-void StandardGraph::add_to_nedges(int amnt)
-{
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_edge_num_lock());
-        set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
-        omp_unset_lock(locks->get_edge_num_lock());
-    }
-    else
-    {
-        set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
-    }
-}

@@ -453,7 +453,6 @@ class AdjList : public GraphBase
     WT_CURSOR *edge_cursor = NULL;
     WT_CURSOR *in_adjlist_cursor = NULL;
     WT_CURSOR *out_adjlist_cursor = NULL;
-    WT_CURSOR *metadata_cursor = NULL;
 
     // AdjList specific internal methods:
     void init_metadata_cursor();
@@ -479,9 +478,6 @@ class AdjList : public GraphBase
 
     void dump_tables();
     void create_indices() { return; }  // here because defined in interface
-
-    void add_to_nnodes(int amnt);
-    void add_to_nedges(int amnt);
 
     void add_one_node_degree(WT_CURSOR *cursor,
                              node_id_t to_update,
