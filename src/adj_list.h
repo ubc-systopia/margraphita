@@ -389,12 +389,10 @@ class AdjEdgeCursor : public EdgeCursor
 class AdjList : public GraphBase
 {
    public:
-    AdjList(graph_opts &opt_params);
     AdjList(graph_opts &opt_params,
             WT_CONNECTION *connection);  // TODO: merge the 2 constructors
     static void create_wt_tables(
         graph_opts &opts, WT_CONNECTION *conn);  // Need this to init graph db
-    void create_new_graph();
     void add_node(node to_insert);
     void add_node(node_id_t to_insert,
                   std::vector<node_id_t> &inlist,
@@ -449,21 +447,6 @@ class AdjList : public GraphBase
    private:
     // structure of the graph
     int node_attr_size = 0;  // set on checking the list len
-
-    vector<string> node_columns = {ID};  // Always there :)
-    vector<string> edge_columns = {SRC, DST};
-    vector<string> in_adjlist_columns = {ID, IN_DEGREE, IN_ADJLIST};
-    vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
-
-    string node_value_format;
-    string node_key_format = "q";
-    string edge_key_format = "qq";  // SRC DST in the edge table
-    string edge_value_format = "";  // Make I if weighted , x otherwise
-    string adjlist_key_format = "q";
-    string adjlist_value_format =
-        "Iu";  // This HAS to be u. S does not work. s needs the number.
-    string node_count = "nNodes";
-    string edge_count = "nEdges";
 
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;

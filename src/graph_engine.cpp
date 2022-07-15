@@ -32,7 +32,6 @@ GraphBase *GraphEngine::create_graph_handle()
 {
     WT_SESSION *sess;
     CommonUtil::open_session(conn, &sess);
-    wt_conn t{.connection = conn, .session = sess};
 
     GraphBase *ptr = nullptr;
     if (opts.type == GraphType::Std)

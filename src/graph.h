@@ -16,8 +16,7 @@
 class GraphBase
 {
    public:
-    GraphBase(graph_opts opts);  // ✅
-    GraphBase(graph_opts opt_params, WT_CONNECTION *conn);
+    GraphBase(graph_opts opt_params, WT_CONNECTION *conn);  // ✅
     static void insert_metadata(const std::string key,
                                 const char *value,
                                 WT_CURSOR *metadata_cursor);  // ✅ check if pvt
@@ -26,8 +25,7 @@ class GraphBase
     virtual node get_random_node() = 0;            // ✅
     static void create_metadata_table(
         graph_opts &opts,
-        WT_CONNECTION *conn);             // Used during first-time init of DB
-    virtual void create_new_graph() = 0;  // ✅
+        WT_CONNECTION *conn);  // Used during first-time init of DB
     virtual void add_node(node to_insert) = 0;                         // ✅
     virtual bool has_node(node_id_t node_id) = 0;                      // ✅
     virtual void delete_node(node_id_t node_id) = 0;                   // ✅

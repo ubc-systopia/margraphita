@@ -13,19 +13,6 @@
 #include "common.h"
 #include "graph_exception.h"
 using namespace std;
-GraphBase::GraphBase(graph_opts opt_params)
-{
-    opts = opt_params;
-
-    try
-    {
-        CommonUtil::check_graph_params(opts);
-    }
-    catch (GraphException &G)
-    {
-        std::cout << G.what() << std::endl;
-    }
-}
 
 GraphBase::GraphBase(graph_opts opt_params, WT_CONNECTION *conn)
 {
