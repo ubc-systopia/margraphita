@@ -66,7 +66,8 @@ class GraphBase
     static int _get_table_cursor(std::string table,
                                  WT_CURSOR **cursor,
                                  WT_SESSION *session,
-                                 bool is_random);
+                                 bool is_random,
+                                 bool prevent_overwrite);
 
    protected:
     graph_opts opts;

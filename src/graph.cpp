@@ -47,7 +47,7 @@ void GraphBase::create_metadata_table(graph_opts &opts, WT_CONNECTION *conn)
     }
     WT_CURSOR *metadata_cursor;
     int ret = GraphBase::_get_table_cursor(
-        METADATA, &metadata_cursor, session, false);
+        METADATA, &metadata_cursor, session, false, false);
     if (ret != 0)
     {
         throw GraphException("Could not get a metadata cursor");
@@ -123,7 +123,7 @@ std::string GraphBase::get_metadata(std::string key, WT_CURSOR *metadata_cursor)
     if (metadata_cursor == NULL)
     {
         if ((ret = _get_table_cursor(
-                 METADATA, &metadata_cursor, session, false)) != 0)
+                 METADATA, &metadata_cursor, session, false, false)) != 0)
         {
             fprintf(stderr, "Failed to create cursor to the metadata table.");
             exit(-1);
@@ -151,21 +151,29 @@ std::string GraphBase::get_metadata(std::string key, WT_CURSOR *metadata_cursor)
  * @param cursor This is the pointer that will hold the set cursor.
  * @param is_random This is a bool value to indicate if the cursor must be
  * random.
+ * @param prevent_overwrite This is a bool value to indicate whether we want to
+ * specify overwrite=false, imposing stricter checks on inserts/updates
  * @return 0 if the cursor could be set
  */
 int GraphBase::_get_table_cursor(std::string table,
                                  WT_CURSOR **cursor,
                                  WT_SESSION *session,
-                                 bool is_random)
+                                 bool is_random,
+                                 bool prevent_overwrite)
 {
     std::string table_name = "table:" + table;
-    const char *config = NULL;
+    std::string config = "";
     if (is_random)
     {
-        config = "next_random=true";
+        config += "next_random=true,";
     }
-    if (int ret = session->open_cursor(
-                      session, table_name.c_str(), NULL, config, cursor) != 0)
+    if (prevent_overwrite)
+    {
+        config += "overwrite=false,";
+    }
+    if (int ret =
+            session->open_cursor(
+                session, table_name.c_str(), NULL, config.c_str(), cursor) != 0)
     {
         fprintf(
             stderr, "Failed to get table cursor to %s\n", table_name.c_str());
@@ -180,7 +188,7 @@ void GraphBase::close() { CommonUtil::close_session(session); }
 void GraphBase::__restore_from_db()
 {
     WT_CURSOR *cursor = nullptr;
-    int ret = _get_table_cursor(METADATA, &cursor, session, false);
+    int ret = _get_table_cursor(METADATA, &cursor, session, false, false);
 
     const char *key, *value;
     while ((ret = cursor->next(cursor)) == 0)
@@ -246,7 +254,7 @@ void GraphBase::__restore_from_db(std::string db_name)
 
     ret = CommonUtil::open_session(connection, &session);
     const char *key, *value;
-    ret = _get_table_cursor(METADATA, &cursor, session, false);
+    ret = _get_table_cursor(METADATA, &cursor, session, false, false);
 
     while ((ret = cursor->next(cursor)) == 0)
     {
@@ -309,8 +317,8 @@ std::string GraphBase::get_metadata(const std::string &key)
 {
     int ret = 0;
     WT_CURSOR *metadata_cursor = nullptr;
-    if ((ret = _get_table_cursor(METADATA, &metadata_cursor, session, false)) !=
-        0)
+    if ((ret = _get_table_cursor(
+             METADATA, &metadata_cursor, session, false, false)) != 0)
     {
         fprintf(stderr, "Failed to create cursor to the metadata table.");
         exit(-1);

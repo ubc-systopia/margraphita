@@ -194,7 +194,7 @@ void StandardGraph::add_node(node to_insert)
     int ret = 0;
     if (node_cursor == NULL)
     {
-        ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
+        ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false, true);
     }
     node_cursor->set_key(node_cursor, to_insert.id);
 
@@ -241,7 +241,8 @@ bool StandardGraph::has_node(node_id_t node_id)
     int ret = 0;
     if (node_cursor == NULL)
     {
-        ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
+        ret =
+            _get_table_cursor(NODE_TABLE, &node_cursor, session, false, false);
     }
     node_cursor->set_key(node_cursor, node_id);
     ret = node_cursor->search(node_cursor);
@@ -351,7 +352,8 @@ node StandardGraph::get_random_node()
 
     if (this->random_node_cursor == NULL)
     {
-        ret = _get_table_cursor(NODE_TABLE, &random_node_cursor, session, true);
+        ret = _get_table_cursor(
+            NODE_TABLE, &random_node_cursor, session, true, false);
     }
     random_node_cursor->reset(random_node_cursor);
 
@@ -379,7 +381,8 @@ void StandardGraph::delete_node(node_id_t node_id)
 
     if (this->node_cursor == NULL)
     {
-        ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
+        ret =
+            _get_table_cursor(NODE_TABLE, &node_cursor, session, false, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a cursor to the node table");
@@ -1060,7 +1063,8 @@ void StandardGraph::init_metadata_cursor()
 {
     if (metadata_cursor == nullptr)
     {
-        int ret = _get_table_cursor(METADATA, &metadata_cursor, session, false);
+        int ret = _get_table_cursor(
+            METADATA, &metadata_cursor, session, false, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a metadata cursor");
@@ -1072,7 +1076,8 @@ WT_CURSOR *StandardGraph::get_node_cursor()
 {
     if (node_cursor == nullptr)
     {
-        int ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false);
+        int ret =
+            _get_table_cursor(NODE_TABLE, &node_cursor, session, false, true);
         if (ret != 0)
         {
             throw GraphException("Could not get a node cursor");
@@ -1085,7 +1090,8 @@ WT_CURSOR *StandardGraph::get_node_cursor()
 WT_CURSOR *StandardGraph::get_new_node_cursor()
 {
     WT_CURSOR *new_node_cursor = nullptr;
-    int ret = _get_table_cursor(NODE_TABLE, &new_node_cursor, session, false);
+    int ret =
+        _get_table_cursor(NODE_TABLE, &new_node_cursor, session, false, false);
     if (ret != 0)
     {
         throw GraphException("Could not get a node cursor");
@@ -1098,7 +1104,8 @@ WT_CURSOR *StandardGraph::get_edge_cursor()
 {
     if (edge_cursor == nullptr)
     {
-        int ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false);
+        int ret =
+            _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, false);
         if (ret != 0)
         {
             throw GraphException("Could not get an edge cursor");
@@ -1111,7 +1118,8 @@ WT_CURSOR *StandardGraph::get_edge_cursor()
 WT_CURSOR *StandardGraph::get_new_edge_cursor()
 {
     WT_CURSOR *new_edge_cursor = nullptr;
-    int ret = _get_table_cursor(EDGE_TABLE, &new_edge_cursor, session, false);
+    int ret =
+        _get_table_cursor(EDGE_TABLE, &new_edge_cursor, session, false, false);
     if (ret != 0)
     {
         throw GraphException("Could not get an edge cursor");

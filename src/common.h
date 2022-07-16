@@ -450,7 +450,7 @@ class CommonUtil
         item.size = size;
 
         cursor->set_value(cursor, to_insert.degree, &item);
-        int ret = cursor->insert(cursor);
+        int ret = cursor->update(cursor);
         return ret;
     }
 
