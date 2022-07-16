@@ -19,7 +19,8 @@ const std::string GRAPH_PREFIX = "edgekey";
 EdgeKey::EdgeKey(graph_opts &opt_params, WT_CONNECTION *conn)
     : GraphBase(opt_params, conn)
 {
-    if (_get_table_cursor(METADATA, &metadata_cursor, session, false) != 0)
+    if (_get_table_cursor(METADATA, &metadata_cursor, session, false, false) !=
+        0)
     {
         fprintf(stderr, "Failed to create cursor to the metadata table.");
         exit(-1);
@@ -86,7 +87,7 @@ node EdgeKey::get_random_node()
 {
     node rando = {0};
     WT_CURSOR *random_cur;
-    int ret = _get_table_cursor(EDGE_TABLE, &random_cur, session, true);
+    int ret = _get_table_cursor(EDGE_TABLE, &random_cur, session, true, false);
     if (ret != 0)
     {
         throw GraphException("could not get a random cursor to the node table");
@@ -233,7 +234,7 @@ void EdgeKey::delete_node(node_id_t node_id)  // TODO
     WT_CURSOR *src_cur = get_src_idx_cursor();
     WT_CURSOR *dst_cur = get_dst_idx_cursor();
 
-    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false) != 0)
+    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, false) != 0)
     {
         throw GraphException("Failed to get a cursro to the edge table");
     }
@@ -1191,7 +1192,8 @@ WT_CURSOR *EdgeKey::get_metadata_cursor()
 {
     if (metadata_cursor == nullptr)
     {
-        int ret = _get_table_cursor(METADATA, &metadata_cursor, session, false);
+        int ret = _get_table_cursor(
+            METADATA, &metadata_cursor, session, false, false);
         if (ret != 0)
         {
             throw GraphException("Could not get a metadata cursor");
@@ -1341,7 +1343,8 @@ WT_CURSOR *EdgeKey::get_edge_cursor()
 {
     if (edge_cursor == nullptr)
     {
-        if (_get_table_cursor(EDGE_TABLE, &edge_cursor, session, false) != 0)
+        if (_get_table_cursor(
+                EDGE_TABLE, &edge_cursor, session, false, false) != 0)
         {
             throw GraphException("Could not get a cursor to the Edge table");
         }
@@ -1353,7 +1356,8 @@ WT_CURSOR *EdgeKey::get_edge_cursor()
 WT_CURSOR *EdgeKey::get_new_edge_cursor()
 {
     WT_CURSOR *new_edge_cursor = nullptr;
-    if (_get_table_cursor(EDGE_TABLE, &new_edge_cursor, session, false) != 0)
+    if (_get_table_cursor(
+            EDGE_TABLE, &new_edge_cursor, session, false, false) != 0)
     {
         throw GraphException("Could not get a cursor to the Edge table");
     }
