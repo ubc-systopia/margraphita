@@ -34,11 +34,13 @@ int main()
         GraphBase* graph = myEngine.create_graph_handle();
         if (i % 2 == 0)
         {
-            graph->add_node(node{.id = i + 100});
+            // graph->add_node(node{.id = i + 100});
+            graph->add_edge(edge{.src_id = 2, .dst_id = 1}, false);
         }
         else
         {
-            graph->add_edge(edge{.src_id = 1, .dst_id = i - 1 + 100}, false);
+            // graph->add_edge(edge{.src_id = 1, .dst_id = i - 1 + 100}, false);
+            graph->add_edge(edge{.src_id = 1, .dst_id = 2}, false);
         }
         graph->close();
     }
@@ -47,7 +49,7 @@ int main()
     cout << "No. of nodes: " << report->get_num_nodes() << '\n';
     cout << "No. of edges: " << report->get_num_edges() << '\n';
     cout << "No. of outdeg from 1: " << report->get_out_degree(1) << '\n';
-    // std::vector<node> nodes = report->get_nodes();
+    std::vector<node> nodes = report->get_nodes();
     // for (auto i : nodes)
     // {
     //     CommonUtil::dump_node(i);

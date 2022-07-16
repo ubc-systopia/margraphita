@@ -19,7 +19,7 @@ const std::string GRAPH_PREFIX = "edgekey";
 EdgeKey::EdgeKey(graph_opts &opt_params, WT_CONNECTION *conn)
     : GraphBase(opt_params, conn)
 {
-    if (_get_table_cursor(METADATA, &metadata_cursor, session, false, false) !=
+    if (_get_table_cursor(METADATA, &metadata_cursor, session, false, true) !=
         0)
     {
         fprintf(stderr, "Failed to create cursor to the metadata table.");
@@ -87,7 +87,7 @@ node EdgeKey::get_random_node()
 {
     node rando = {0};
     WT_CURSOR *random_cur;
-    int ret = _get_table_cursor(EDGE_TABLE, &random_cur, session, true, false);
+    int ret = _get_table_cursor(EDGE_TABLE, &random_cur, session, true, true);
     if (ret != 0)
     {
         throw GraphException("could not get a random cursor to the node table");
@@ -143,14 +143,6 @@ node EdgeKey::get_random_node()
  */
 void EdgeKey::add_node(node to_insert)
 {
-retry_add_node:
-    session->begin_transaction(session, "isolation=snapshot");
-    if (has_node(to_insert.id))
-    {
-        session->rollback_transaction(session, NULL);
-        return;
-    }
-
     WT_CURSOR *edge_cursor = get_edge_cursor();
 
     edge_cursor->set_key(edge_cursor, to_insert.id, OutOfBand_ID);
@@ -168,21 +160,16 @@ retry_add_node:
     switch (edge_cursor->insert(edge_cursor))
     {
         case 0:
-            session->commit_transaction(session, NULL);
             add_to_nnodes(1);
             break;
 
-        case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
-            goto retry_add_node;
+        case WT_DUPLICATE_KEY:
             break;
 
         default:
-            session->rollback_transaction(session, NULL);
-            if (to_insert.id == 1)
-                throw GraphException("Failed to insert a node with ID " +
-                                     std::to_string(to_insert.id) +
-                                     " into the edge table");
+            throw GraphException("Failed to insert a node with ID " +
+                                 std::to_string(to_insert.id) +
+                                 " into the edge table");
     }
 }
 
@@ -234,7 +221,7 @@ void EdgeKey::delete_node(node_id_t node_id)  // TODO
     WT_CURSOR *src_cur = get_src_idx_cursor();
     WT_CURSOR *dst_cur = get_dst_idx_cursor();
 
-    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, false) != 0)
+    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, true) != 0)
     {
         throw GraphException("Failed to get a cursro to the edge table");
     }
@@ -362,7 +349,7 @@ int EdgeKey::update_node_degree(node_id_t node_id,
         e_cur->set_key(e_cur, node_id, OutOfBand_ID);
         string val = CommonUtil::pack_int_to_str(indeg, outdeg);
         e_cur->set_value(e_cur, val.c_str());
-        return e_cur->insert(e_cur);
+        return e_cur->update(e_cur);
     }
     else
     {
@@ -405,14 +392,18 @@ start:
     switch (e_cur->insert(e_cur))
     {
         case 0:
-            session->commit_transaction(session, NULL);
+            if (opts.is_directed)
+            {
+                session->commit_transaction(session, NULL);
+            }
             break;
-
         case WT_ROLLBACK:
             session->rollback_transaction(session, NULL);
             goto start;
             break;
-
+        case WT_DUPLICATE_KEY:
+            session->rollback_transaction(session, NULL);
+            return;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException("Failed to insert edge between " +
@@ -423,8 +414,6 @@ start:
     // insert reverse edge if undirected
     if (!opts.is_directed)
     {
-    start_rev:
-        session->begin_transaction(session, "isolation=snapshot");
         e_cur->set_key(e_cur, to_insert.dst_id, to_insert.src_id);
         if (opts.is_weighted)
         {
@@ -441,12 +430,13 @@ start:
             case 0:
                 session->commit_transaction(session, NULL);
                 break;
-
             case WT_ROLLBACK:
                 session->rollback_transaction(session, NULL);
-                goto start_rev;
+                goto start;
                 break;
-
+            case WT_DUPLICATE_KEY:
+                session->rollback_transaction(session, NULL);
+                return;
             default:
                 session->rollback_transaction(session, NULL);
                 throw GraphException(
@@ -1192,8 +1182,8 @@ WT_CURSOR *EdgeKey::get_metadata_cursor()
 {
     if (metadata_cursor == nullptr)
     {
-        int ret = _get_table_cursor(
-            METADATA, &metadata_cursor, session, false, false);
+        int ret =
+            _get_table_cursor(METADATA, &metadata_cursor, session, false, true);
         if (ret != 0)
         {
             throw GraphException("Could not get a metadata cursor");
@@ -1343,8 +1333,8 @@ WT_CURSOR *EdgeKey::get_edge_cursor()
 {
     if (edge_cursor == nullptr)
     {
-        if (_get_table_cursor(
-                EDGE_TABLE, &edge_cursor, session, false, false) != 0)
+        if (_get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, true) !=
+            0)
         {
             throw GraphException("Could not get a cursor to the Edge table");
         }
@@ -1356,8 +1346,8 @@ WT_CURSOR *EdgeKey::get_edge_cursor()
 WT_CURSOR *EdgeKey::get_new_edge_cursor()
 {
     WT_CURSOR *new_edge_cursor = nullptr;
-    if (_get_table_cursor(
-            EDGE_TABLE, &new_edge_cursor, session, false, false) != 0)
+    if (_get_table_cursor(EDGE_TABLE, &new_edge_cursor, session, false, true) !=
+        0)
     {
         throw GraphException("Could not get a cursor to the Edge table");
     }
