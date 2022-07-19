@@ -458,18 +458,19 @@ class AdjList : public GraphBase
     void init_metadata_cursor();
     node get_next_node(WT_CURSOR *n_cur);
     edge get_next_edge(WT_CURSOR *e_cur);
-    void add_adjlist(WT_CURSOR *cursor, node_id_t node_id);
+    int add_node_without_txn(node to_insert);
+    int add_adjlist(WT_CURSOR *cursor, node_id_t node_id);
     void add_adjlist(WT_CURSOR *cursor,
                      node_id_t node_id,
                      std::vector<node_id_t> &list);
-    void delete_adjlist(WT_CURSOR *cursor, node_id_t node_id);
+    int delete_adjlist(WT_CURSOR *cursor, node_id_t node_id);
     void delete_node_from_adjlists(node_id_t node_id);
-    void add_to_adjlists(WT_CURSOR *cursor,
-                         node_id_t node_id,
-                         node_id_t to_insert);
-    void delete_from_adjlists(WT_CURSOR *cursor,
-                              node_id_t node_id,
-                              node_id_t to_delete);
+    int add_to_adjlists(WT_CURSOR *cursor,
+                        node_id_t node_id,
+                        node_id_t to_insert);
+    int delete_from_adjlists(WT_CURSOR *cursor,
+                             node_id_t node_id,
+                             node_id_t to_delete);
     void delete_related_edges_and_adjlists(node_id_t node_id);
     int update_node_degree(WT_CURSOR *cursor,
                            node_id_t node_id,
@@ -479,9 +480,15 @@ class AdjList : public GraphBase
     void dump_tables();
     void create_indices() { return; }  // here because defined in interface
 
-    void add_one_node_degree(WT_CURSOR *cursor,
-                             node_id_t to_update,
-                             bool is_out_degree);
+    int add_one_node_degree(WT_CURSOR *cursor,
+                            node_id_t to_update,
+                            bool is_out_degree);
+    int remove_one_node_degree(node_id_t to_update, bool is_out_degree);
+
+    int error_check_insert_txn(int return_val);
+    int error_check_update_txn(int return_val);
+    int error_check_read_txn(int return_val);
+    int error_check_remove_txn(int return_val);
 };
 
 /**
