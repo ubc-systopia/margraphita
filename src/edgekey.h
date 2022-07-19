@@ -584,9 +584,10 @@ class EdgeKey : public GraphBase
 
     // internal methods
     WT_CURSOR *get_metadata_cursor();
-    void delete_related_edges(WT_CURSOR *idx_cursor,
-                              WT_CURSOR *edge_cur,
-                              node_id_t node_id);
+    int delete_related_edges(WT_CURSOR *idx_cursor,
+                             WT_CURSOR *edge_cur,
+                             node_id_t node_id,
+                             int *num_edges_to_add);
     int update_node_degree(node_id_t node_id, degree_t indeg, degree_t outdeg);
     int add_node_txn(node to_insert);
     int error_check_add_edge(int ret);

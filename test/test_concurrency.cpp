@@ -39,6 +39,8 @@ int main()
         }
         else
         {
+            node to_add = {i};
+            graph->add_node(to_add);
             // graph->add_edge(edge{.src_id = 1, .dst_id = i - 1 + 100}, false);
             graph->delete_node(1);
         }

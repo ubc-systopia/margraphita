@@ -145,6 +145,9 @@ void EdgeKey::add_node(node to_insert)
 {
     WT_CURSOR *edge_cursor = get_edge_cursor();
 
+start_add_node:
+    session->begin_transaction(session, "isolation=snapshot");
+
     edge_cursor->set_key(edge_cursor, to_insert.id, OutOfBand_ID);
     if (opts.read_optimize)
     {
@@ -160,17 +163,22 @@ void EdgeKey::add_node(node to_insert)
     switch (edge_cursor->insert(edge_cursor))
     {
         case 0:
-            add_to_nnodes(1);
             break;
-
+        case WT_ROLLBACK:
+            session->rollback_transaction(session, NULL);
+            goto start_add_node;
         case WT_DUPLICATE_KEY:
-            break;
-
+            session->rollback_transaction(session, NULL);
+            return;
         default:
+            session->rollback_transaction(session, NULL);
             throw GraphException("Failed to insert a node with ID " +
                                  std::to_string(to_insert.id) +
                                  " into the edge table");
     }
+
+    session->commit_transaction(session, NULL);
+    add_to_nnodes(1);
 }
 
 int EdgeKey::add_node_txn(node to_insert)
@@ -231,82 +239,106 @@ bool EdgeKey::has_edge(node_id_t src_id, node_id_t dst_id)
 
 void EdgeKey::delete_node(node_id_t node_id)  // TODO
 {
+    int num_nodes_to_add = 0;
+    int num_edges_to_add = 0;
+    int ret = 0;
+
     WT_CURSOR *e_cur = get_edge_cursor();
     WT_CURSOR *src_cur = get_src_idx_cursor();
     WT_CURSOR *dst_cur = get_dst_idx_cursor();
 
-retry_delete:
+start_delete_node:
+
+    num_nodes_to_add = 0;
+    num_edges_to_add = 0;
+    ret = 0;
+
     session->begin_transaction(session, "isolation=snapshot");
 
     e_cur->set_key(e_cur, node_id, OutOfBand_ID);
 
-    switch (e_cur->remove(e_cur))
+    ret = e_cur->remove(e_cur);
+
+    switch (ret)
     {
         case 0:
-            session->commit_transaction(session, NULL);
+            num_nodes_to_add -= 1;
             break;
         case WT_ROLLBACK:
             session->rollback_transaction(session, NULL);
-            goto retry_delete;
+            goto start_delete_node;
             break;
         case WT_NOTFOUND:
             return;
         default:
             session->rollback_transaction(session, NULL);
-            throw GraphException("Failed to remove node with id " +
-                                 std::to_string(node_id) +
-                                 " from the edge table");
+            throw GraphException(
+                "Failed to remove node with id " + std::to_string(node_id) +
+                " from the edge table" + wiredtiger_strerror(ret));
     }
 
-    // ONLY ONE THREAD CAN REACH THIS POINT
+    ret = delete_related_edges(src_cur, e_cur, node_id, &num_edges_to_add);
 
-    add_to_nnodes(-1);
+    if (ret == 1)
+    {
+        goto start_delete_node;
+    }
 
-    delete_related_edges(src_cur, e_cur, node_id);
-    delete_related_edges(dst_cur, e_cur, node_id);
+    ret = delete_related_edges(dst_cur, e_cur, node_id, &num_edges_to_add);
+
+    if (ret == 1)
+    {
+        goto start_delete_node;
+    }
+
+    session->commit_transaction(session, NULL);
+    add_to_nedges(num_edges_to_add);
+    add_to_nnodes(num_nodes_to_add);
 }
 
-void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
-                                   WT_CURSOR *e_cur,
-                                   node_id_t node_id)  // TODO
+// Caller should continue on return value = 0 and retry on return value = 1
+int EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
+                                  WT_CURSOR *e_cur,
+                                  node_id_t node_id,
+                                  int *num_edges_to_add)  // TODO
 {
     int ret = 0;
     e_cur->reset(e_cur);
     node_id_t src, dst;
 
+    idx_cur->set_key(idx_cur, node_id);
+    if (idx_cur->search(idx_cur) != 0)
+    {
+        return 0;
+    }
+
     do
     {
-    retry_delete_edge:
-        session->begin_transaction(session, "isolation=snapshot");
-        idx_cur->set_key(idx_cur, node_id);
-        if (idx_cur->search(idx_cur) != 0)
-        {
-            return;
-        }
         idx_cur->get_value(idx_cur, &src, &dst);
         e_cur->set_key(e_cur, src, dst);
-        switch (e_cur->remove(e_cur))
+
+        ret = e_cur->remove(e_cur);
+        switch (ret)
         {
             case 0:
-                if (!opts.read_optimize)
-                {
-                    session->commit_transaction(session, NULL);
-                }
+                *num_edges_to_add -= 1;
                 break;
             case WT_ROLLBACK:
-            case WT_NOTFOUND:
                 session->rollback_transaction(session, NULL);
-                goto retry_delete_edge;
+                return 1;
                 break;
-
+            case WT_NOTFOUND:
+            // WT_NOTFOUND should not occur
             default:
                 throw GraphException("Failed to remove edge between " +
-                                     to_string(src) + " and " + to_string(dst));
+                                     to_string(src) + " and " + to_string(dst) +
+                                     wiredtiger_strerror(ret));
         }
         // if readoptimize: Get the node to decrement in/out degree
         if (opts.read_optimize)
         {
             node temp;
+
             if (src != node_id)
             {
                 temp = get_node(src);
@@ -317,18 +349,17 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
                 temp = get_node(dst);
                 temp.in_degree--;
             }
-            int ret =
-                update_node_degree(temp.id, temp.in_degree, temp.out_degree);
+
+            ret = update_node_degree(temp.id, temp.in_degree, temp.out_degree);
             switch (ret)
             {
                 case 0:
-                    session->commit_transaction(session, NULL);
                     break;
                 case WT_ROLLBACK:
-                case WT_NOTFOUND:
                     session->rollback_transaction(session, NULL);
-                    goto retry_delete_edge;
-                    break;
+                    return 1;
+                case WT_NOTFOUND:
+                    // WT_NOTFOUND should not occur
                 default:
                     session->rollback_transaction(session, NULL);
                     throw GraphException("Could not update the node with ID" +
@@ -336,9 +367,11 @@ void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
                                          wiredtiger_strerror(ret));
             }
         }
-        add_to_nedges(-1);
-    } while (idx_cur->next(idx_cur) == 0 &&
-             idx_cur->get_key(idx_cur) == node_id);
+
+        idx_cur->set_key(idx_cur, node_id);
+    } while (idx_cur->search(idx_cur) == 0);
+
+    return 0;
 }
 
 /**
@@ -563,55 +596,65 @@ start_add_edge:
  */
 void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
 {
-    // delete edge
+    int num_edges_to_add = 0;
+    int ret = 0;
+start_delete_edge:
+    num_edges_to_add = 0;
+    ret = 0;
+    session->begin_transaction(session, "isolation=snapshot");
+
     WT_CURSOR *e_cur = get_edge_cursor();
+
     e_cur->set_key(e_cur, src_id, dst_id);
-    if (e_cur->remove(e_cur) != 0)
+
+    ret = e_cur->remove(e_cur);
+
+    switch (ret)
     {
-        throw GraphException("Failed to delete the edge between " +
-                             std::to_string(src_id) + " and " +
-                             std::to_string(dst_id));
+        case 0:
+            num_edges_to_add -= 1;
+            break;
+        case WT_ROLLBACK:
+            session->rollback_transaction(session, NULL);
+            goto start_delete_edge;
+        case WT_NOTFOUND:
+            return;
+        default:
+            session->rollback_transaction(session, NULL);
+            throw GraphException(
+                "Failed to delete the edge between " + std::to_string(src_id) +
+                " and " + std::to_string(dst_id) + wiredtiger_strerror(ret));
     }
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_edge_num_lock());
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
-        omp_unset_lock(locks->get_edge_num_lock());
-    }
-    else
-    {
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
-    }
+
     // delete reverse edge
     if (!opts.is_directed)
     {
         e_cur->set_key(e_cur, dst_id, src_id);
-        if (e_cur->remove(e_cur) != 0)
+
+        ret = e_cur->remove(e_cur);
+
+        switch (ret)
         {
-            throw GraphException("Failed to remove the reverse  edge between " +
-                                 std::to_string(src_id) + " and " +
-                                 to_string(dst_id));
-        }
-        if (locks != nullptr)
-        {
-            omp_set_lock(locks->get_edge_num_lock());
-            set_num_edges(get_num_edges() - 1, metadata_cursor);
-            omp_unset_lock(locks->get_edge_num_lock());
-        }
-        else
-        {
-            set_num_edges(get_num_edges() - 1, metadata_cursor);
+            case 0:
+                num_edges_to_add -= 1;
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, NULL);
+                goto start_delete_edge;
+            case WT_NOTFOUND:
+                return;
+            default:
+                session->rollback_transaction(session, NULL);
+                throw GraphException(
+                    "Failed to delete the reverse edge between " +
+                    std::to_string(src_id) + " and " + std::to_string(dst_id) +
+                    wiredtiger_strerror(ret));
         }
     }
 
     // update node degrees
     if (opts.read_optimize)
     {
-        if (locks != nullptr)
-        {
-            omp_set_lock(locks->get_node_degree_lock());
-        }
-
         node src = get_node(src_id);
 
         if (src.out_degree > 0)
@@ -623,9 +666,27 @@ void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
         {
             src.in_degree--;
         }
-        update_node_degree(src.id, src.in_degree, src.out_degree);
+
+        ret = update_node_degree(src.id, src.in_degree, src.out_degree);
+
+        switch (ret)
+        {
+            case 0:
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, NULL);
+                goto start_delete_edge;
+            case WT_NOTFOUND:
+            // WT_NOTFOUND should not occur
+            default:
+                session->rollback_transaction(session, NULL);
+                throw GraphException("Could not update the node with ID" +
+                                     std::to_string(src.id) +
+                                     wiredtiger_strerror(ret));
+        }
 
         node dst = get_node(dst_id);
+
         if (dst.in_degree > 0)
         {
             dst.in_degree--;
@@ -634,13 +695,28 @@ void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
         {
             dst.out_degree--;
         }
-        update_node_degree(dst_id, dst.in_degree, dst.out_degree);
 
-        if (locks != nullptr)
+        ret = update_node_degree(dst_id, dst.in_degree, dst.out_degree);
+
+        switch (ret)
         {
-            omp_unset_lock(locks->get_node_degree_lock());
+            case 0:
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, NULL);
+                goto start_delete_edge;
+            case WT_NOTFOUND:
+            // WT_NOTFOUND should not occur
+            default:
+                session->rollback_transaction(session, NULL);
+                throw GraphException("Could not update the node with ID" +
+                                     std::to_string(src.id) +
+                                     wiredtiger_strerror(ret));
         }
     }
+
+    session->commit_transaction(session, NULL);
+    add_to_nedges(num_edges_to_add);
 }
 
 /**
