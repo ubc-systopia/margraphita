@@ -534,7 +534,7 @@ class EdgeKey : public GraphBase
     EdgeKey(graph_opts &opt_params,
             WT_CONNECTION *conn);  // TODO: merge the 2 constructors
     static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
-    void add_node(node to_insert);
+    int add_node(node to_insert);
 
     bool has_node(node_id_t node_id);
     node get_node(node_id_t node_id);
@@ -543,7 +543,7 @@ class EdgeKey : public GraphBase
     degree_t get_in_degree(node_id_t node_id);
     degree_t get_out_degree(node_id_t node_id);
     std::vector<node> get_nodes();
-    void add_edge(edge to_insert, bool is_bulk);
+    int add_edge(edge to_insert, bool is_bulk);
     bool has_edge(node_id_t src_id, node_id_t dst_id);
     void delete_edge(node_id_t src_id, node_id_t dst_id);
     edge get_edge(node_id_t src_id, node_id_t dst_id);

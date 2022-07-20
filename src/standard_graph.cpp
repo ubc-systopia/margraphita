@@ -189,7 +189,7 @@ void StandardGraph::drop_indices()
  *
  * @param to_insert
  */
-void StandardGraph::add_node(node to_insert)
+int StandardGraph::add_node(node to_insert)
 {
     int ret = 0;
     if (node_cursor == NULL)
@@ -227,6 +227,7 @@ void StandardGraph::add_node(node to_insert)
     {
         set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
     }
+    return ret;
 }
 
 /**
@@ -571,7 +572,7 @@ void StandardGraph::get_nodes(vector<node> &nodes)
  *
  * @param to_insert The edge struct containing the edge to be inserted.
  */
-void StandardGraph::add_edge(edge to_insert, bool is_bulk)
+int StandardGraph::add_edge(edge to_insert, bool is_bulk)
 {
     WT_CURSOR *e_cursor, *n_cursor;
     if (!is_bulk)
@@ -678,6 +679,7 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
             }
         }
     }
+    return 0;
 }
 
 void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)

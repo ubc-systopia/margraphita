@@ -393,7 +393,7 @@ class AdjList : public GraphBase
             WT_CONNECTION *connection);  // TODO: merge the 2 constructors
     static void create_wt_tables(
         graph_opts &opts, WT_CONNECTION *conn);  // Need this to init graph db
-    void add_node(node to_insert);
+    int add_node(node to_insert);
     void add_node(node_id_t to_insert,
                   std::vector<node_id_t> &inlist,
                   std::vector<node_id_t> &outlist);
@@ -405,7 +405,7 @@ class AdjList : public GraphBase
     degree_t get_out_degree(node_id_t node_id);
     std::vector<node> get_nodes();
 
-    void add_edge(edge to_insert, bool is_bulk);
+    int add_edge(edge to_insert, bool is_bulk);
     bool has_edge(node_id_t src_id, node_id_t dst_id);
     void delete_edge(node_id_t src_id, node_id_t dst_id);
     edge get_edge(node_id_t src_id, node_id_t dst_id);

@@ -141,14 +141,14 @@ node EdgeKey::get_random_node()
  *
  * @param to_insert the node to be inserted into the edge table
  */
-void EdgeKey::add_node(node to_insert)
+int EdgeKey::add_node(node to_insert)
 {
 retry_add_node:
     session->begin_transaction(session, "isolation=snapshot");
     if (has_node(to_insert.id))
     {
         session->rollback_transaction(session, NULL);
-        return;
+        return WT_DUPLICATE_KEY;
     }
 
     WT_CURSOR *edge_cursor = get_edge_cursor();
@@ -184,6 +184,7 @@ retry_add_node:
                                      std::to_string(to_insert.id) +
                                      " into the edge table");
     }
+    return 0;
 }
 
 /**
@@ -375,7 +376,7 @@ int EdgeKey::update_node_degree(node_id_t node_id,
  *
  * @param to_insert the edge struct containing info about the edge to insert.
  */
-void EdgeKey::add_edge(edge to_insert, bool is_bulk)
+int EdgeKey::add_edge(edge to_insert, bool is_bulk)
 {
     if (!is_bulk)
     {
@@ -522,6 +523,7 @@ start:
             }
         }
     }
+    return 0;
 }
 
 /**
