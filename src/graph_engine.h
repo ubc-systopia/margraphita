@@ -24,6 +24,7 @@ class GraphEngine
     ~GraphEngine();
     GraphBase* create_graph_handle();
     void close_graph();
+    WT_CONNECTION* get_connection();
 
    protected:
     WT_CONNECTION* conn = nullptr;
@@ -35,7 +36,6 @@ class GraphEngine
     void create_new_graph();
     void open_connection();
     void close_connection();
-    WT_CONNECTION* get_connection();
 };
 
 #endif
