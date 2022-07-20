@@ -257,16 +257,7 @@ void AdjList::add_node(node_id_t to_insert,
 
     init_metadata_cursor();
 
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_num_lock());
-        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-        omp_unset_lock(locks->get_node_num_lock());
-    }
-    else
-    {
-        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-    }
+    add_to_nnodes(1);
 }
 
 /**
@@ -388,16 +379,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
                              to_string(to_insert.dst_id));
     }
 
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_edge_num_lock());
-        set_num_edges(get_num_edges() + 1, metadata_cursor);
-        omp_unset_lock(locks->get_edge_num_lock());
-    }
-    else
-    {
-        set_num_edges(get_num_edges() + 1, metadata_cursor);
-    }
+    add_to_nedges(1);
 
     // insert the reverse edge if undirected
     if (!opts.is_directed)
@@ -411,16 +393,7 @@ void AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         {
             cursor->set_value(cursor, 0);
         }
-        if (locks != nullptr)
-        {
-            omp_set_lock(locks->get_edge_num_lock());
-            set_num_edges(get_num_edges() + 1, metadata_cursor);
-            omp_unset_lock(locks->get_edge_num_lock());
-        }
-        else
-        {
-            set_num_edges(get_num_edges() + 1, metadata_cursor);
-        }
+        add_to_nedges(1);
         cursor->reset(cursor);
     }
     if (is_bulk_insert)
@@ -496,16 +469,7 @@ void AdjList::delete_node(node_id_t node_id)
         throw GraphException("failed to delete node with ID " +
                              std::to_string(node_id));
     }
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_num_lock());
-        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
-        omp_unset_lock(locks->get_node_num_lock());
-    }
-    else
-    {
-        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
-    }
+    add_to_nnodes(-1);
     // cursor->close(cursor);
 
     // delete IN_ADJLIST entries
@@ -983,16 +947,7 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
                              std::to_string(dst_id) + ")");
     }
 
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_edge_num_lock());
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
-        omp_unset_lock(locks->get_edge_num_lock());
-    }
-    else
-    {
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
-    }
+    add_to_nedges(-1);
     // delete (dst_id, src_id) from edge table if undirected
     if (!opts.is_directed)
     {
@@ -1003,16 +958,7 @@ void AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
                                  std::to_string(dst_id) + ", " +
                                  std::to_string(src_id) + ")");
         }
-        if (locks != nullptr)
-        {
-            omp_set_lock(locks->get_edge_num_lock());
-            set_num_edges(get_num_edges() - 1, metadata_cursor);
-            omp_unset_lock(locks->get_edge_num_lock());
-        }
-        else
-        {
-            set_num_edges(get_num_edges() - 1, metadata_cursor);
-        }
+        add_to_nedges(-1);
     }
     out_adjlist_cursor->reset(out_adjlist_cursor);
     in_adjlist_cursor->reset(in_adjlist_cursor);
