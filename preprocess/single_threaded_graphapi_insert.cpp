@@ -13,6 +13,7 @@
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
 
@@ -231,7 +232,13 @@ int main(int argc, char **argv)
 
         opts.stat_log = log_dir + "/std/s" + std::to_string(i);
         // cout << "std " << opts.db_name << " " << opts.stat_log << endl;
-        StandardGraph graph1 = StandardGraph(opts);
+
+        GraphEngine::graph_engine_opts engine_opts{.num_threads = 1,
+                                                   .opts = opts};
+        GraphEngine myEngine(engine_opts);
+        WT_CONNECTION *conn = myEngine.get_connection();
+
+        StandardGraph graph1 = StandardGraph(opts, conn);
         info->std_insert = create_init_nodes(graph1, filename);
         auto start = std::chrono::steady_clock::now();
         graph1.make_indexes();
@@ -245,7 +252,8 @@ int main(int argc, char **argv)
         opts.db_name = db_name + "_adj";
         opts.stat_log = log_dir + "/adj/s" + std::to_string(i);
         // cout << "adj " << opts.db_name << " " << opts.stat_log << endl;
-        AdjList graph2 = AdjList(opts);
+
+        AdjList graph2 = AdjList(opts, conn);
         info->adj_insert = insert_adj(graph2, filename);
         tearDown(graph2);
         print_csv_info(log_dir, "s" + std::to_string(i), info);
@@ -253,7 +261,8 @@ int main(int argc, char **argv)
         opts.db_name = db_name + "_ekey";
         opts.stat_log = log_dir + "/ekey/s" + std::to_string(i);
         // cout << "ekey " << opts.db_name << " " << opts.stat_log << endl;
-        EdgeKey graph3 = EdgeKey(opts);
+
+        EdgeKey graph3 = EdgeKey(opts, conn);
         info->ekey_insert = create_init_nodes(graph3, filename);
         tearDown(graph3);
         start = std::chrono::steady_clock::now();

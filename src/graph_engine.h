@@ -28,6 +28,7 @@ class GraphEngine
     void close_graph();
     edge_range get_edge_range(int thread_id);
     key_range get_key_range(int thread_id);
+    WT_CONNECTION* get_connection();
 
    protected:
     WT_CONNECTION* conn = nullptr;
@@ -47,7 +48,6 @@ class GraphEngine
                                   std::vector<key_range>& node_ranges,
                                   std::vector<edge_range>& edge_offsets,
                                   GraphType type);
-    WT_CONNECTION* get_connection();
 };
 
 #endif

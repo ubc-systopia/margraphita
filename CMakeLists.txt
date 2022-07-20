@@ -39,16 +39,19 @@ ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 find_package(Threads) # To include pthreads
 find_package(Git QUIET)
 
+MESSAGE("${PROJECT_SOURCE_DIR}/libs/wiredtiger/build/wt")
 if(NOT EXISTS "${PROJECT_SOURCE_DIR}/libs/wiredtiger/build/wt")
-  include(ExternalProject)
-  ExternalProject_Add(wiredtiger
-    GIT_REPOSITORY https://github.com/wiredtiger/wiredtiger
-    GIT_TAG 11.0.0
-    DOWNLOAD_DIR "${PROJECT_SOURCE_DIR}/libs/wiredtiger"
-    BINARY_DIR "${PROJECT_SOURCE_DIR}/libs/wiredtiger/build"
-    INSTALL_COMMAND ""
-    TEST_COMMAND ""
-  )
+    MESSAGE("${PROJECT_SOURCE_DIR}/libs/wiredtiger/build/wt")
+    include(ExternalProject)
+    ExternalProject_Add(wiredtiger
+        BUILD_ALWAYS false
+        GIT_REPOSITORY https://github.com/wiredtiger/wiredtiger
+        GIT_TAG 11.0.0
+        DOWNLOAD_DIR "${PROJECT_SOURCE_DIR}/libs/wiredtiger"
+        BINARY_DIR "${PROJECT_SOURCE_DIR}/libs/wiredtiger/build"
+        INSTALL_COMMAND ""
+        TEST_COMMAND ""
+    )
 endif()
 
 # ######################################################
