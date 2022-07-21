@@ -141,8 +141,16 @@ node EdgeKey::get_random_node()
  *
  * @param to_insert the node to be inserted into the edge table
  */
-void EdgeKey::add_node(node to_insert)
+int EdgeKey::add_node(node to_insert)
 {
+retry_add_node:
+    session->begin_transaction(session, "isolation=snapshot");
+    if (has_node(to_insert.id))
+    {
+        session->rollback_transaction(session, NULL);
+        return WT_DUPLICATE_KEY;
+    }
+
     WT_CURSOR *edge_cursor = get_edge_cursor();
 
 start_add_node:
@@ -169,16 +177,16 @@ start_add_node:
             goto start_add_node;
         case WT_DUPLICATE_KEY:
             session->rollback_transaction(session, NULL);
-            return;
+            return WT_DUPLICATE_KEY;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException("Failed to insert a node with ID " +
                                  std::to_string(to_insert.id) +
                                  " into the edge table");
     }
-
     session->commit_transaction(session, NULL);
     add_to_nnodes(1);
+    return 0;
 }
 
 int EdgeKey::add_node_txn(node to_insert)
@@ -237,7 +245,7 @@ bool EdgeKey::has_edge(node_id_t src_id, node_id_t dst_id)
     return found;
 }
 
-void EdgeKey::delete_node(node_id_t node_id)  // TODO
+int EdgeKey::delete_node(node_id_t node_id)  // TODO
 {
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
@@ -269,7 +277,7 @@ start_delete_node:
             goto start_delete_node;
             break;
         case WT_NOTFOUND:
-            return;
+            return WT_NOTFOUND;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException(
@@ -290,10 +298,10 @@ start_delete_node:
     {
         goto start_delete_node;
     }
-
     session->commit_transaction(session, NULL);
     add_to_nedges(num_edges_to_add);
     add_to_nnodes(num_nodes_to_add);
+    return 0;
 }
 
 // Caller should continue on return value = 0 and retry on return value = 1
@@ -416,7 +424,7 @@ int EdgeKey::error_check_add_edge(int ret)
  * @param to_insert the edge struct containing info about the edge to
  * insert.
  */
-void EdgeKey::add_edge(edge to_insert, bool is_bulk)
+int EdgeKey::add_edge(edge to_insert, bool is_bulk)
 {
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
@@ -478,7 +486,7 @@ start_add_edge:
             goto start_add_edge;
         case WT_DUPLICATE_KEY:
             session->rollback_transaction(session, NULL);
-            return;
+            return WT_DUPLICATE_KEY;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException("Failed to insert edge between " +
@@ -513,7 +521,7 @@ start_add_edge:
                 goto start_add_edge;
             case WT_DUPLICATE_KEY:
                 session->rollback_transaction(session, NULL);
-                return;
+                return WT_DUPLICATE_KEY;
             default:
                 session->rollback_transaction(session, NULL);
                 throw GraphException(
@@ -586,6 +594,7 @@ start_add_edge:
     session->commit_transaction(session, NULL);
     add_to_nedges(num_edges_to_add);
     add_to_nnodes(num_nodes_to_add);
+    return 0;
 }
 
 /**
@@ -594,7 +603,7 @@ start_add_edge:
  * @param src_id Source node ID for the edge to be deleted
  * @param dst_id Dst node ID for the edge to be deleted
  */
-void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
+int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
 {
     int num_edges_to_add = 0;
     int ret = 0;
@@ -618,7 +627,7 @@ start_delete_edge:
             session->rollback_transaction(session, NULL);
             goto start_delete_edge;
         case WT_NOTFOUND:
-            return;
+            return WT_NOTFOUND;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException(
@@ -642,7 +651,7 @@ start_delete_edge:
                 session->rollback_transaction(session, NULL);
                 goto start_delete_edge;
             case WT_NOTFOUND:
-                return;
+                return WT_NOTFOUND;
             default:
                 session->rollback_transaction(session, NULL);
                 throw GraphException(
@@ -714,9 +723,9 @@ start_delete_edge:
                                      wiredtiger_strerror(ret));
         }
     }
-
     session->commit_transaction(session, NULL);
     add_to_nedges(num_edges_to_add);
+    return 0;
 }
 
 /**

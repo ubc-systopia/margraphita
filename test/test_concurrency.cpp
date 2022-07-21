@@ -7,7 +7,7 @@
 #include "graph_exception.h"
 #include "sample_graph.h"
 
-#define THREAD_NUM 64
+#define THREAD_NUM 32
 using namespace std;
 
 int main()
@@ -16,12 +16,12 @@ int main()
     graph_opts opts;
     opts.create_new = true;
     opts.optimize_create = false;
-    opts.is_directed = false;
+    opts.is_directed = true;
     opts.read_optimize = true;
     opts.is_weighted = true;
     opts.db_dir = "./db";
-    opts.db_name = "test_ekey";
-    opts.type = GraphType::EKey;
+    opts.db_name = "test_adj";
+    opts.type = GraphType::Adj;
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
@@ -32,17 +32,37 @@ int main()
     for (int i = 0; i < THREAD_NUM; i++)
     {
         GraphBase* graph = myEngine.create_graph_handle();
+        int ret = -1;
         if (i % 2 == 0)
         {
-            // graph->add_node(node{.id = i + 100});
-            graph->add_edge(edge{.src_id = i, .dst_id = 1}, false);
+            graph->add_node(node{.id = i + 100});
+            // graph->add_edge(edge{.src_id = i, .dst_id = 1}, false);
         }
         else
         {
-            node to_add = {i};
-            graph->add_node(to_add);
-            // graph->add_edge(edge{.src_id = 1, .dst_id = i - 1 + 100}, false);
-            graph->delete_node(1);
+            while (ret != 0)
+            {
+                ret = graph->add_edge(edge{.src_id = 1, .dst_id = i - 1 + 100},
+                                      false);
+            }
+        }
+        graph->close();
+    }
+
+#pragma omp parallel for
+    for (int i = 0; i < THREAD_NUM; i++)
+    {
+        GraphBase* graph = myEngine.create_graph_handle();
+        int ret = -1;
+        if (i % 2 == 0)
+        {
+        }
+        else
+        {
+            while (ret != 0)
+            {
+                ret = graph->delete_edge(1, i - 1 + 100);
+            }
         }
         graph->close();
     }
@@ -64,6 +84,4 @@ int main()
         CommonUtil::dump_edge(j);
     }
     myEngine.close_graph();
-    cout << "END"
-         << "\n \n";
 }
