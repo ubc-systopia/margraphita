@@ -261,16 +261,7 @@ void AdjList::add_node(node_id_t to_insert,
 
     init_metadata_cursor();
 
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_num_lock());
-        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-        omp_unset_lock(locks->get_node_num_lock());
-    }
-    else
-    {
-        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-    }
+    add_to_nnodes(1);
 }
 
 /**

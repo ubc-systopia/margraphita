@@ -36,6 +36,7 @@ int main()
         if (i % 2 == 0)
         {
             graph->add_node(node{.id = i + 100});
+            // graph->add_edge(edge{.src_id = i, .dst_id = 1}, false);
         }
         else
         {
@@ -70,6 +71,17 @@ int main()
     cout << "No. of nodes: " << report->get_num_nodes() << '\n';
     cout << "No. of edges: " << report->get_num_edges() << '\n';
     cout << "No. of outdeg from 1: " << report->get_out_degree(1) << '\n';
-
+    std::vector<node> nodes = report->get_nodes();
+    cout << "NODES: \n";
+    for (auto i : nodes)
+    {
+        CommonUtil::dump_node(i);
+    }
+    std::vector<edge> edges = report->get_edges();
+    cout << "EDGES: \n";
+    for (auto j : edges)
+    {
+        CommonUtil::dump_edge(j);
+    }
     myEngine.close_graph();
 }
