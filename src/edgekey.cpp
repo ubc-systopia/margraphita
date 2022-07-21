@@ -229,7 +229,7 @@ bool EdgeKey::has_edge(node_id_t src_id, node_id_t dst_id)
     return found;
 }
 
-void EdgeKey::delete_node(node_id_t node_id)  // TODO
+int EdgeKey::delete_node(node_id_t node_id)  // TODO
 {
     WT_CURSOR *e_cur = get_edge_cursor();
     WT_CURSOR *src_cur = get_src_idx_cursor();
@@ -257,6 +257,7 @@ void EdgeKey::delete_node(node_id_t node_id)  // TODO
     {
         set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
     }
+    return 0;
 }
 
 void EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
@@ -532,7 +533,7 @@ start:
  * @param src_id Source node ID for the edge to be deleted
  * @param dst_id Dst node ID for the edge to be deleted
  */
-void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
+int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
 {
     // delete edge
     WT_CURSOR *e_cur = get_edge_cursor();
@@ -612,6 +613,7 @@ void EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
             omp_unset_lock(locks->get_node_degree_lock());
         }
     }
+    return 0;
 }
 
 /**

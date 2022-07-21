@@ -7,7 +7,7 @@
 #include "graph_exception.h"
 #include "sample_graph.h"
 
-#define THREAD_NUM 64
+#define THREAD_NUM 32
 using namespace std;
 
 int main()
@@ -43,6 +43,24 @@ int main()
             {
                 ret = graph->add_edge(edge{.src_id = 1, .dst_id = i - 1 + 100},
                                       false);
+            }
+        }
+        graph->close();
+    }
+
+#pragma omp parallel for
+    for (int i = 0; i < THREAD_NUM; i++)
+    {
+        GraphBase* graph = myEngine.create_graph_handle();
+        int ret = -1;
+        if (i % 2 == 0)
+        {
+        }
+        else
+        {
+            while (ret != 0)
+            {
+                ret = graph->delete_edge(1, i - 1 + 100);
             }
         }
         graph->close();

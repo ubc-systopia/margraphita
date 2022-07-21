@@ -399,7 +399,7 @@ class AdjList : public GraphBase
                   std::vector<node_id_t> &outlist);
     bool has_node(node_id_t node_id);
     node get_node(node_id_t node_id);
-    void delete_node(node_id_t node_id);
+    int delete_node(node_id_t node_id);
     node get_random_node();
     degree_t get_in_degree(node_id_t node_id);
     degree_t get_out_degree(node_id_t node_id);
@@ -407,7 +407,7 @@ class AdjList : public GraphBase
 
     int add_edge(edge to_insert, bool is_bulk);
     bool has_edge(node_id_t src_id, node_id_t dst_id);
-    void delete_edge(node_id_t src_id, node_id_t dst_id);
+    int delete_edge(node_id_t src_id, node_id_t dst_id);
     edge get_edge(node_id_t src_id, node_id_t dst_id);
     std::vector<edge> get_edges();
     std::vector<edge> get_out_edges(node_id_t node_id);
@@ -458,7 +458,6 @@ class AdjList : public GraphBase
     void init_metadata_cursor();
     node get_next_node(WT_CURSOR *n_cur);
     edge get_next_edge(WT_CURSOR *e_cur);
-    int add_node_without_txn(node to_insert);
     int add_adjlist(WT_CURSOR *cursor, node_id_t node_id);
     void add_adjlist(WT_CURSOR *cursor,
                      node_id_t node_id,

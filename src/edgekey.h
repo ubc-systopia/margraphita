@@ -538,14 +538,14 @@ class EdgeKey : public GraphBase
 
     bool has_node(node_id_t node_id);
     node get_node(node_id_t node_id);
-    void delete_node(node_id_t node_id);
+    int delete_node(node_id_t node_id);
     node get_random_node();
     degree_t get_in_degree(node_id_t node_id);
     degree_t get_out_degree(node_id_t node_id);
     std::vector<node> get_nodes();
     int add_edge(edge to_insert, bool is_bulk);
     bool has_edge(node_id_t src_id, node_id_t dst_id);
-    void delete_edge(node_id_t src_id, node_id_t dst_id);
+    int delete_edge(node_id_t src_id, node_id_t dst_id);
     edge get_edge(node_id_t src_id, node_id_t dst_id);
     std::vector<edge> get_edges();
     std::vector<edge> get_out_edges(node_id_t node_id);
