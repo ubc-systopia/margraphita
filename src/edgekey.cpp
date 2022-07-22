@@ -143,14 +143,6 @@ node EdgeKey::get_random_node()
  */
 int EdgeKey::add_node(node to_insert)
 {
-retry_add_node:
-    session->begin_transaction(session, "isolation=snapshot");
-    if (has_node(to_insert.id))
-    {
-        session->rollback_transaction(session, NULL);
-        return WT_DUPLICATE_KEY;
-    }
-
     WT_CURSOR *edge_cursor = get_edge_cursor();
 
 start_add_node:
@@ -344,6 +336,7 @@ int EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
             case WT_NOTFOUND:
             // WT_NOTFOUND should not occur
             default:
+                session->rollback_transaction(session, NULL);
                 throw GraphException("Failed to remove edge between " +
                                      to_string(src) + " and " + to_string(dst) +
                                      wiredtiger_strerror(ret));
