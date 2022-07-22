@@ -189,7 +189,7 @@ void StandardGraph::drop_indices()
  *
  * @param to_insert
  */
-void StandardGraph::add_node(node to_insert)
+int StandardGraph::add_node(node to_insert)
 {
     int ret = 0;
     if (node_cursor == NULL)
@@ -227,6 +227,7 @@ void StandardGraph::add_node(node to_insert)
     {
         set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
     }
+    return ret;
 }
 
 /**
@@ -375,7 +376,7 @@ node StandardGraph::get_random_node()
  */
 //! read again
 // TODO(puneet):
-void StandardGraph::delete_node(node_id_t node_id)
+int StandardGraph::delete_node(node_id_t node_id)
 {
     int ret = 0;
 
@@ -421,6 +422,7 @@ void StandardGraph::delete_node(node_id_t node_id)
     {
         set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
     }
+    return 0;
 }
 
 degree_t StandardGraph::get_in_degree(node_id_t node_id)
@@ -571,7 +573,7 @@ void StandardGraph::get_nodes(vector<node> &nodes)
  *
  * @param to_insert The edge struct containing the edge to be inserted.
  */
-void StandardGraph::add_edge(edge to_insert, bool is_bulk)
+int StandardGraph::add_edge(edge to_insert, bool is_bulk)
 {
     WT_CURSOR *e_cursor, *n_cursor;
     if (!is_bulk)
@@ -678,16 +680,17 @@ void StandardGraph::add_edge(edge to_insert, bool is_bulk)
             }
         }
     }
+    return 0;
 }
 
-void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
+int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
     node n_found;
     WT_CURSOR *e_cursor, *n_cursor;
     int ret;
     if (!has_edge(src_id, dst_id))
     {
-        return;
+        return WT_DUPLICATE_KEY;
     }
     e_cursor = get_edge_cursor();
 
@@ -711,7 +714,7 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
     {
         if (!has_edge(dst_id, src_id))
         {
-            return;
+            return WT_DUPLICATE_KEY;
         }
         e_cursor->set_key(e_cursor, dst_id, src_id);
         ret = e_cursor->remove(e_cursor);
@@ -798,6 +801,7 @@ void StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
     {
         omp_unset_lock(locks->get_node_degree_lock());
     }
+    return 0;
 }
 
 void StandardGraph::update_node_degree(WT_CURSOR *cursor,

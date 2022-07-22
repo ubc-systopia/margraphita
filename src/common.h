@@ -369,16 +369,16 @@ class CommonUtil
      * @param node_id The Node ID to be updated
      * @param new_attrs The new node attribute vector.
      */
-    inline static void __node_to_record(WT_CURSOR *cursor,
-                                        node to_insert,
-                                        bool read_optimize)
+    inline static int __node_to_record(WT_CURSOR *cursor,
+                                       node to_insert,
+                                       bool read_optimize)
     {
         // cursor cannot be null
+        int ret;
         cursor->set_key(cursor, to_insert.id);
-        if (cursor->search(cursor) != 0)
+        if ((ret = cursor->search(cursor)) != 0)
         {
-            throw GraphException("Failed to find a node with node_id " +
-                                 std::to_string(to_insert.id));
+            return ret;
         }
         if (read_optimize)
         {
@@ -389,11 +389,7 @@ class CommonUtil
         {
             cursor->set_value(cursor, "");
         }
-        if (cursor->update(cursor) != 0)
-        {
-            throw GraphException("Failed to update node_id " +
-                                 std::to_string(to_insert.id));
-        }
+        return cursor->update(cursor);
     }
 
     /**

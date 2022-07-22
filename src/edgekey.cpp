@@ -143,6 +143,14 @@ node EdgeKey::get_random_node()
  */
 int EdgeKey::add_node(node to_insert)
 {
+retry_add_node:
+    session->begin_transaction(session, "isolation=snapshot");
+    if (has_node(to_insert.id))
+    {
+        session->rollback_transaction(session, NULL);
+        return WT_DUPLICATE_KEY;
+    }
+
     WT_CURSOR *edge_cursor = get_edge_cursor();
 
 start_add_node:
@@ -178,7 +186,6 @@ start_add_node:
                                  std::to_string(to_insert.id) +
                                  " into the edge table");
     }
-
     session->commit_transaction(session, NULL);
     add_to_nnodes(1);
     return 0;
@@ -297,7 +304,6 @@ start_delete_node:
         return WT_ROLLBACK;
         // goto start_delete_node;
     }
-
     session->commit_transaction(session, NULL);
     add_to_nedges(num_edges_to_add);
     add_to_nnodes(num_nodes_to_add);
@@ -739,7 +745,6 @@ start_delete_edge:
                                      wiredtiger_strerror(ret));
         }
     }
-
     session->commit_transaction(session, NULL);
     add_to_nedges(num_edges_to_add);
     return 0;
