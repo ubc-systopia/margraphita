@@ -174,10 +174,12 @@ start_add_node:
             break;
         case WT_ROLLBACK:
             session->rollback_transaction(session, NULL);
-            goto start_add_node;
+            return WT_ROLLBACK;
+            // goto start_add_node;
         case WT_DUPLICATE_KEY:
             session->rollback_transaction(session, NULL);
             return WT_DUPLICATE_KEY;
+            // return;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException("Failed to insert a node with ID " +
@@ -274,10 +276,12 @@ start_delete_node:
             break;
         case WT_ROLLBACK:
             session->rollback_transaction(session, NULL);
-            goto start_delete_node;
-            break;
+            return WT_ROLLBACK;
+            // goto start_delete_node;
         case WT_NOTFOUND:
+            session->rollback_transaction(session, NULL);
             return WT_NOTFOUND;
+            // return;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException(
@@ -289,14 +293,16 @@ start_delete_node:
 
     if (ret == 1)
     {
-        goto start_delete_node;
+        return WT_ROLLBACK;
+        // goto start_delete_node;
     }
 
     ret = delete_related_edges(dst_cur, e_cur, node_id, &num_edges_to_add);
 
     if (ret == 1)
     {
-        goto start_delete_node;
+        return WT_ROLLBACK;
+        // goto start_delete_node;
     }
     session->commit_transaction(session, NULL);
     add_to_nedges(num_edges_to_add);
@@ -441,7 +447,8 @@ start_add_edge:
         ret = error_check_add_edge(add_node_txn(src));
         if (ret == 1)
         {
-            goto start_add_edge;
+            return WT_ROLLBACK;
+            // goto start_add_edge;
         }
         else if (ret == 0)
         {
@@ -452,7 +459,8 @@ start_add_edge:
         ret = error_check_add_edge(add_node_txn(dst));
         if (ret == 1)
         {
-            goto start_add_edge;
+            return WT_ROLLBACK;
+            // goto start_add_edge;
         }
         else if (ret == 0)
         {
@@ -483,10 +491,12 @@ start_add_edge:
             break;
         case WT_ROLLBACK:
             session->rollback_transaction(session, NULL);
-            goto start_add_edge;
+            return WT_ROLLBACK;
+            // goto start_add_edge;
         case WT_DUPLICATE_KEY:
             session->rollback_transaction(session, NULL);
             return WT_DUPLICATE_KEY;
+            // return;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException("Failed to insert edge between " +
@@ -518,10 +528,12 @@ start_add_edge:
                 break;
             case WT_ROLLBACK:
                 session->rollback_transaction(session, NULL);
-                goto start_add_edge;
+                return WT_ROLLBACK;
+            // goto start_add_edge;
             case WT_DUPLICATE_KEY:
                 session->rollback_transaction(session, NULL);
                 return WT_DUPLICATE_KEY;
+            // return;
             default:
                 session->rollback_transaction(session, NULL);
                 throw GraphException(
@@ -553,7 +565,8 @@ start_add_edge:
                     break;
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, NULL);
-                    goto start_add_edge;
+                    return WT_ROLLBACK;
+                    // goto start_add_edge;
                 case WT_NOTFOUND:
                 // WT_NOTFOUND should not occur
                 default:
@@ -579,7 +592,8 @@ start_add_edge:
                     break;
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, NULL);
-                    goto start_add_edge;
+                    return WT_ROLLBACK;
+                    // goto start_add_edge;
                 case WT_NOTFOUND:
                     // WT_NOTFOUND should not occur
                 default:
@@ -625,9 +639,12 @@ start_delete_edge:
             break;
         case WT_ROLLBACK:
             session->rollback_transaction(session, NULL);
-            goto start_delete_edge;
+            return WT_ROLLBACK;
+            // goto start_delete_edge;
         case WT_NOTFOUND:
+            session->rollback_transaction(session, NULL);
             return WT_NOTFOUND;
+            // return;
         default:
             session->rollback_transaction(session, NULL);
             throw GraphException(
@@ -649,9 +666,12 @@ start_delete_edge:
                 break;
             case WT_ROLLBACK:
                 session->rollback_transaction(session, NULL);
-                goto start_delete_edge;
+                return WT_ROLLBACK;
+                // goto start_delete_edge;
             case WT_NOTFOUND:
+                session->rollback_transaction(session, NULL);
                 return WT_NOTFOUND;
+                // return;
             default:
                 session->rollback_transaction(session, NULL);
                 throw GraphException(
@@ -684,7 +704,8 @@ start_delete_edge:
                 break;
             case WT_ROLLBACK:
                 session->rollback_transaction(session, NULL);
-                goto start_delete_edge;
+                return WT_ROLLBACK;
+                // goto start_delete_edge;
             case WT_NOTFOUND:
             // WT_NOTFOUND should not occur
             default:
@@ -713,7 +734,8 @@ start_delete_edge:
                 break;
             case WT_ROLLBACK:
                 session->rollback_transaction(session, NULL);
-                goto start_delete_edge;
+                return WT_ROLLBACK;
+                // goto start_delete_edge;
             case WT_NOTFOUND:
             // WT_NOTFOUND should not occur
             default:
