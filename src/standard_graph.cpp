@@ -855,169 +855,186 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
     // optimized
 
     // Update src node's in/out degrees
-    n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
-    node_cursor->set_key(node_cursor, n_found.id);
-    node_cursor->search(node_cursor);
-    CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
-
-    n_found.out_degree = n_found.out_degree - 1;
-
-    ret = update_node_degree(
-        node_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
-
-    switch (ret)
+    if (opts.read_optimize)
     {
-        case 0:
-            break;
-        case WT_ROLLBACK:
-            return WT_ROLLBACK;
-        case WT_NOTFOUND:
-        default:
-            session->rollback_transaction(session, NULL);
-    }
+        n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
+        node_cursor->set_key(node_cursor, n_found.id);
+        node_cursor->search(node_cursor);
+        CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
 
-    // Update dst node's in/out degrees
-    n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
-    node_cursor->set_key(node_cursor, n_found.id);
-    node_cursor->search(node_cursor);
-    CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
+        n_found.out_degree = n_found.out_degree - 1;
 
-    n_found.in_degree = n_found.in_degree - 1;
+        ret = update_node_degree(
+            node_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
 
-    ret = update_node_degree(
-        node_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
+        switch (ret)
+        {
+            case 0:
+                break;
+            case WT_ROLLBACK:
+                return WT_ROLLBACK;
+            case WT_NOTFOUND:
+            default:
+                session->rollback_transaction(session, NULL);
+        }
 
-    switch (ret)
-    {
-        case 0:
-            break;
-        case WT_ROLLBACK:
-            return WT_ROLLBACK;
-        case WT_NOTFOUND:
-        default:
-            session->rollback_transaction(session, NULL);
+        // Update dst node's in/out degrees
+        n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
+        node_cursor->set_key(node_cursor, n_found.id);
+        node_cursor->search(node_cursor);
+        CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
+
+        n_found.in_degree = n_found.in_degree - 1;
+
+        ret = update_node_degree(
+            node_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
+
+        switch (ret)
+        {
+            case 0:
+                break;
+            case WT_ROLLBACK:
+                return WT_ROLLBACK;
+            case WT_NOTFOUND:
+            default:
+                session->rollback_transaction(session, NULL);
+        }
     }
     return 0;
 }
 
 int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
-    node n_found;
+    int num_edges_to_add = 0;
+    int ret = 0;
     WT_CURSOR *e_cursor, *n_cursor;
-    int ret;
-    if (!has_edge(src_id, dst_id))
-    {
-        return WT_DUPLICATE_KEY;
-    }
+start_delete_edge:
+    num_edges_to_add = 0;
+    ret = 0;
+    session->begin_transaction(session, "isolation=snapshot");
+
     e_cursor = get_edge_cursor();
 
     e_cursor->set_key(e_cursor, src_id, dst_id);
+
     ret = e_cursor->remove(e_cursor);
-    CommonUtil::check_return(ret,
-                             "Failed to delete edge (" + to_string(src_id) +
-                                 "," + to_string(dst_id));
-    if (locks != nullptr)
+
+    switch (ret)
     {
-        omp_set_lock(locks->get_edge_num_lock());
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
-        omp_unset_lock(locks->get_edge_num_lock());
+        case 0:
+            num_edges_to_add -= 1;
+            break;
+        case WT_ROLLBACK:
+            session->rollback_transaction(session, NULL);
+            return WT_ROLLBACK;
+            // goto start_delete_edge;
+        case WT_NOTFOUND:
+            session->rollback_transaction(session, NULL);
+            return WT_NOTFOUND;
+            // return;
+        default:
+            session->rollback_transaction(session, NULL);
+            throw GraphException(
+                "Failed to delete the edge between " + std::to_string(src_id) +
+                " and " + std::to_string(dst_id) + wiredtiger_strerror(ret));
     }
-    else
-    {
-        set_num_edges(get_num_edges() - 1, metadata_cursor);
-    }
+
     // Delete reverse edge if the graph is undirected.
     if (!opts.is_directed)
     {
-        if (!has_edge(dst_id, src_id))
-        {
-            return WT_DUPLICATE_KEY;
-        }
         e_cursor->set_key(e_cursor, dst_id, src_id);
         ret = e_cursor->remove(e_cursor);
-        CommonUtil::check_return(ret,
-                                 "Failed to delete edge (" + to_string(src_id) +
-                                     "," + to_string(dst_id));
-        if (locks != nullptr)
+        switch (ret)
         {
-            omp_set_lock(locks->get_edge_num_lock());
-            set_num_edges(get_num_edges() - 1, metadata_cursor);
-            omp_unset_lock(locks->get_edge_num_lock());
-        }
-        else
-        {
-            set_num_edges(get_num_edges() - 1, metadata_cursor);
+            case 0:
+                num_edges_to_add -= 1;
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, NULL);
+                return WT_ROLLBACK;
+                // goto start_delete_edge;
+            case WT_NOTFOUND:
+                session->rollback_transaction(session, NULL);
+                return WT_NOTFOUND;
+                // return;
+            default:
+                session->rollback_transaction(session, NULL);
+                throw GraphException(
+                    "Failed to delete the reverse edge between " +
+                    std::to_string(src_id) + " and " + std::to_string(dst_id) +
+                    wiredtiger_strerror(ret));
         }
     }
 
     // Update in/out degrees for the src and dst nodes if the graph is read
     // optimized
+    if (opts.read_optimize)
+    {
+        n_cursor = get_node_cursor();
+        // Update src node's in/out degrees
+        node n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
+        n_cursor->set_key(n_cursor, n_found.id);
+        n_cursor->search(n_cursor);
+        CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
 
-    n_cursor = get_node_cursor();
-    // Update src node's in/out degrees
-    n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
-    n_cursor->set_key(n_cursor, n_found.id);
-    n_cursor->search(n_cursor);
+        n_found.out_degree--;
+        if (!opts.is_directed)
+        {
+            n_found.in_degree--;
+        }
+        ret = update_node_degree(
+            n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
 
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_degree_lock());
-    }
-    CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
+        switch (ret)
+        {
+            case 0:
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, NULL);
+                return WT_ROLLBACK;
+                // goto start_delete_edge;
+            case WT_NOTFOUND:
+            // WT_NOTFOUND should not occur
+            default:
+                session->rollback_transaction(session, NULL);
+                throw GraphException("Could not update the node with ID" +
+                                     std::to_string(src_id) +
+                                     wiredtiger_strerror(ret));
+        }
+        // Update dst node's in/out degrees
+        n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
+        n_cursor->set_key(n_cursor, n_found.id);
+        n_cursor->search(n_cursor);
 
-    // Assert that the out degree and later on in degree are > 0.
-    // If not then raise an exceptiion, because we shouldn't have deleted an
-    // edge where src/dst have degree 0.
-    if ((opts.is_directed and n_found.out_degree == 0) or
-        ((!opts.is_directed) and
-         ((n_found.out_degree == 0) or (n_found.in_degree == 0))))
-    {
-        throw GraphException(
-            "Deleted an edge between src nodeid: " + to_string(src_id) + "," +
-            " dst node id:" + to_string(dst_id));
-    }
+        CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
 
-    n_found.out_degree = n_found.out_degree - 1;
-    if (!opts.is_directed)
-    {
-        n_found.in_degree = n_found.in_degree - 1;
-    }
-    update_node_degree(
-        n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
-    if (locks != nullptr)
-    {
-        omp_unset_lock(locks->get_node_degree_lock());
-    }
+        n_found.in_degree--;
+        if (!opts.is_directed)
+        {
+            n_found.out_degree--;
+        }
+        ret = update_node_degree(
+            n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
 
-    // Update dst node's in/out degrees
-    n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
-    n_cursor->set_key(n_cursor, n_found.id);
-    n_cursor->search(n_cursor);
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_degree_lock());
+        switch (ret)
+        {
+            case 0:
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, NULL);
+                return WT_ROLLBACK;
+                // goto start_delete_edge;
+            case WT_NOTFOUND:
+            // WT_NOTFOUND should not occur
+            default:
+                session->rollback_transaction(session, NULL);
+                throw GraphException("Could not update the node with ID" +
+                                     std::to_string(dst_id) +
+                                     wiredtiger_strerror(ret));
+        }
     }
-    CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
-
-    if ((opts.is_directed and n_found.in_degree == 0) or
-        ((!opts.is_directed) and (n_found.out_degree == 0) and
-         (n_found.in_degree == 0)))
-    {
-        throw GraphException(
-            "Deleted an edge between src nodeid: " + to_string(src_id) + "," +
-            " dst node id:" + to_string(dst_id));
-    }
-    n_found.in_degree = n_found.in_degree - 1;
-    if (!opts.is_directed)
-    {
-        n_found.out_degree = n_found.out_degree - 1;
-    }
-    update_node_degree(
-        n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
-    if (locks != nullptr)
-    {
-        omp_unset_lock(locks->get_node_degree_lock());
-    }
+    session->commit_transaction(session, NULL);
+    add_to_nedges(num_edges_to_add);
     return 0;
 }
 

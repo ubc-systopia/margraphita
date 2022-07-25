@@ -615,12 +615,13 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
 {
     int num_edges_to_add = 0;
     int ret = 0;
+    WT_CURSOR *e_cur;
 start_delete_edge:
     num_edges_to_add = 0;
     ret = 0;
     session->begin_transaction(session, "isolation=snapshot");
 
-    WT_CURSOR *e_cur = get_edge_cursor();
+    e_cur = get_edge_cursor();
 
     e_cur->set_key(e_cur, src_id, dst_id);
 
