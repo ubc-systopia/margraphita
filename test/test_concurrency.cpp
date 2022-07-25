@@ -41,12 +41,12 @@ int main()
         if (i % 2 == 0)
         {
             ret = graph->add_node(node{.id = 1});
-            cout << ret << "\n";
+            ret = graph->add_edge(edge{i, 1}, false);
         }
         else
         {
             ret = graph->delete_node(1);
-            cout << ret << "\n";
+            ret = graph->add_edge(edge{5, 8}, false);
         }
         graph->close();
     }

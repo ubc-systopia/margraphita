@@ -342,6 +342,10 @@ void test_get_edges(StandardGraph graph, bool is_directed)
 {
     INFO();
     vector<edge> edges = graph.get_edges();
+    for (auto j : edges)
+    {
+        CommonUtil::dump_edge(j);
+    }
 
     if (!is_directed)
     {
