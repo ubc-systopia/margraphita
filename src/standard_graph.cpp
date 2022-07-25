@@ -191,11 +191,12 @@ void StandardGraph::drop_indices()
  */
 int StandardGraph::add_node(node to_insert)
 {
+    WT_CURSOR *node_cursor = get_node_cursor();
     int ret = 0;
-    if (node_cursor == NULL)
-    {
-        ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false, true);
-    }
+
+start_add_node:
+    session->begin_transaction(session, "isolation=snapshot");
+
     node_cursor->set_key(node_cursor, to_insert.id);
 
     if (opts.read_optimize)
@@ -210,24 +211,26 @@ int StandardGraph::add_node(node to_insert)
 
     ret = node_cursor->insert(node_cursor);
 
-    if (ret != 0)
+    switch (ret)
     {
-        throw GraphException("Failed to add node_id" +
-                             std::to_string(to_insert.id));
+        case 0:
+            break;
+        case WT_ROLLBACK:
+            session->rollback_transaction(session, NULL);
+            return WT_ROLLBACK;
+        case WT_DUPLICATE_KEY:
+            session->rollback_transaction(session, NULL);
+            return WT_DUPLICATE_KEY;
+            // return;
+        default:
+            session->rollback_transaction(session, NULL);
+            throw GraphException("Failed to add node_id" +
+                                 std::to_string(to_insert.id));
     }
-    init_metadata_cursor();
 
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_num_lock());
-        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-        omp_unset_lock(locks->get_node_num_lock());
-    }
-    else
-    {
-        set_num_nodes(get_num_nodes() + 1, this->metadata_cursor);
-    }
-    return ret;
+    session->commit_transaction(session, NULL);
+    add_to_nnodes(1);
+    return 0;
 }
 
 /**
@@ -378,50 +381,81 @@ node StandardGraph::get_random_node()
 // TODO(puneet):
 int StandardGraph::delete_node(node_id_t node_id)
 {
+    int num_nodes_to_add = 0;
+    int num_edges_to_add = 0;
     int ret = 0;
 
-    if (this->node_cursor == NULL)
+    WT_CURSOR *node_cursor = get_node_cursor();
+
+start_delete_node:
+    num_nodes_to_add = 0;
+    num_edges_to_add = 0;
+    ret = 0;
+
+    session->begin_transaction(session, "isolation=snapshot");
+
+    if (!has_node(node_id))
     {
-        ret =
-            _get_table_cursor(NODE_TABLE, &node_cursor, session, false, false);
-        if (ret != 0)
-        {
-            throw GraphException("Could not get a cursor to the node table");
-        }
+        return WT_NOTFOUND;
     }
+
     // Delete incoming and outgoing edges
     vector<edge> incoming_edges = get_in_edges(node_id);
     vector<edge> outgoing_edges = get_out_edges(node_id);
 
     for (edge e : incoming_edges)
     {
-        delete_edge(e.src_id, e.dst_id);
+        ret = delete_edge_txn(e.src_id, e.dst_id, &num_edges_to_add);
+        switch (ret)
+        {
+            case 0:
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, NULL);
+                return WT_ROLLBACK;
+            default:
+                session->rollback_transaction(session, NULL);
+                throw GraphException("Error msg here");
+        }
     }
+
     for (edge e : outgoing_edges)
     {
-        delete_edge(e.src_id, e.dst_id);
+        ret = delete_edge_txn(e.src_id, e.dst_id, &num_edges_to_add);
+        switch (ret)
+        {
+            case 0:
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, NULL);
+                return WT_ROLLBACK;
+            default:
+                session->rollback_transaction(session, NULL);
+                throw GraphException("Error msg here");
+        }
     }
 
     // Delete the node with the matching node_id
     node_cursor->set_key(node_cursor, node_id);
     ret = node_cursor->remove(node_cursor);
 
-    if (ret != 0)
+    switch (ret)
     {
-        throw GraphException("Could not delete node with ID " +
-                             to_string(node_id));
+        case 0:
+            num_nodes_to_add -= 1;
+            break;
+        case WT_ROLLBACK:
+            session->rollback_transaction(session, NULL);
+            return WT_ROLLBACK;
+        default:
+            throw GraphException("Could not delete node with ID " +
+                                 to_string(node_id));
     }
 
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_num_lock());
-        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
-        omp_unset_lock(locks->get_node_num_lock());
-    }
-    else
-    {
-        set_num_nodes(get_num_nodes() - 1, this->metadata_cursor);
-    }
+    session->commit_transaction(session, NULL);
+    add_to_nedges(num_edges_to_add);
+    add_to_nnodes(num_nodes_to_add);
+
     return 0;
 }
 
@@ -683,6 +717,83 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
     return 0;
 }
 
+int StandardGraph::delete_edge_txn(node_id_t src_id,
+                                   node_id_t dst_id,
+                                   int *num_edges_to_add_ptr)
+{
+    node n_found;
+    WT_CURSOR *edge_cursor = get_edge_cursor();
+    WT_CURSOR *node_cursor = get_node_cursor();
+    int ret = 0;
+
+    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    ret = edge_cursor->remove(edge_cursor);
+
+    switch (ret)
+    {
+        case 0:
+            *num_edges_to_add_ptr -= 1;
+            break;
+        case WT_ROLLBACK:
+            return WT_ROLLBACK;
+        case WT_NOTFOUND:
+        default:
+            session->rollback_transaction(session, NULL);
+            throw GraphException("Failed to delete edge (" + to_string(src_id) +
+                                 "," + to_string(dst_id));
+    }
+
+    // Delete reverse edge is handled by caller
+
+    // Update in/out degrees for the src and dst nodes if the graph is read
+    // optimized
+
+    // Update src node's in/out degrees
+    n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
+    node_cursor->set_key(node_cursor, n_found.id);
+    node_cursor->search(node_cursor);
+    CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
+
+    n_found.out_degree = n_found.out_degree - 1;
+
+    ret = update_node_degree(
+        node_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
+
+    switch (ret)
+    {
+        case 0:
+            break;
+        case WT_ROLLBACK:
+            return WT_ROLLBACK;
+        case WT_NOTFOUND:
+        default:
+            session->rollback_transaction(session, NULL);
+    }
+
+    // Update dst node's in/out degrees
+    n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
+    node_cursor->set_key(node_cursor, n_found.id);
+    node_cursor->search(node_cursor);
+    CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
+
+    n_found.in_degree = n_found.in_degree - 1;
+
+    ret = update_node_degree(
+        node_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
+
+    switch (ret)
+    {
+        case 0:
+            break;
+        case WT_ROLLBACK:
+            return WT_ROLLBACK;
+        case WT_NOTFOUND:
+        default:
+            session->rollback_transaction(session, NULL);
+    }
+    return 0;
+}
+
 int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
     node n_found;
@@ -804,10 +915,10 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
     return 0;
 }
 
-void StandardGraph::update_node_degree(WT_CURSOR *cursor,
-                                       node_id_t node_id,
-                                       degree_t in_degree,
-                                       degree_t out_degree)
+int StandardGraph::update_node_degree(WT_CURSOR *cursor,
+                                      node_id_t node_id,
+                                      degree_t in_degree,
+                                      degree_t out_degree)
 {
     cursor->set_key(cursor, node_id);
     int ret = cursor->search(cursor);
@@ -823,7 +934,7 @@ void StandardGraph::update_node_degree(WT_CURSOR *cursor,
     found.out_degree = out_degree;
     found.id = node_id;
 
-    CommonUtil::__node_to_record(cursor, found, opts.read_optimize);
+    return CommonUtil::__node_to_record(cursor, found, opts.read_optimize);
 }
 
 /**

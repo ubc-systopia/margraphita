@@ -7,7 +7,7 @@
 #include "graph_exception.h"
 #include "sample_graph.h"
 
-#define THREAD_NUM 32
+#define THREAD_NUM 2
 using namespace std;
 
 int main()
@@ -20,35 +20,19 @@ int main()
     opts.read_optimize = true;
     opts.is_weighted = true;
     opts.db_dir = "./db";
-    opts.db_name = "test_adj";
-    opts.type = GraphType::Adj;
+    opts.db_name = "test_std";
+    opts.type = GraphType::Std;
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
     GraphEngine myEngine(engine_opts);
-#pragma omp parallel for
-    for (int i = 0; i < THREAD_NUM; i++)
-    {
-        GraphBase* graph = myEngine.create_graph_handle();
-        int ret = -1;
-        if (i % 2 == 0)
-        {
-            graph->add_node(node{.id = i + 100});
-            // graph->add_edge(edge{.src_id = i, .dst_id = 1}, false);
-        }
-        else
-        {
-            while (ret != 0)
-            {
-                ret = graph->add_edge(edge{.src_id = 1, .dst_id = i - 1 + 100},
-                                      false);
-            }
-        }
-        graph->close();
-    }
 
+    GraphBase* graph = myEngine.create_graph_handle();
+    graph->add_node(node{.id = 0});
+    graph->add_node(node{.id = 100});
+    graph->close();
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)
     {
@@ -56,13 +40,13 @@ int main()
         int ret = -1;
         if (i % 2 == 0)
         {
+            ret = graph->add_node(node{.id = 1});
+            cout << ret << "\n";
         }
         else
         {
-            while (ret != 0)
-            {
-                ret = graph->delete_edge(1, i - 1 + 100);
-            }
+            ret = graph->delete_node(1);
+            cout << ret << "\n";
         }
         graph->close();
     }
@@ -70,7 +54,7 @@ int main()
     GraphBase* report = myEngine.create_graph_handle();
     cout << "No. of nodes: " << report->get_num_nodes() << '\n';
     cout << "No. of edges: " << report->get_num_edges() << '\n';
-    cout << "No. of outdeg from 1: " << report->get_out_degree(1) << '\n';
+    // cout << "No. of outdeg from 1: " << report->get_out_degree(1) << '\n';
     std::vector<node> nodes = report->get_nodes();
     cout << "NODES: \n";
     for (auto i : nodes)
