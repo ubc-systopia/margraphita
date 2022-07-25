@@ -1056,6 +1056,7 @@ std::vector<edge> StandardGraph::get_edges()
     while ((ret = cursor->next(cursor) == 0))
     {
         edge found;
+        cursor->get_key(cursor, &found.src_id, &found.dst_id);
         CommonUtil::__record_to_edge(cursor, &found);
         edges.push_back(found);
     }
