@@ -546,11 +546,14 @@ class StandardGraph : public GraphBase
     void init_metadata_cursor();
     void drop_indices();
     static void create_indices(WT_SESSION *sess);
-    void update_node_degree(WT_CURSOR *cursor,
-                            node_id_t node_id,
-                            degree_t indeg,
-                            degree_t outdeg);
+    int update_node_degree(WT_CURSOR *cursor,
+                           node_id_t node_id,
+                           degree_t indeg,
+                           degree_t outdeg);
     void delete_related_edges(WT_CURSOR *index_cursor, node_id_t node_id);
+    int delete_edge_txn(node_id_t src_id,
+                        node_id_t dst_id,
+                        int *num_edges_to_add_ptr);
 
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
