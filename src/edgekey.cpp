@@ -428,6 +428,7 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
     int ret = 0;
+    WT_CURSOR *e_cur;
 start_add_edge:
     num_nodes_to_add = 0;
     num_edges_to_add = 0;
@@ -462,7 +463,7 @@ start_add_edge:
     }
 
     // Insert the edge
-    WT_CURSOR *e_cur = get_edge_cursor();
+    e_cur = get_edge_cursor();
 
     e_cur->set_key(e_cur, to_insert.src_id, to_insert.dst_id);
 
