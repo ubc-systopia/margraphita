@@ -470,7 +470,8 @@ class AdjList : public GraphBase
     int delete_from_adjlists(WT_CURSOR *cursor,
                              node_id_t node_id,
                              node_id_t to_delete);
-    void delete_related_edges_and_adjlists(node_id_t node_id);
+    int delete_related_edges_and_adjlists(node_id_t node_id,
+                                          int *num_edges_deleted);
     int update_node_degree(WT_CURSOR *cursor,
                            node_id_t node_id,
                            degree_t indeg,
@@ -484,7 +485,10 @@ class AdjList : public GraphBase
                             bool is_out_degree);
     int remove_one_node_degree(node_id_t to_update, bool is_out_degree);
 
-    int error_check_insert_txn(int return_val);
+    int add_node_in_txn(node to_insert);
+    int delete_edge_in_txn(node_id_t src_id, node_id_t dst_id);
+
+    int error_check_insert_txn(int return_val, bool ignore_duplicate_key);
     int error_check_update_txn(int return_val);
     int error_check_read_txn(int return_val);
     int error_check_remove_txn(int return_val);
