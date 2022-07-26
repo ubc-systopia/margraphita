@@ -208,21 +208,64 @@ int AdjList::add_node(node to_insert)
         n_cur->set_value(n_cur, "");
     }
 
-    if ((ret = error_check_insert_txn(n_cur->insert(n_cur))))
+    if ((ret = error_check_insert_txn(n_cur->insert(n_cur), false)))
     {
         return ret;
     }
 
-    if ((ret = error_check_insert_txn(add_adjlist(in_adj_cur, to_insert.id))))
+    if ((ret = error_check_insert_txn(add_adjlist(in_adj_cur, to_insert.id),
+                                      false)))
     {
         return ret;
     }
-    if ((ret = error_check_insert_txn(add_adjlist(out_adj_cur, to_insert.id))))
+    if ((ret = error_check_insert_txn(add_adjlist(out_adj_cur, to_insert.id),
+                                      false)))
     {
         return ret;
     }
     session->commit_transaction(session, NULL);
     add_to_nnodes(1);
+    return ret;
+}
+
+// This function does not handle the add_node numbers
+int AdjList::add_node_in_txn(node to_insert)
+{
+    int ret = 0;
+    WT_CURSOR *in_adj_cur, *out_adj_cur, *n_cur = nullptr;
+
+    in_adj_cur = get_in_adjlist_cursor();
+    out_adj_cur = get_out_adjlist_cursor();
+    n_cur = get_node_cursor();
+
+    n_cur->set_key(n_cur, to_insert.id);
+
+    if (opts.read_optimize)
+    {
+        // for testing
+        // n_cur->set_value(n_cur, to_insert.in_degree, to_insert.out_degree);
+        n_cur->set_value(n_cur, 0, 0);
+    }
+    else
+    {
+        n_cur->set_value(n_cur, "");
+    }
+
+    if ((ret = error_check_insert_txn(n_cur->insert(n_cur), true)))
+    {
+        return ret;
+    }
+
+    if ((ret = error_check_insert_txn(add_adjlist(in_adj_cur, to_insert.id),
+                                      true)))
+    {
+        return ret;
+    }
+    if ((ret = error_check_insert_txn(add_adjlist(out_adj_cur, to_insert.id),
+                                      true)))
+    {
+        return ret;
+    }
     return ret;
 }
 
@@ -352,15 +395,23 @@ int AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 {
     int ret = 0;
+    int num_nodes_added = 0;
+
+    session->begin_transaction(session, "isolation=snapshot");
 
     node src = {0};
     src.id = to_insert.src_id;
-    add_node(src);
+    if (!add_node_in_txn(src))
+    {
+        num_nodes_added++;
+    }
     node dst = {0};
     dst.id = to_insert.dst_id;
-    add_node(dst);
+    if (!add_node_in_txn(dst))
+    {
+        num_nodes_added++;
+    }
 
-    session->begin_transaction(session, "isolation=snapshot");
     WT_CURSOR *cursor = get_edge_cursor();
 
     cursor->set_key(cursor, to_insert.src_id, to_insert.dst_id);
@@ -373,7 +424,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     {
         cursor->set_value(cursor, 0);
     }
-    if ((ret = error_check_insert_txn(cursor->insert(cursor))))
+    if ((ret = error_check_insert_txn(cursor->insert(cursor), false)))
     {
         return ret;
     }
@@ -389,7 +440,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         {
             cursor->set_value(cursor, 0);
         }
-        if ((ret = error_check_insert_txn(cursor->insert(cursor))))
+        if ((ret = error_check_insert_txn(cursor->insert(cursor), false)))
         {
             return ret;
         }
@@ -443,6 +494,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         }
     }
     session->commit_transaction(session, NULL);
+    add_to_nnodes(num_nodes_added);
     add_to_nedges(1);
     if (!opts.is_directed)
     {
@@ -481,9 +533,10 @@ int AdjList::delete_node(node_id_t node_id)
 {
     // Delete Edges
     // Concurrency handled within delete_related_edges_and_adjlists
-    delete_related_edges_and_adjlists(node_id);
     session->begin_transaction(session, "isolation=snapshot");
     int ret = 0;
+    int num_deleted_edges = 0;
+    delete_related_edges_and_adjlists(node_id, &num_deleted_edges);
     WT_CURSOR *cursor = get_node_cursor();
     cursor->set_key(cursor, node_id);
     if ((ret = error_check_remove_txn(cursor->remove(cursor))))
@@ -507,6 +560,7 @@ int AdjList::delete_node(node_id_t node_id)
     }
     session->commit_transaction(session, NULL);
     add_to_nnodes(-1);
+    add_to_nedges(-num_deleted_edges);
     return ret;
 }
 
@@ -1125,7 +1179,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
     found.edgelist.push_back(to_insert);
     found.degree += 1;
     return error_check_insert_txn(
-        CommonUtil::__adjlist_to_record(session, cursor, found));
+        CommonUtil::__adjlist_to_record(session, cursor, found), false);
 }
 
 int AdjList::delete_from_adjlists(WT_CURSOR *cursor,
@@ -1245,10 +1299,14 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
 
  * @param node_id node ID which has to be deleted from edge and adjlist
  tables
+ * @returns number of edges deleted
  */
-void AdjList::delete_related_edges_and_adjlists(node_id_t node_id)
+int AdjList::delete_related_edges_and_adjlists(node_id_t node_id,
+                                               int *num_edges_deleted)
 {
     // initialize all the cursors
+    int ret = 0;
+    *num_edges_deleted = 0;
     WT_CURSOR *inadj_cursor, *outadj_cursor = nullptr;
     inadj_cursor = get_in_adjlist_cursor();
     outadj_cursor = get_out_adjlist_cursor();
@@ -1260,13 +1318,27 @@ void AdjList::delete_related_edges_and_adjlists(node_id_t node_id)
     std::vector<node_id_t> in_nodes = get_adjlist(inadj_cursor, node_id);
     for (auto dst : out_nodes)
     {
-        delete_edge(node_id, dst);
+        if ((ret = delete_edge_in_txn(node_id, dst)))
+        {
+            return ret;
+        }
+        else
+        {
+            *num_edges_deleted += 1;
+        }
     }
     for (auto src : in_nodes)
     {
-        delete_edge(src, node_id);
+        if ((ret = delete_edge_in_txn(src, node_id)))
+        {
+            return ret;
+        }
+        else
+        {
+            *num_edges_deleted += 1;
+        }
     }
-    cout << std::endl;
+    return ret;
 }
 
 OutCursor *AdjList::get_outnbd_iter()
@@ -1572,7 +1644,67 @@ int AdjList::remove_one_node_degree(node_id_t to_update, bool is_out_degree)
     return 0;
 }
 
-int AdjList::error_check_insert_txn(int return_val)
+int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
+{
+    WT_CURSOR *e_cursor = get_edge_cursor();
+    WT_CURSOR *out_adjlist_cursor = get_out_adjlist_cursor();
+    WT_CURSOR *in_adjlist_cursor = get_in_adjlist_cursor();
+    int ret = 0;
+    e_cursor->set_key(e_cursor, src_id, dst_id);
+    if ((ret = error_check_remove_txn(e_cursor->remove(e_cursor))))
+    {
+        return ret;
+    }
+    // delete (dst_id, src_id) from edge table if undirected
+    if (!opts.is_directed)
+    {
+        e_cursor->set_key(e_cursor, dst_id, src_id);
+        if ((ret = error_check_remove_txn(e_cursor->remove(e_cursor))))
+        {
+            return ret;
+        }
+    }
+    e_cursor->reset(e_cursor);
+
+    // remove from adjacency lists
+    if ((ret = delete_from_adjlists(out_adjlist_cursor, src_id, dst_id)))
+    {
+        return ret;
+    }
+    if ((ret = delete_from_adjlists(in_adjlist_cursor, dst_id, src_id)))
+    {
+        return ret;
+    }
+
+    // remove reverse from adj lists if undirected
+    if (!opts.is_directed)
+    {
+        if ((ret = delete_from_adjlists(in_adjlist_cursor, src_id, dst_id)))
+        {
+            return ret;
+        }
+        if ((ret = delete_from_adjlists(out_adjlist_cursor, dst_id, src_id)))
+        {
+            return ret;
+        }
+    }
+
+    // if opts.read_optimized -- update in/out degrees in the node table
+    if (opts.read_optimize)
+    {
+        if ((ret = remove_one_node_degree(src_id, true)))
+        {
+            return ret;
+        }
+        if ((ret = remove_one_node_degree(dst_id, false)))
+        {
+            return ret;
+        }
+    }
+    return ret;
+}
+
+int AdjList::error_check_insert_txn(int return_val, bool ignore_duplicate_key)
 {
     switch (return_val)
     {
@@ -1582,7 +1714,10 @@ int AdjList::error_check_insert_txn(int return_val)
             session->rollback_transaction(session, NULL);
             return WT_ROLLBACK;
         case WT_DUPLICATE_KEY:
-            session->rollback_transaction(session, NULL);
+            if (!ignore_duplicate_key)
+            {
+                session->rollback_transaction(session, NULL);
+            }
             return WT_DUPLICATE_KEY;
         default:
             session->rollback_transaction(session, NULL);
