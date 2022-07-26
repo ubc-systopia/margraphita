@@ -62,7 +62,8 @@ time_info *insert_edge_thread(int _tid,
 
     Times outer, inner;
     outer.start();
-    reader::EdgeReader graph_reader(std::move(filename), beg, num_per_chunk, "out");
+    reader::EdgeReader graph_reader(
+        std::move(filename), beg, num_per_chunk, "out");
     edge to_insert = {0};
     while (graph_reader.get_next_edge(to_insert) == 0)
     {

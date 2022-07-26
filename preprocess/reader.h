@@ -23,8 +23,8 @@ class EdgeReader
     int num_per_chunk;
     std::ifstream edge_file;
     std::ofstream adj_file;
-    std::vector<node_id_t> adjlist;//for adjlist.
-    node_id_t last_node_id =0;
+    std::vector<node_id_t> adjlist;  // for adjlist.
+    node_id_t last_node_id = 0;
     bool is_first = false;
     bool is_last = false;
 
@@ -35,7 +35,8 @@ class EdgeReader
         beg_offset = _beg;
         num_per_chunk = _num;
         edge_file = std::ifstream(_filename, std::ifstream::in);
-        adj_file = std::ofstream((_filename+"_"+adj_type) , std::ofstream::out);
+        adj_file =
+            std::ofstream((_filename + "_" + adj_type), std::ofstream::out);
         if (edge_file.is_open())
         {
             int i = 0;
@@ -51,13 +52,14 @@ class EdgeReader
         {
             throw GraphException("** could not open " + filename);
         }
-        if(!adj_file.is_open())
+        if (!adj_file.is_open())
         {
-            throw GraphException("Failed to create the "+ adj_type +" adjacency file for " + filename);
+            throw GraphException("Failed to create the " + adj_type +
+                                 " adjacency file for " + filename);
         }
     }
 
-    int get_next_edge(edge &e)
+    int get_next_edge(edge& e)
     {
         if (num_per_chunk > 0)
         {
@@ -68,7 +70,7 @@ class EdgeReader
                 s_stream >> e.src_id;
                 s_stream >> e.dst_id;
                 num_per_chunk--;
-                if(is_first)
+                if (is_first)
                 {
                     last_node_id = e.src_id;
                     is_first = false;
@@ -76,7 +78,9 @@ class EdgeReader
                 if (e.src_id == last_node_id)
                 {
                     adjlist.push_back(e.dst_id);
-                }else{
+                }
+                else
+                {
                     write_adjlist_to_file(e);
                 }
 
@@ -97,8 +101,8 @@ class EdgeReader
     void write_adjlist_to_file(const edge& e)
     {
         // write out the adjlist
-        adj_file << last_node_id <<" ";
-        for (auto x: adjlist)
+        adj_file << last_node_id << " ";
+        for (auto x : adjlist)
         {
             adj_file << x << " ";
         }
@@ -107,7 +111,7 @@ class EdgeReader
         last_node_id = e.src_id;
         adjlist.clear();
         // add e.dst_id to adjlist
-        if(!is_last)
+        if (!is_last)
         {
             adjlist.push_back(e.dst_id);
         }

@@ -10,12 +10,12 @@ using namespace std;
 
 typedef struct time_info
 {
-    long double insert_time =0;
-    long double read_time=0;
-    long double rback_time =0;
-    size_t num_inserted =0;
-    long num_rollbacks =0;
-    long num_failures =0;
+    long double insert_time = 0;
+    long double read_time = 0;
+    long double rback_time = 0;
+    size_t num_inserted = 0;
+    long num_rollbacks = 0;
+    long num_failures = 0;
 
 } time_info;
 
@@ -30,7 +30,9 @@ class InsertOpts
     std::vector<std::string> help_strings_;
 
     std::string db_name;
-    enum GraphType graph_type {};
+    enum GraphType graph_type
+    {
+    };
     std::string logdir;
     std::string db_path;  // This contains the path to the db dir.
     std::string dataset;
@@ -40,7 +42,9 @@ class InsertOpts
     bool read_optimize = false;
     int num_threads = 1;
 
-    void add_help_message(char opt, const std::string& opt_arg, const std::string& text)
+    void add_help_message(char opt,
+                          const std::string &opt_arg,
+                          const std::string &text)
     {
         char buf[100];
         snprintf(
@@ -75,7 +79,8 @@ class InsertOpts
         signed char opt_c;
         extern char *optarg;
         bool parse_result = true;
-        while ((opt_c =(signed char) getopt(argc_, argv_, argstr_.c_str())) != -1)
+        while ((opt_c = (signed char)getopt(argc_, argv_, argstr_.c_str())) !=
+               -1)
         {
             handle_args(opt_c, optarg);
         }
@@ -163,7 +168,7 @@ class InsertOpts
 
     void print_help()
     {
-        for (const std::string& h : help_strings_) std::cout << h << std::endl;
+        for (const std::string &h : help_strings_) std::cout << h << std::endl;
         std::exit(0);
     }
 
