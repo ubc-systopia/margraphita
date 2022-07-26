@@ -17,9 +17,12 @@
 
 #include "bulk_insert.h"
 #include "reader.h"
+#include "time_structs.h"
+
+const static int NUM_THREADS = 16;
+const static int BUFFER_LENGTH = 20;
 
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
-const static int BUFFER_LENGTH = 20;
 double num_edges;
 double num_nodes;
 std::string dataset;
@@ -33,22 +36,6 @@ std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;
 std::mutex lock;
 
 uint64_t nodelist_size;
-
-std::string pack_int_to_str(int32_t a, int32_t b)
-{
-    std::stringstream sstream;
-    sstream << a << " " << b;
-    return sstream.str();
-}
-
-typedef struct time_info
-{
-    int64_t insert_time;
-    int64_t read_time;
-    int64_t num_inserted;
-    time_info(int64_t _val)
-        : insert_time(_val), read_time(_val), num_inserted(_val){};
-} time_info;
 
 void print_time_csvline(std::string db_name,
                         std::string db_path,

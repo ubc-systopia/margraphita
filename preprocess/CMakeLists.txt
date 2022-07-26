@@ -18,6 +18,12 @@ add_executable(single_threaded_graphapi_insert single_threaded_graphapi_insert.c
 target_include_directories(single_threaded_graphapi_insert PRIVATE ${PATH_SRC})
 target_link_libraries(single_threaded_graphapi_insert PUBLIC ${NAME_LIB} graph_utils)
 
+
+# ###################################################################################
+add_executable(mt_graphapi_insert mt_graphapi_insert.cpp)
+target_include_directories(mt_graphapi_insert PRIVATE ${PATH_SRC})
+target_link_libraries(mt_graphapi_insert PUBLIC ${NAME_LIB} graph_utils)
+
 # ###################################################################################
 add_executable(init_db init_db.cpp)
 target_include_directories(init_db PRIVATE ${PATH_SRC})
