@@ -20,11 +20,15 @@ log_dir=$(pwd)
 preprocess=1
 bulk_load=1
 index_create=0
+use_api_for_insert=0
 
-while getopts "l:pbi" o; do
+while getopts "l:pbia" o; do
     case "${o}" in
         (l)
             log_dir=${OPTARG}
+            ;;
+        (a)
+            use_api_for_insert=1
             ;;
         (p)
             preprocess=0
@@ -53,6 +57,10 @@ preprocess_func () {
     ./preprocess.sh -d $1 -f $2 -o "${DB_DIR}/${3}" -m $3 -n $4 -e $5 -t $6 -l $log_dir -p $preprocess -b $bulk_load -i $index_create &> ${log_file}
 }
 
+api_insert_func () {
+    ./transaction_check.sh -d $1 -f $2 -o "${DB_DIR}/${3}" -m $3 -n $4 -e $5 -t $6 -l $log_dir -p $preprocess -b $bulk_load -i $index_create
+}
+
 TYPES=( "std" "adj" "ekey" )
 
 for ((scale=10; scale <=15; scale ++ )); do
@@ -67,7 +75,12 @@ for ((scale=10; scale <=15; scale ++ )); do
     for type in "${TYPES[@]}"
     do
         echo " Now inserting scale $scale, saved in $graph" >> ${log_file}
-        preprocess_func ${graph_dir} ${graph} ${dataset} ${n_nodes} ${n_edges} $type
+        if [ $use_api_for_insert -eq 1 ]
+        then
+            api_insert_func ${graph_dir} ${graph} ${dataset} ${n_nodes} ${n_edges} $type
+        else
+            preprocess_func ${graph_dir} ${graph} ${dataset} ${n_nodes} ${n_edges} $type
+        fi
         echo "---------------------------------------------" >> ${log_file}
     done
 

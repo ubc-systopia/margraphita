@@ -21,10 +21,11 @@ echo " -m cit-Patents"
 echo " -t std"
 exit 1;}
 
-index_create=1
+index_create=0
 RESULT=$(pwd)
 preprocess=1
 insert=1
+NUM_THREADS=10
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
 while getopts "d:f:l:o:m:e:n:t:p:i:b:" o; do
@@ -68,16 +69,9 @@ while getopts "d:f:l:o:m:e:n:t:p:i:b:" o; do
     esac
 done
 
-NUM_THREADS=16
-NUM_FILES=16
+TIME_CMD=/usr/bin/time
+NUM_LINES=$(wc -l ${graph} | cut -d' '  -f1)
 
-if [[ $OSTYPE == 'darwin'* ]]; then
-  TIME_CMD=/usr/local/bin/gtime
-  NUM_LINES=$(wc -l ${graph} | cut -d' '  -f5) #This is likely wrong. Please test.
-else
-  TIME_CMD=/usr/bin/time
-  NUM_LINES=$(wc -l ${graph} | cut -d' '  -f1)
-fi
 
 if [ $preprocess -eq 1 ]
 then
@@ -89,10 +83,6 @@ then
 
     #CREATE NODEID MAP
     ${RELEASE_PATH}/preprocess/dense_vertexranges -n ${nodecnt} -e ${edgecnt} -f ${graph}
-    
-    #Create a nodes file
-    cut -d':' -f2 ${graph_dir}/dense_map.txt | sort -u -g  > ${graph}_nodes
-    split --number=l/${NUM_FILES} ${graph}_nodes ${graph}_nodes
 
     #construct sorted graph by merging edges files
     sort -g ${graph}_edges* > ${graph}_sorted
@@ -101,42 +91,7 @@ fi
 if [ $insert -eq 1 ]
 then
 
-#Now create an empty DBs for all three representations for  insertion
-# Here rd in the DB Name indicates the r(read optimize) and d(directed) flags
-if [[ $type == "std" || $type == "all" ]]
-then
-  ${RELEASE_PATH}/preprocess/init_db -n -m std_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l std -e
-  ${RELEASE_PATH}/preprocess/init_db -n -m std_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l std -e
-fi
-
-if [[ $type == "adj" || $type == "all" ]]
-then
-  ${RELEASE_PATH}/preprocess/init_db -n -m adj_rd_${dataset} -b PR -a ${output} -s ${dataset} -r -o -d -l adj -e
-  ${RELEASE_PATH}/preprocess/init_db -n -m adj_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l adj -e
-fi
-
-if [[ $type == "ekey" || $type == "all" ]]
-then
-  ${RELEASE_PATH}/preprocess/init_db -n -m ekey_rd_${dataset} -b PR -a ${output} -s ${dataset} -o -r -d -l ekey -e
-  ${RELEASE_PATH}/preprocess/init_db -n -m ekey_d_${dataset} -b PR -a ${output} -s ${dataset} -o -d -l ekey -e
-fi
-
-# # Here : n (new graph) m (name of db) b(benchmark-- useless in this context but
-# # needed) s(dataset name *NOT* path) o(optimize create) r(read_optimize) d(directed)
-# # e (exit on create -- special switch to do this. )
-
-# #Now insert into the database
-# # touch insert_time.txt
-
-mkdir -p $RESULT
-
-echo "#Inserting ${dataset}" >> insert_time.txt
-echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> ${RESULT}/insert_time.txt
-echo "#${dataset}:" >> ${RESULT}/insert_time.txt
-echo "#${dataset}:" >> ${RESULT}/insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
-
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+    ${RELEASE_PATH}/preprocess/mt_graphapi_insert -d ${type}_rd_${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT} -m ${NUM_THREADS} >> ${RESULT}/${dataset}_${type}_mtapi_insert_log.txt
 
 fi
 
