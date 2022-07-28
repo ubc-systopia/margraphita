@@ -12,9 +12,17 @@ typedef struct time_info
 {
     int64_t insert_time;
     int64_t read_time;
+    int64_t rback_time;
     int64_t num_inserted;
+    int64_t num_rollbacks;
+    int64_t num_failures;
     time_info(int64_t _val)
-        : insert_time(_val), read_time(_val), num_inserted(_val){};
+        : insert_time(_val),
+          read_time(_val),
+          rback_time(_val),
+          num_inserted(_val),
+          num_rollbacks(_val),
+          num_failures(_val){};
     time_info(int64_t a, int64_t b, int64_t c)
         : insert_time(a), read_time(b), num_inserted(c){};
 } time_info;
@@ -99,9 +107,13 @@ class InsertOpts
                 break;
             case 'p':
                 db_path = optarg;
+                if ('/' == db_path.back())
+                    db_path.pop_back();  // delete trailing '/'
                 break;
             case 'l':
                 logdir = optarg;
+                if ('/' == logdir.back())
+                    logdir.pop_back();  // delete trailing '/'
                 break;
             case 'e':
                 num_edges = strtod(optarg, NULL);
@@ -171,7 +183,6 @@ class InsertOpts
     }
 
     std::string get_db_name() const { return db_name; }
-    GraphType get_graph_type() const { return graph_type; }
     std::string get_db_path() const { return db_path; }
     std::string get_logdir() const { return logdir; }
     std::string get_dataset() const { return dataset; }
@@ -180,6 +191,22 @@ class InsertOpts
     bool is_read_optimize() const { return read_optimize; }
     bool is_directed() const { return directed; }
     int get_num_threads() const { return num_threads; }
+    GraphType get_graph_type() const { return graph_type; }
+    std::string get_type_str() const
+    {
+        if (graph_type == GraphType::Std)
+        {
+            return "std";
+        }
+        else if (graph_type == GraphType::EKey)
+        {
+            return "ekey";
+        }
+        else
+        {
+            return "adj";
+        }
+    }
 
     graph_opts make_graph_opts()
     {
