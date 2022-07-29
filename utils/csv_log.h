@@ -54,6 +54,31 @@ void print_csv_info(std::string name, tc_info &info, std::string csv_logdir)
     FILE.close();
 }
 
+void print_csv_info(std::string name,
+                    wcc_lp_info *info,
+                    double time_from_outside,
+                    std::string csv_logdir)
+{
+    fstream FILE;
+    std::string _name = csv_logdir + "/" + name + "_wcc_lp.csv";
+    if (access(_name.c_str(), F_OK) == -1)
+    {
+        // The file does not exist yet.
+        FILE.open(_name, ios::out | ios::app);
+        FILE << "#db_name, benchmark, iterations, components"
+                "total_time_taken_usecs, time_from_main\n";
+    }
+    else
+    {
+        FILE.open(_name, ios::out | ios::app);
+    }
+
+    FILE << name << ",wcc_lp," << info->iterations << "," << info->components
+         << "," << info->time_taken << "," << time_from_outside << "\n";
+
+    FILE.close();
+}
+
 void print_to_csv(std::string name,
                   std::vector<double> &times,
                   std::string csvfile)
