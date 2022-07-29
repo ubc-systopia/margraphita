@@ -28,6 +28,15 @@ typedef struct tc_info
           cycle_time(_val){};
 } tc_info;
 
+typedef struct wcc_lp_info
+{
+    int iterations;
+    int64_t components;
+    double time_taken;
+    wcc_lp_info(int _val)
+        : iterations(_val), components(_val), time_taken(_val){};
+} wcc_lp_info;
+
 typedef struct pr_map
 {
     int id;
