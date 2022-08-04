@@ -52,7 +52,7 @@ std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
     return ABintersection;
 }
 
-int64_t trust_tc_iter_paralle(GraphEngine& graph_engine, int thread_num)
+int64_t trust_tc_iter_paralle(const GraphEngine& graph_engine, int thread_num)
 {
     int64_t count = 0;
 
@@ -84,7 +84,7 @@ int64_t trust_tc_iter_paralle(GraphEngine& graph_engine, int thread_num)
     return count;
 }
 
-int64_t cycle_tc_iter_paralle(GraphEngine& graph_engine, int thread_num)
+int64_t cycle_tc_iter_paralle(const GraphEngine& graph_engine, int thread_num)
 {
     int64_t count = 0;
 
