@@ -651,14 +651,15 @@ std::vector<node> AdjList::get_nodes()
  */
 node AdjList::get_node(node_id_t node_id)
 {
-    int ret = 0;
+    node found = {-1};
     node_cursor->set_key(node_cursor, node_id);
-    node found = {0};
-    if ((ret = node_cursor->search(node_cursor)) == 0)
+    int ret = node_cursor->search(node_cursor);
+    if (ret == 0)
     {
         CommonUtil::__record_to_node(node_cursor, &found, opts.read_optimize);
         found.id = node_id;
     }
+    node_cursor->reset(node_cursor);
     return found;
 }
 
@@ -695,23 +696,16 @@ std::vector<edge> AdjList::get_edges()
 edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
     edge found = {-1, -1, -1};
-    found.src_id = src_id;
-    found.dst_id = dst_id;
-    if (!opts.is_weighted)
-    {
-        return found;
-    }
-    int ret = 0;
-
     edge_cursor->set_key(edge_cursor, src_id, dst_id);
-    ret = edge_cursor->search(edge_cursor);
-    if (ret != 0)
+    int ret = edge_cursor->search(edge_cursor);
+    if (ret == 0)
     {
-        found = {-1, -1, -1};
-    }
-    else
-    {
-        CommonUtil::__record_to_edge(edge_cursor, &found);
+        found.src_id = src_id;
+        found.dst_id = dst_id;
+        if (opts.is_weighted)
+        {
+            CommonUtil::__record_to_edge(edge_cursor, &found);
+        }
     }
     edge_cursor->reset(edge_cursor);
     return found;
@@ -732,40 +726,6 @@ bool AdjList::has_edge(node_id_t src_id, node_id_t dst_id)
     ret = edge_cursor->search(edge_cursor);
     edge_cursor->reset(edge_cursor);
     return (ret == 0);  // true if found :)
-}
-
-/**
- * @brief Get the weight associated with an edge between src_id and dst_id
- *
- * @param src_id source node ID
- * @param dst_id Destination node ID
- * @return int the weigght associated with the edge
- * @throws GraphExpection If the graph is not weighted or if an edge is not
- * found
- */
-edgeweight_t AdjList::get_edge_weight(node_id_t src_id, node_id_t dst_id)
-{
-    if (!this->opts.is_weighted)
-    {
-        throw GraphException(
-            "Aborting. Trying to get weight for an unweighted graph");
-    }
-
-    edge_cursor->set_key(edge_cursor, src_id, dst_id);
-    int ret = edge_cursor->search(edge_cursor);
-    if (ret != 0)
-    {
-        throw GraphException("There is no edge between " +
-                             std::to_string(src_id) + " and " +
-                             std::to_string(dst_id));
-    }
-    else
-    {
-        edge found;
-        CommonUtil::__record_to_edge(edge_cursor, &found);
-        edge_cursor->reset(edge_cursor);
-        return found.edge_weight;
-    }
 }
 
 /**

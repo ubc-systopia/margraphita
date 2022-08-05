@@ -423,7 +423,7 @@ class AdjList : public GraphBase
     NodeCursor *get_node_iter();
     EdgeCursor *get_edge_iter();
 
-    edgeweight_t get_edge_weight(node_id_t src_id, node_id_t dst_id);
+    // edgeweight_t get_edge_weight(node_id_t src_id, node_id_t dst_id);
     void update_edge_weight(
         node_id_t src_id,
         node_id_t dst_id,

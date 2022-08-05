@@ -20,8 +20,8 @@ int main()
     opts.read_optimize = true;
     opts.is_weighted = true;
     opts.db_dir = "./db";
-    opts.db_name = "test_std";
-    opts.type = GraphType::Std;
+    opts.db_name = "test_ekey";
+    opts.type = GraphType::EKey;
     opts.conn_config = "cache_size=10GB";
     opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
@@ -37,16 +37,29 @@ int main()
     for (int i = 0; i < THREAD_NUM; i++)
     {
         GraphBase* graph = myEngine.create_graph_handle();
-        int ret = -1;
+
         if (i % 2 == 0)
         {
-            ret = graph->add_node(node{.id = 1});
-            ret = graph->add_edge(edge{i, 1}, false);
+            int ret = -1;
+            while (ret != 0)
+            {
+                ret = graph->add_node(node{.id = 1});
+            }
+            ret = -1;
+            while (ret != 0)
+            {
+                ret = graph->add_edge(edge{i, 1}, false);
+            }
         }
         else
         {
-            ret = graph->delete_node(1);
-            ret = graph->add_edge(edge{5, 8}, false);
+            int ret = -1;
+            while (ret != 0)
+            {
+                ret = graph->delete_node(1);
+            }
+            ret = -1;
+            while (ret != 0) ret = graph->add_edge(edge{5, 8}, false);
         }
         graph->close();
     }

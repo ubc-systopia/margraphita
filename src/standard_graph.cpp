@@ -17,7 +17,7 @@ const std::string GRAPH_PREFIX = "std";
 StandardGraph::StandardGraph(graph_opts &opt_params, WT_CONNECTION *conn)
     : GraphBase(opt_params, conn)
 {
-    init_metadata_cursor();
+    init_cursors();
 }
 
 void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
@@ -109,6 +109,44 @@ void StandardGraph::make_indexes()
     }
     create_indices(session);
 }
+
+void StandardGraph::init_cursors()
+{
+    int ret =
+        _get_table_cursor(METADATA, &metadata_cursor, session, false, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a cursor to the metadata table: " +
+                             string(wiredtiger_strerror(ret)));
+    }
+    ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false, true);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a cursor to the node table: " +
+                             string(wiredtiger_strerror(ret)));
+    }
+    ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get an edge cursor: " +
+                             string(wiredtiger_strerror(ret)));
+    }
+    string projection;
+    opts.is_weighted ? projection = "(" + SRC + "," + DST + "," + WEIGHT + ")"
+                     : projection = "(" + SRC + "," + DST + "," + "na" + ")";
+
+    ret =
+        _get_index_cursor(EDGE_TABLE,
+                          SRC_INDEX,
+                          projection,
+                          &(src_index_cursor));  // Does not throw error in case
+                                                 // indices are not created;
+                                                 // will print to stderror
+    ret = _get_index_cursor(
+        EDGE_TABLE, DST_INDEX, projection, &(dst_index_cursor));
+    ret = _get_index_cursor(
+        EDGE_TABLE, SRC_DST_INDEX, projection, &(src_dst_index_cursor));
+}
 /**
  * @brief Creates the indices not required for adding nodes/edges.
  * Used for optimized bulk loading: User should call drop_indices() before
@@ -191,7 +229,6 @@ void StandardGraph::drop_indices()
  */
 int StandardGraph::add_node(node to_insert)
 {
-    WT_CURSOR *node_cursor = get_node_cursor();
     int ret = 0;
 
 start_add_node:
@@ -235,7 +272,6 @@ start_add_node:
 
 int StandardGraph::add_node_txn(node to_insert)
 {
-    WT_CURSOR *node_cursor = get_node_cursor();
     node_cursor->set_key(node_cursor, to_insert.id);
     if (opts.read_optimize)
     {
@@ -258,23 +294,10 @@ int StandardGraph::add_node_txn(node to_insert)
  */
 bool StandardGraph::has_node(node_id_t node_id)
 {
-    int ret = 0;
-    if (node_cursor == NULL)
-    {
-        ret =
-            _get_table_cursor(NODE_TABLE, &node_cursor, session, false, false);
-    }
     node_cursor->set_key(node_cursor, node_id);
-    ret = node_cursor->search(node_cursor);
+    int ret = node_cursor->search(node_cursor);
     node_cursor->reset(node_cursor);
-    if (ret == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return (ret == 0);
 }
 
 /**
@@ -286,82 +309,41 @@ bool StandardGraph::has_node(node_id_t node_id)
  */
 bool StandardGraph::has_edge(node_id_t src_id, node_id_t dst_id)
 {
-    int ret = 0;
-    string projection = "(" + SRC + "," + DST + ")";
-    if (src_dst_index_cursor == NULL)
-    {
-        ret = _get_index_cursor(
-            EDGE_TABLE, SRC_DST_INDEX, projection, &(src_dst_index_cursor));
-    }
     src_dst_index_cursor->set_key(src_dst_index_cursor, src_id, dst_id);
-    ret = src_dst_index_cursor->search(src_dst_index_cursor);
-    if (ret != 0)
-    {
-        return false;
-    }
-    else
-    {
-        //? WHY IS THIS NECESSARY?
-        node_id_t temp_src_id = 0, temp_dst_id = 0;
-
-        ret = src_dst_index_cursor->get_value(
-            src_dst_index_cursor, &temp_src_id, &temp_dst_id);
-        if ((temp_src_id == src_id) & (temp_dst_id == dst_id))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
+    int ret = src_dst_index_cursor->search(src_dst_index_cursor);
+    src_dst_index_cursor->reset(src_dst_index_cursor);
+    return (ret == 0);
 }
 
-/**
- * @brief This function tests if the edge identified by <src_id, dst_id> exists
- *
- * @param src_id source node id
- * @param dst_id destination node_id
- * @return true/false for if the edge exists/does not exist
- */
 edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    int ret = 0;
     edge found = {-1, -1, -1};
-    string projection = "(" + SRC + "," + DST + "," + WEIGHT + ")";
-    if (src_dst_index_cursor == NULL)
-    {
-        ret = _get_index_cursor(
-            EDGE_TABLE, SRC_DST_INDEX, projection, &(src_dst_index_cursor));
-    }
     src_dst_index_cursor->set_key(src_dst_index_cursor, src_id, dst_id);
-    ret = src_dst_index_cursor->search(src_dst_index_cursor);
+    int ret = src_dst_index_cursor->search(src_dst_index_cursor);
     if (ret == 0)
     {
-        ret = src_dst_index_cursor->get_value(src_dst_index_cursor,
-                                              &found.src_id,
-                                              &found.dst_id,
-                                              &found.edge_weight);
+        found.src_id = src_id;
+        found.dst_id = dst_id;
+        if (opts.is_weighted)
+        {
+            CommonUtil::__read_from_edge_idx(src_dst_index_cursor, &found);
+        }
     }
+    src_dst_index_cursor->reset(src_dst_index_cursor);
     return found;
 }
 
 node StandardGraph::get_node(node_id_t node_id)
 {
-    node found = {0};
-    int ret = 0;
-
-    WT_CURSOR *cursor = get_node_cursor();
-    cursor->set_key(cursor, node_id);
-
-    ret = cursor->search(cursor);
-    if (ret != 0)
+    node found = {-1};
+    node_cursor->set_key(node_cursor, node_id);
+    int ret = node_cursor->search(node_cursor);
+    if (ret == 0)
     {
-        throw GraphException("Could not find a node with nodeId " +
-                             std::to_string(node_id));
+        CommonUtil::__record_to_node(node_cursor, &found, opts.read_optimize);
+        found.id = node_id;
     }
-    CommonUtil::__record_to_node(cursor, &found, opts.read_optimize);
-    found.id = node_id;
+    node_cursor->reset(node_cursor);
     return found;
 }
 
@@ -375,8 +357,6 @@ node StandardGraph::get_random_node()
         ret = _get_table_cursor(
             NODE_TABLE, &random_node_cursor, session, true, false);
     }
-    random_node_cursor->reset(random_node_cursor);
-
     ret = this->random_node_cursor->next(random_node_cursor);
     if (ret != 0)
     {
@@ -400,8 +380,6 @@ int StandardGraph::delete_node(node_id_t node_id)
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
     int ret = 0;
-
-    WT_CURSOR *node_cursor = get_node_cursor();
 
 start_delete_node:
     num_nodes_to_add = 0;
@@ -454,6 +432,7 @@ start_delete_node:
     // Delete the node with the matching node_id
     node_cursor->set_key(node_cursor, node_id);
     ret = node_cursor->remove(node_cursor);
+    node_cursor->reset(node_cursor);
 
     switch (ret)
     {
@@ -489,17 +468,6 @@ degree_t StandardGraph::get_in_degree(node_id_t node_id)
             throw GraphException("The node with ID " + std::to_string(node_id) +
                                  " does not exist.");
         }
-        if (dst_index_cursor == NULL)
-        {
-            string projection = "(" + SRC + "," + DST + ")";
-            if (_get_index_cursor(
-                    EDGE_TABLE, DST_INDEX, projection, &(dst_index_cursor)) !=
-                0)
-            {
-                throw GraphException(
-                    "Could not get a DST index cursor on the edge table");
-            }
-        }
         degree_t count = 0;
         dst_index_cursor->set_key(dst_index_cursor, node_id);
 
@@ -508,14 +476,19 @@ degree_t StandardGraph::get_in_degree(node_id_t node_id)
             count++;
             while (dst_index_cursor->next(dst_index_cursor) == 0)
             {
-                node_id_t src, dst = 0;
+                node_id_t src, dst;
                 dst_index_cursor->get_value(dst_index_cursor, &src, &dst);
                 if (dst == node_id)
                 {
                     count++;
                 }
+                else
+                {
+                    break;
+                }
             }
         }
+        dst_index_cursor->reset(dst_index_cursor);
         return count;
     }
 }
@@ -534,28 +507,15 @@ degree_t StandardGraph::get_out_degree(node_id_t node_id)
             throw GraphException("The node with ID " + std::to_string(node_id) +
                                  " does not exist");
         }
-        if (src_index_cursor == NULL)
-        {
-            string projection = "(" + SRC + "," + DST + ")";
-            if (_get_index_cursor(
-                    EDGE_TABLE, SRC_INDEX, projection, &(src_index_cursor)) !=
-                0)
-            {
-                throw GraphException(
-                    "Could not get a SRC index cursor on the edge table");
-            }
-        }
         degree_t count = 0;
 
         src_index_cursor->set_key(src_index_cursor, node_id);
-
         if (src_index_cursor->search(src_index_cursor) == 0)
         {
             count++;
-
             while (src_index_cursor->next(src_index_cursor) == 0)
             {
-                node_id_t src, dst = 0;
+                node_id_t src, dst;
                 src_index_cursor->get_value(src_index_cursor, &src, &dst);
                 if (src == node_id)
                 {
@@ -567,6 +527,7 @@ degree_t StandardGraph::get_out_degree(node_id_t node_id)
                 }
             }
         }
+        src_index_cursor->reset(src_index_cursor);
         return count;
     }
 }
@@ -580,42 +541,31 @@ std::vector<node> StandardGraph::get_nodes()
 {
     vector<node> nodes;
     int ret;
-    WT_CURSOR *cursor = get_node_cursor();
-    while ((ret = cursor->next(cursor) == 0))
+    while ((ret = node_cursor->next(node_cursor) == 0))
     {
         node item{0};
-        CommonUtil::__record_to_node(cursor, &item, opts.read_optimize);
-        cursor->get_key(cursor, &item.id);
-
+        CommonUtil::__record_to_node(node_cursor, &item, opts.read_optimize);
+        node_cursor->get_key(node_cursor, &item.id);
         nodes.push_back(item);
     }
+    node_cursor->reset(node_cursor);
     return nodes;
 }
 
 /**
  * @brief get all nodes in the nodes table
- * @return std::vector<node> the vector of all nodes in the node table
  */
 void StandardGraph::get_nodes(vector<node> &nodes)
 {
     int ret;
-    WT_CURSOR *cursor = get_node_cursor();
-    while ((ret = cursor->next(cursor) == 0))
+    while ((ret = node_cursor->next(node_cursor) == 0))
     {
         node item{0};
-        cursor->get_key(cursor, &item.id);
-        if (opts.read_optimize)
-        {
-            cursor->get_value(cursor, &item.in_degree, &item.out_degree);
-        }
-        else
-        {
-            item.in_degree = get_in_degree(item.id);
-            item.out_degree = get_out_degree(item.id);
-        }
-
+        CommonUtil::__record_to_node(node_cursor, &item, opts.read_optimize);
+        node_cursor->get_key(node_cursor, &item.id);
         nodes.push_back(item);
     }
+    node_cursor->reset(node_cursor);
 }
 
 int StandardGraph::error_check_add_edge(int ret)
@@ -644,7 +594,6 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
     int ret = 0;
-    WT_CURSOR *e_cursor, *n_cursor;
 start_add_edge:
     num_nodes_to_add = 0;
     num_edges_to_add = 0;
@@ -678,19 +627,18 @@ start_add_edge:
         }
     }
 
-    e_cursor = get_edge_cursor();
-    e_cursor->set_key(e_cursor, to_insert.src_id, to_insert.dst_id);
+    edge_cursor->set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
 
     if (opts.is_weighted)
     {
-        e_cursor->set_value(e_cursor, to_insert.edge_weight);
+        edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
     }
     else
     {
-        e_cursor->set_value(e_cursor, 0);
+        edge_cursor->set_value(edge_cursor, 0);
     }
 
-    ret = e_cursor->insert(e_cursor);
+    ret = edge_cursor->insert(edge_cursor);
 
     switch (ret)
     {
@@ -715,18 +663,18 @@ start_add_edge:
 
     if (!opts.is_directed)
     {
-        e_cursor->set_key(e_cursor, to_insert.dst_id, to_insert.src_id);
+        edge_cursor->set_key(edge_cursor, to_insert.dst_id, to_insert.src_id);
 
         if (opts.is_weighted)
         {
-            e_cursor->set_value(e_cursor, to_insert.edge_weight);
+            edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
         }
         else
         {
-            e_cursor->set_value(e_cursor, 0);
+            edge_cursor->set_value(edge_cursor, 0);
         }
 
-        ret = e_cursor->insert(e_cursor);
+        ret = edge_cursor->insert(edge_cursor);
 
         switch (ret)
         {
@@ -757,16 +705,16 @@ start_add_edge:
         // table.
         if (this->opts.read_optimize)
         {
-            n_cursor = get_node_cursor();
-            n_cursor->set_key(n_cursor, to_insert.src_id);
-            n_cursor->search(n_cursor);
+            node_cursor->set_key(node_cursor, to_insert.src_id);
+            node_cursor->search(node_cursor);
             // update in/out degrees for src node in NODE_TABLE
             node found = {0};
-            CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
+            CommonUtil::__record_to_node(
+                node_cursor, &found, opts.read_optimize);
             found.id = to_insert.src_id;
             found.out_degree++;
             ret = update_node_degree(
-                n_cursor,
+                node_cursor,
                 found.id,
                 found.in_degree,
                 found.out_degree);  //! pass the cursor to this function
@@ -789,15 +737,15 @@ start_add_edge:
             }
 
             // update in/out degrees for the dst node in the NODE_TABLE
-            n_cursor->reset(n_cursor);
-            n_cursor->set_key(n_cursor, to_insert.dst_id);
-            n_cursor->search(n_cursor);
+            node_cursor->set_key(node_cursor, to_insert.dst_id);
+            node_cursor->search(node_cursor);
 
-            CommonUtil::__record_to_node(n_cursor, &found, opts.read_optimize);
+            CommonUtil::__record_to_node(
+                node_cursor, &found, opts.read_optimize);
             found.id = to_insert.dst_id;
             found.in_degree++;
             ret = update_node_degree(
-                n_cursor, found.id, found.in_degree, found.out_degree);
+                node_cursor, found.id, found.in_degree, found.out_degree);
             switch (ret)
             {
                 case 0:
@@ -828,8 +776,6 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
                                    int *num_edges_to_add_ptr)
 {
     node n_found;
-    WT_CURSOR *edge_cursor = get_edge_cursor();
-    WT_CURSOR *node_cursor = get_node_cursor();
     int ret = 0;
 
     edge_cursor->set_key(edge_cursor, src_id, dst_id);
@@ -877,7 +823,6 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
             default:
                 session->rollback_transaction(session, NULL);
         }
-
         // Update dst node's in/out degrees
         n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
         node_cursor->set_key(node_cursor, n_found.id);
@@ -907,17 +852,13 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
     int num_edges_to_add = 0;
     int ret = 0;
-    WT_CURSOR *e_cursor, *n_cursor;
 start_delete_edge:
     num_edges_to_add = 0;
     ret = 0;
     session->begin_transaction(session, "isolation=snapshot");
 
-    e_cursor = get_edge_cursor();
-
-    e_cursor->set_key(e_cursor, src_id, dst_id);
-
-    ret = e_cursor->remove(e_cursor);
+    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    ret = edge_cursor->remove(edge_cursor);
 
     switch (ret)
     {
@@ -942,8 +883,8 @@ start_delete_edge:
     // Delete reverse edge if the graph is undirected.
     if (!opts.is_directed)
     {
-        e_cursor->set_key(e_cursor, dst_id, src_id);
-        ret = e_cursor->remove(e_cursor);
+        edge_cursor->set_key(edge_cursor, dst_id, src_id);
+        ret = edge_cursor->remove(edge_cursor);
         switch (ret)
         {
             case 0:
@@ -965,17 +906,16 @@ start_delete_edge:
                     wiredtiger_strerror(ret));
         }
     }
-
+    edge_cursor->reset(edge_cursor);
     // Update in/out degrees for the src and dst nodes if the graph is read
     // optimized
     if (opts.read_optimize)
     {
-        n_cursor = get_node_cursor();
         // Update src node's in/out degrees
         node n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
-        n_cursor->set_key(n_cursor, n_found.id);
-        n_cursor->search(n_cursor);
-        CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
+        node_cursor->set_key(node_cursor, n_found.id);
+        node_cursor->search(node_cursor);
+        CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
 
         n_found.out_degree--;
         if (!opts.is_directed)
@@ -983,7 +923,7 @@ start_delete_edge:
             n_found.in_degree--;
         }
         ret = update_node_degree(
-            n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
+            node_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
 
         switch (ret)
         {
@@ -1003,10 +943,10 @@ start_delete_edge:
         }
         // Update dst node's in/out degrees
         n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
-        n_cursor->set_key(n_cursor, n_found.id);
-        n_cursor->search(n_cursor);
+        node_cursor->set_key(node_cursor, n_found.id);
+        node_cursor->search(node_cursor);
 
-        CommonUtil::__record_to_node(n_cursor, &n_found, opts.read_optimize);
+        CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
 
         n_found.in_degree--;
         if (!opts.is_directed)
@@ -1014,7 +954,7 @@ start_delete_edge:
             n_found.out_degree--;
         }
         ret = update_node_degree(
-            n_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
+            node_cursor, n_found.id, n_found.in_degree, n_found.out_degree);
 
         switch (ret)
         {
@@ -1051,13 +991,10 @@ int StandardGraph::update_node_degree(WT_CURSOR *cursor,
             ret, "Could not find node with id = " + to_string(node_id));
     }
 
-    node found;  //__record_to_node(cursor);
-
-    found.in_degree = in_degree;
-    found.out_degree = out_degree;
-    found.id = node_id;
-
-    return CommonUtil::__node_to_record(cursor, found, opts.read_optimize);
+    node found{.id = node_id, .in_degree = in_degree, .out_degree = out_degree};
+    ret = CommonUtil::__node_to_record(cursor, found, opts.read_optimize);
+    cursor->reset(cursor);
+    return ret;
 }
 
 /**
@@ -1068,15 +1005,18 @@ int StandardGraph::update_node_degree(WT_CURSOR *cursor,
 std::vector<edge> StandardGraph::get_edges()
 {
     int ret;
-    WT_CURSOR *cursor = get_edge_cursor();
     vector<edge> edges;
-    while ((ret = cursor->next(cursor) == 0))
+    while ((ret = edge_cursor->next(edge_cursor) == 0))
     {
-        edge found;
-        cursor->get_key(cursor, &found.src_id, &found.dst_id);
-        CommonUtil::__record_to_edge(cursor, &found);
+        edge found = {-1, -1, -1};
+        edge_cursor->get_key(edge_cursor, &found.src_id, &found.dst_id);
+        if (opts.is_weighted)
+        {
+            CommonUtil::__record_to_edge(edge_cursor, &found);
+        }
         edges.push_back(found);
     }
+    edge_cursor->reset(edge_cursor);
 
     return edges;
 }
@@ -1096,21 +1036,15 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
                              to_string(node_id));
     }
 
-    WT_CURSOR *cursor = get_src_idx_cursor();
-    // cursor->reset(cursor);
-    cursor->set_key(cursor, node_id);
-
-    node_id_t temp = -1;
-    cursor->get_key(cursor, &temp);
-
-    if (cursor->search(cursor) == 0)
+    src_index_cursor->set_key(src_index_cursor, node_id);
+    if (src_index_cursor->search(src_index_cursor) == 0)
     {
-        edge found;
-        CommonUtil::__read_from_edge_idx(cursor, &found);
+        edge found = {-1, -1, -1};
+        CommonUtil::__read_from_edge_idx(src_index_cursor, &found);
         edges.push_back(found);
-        while (cursor->next(cursor) == 0)
+        while (src_index_cursor->next(src_index_cursor) == 0)
         {
-            CommonUtil::__read_from_edge_idx(cursor, &found);
+            CommonUtil::__read_from_edge_idx(src_index_cursor, &found);
             if (found.src_id == node_id)
             {
                 edges.push_back(found);
@@ -1121,7 +1055,7 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
             }
         }
     }
-    cursor->reset(cursor);
+    src_index_cursor->reset(src_index_cursor);
     return edges;
 }
 
@@ -1135,7 +1069,6 @@ vector<node> StandardGraph::get_out_nodes(node_id_t node_id)
 {
     vector<edge> out_edges;
     vector<node> nodes;
-    WT_CURSOR *cursor = get_node_cursor();
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
@@ -1145,7 +1078,6 @@ vector<node> StandardGraph::get_out_nodes(node_id_t node_id)
     {
         nodes.push_back(get_node(out_edge.dst_id));
     }
-    cursor->reset(cursor);
     return nodes;
 }
 
@@ -1187,20 +1119,10 @@ vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
         throw GraphException("Could not find node with id" +
                              to_string(node_id));
     }
-    if (dst_index_cursor == NULL)
-    {
-        string projection = "(" + SRC + "," + DST + ")";
-        if (_get_index_cursor(
-                EDGE_TABLE, DST_INDEX, projection, &(dst_index_cursor)) != 0)
-        {
-            throw GraphException(
-                "Could not get a DST index cursor on the edge table");
-        }
-    }
     dst_index_cursor->set_key(dst_index_cursor, node_id);
     if (dst_index_cursor->search(dst_index_cursor) == 0)
     {
-        edge found;
+        edge found = {-1, -1, -1};
         CommonUtil::__read_from_edge_idx(dst_index_cursor, &found);
         edges.push_back(found);
         while (dst_index_cursor->next(dst_index_cursor) == 0)
@@ -1216,6 +1138,7 @@ vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
             }
         }
     }
+    dst_index_cursor->reset(dst_index_cursor);
     return edges;
 }
 
@@ -1229,33 +1152,17 @@ vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
 vector<node> StandardGraph::get_in_nodes(node_id_t node_id)
 {
     vector<node> nodes;
-    WT_CURSOR *cursor = get_dst_idx_cursor();
     if (!has_node(node_id))
     {
         throw GraphException("Could not find node with id" +
                              to_string(node_id));
     }
 
-    cursor->set_key(cursor, node_id);
-    if (cursor->search(cursor) == 0)
+    vector<edge> in_edges = get_in_edges(node_id);
+    for (edge in_edge : in_edges)
     {
-        edge found;
-        CommonUtil::__read_from_edge_idx(cursor, &found);
-        nodes.push_back(get_node(found.src_id));
-        while (cursor->next(cursor) == 0)
-        {
-            CommonUtil::__read_from_edge_idx(cursor, &found);
-            if (found.dst_id == node_id)
-            {
-                nodes.push_back(get_node(found.src_id));
-            }
-            else
-            {
-                break;
-            }
-        }
+        nodes.push_back(get_node(in_edge.src_id));
     }
-    cursor->reset(cursor);
     return nodes;
 }
 
@@ -1269,46 +1176,18 @@ vector<node> StandardGraph::get_in_nodes(node_id_t node_id)
 vector<node_id_t> StandardGraph::get_in_nodes_id(node_id_t node_id)
 {
     vector<node_id_t> node_ids;
-    WT_CURSOR *cursor = get_dst_idx_cursor();
     if (!has_node(node_id))
     {
         throw GraphException("Could not find node with id" +
                              to_string(node_id));
     }
-    cursor->set_key(cursor, node_id);
-    if (cursor->search(cursor) == 0)
-    {
-        edge found;
-        CommonUtil::__read_from_edge_idx(cursor, &found);
-        node_ids.push_back(found.src_id);
-        while (cursor->next(cursor) == 0)
-        {
-            CommonUtil::__read_from_edge_idx(cursor, &found);
-            if (found.dst_id == node_id)
-            {
-                node_ids.push_back(found.src_id);
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-    cursor->reset(cursor);
-    return node_ids;
-}
 
-void StandardGraph::init_metadata_cursor()
-{
-    if (metadata_cursor == nullptr)
+    vector<edge> in_edges = get_in_edges(node_id);
+    for (edge in_edge : in_edges)
     {
-        int ret = _get_table_cursor(
-            METADATA, &metadata_cursor, session, false, false);
-        if (ret != 0)
-        {
-            throw GraphException("Could not get a metadata cursor");
-        }
+        node_ids.push_back(in_edge.src_id);
     }
+    return node_ids;
 }
 
 WT_CURSOR *StandardGraph::get_node_cursor()

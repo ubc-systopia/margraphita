@@ -418,10 +418,10 @@ class CommonUtil
             throw GraphException("Could not get the value from the edge table");
         }
     }
-
     inline static void __read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
     {
-        idx_cursor->get_value(idx_cursor, &e_idx->src_id, &e_idx->dst_id);
+        idx_cursor->get_value(
+            idx_cursor, &e_idx->src_id, &e_idx->dst_id, &e_idx->edge_weight);
     }
 
     /**
