@@ -52,11 +52,11 @@ std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
     return ABintersection;
 }
 
-int64_t trust_tc_iter_paralle(const GraphEngine& graph_engine, int thread_num)
+int64_t trust_tc_iter_parallel(const GraphEngine& graph_engine, int thread_num)
 {
     int64_t count = 0;
 
-#pragma imp parallel for reduction(+ : count)
+#pragma omp parallel for reduction(+ : count) num_threads(thread_num)
     for (int i = 0; i < thread_num; i++)
     {
         GraphBase* graph = graph_engine.create_graph_handle();
@@ -66,7 +66,7 @@ int64_t trust_tc_iter_paralle(const GraphEngine& graph_engine, int thread_num)
         out_cursor->set_key_range(graph_engine.get_key_range(i));
 
         out_cursor->next(&found);
-        while (found.node_id != 1)
+        while (found.node_id != -1)
         {
             std::vector<node_id_t> out_nbrhood = found.edgelist;
             for (node_id_t node : out_nbrhood)
@@ -79,16 +79,17 @@ int64_t trust_tc_iter_paralle(const GraphEngine& graph_engine, int thread_num)
             }
             out_cursor->next(&found);
         }
+        graph->close();
     }
 
     return count;
 }
 
-int64_t cycle_tc_iter_paralle(const GraphEngine& graph_engine, int thread_num)
+int64_t cycle_tc_iter_parallel(const GraphEngine& graph_engine, int thread_num)
 {
     int64_t count = 0;
 
-#pragma imp parallel for reduction(+ : count)
+#pragma omp parallel for reduction(+ : count) num_threads(thread_num)
     for (int i = 0; i < thread_num; i++)
     {
         GraphBase* graph = graph_engine.create_graph_handle();
@@ -103,7 +104,7 @@ int64_t cycle_tc_iter_paralle(const GraphEngine& graph_engine, int thread_num)
         in_cursor->next(&found);
         out_cursor->next(&found_out);
 
-        while (found.node_id != 1)
+        while (found.node_id != -1)
         {
             std::vector<node_id_t> in_nbrhood = found.edgelist;
             std::vector<node_id_t> out_nbrhood = found_out.edgelist;
@@ -128,6 +129,7 @@ int64_t cycle_tc_iter_paralle(const GraphEngine& graph_engine, int thread_num)
             in_cursor->next(&found);
             out_cursor->next(&found_out);
         }
+        graph->close();
     }
 
     return count;
