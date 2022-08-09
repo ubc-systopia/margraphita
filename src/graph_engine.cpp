@@ -124,3 +124,15 @@ void GraphEngine::close_connection()
 WT_CONNECTION *GraphEngine::get_connection() { return conn; }
 
 void GraphEngine::close_graph() { close_connection(); }
+
+key_range GraphEngine::get_key_range(int thread_id)
+{
+    return key_range{-1, -1};
+}
+
+edge_range GraphEngine::get_edge_range(int thread_id)
+{
+    key_pair start_edge = key_pair{-1, -1};
+    key_pair end_edge = key_pair{-1, -1};
+    return edge_range{start_edge, end_edge};
+}

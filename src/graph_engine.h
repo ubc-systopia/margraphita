@@ -24,6 +24,8 @@ class GraphEngine
     ~GraphEngine();
     GraphBase* create_graph_handle();
     void close_graph();
+    edge_range get_edge_range(int thread_id);
+    key_range get_key_range(int thread_id);
 
    protected:
     WT_CONNECTION* conn = nullptr;
