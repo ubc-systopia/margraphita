@@ -361,9 +361,10 @@ int GraphBase::_get_index_cursor(std::string table_name,
                       session, index_name.c_str(), NULL, NULL, cursor) != 0)
     {
         fprintf(stderr,
-                "Failed to open the cursor on the index %s on table %s \n",
+                "Failed to open the cursor on the index %s on table %s: %s \n",
                 index_name.c_str(),
-                table_name.c_str());
+                table_name.c_str(),
+                wiredtiger_strerror(ret));
         return ret;
     }
     return 0;
