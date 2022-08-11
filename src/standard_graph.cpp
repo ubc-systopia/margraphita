@@ -412,6 +412,7 @@ start_delete_node:
 
     if (!has_node(node_id))
     {
+        session->rollback_transaction(session, NULL);
         return WT_NOTFOUND;
     }
 
@@ -464,6 +465,7 @@ start_delete_node:
             session->rollback_transaction(session, NULL);
             return WT_ROLLBACK;
         default:
+            session->rollback_transaction(session, NULL);
             throw GraphException("Could not delete node with ID " +
                                  to_string(node_id));
     }
@@ -630,6 +632,7 @@ int StandardGraph::error_check_add_edge(int ret)
             session->rollback_transaction(session, NULL);
             return 1;
         default:
+            session->rollback_transaction(session, NULL);
             throw GraphException(wiredtiger_strerror(ret));
     }
 }
