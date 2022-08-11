@@ -47,13 +47,13 @@ std::vector<int64_t> betweeness_centrality(const GraphBase& graph)
             bc[w] = empty_list;
         }
 
-        std::vector<int64_t> sigma =
+        std::vector<double> sigma =
             std::vector<node_id_t>(graph.get_num_nodes());
 
-        std::vector<int64_t> delta =
+        std::vector<double> delta =
             std::vector<node_id_t>(graph.get_num_nodes());
 
-        std::vector<int64_t> delta_r =
+        std::vector<double> delta_r =
             std::vector<node_id_t>(graph.get_num_nodes());
 
         for (int64_t t = 0; t < graph.get_num_nodes(); t++)
