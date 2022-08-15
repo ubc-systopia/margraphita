@@ -26,9 +26,9 @@
  * http://snap.stanford.edu/class/cs224w-readings/brandes01centrality.pdf
  */
 
-std::vector<int64_t> betweeness_centrality(const GraphBase& graph)
+std::vector<double> betweeness_centrality(const GraphBase& graph)
 {
-    std::vector<int64_t> bc = std::vector<node_id_t>(graph.get_num_nodes());
+    std::vector<double> bc = std::vector<double>(graph.get_num_nodes());
     for (int64_t i = 0; i < graph.get_num_nodes(); i++)
     {
         bc[i] = 0;
