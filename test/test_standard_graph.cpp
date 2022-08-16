@@ -491,7 +491,7 @@ void test_EdgeCursor_Range(StandardGraph graph)
 {
     INFO();
     EdgeCursor *edge_cursor = graph.get_edge_iter();
-    edge_cursor->set_key({1, 4}, {8, 1});
+    edge_cursor->set_key({1, 7}, {8, 0});
     edge found;
     int srcIdList[] = {1, 5, 7};
     int dstIdList[] = {7, 6, 8};
