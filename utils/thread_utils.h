@@ -22,8 +22,7 @@ void calculate_thread_offsets(int thread_max,
                               node_id_t num_edges,
                               std::vector<key_range> &node_ranges,
                               std::vector<edge_range> &edge_offsets,
-                              GraphType type,
-                              WT_CURSOR *ecur)
+                              GraphType type)
 {
     /*
     Steps:
@@ -33,6 +32,8 @@ void calculate_thread_offsets(int thread_max,
      */
     // Calculate the node offsets.
     node_id_t node_offset = 0;
+    node_ranges.clear();
+    edge_offsets.clear();
 
     for (int i = 0; i < thread_max; i++)
     {
@@ -50,54 +51,11 @@ void calculate_thread_offsets(int thread_max,
         node_offset += num_nodes / thread_max;
     }
 
-    key_pair first = {0, 0}, last = {0, 0};
-
     for (auto x : node_ranges)
     {
-        node_id_t out_of_band = -1;
-        if (type != GraphType::EKey)
-        {
-            ecur->set_key(ecur, x.start - 1, out_of_band);
-        }
-        else
-        {
-            ecur->set_key(ecur, x.start, out_of_band);
-        }
-
-        int status;
-        ecur->search_near(ecur, &status);
-        if (status == 0)
-        {
-            ecur->get_key(ecur, &first.src_id, &first.dst_id);
-        }
-        else if (status < 0)
-        {
-            ecur->get_key(ecur, &first.src_id, &first.dst_id);
-        }
-        else if (status > 0)
-        {
-            ecur->get_key(ecur, &first.src_id, &first.dst_id);
-        }
+        key_pair first = {x.start, 0}, last = {x.end + 1, -1};
         edge_range er(first, last);
         edge_offsets.push_back(er);
     }
-    // now for all positions from i+1 to thread_max, call prev to set positions
-    // i
-    for (int i = 1; i < thread_max; i++)
-    {
-        key_pair key = edge_offsets.at(i).start;
-        ecur->set_key(ecur, key.src_id, key.dst_id);
-        ecur->search(ecur);
-        ecur->prev(ecur);
-        ecur->get_key(ecur,
-                      &edge_offsets.at(i - 1).end.src_id,
-                      &edge_offsets.at(i - 1).end.dst_id);
-    }
-    // now set the last
-    ecur->reset(ecur);
-    ecur->prev(ecur);
-    ecur->get_key(ecur,
-                  &edge_offsets.at(thread_max - 1).end.src_id,
-                  &edge_offsets.at(thread_max - 1).end.dst_id);
 }
 #endif

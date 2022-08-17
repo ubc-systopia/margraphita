@@ -45,8 +45,7 @@ class GraphEngine
                                   node_id_t num_edges,
                                   std::vector<key_range>& node_ranges,
                                   std::vector<edge_range>& edge_offsets,
-                                  GraphType type,
-                                  WT_CURSOR* ecur);
+                                  GraphType type);
     WT_CONNECTION* get_connection();
 };
 
