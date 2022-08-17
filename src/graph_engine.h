@@ -29,6 +29,9 @@ class GraphEngine
 
    protected:
     WT_CONNECTION* conn = nullptr;
+    GraphBase* graph_stats;
+    std::vector<key_range> node_ranges;
+    std::vector<edge_range> edge_ranges;
     LockSet* locks;
     int num_threads;
     graph_opts opts;
@@ -37,6 +40,12 @@ class GraphEngine
     void create_new_graph();
     void open_connection();
     void close_connection();
+    void calculate_thread_offsets(int thread_max,
+                                  node_id_t num_nodes,
+                                  node_id_t num_edges,
+                                  std::vector<key_range>& node_ranges,
+                                  std::vector<edge_range>& edge_offsets,
+                                  GraphType type);
     WT_CONNECTION* get_connection();
 };
 

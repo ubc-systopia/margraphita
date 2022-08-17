@@ -17,6 +17,13 @@ GraphEngine::GraphEngine(graph_engine_opts engine_opts)
     {
         open_connection();
     }
+    graph_stats = this->create_graph_handle();
+    calculate_thread_offsets(num_threads,
+                             graph_stats->get_num_nodes(),
+                             graph_stats->get_num_edges(),
+                             node_ranges,
+                             edge_ranges,
+                             opts.type);
 }
 
 GraphEngine::~GraphEngine()
@@ -127,12 +134,46 @@ void GraphEngine::close_graph() { close_connection(); }
 
 key_range GraphEngine::get_key_range(int thread_id)
 {
-    return key_range{-1, -1};
+    return node_ranges[thread_id];
 }
 
 edge_range GraphEngine::get_edge_range(int thread_id)
 {
-    key_pair start_edge = key_pair{-1, -1};
-    key_pair end_edge = key_pair{-1, -1};
-    return edge_range{start_edge, end_edge};
+    return edge_ranges[thread_id];
+}
+
+void GraphEngine::calculate_thread_offsets(
+    int thread_max,
+    node_id_t num_nodes,
+    node_id_t num_edges,
+    std::vector<key_range> &node_ranges,
+    std::vector<edge_range> &edge_offsets,
+    GraphType type)
+{
+    node_id_t node_offset = 0;
+    node_ranges.clear();
+    edge_offsets.clear();
+
+    for (int i = 0; i < thread_max; i++)
+    {
+        key_range temp;
+        if (i == thread_max - 1)
+        {
+            temp = {node_offset, num_nodes};
+        }
+        else
+        {
+            temp = {node_offset, (node_offset + (num_nodes / thread_max) - 1)};
+        }
+
+        node_ranges.push_back(temp);
+        node_offset += num_nodes / thread_max;
+    }
+
+    for (auto x : node_ranges)
+    {
+        key_pair first = {x.start, 0}, last = {x.end + 1, -1};
+        edge_range er(first, last);
+        edge_offsets.push_back(er);
+    }
 }

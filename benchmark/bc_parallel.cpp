@@ -90,7 +90,7 @@ pvector<ScoreT> Brandes(const GraphEngine &graph_engine,
                         SourcePicker &sp,
                         int num_iters)
 {
-    GraphBase *g = graph_engine.create_graph_handle();
+    GraphBase g = *graph_engine.create_graph_handle();
     pvector<ScoreT> scores(g.get_num_nodes(), 0);
     pvector<CountT> path_counts(g.get_num_nodes());
     Bitmap succ(g.get_num_edges());
