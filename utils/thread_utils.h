@@ -6,7 +6,7 @@
 
 #include <cassert>
 
-#include "common.h"
+#include "../src/common.h"
 
 /**
  * @brief We use this function to assign a thread to a specific subset of the

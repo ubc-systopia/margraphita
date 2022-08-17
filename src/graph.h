@@ -56,6 +56,7 @@ class GraphBase
     void set_locks(LockSet *locks_ptr);
 
     void close();
+    virtual WT_CURSOR *get_new_edge_cursor() = 0;
     uint64_t get_num_nodes();
     uint64_t get_num_edges();
     void set_num_nodes(uint64_t num_nodes, WT_CURSOR *cursor);

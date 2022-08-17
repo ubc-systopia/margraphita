@@ -17,6 +17,14 @@ GraphEngine::GraphEngine(graph_engine_opts engine_opts)
     {
         open_connection();
     }
+    graph_stats = this->create_graph_handle();
+    calculate_thread_offsets(num_threads,
+                             graph_stats->get_num_nodes(),
+                             graph_stats->get_num_edges(),
+                             node_ranges,
+                             edge_ranges,
+                             opts.type,
+                             graph_stats->get_new_edge_cursor());
 }
 
 GraphEngine::~GraphEngine()

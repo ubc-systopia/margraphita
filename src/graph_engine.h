@@ -1,6 +1,7 @@
 #ifndef GRAPH_ENGINE
 #define GRAPH_ENGINE
 
+#include "../utils/thread_utils.h"
 #include "adj_list.h"
 #include "common.h"
 #include "edgekey.h"
@@ -29,6 +30,9 @@ class GraphEngine
 
    protected:
     WT_CONNECTION* conn = nullptr;
+    GraphBase* graph_stats;
+    std::vector<key_range> node_ranges;
+    std::vector<edge_range> edge_ranges;
     LockSet* locks;
     int num_threads;
     graph_opts opts;
