@@ -1,47 +1,68 @@
+#include <math.h>
+#include <stdio.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <cassert>
+#include <deque>
+#include <fstream>
 #include <functional>
 #include <iostream>
+#include <queue>
+#include <set>
+#include <stack>
 #include <vector>
 
+#include "adj_list.h"
 #include "bitmap.h"
 #include "command_line.h"
+#include "common.h"
+#include "edgekey.h"
+#include "graph_engine.h"
+#include "graph_exception.h"
 #include "platform_atomics.h"
 #include "pvector.h"
 #include "sliding_queue.h"
+#include "source_picker.h"
+#include "standard_graph.h"
+#include "times.h"
 
 using namespace std;
 typedef float ScoreT;
 typedef double CountT;
 
-void PBFS(const Graph &g,
-          NodeID source,
+void PBFS(const GraphBase &g,
+          node_id_t source,
           pvector<CountT> &path_counts,
           Bitmap &succ,
-          vector<SlidingQueue<NodeID>::iterator> &depth_index,
-          SlidingQueue<NodeID> &queue)
+          vector<SlidingQueue<node_id_t>::iterator> &depth_index,
+          SlidingQueue<node_id_t> &queue)
 {
-    pvector<NodeID> depths(g.num_nodes(), -1);
+    pvector<node_id_t> depths(g.get_num_nodes(), -1);
     depths[source] = 0;
     path_counts[source] = 1;
     queue.push_back(source);
     depth_index.push_back(queue.begin());
     queue.slide_window();
-    const NodeID *g_out_start = g.out_neigh(0).begin();
+    const node_id_t *g_out_start = g.get_out_nodes_id(0).begin();
+
 #pragma omp parallel
     {
-        NodeID depth = 0;
-        QueueBuffer<NodeID> lqueue(queue);
+        node_id_t depth = 0;
+        QueueBuffer<node_id_t> lqueue(queue);
         while (!queue.empty())
         {
             depth++;
+
 #pragma omp for schedule(dynamic, 64) nowait
             for (auto q_iter = queue.begin(); q_iter < queue.end(); q_iter++)
             {
-                NodeID u = *q_iter;
-                for (NodeID &v : g.out_neigh(u))
+                node_id_t u = *q_iter;
+                for (node_id_t &v : g.get_out_nodes_id(u))
                 {
                     if ((depths[v] == -1) &&
                         (compare_and_swap(
-                            depths[v], static_cast<NodeID>(-1), depth)))
+                            depths[v], static_cast<node_id_t>(-1), depth)))
                     {
                         lqueue.push_back(v);
                     }
@@ -65,42 +86,36 @@ void PBFS(const Graph &g,
     depth_index.push_back(queue.begin());
 }
 
-pvector<ScoreT> Brandes(const Graph &g,
-                        SourcePicker<Graph> &sp,
-                        NodeID num_iters)
+pvector<ScoreT> Brandes(const GraphEngine &graph_engine,
+                        SourcePicker &sp,
+                        int num_iters)
 {
-    Timer t;
-    t.Start();
-    pvector<ScoreT> scores(g.num_nodes(), 0);
-    pvector<CountT> path_counts(g.num_nodes());
-    Bitmap succ(g.num_edges_directed());
-    vector<SlidingQueue<NodeID>::iterator> depth_index;
-    SlidingQueue<NodeID> queue(g.num_nodes());
-    t.Stop();
-    PrintStep("a", t.Seconds());
-    const NodeID *g_out_start = g.out_neigh(0).begin();
-    for (NodeID iter = 0; iter < num_iters; iter++)
+    GraphBase *g = graph_engine.create_graph_handle();
+    pvector<ScoreT> scores(g.get_num_nodes(), 0);
+    pvector<CountT> path_counts(g.get_num_nodes());
+    Bitmap succ(g.get_num_edges());
+    vector<SlidingQueue<node_id_t>::iterator> depth_index;
+    SlidingQueue<node_id_t> queue(g.get_num_nodes());
+    const node_id_t *g_out_start = g.get_out_nodes_id(0).begin();
+
+    for (int iter = 0; iter < num_iters; iter++)
     {
-        NodeID source = sp.PickNext();
-        cout << "source: " << source << endl;
-        t.Start();
+        node_id_t source = sp.PickNext();
         path_counts.fill(0);
         depth_index.resize(0);
         queue.reset();
         succ.reset();
         PBFS(g, source, path_counts, succ, depth_index, queue);
-        t.Stop();
-        PrintStep("b", t.Seconds());
-        pvector<ScoreT> deltas(g.num_nodes(), 0);
-        t.Start();
+        pvector<ScoreT> deltas(g.get_num_nodes(), 0);
+
         for (int d = depth_index.size() - 2; d >= 0; d--)
         {
 #pragma omp parallel for schedule(dynamic, 64)
             for (auto it = depth_index[d]; it < depth_index[d + 1]; it++)
             {
-                NodeID u = *it;
+                node_id_t u = *it;
                 ScoreT delta_u = 0;
-                for (NodeID &v : g.out_neigh(u))
+                for (node_id_t &v : g.get_out_nodes_id(u))
                 {
                     if (succ.get_bit(&v - g_out_start))
                     {
@@ -112,25 +127,17 @@ pvector<ScoreT> Brandes(const Graph &g,
                 scores[u] += delta_u;
             }
         }
-        t.Stop();
-        PrintStep("p", t.Seconds());
     }
+
     // normalize scores
     ScoreT biggest_score = 0;
 #pragma omp parallel for reduction(max : biggest_score)
-    for (NodeID n = 0; n < g.num_nodes(); n++)
+    for (node_id_t n = 0; n < g.get_num_nodes(); n++)
         biggest_score = max(biggest_score, scores[n]);
-#pragma omp parallel for
-    for (NodeID n = 0; n < g.num_nodes(); n++)
-        scores[n] = scores[n] / biggest_score;
-    return scores;
-}
 
-void PrintTopScores(const Graph &g, const pvector<ScoreT> &scores)
-{
-    vector<pair<NodeID, ScoreT>> score_pairs(g.num_nodes());
-    for (NodeID n : g.vertices()) score_pairs[n] = make_pair(n, scores[n]);
-    int k = 5;
-    vector<pair<ScoreT, NodeID>> top_k = TopK(score_pairs, k);
-    for (auto kvp : top_k) cout << kvp.second << ":" << kvp.first << endl;
+#pragma omp parallel for
+    for (node_id_t n = 0; n < g.get_num_nodes(); n++)
+        scores[n] = scores[n] / biggest_score;
+
+    return scores;
 }
