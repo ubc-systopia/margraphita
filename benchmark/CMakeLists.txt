@@ -27,3 +27,21 @@ add_executable(pr_iter_getout pr_iter_getout.cpp)
 target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 
 # ###################################################################################
+
+add_executable(pr_iter_parallel pr_iter_parallel.cpp)
+target_link_libraries(pr_iter_parallel PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(cc cc.cpp)
+target_link_libraries(cc PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(bc bc.cpp)
+target_link_libraries(bc PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(bc_parallel bc_parallel.cpp)
+target_link_libraries(bc_parallel PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(tc_iter_parallel tc_iter_parallel.cpp)
+target_link_libraries(tc_iter_parallel PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(bfs_parallel bfs_parallel.cpp)
+target_link_libraries(bfs_parallel PUBLIC ${NAME_LIB} graph_utils)
