@@ -17,6 +17,7 @@
 #include "bitmap.h"
 #include "command_line.h"
 #include "common.h"
+#include "csv_log.h"
 #include "edgekey.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
@@ -28,9 +29,8 @@
 
 const edgeweight_t DistInf = INT32_MAX;
 
-pvector<edgeweight_t> sssp(GraphEngine &graph_engine, node_id_t source)
+pvector<edgeweight_t> sssp(GraphBase *graph, node_id_t source)
 {
-    GraphBase *graph = graph_engine.create_graph_handle();
     pvector<edgeweight_t> oracle_dist(graph->get_num_nodes(), DistInf);
     oracle_dist[source] = 0;
     typedef pair<edgeweight_t, node_id_t> WN;
@@ -48,14 +48,88 @@ pvector<edgeweight_t> sssp(GraphEngine &graph_engine, node_id_t source)
                 if (tent_dist + e.edge_weight < oracle_dist[e.dst_id])
                 {
                     oracle_dist[e.dst_id] = tent_dist + e.edge_weight;
+                    cerr << e.edge_weight << '\n';
                     mq.push(make_pair(tent_dist + e.edge_weight, e.dst_id));
                 }
             }
         }
     }
-    graph->close();
-    graph_engine.close_graph();
     return oracle_dist;
 }
 
-int main() { return 0; }
+template <typename Graph>
+node_id_t find_random_start(Graph &graph)
+{
+    while (1)
+    {
+        node random_start = graph->get_random_node();
+        std::cout << random_start.id << std ::endl;
+        std::cout << "random start vertex is " << random_start.id << std::endl;
+        if (graph->get_out_degree(random_start.id) != 0)
+        {
+            return random_start.id;
+        }
+        else
+        {
+            std::cout << "out degree was zero. finding a new random vertex."
+                      << std::endl;
+        }
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    std::cout << "Running SSSP" << std::endl;
+    CmdLineApp sssp_cli(argc, argv);
+    if (!sssp_cli.parse_args())
+    {
+        return -1;
+    }
+    graph_opts opts;
+    opts.create_new = sssp_cli.is_create_new();
+    opts.is_directed = sssp_cli.is_directed();
+    opts.read_optimize = sssp_cli.is_read_optimize();
+    opts.is_weighted = sssp_cli.is_weighted();
+    opts.optimize_create = sssp_cli.is_create_optimized();
+    opts.db_name = sssp_cli.get_db_name();
+    opts.db_dir = sssp_cli.get_db_path();
+    std::string sssp_log = sssp_cli.get_logdir();
+    opts.stat_log = sssp_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";
+    opts.type = sssp_cli.get_graph_type();
+    const int THREAD_NUM = 1;
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
+    int num_trials = sssp_cli.get_num_trials();
+
+    Times t;
+    t.start();
+    GraphEngine graphEngine(engine_opts);
+    GraphBase *graph = graphEngine.create_graph_handle();
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+
+    for (int i = 0; i < num_trials; i++)
+    {
+        node_id_t start_vertex = sssp_cli.start_vertex();
+        if (start_vertex == -1)
+        {
+            start_vertex = find_random_start(graph);
+        }
+        sssp_info info(0);
+
+        t.start();
+        sssp(graph, start_vertex);
+        t.stop();
+
+        info.time_taken = t.t_micros();
+        std::cout << "Single-Source Shortest Path completed in : "
+                  << info.time_taken << std::endl;
+        print_csv_info(opts.db_name, info, sssp_log);
+    }
+
+    graph->close();
+    graphEngine.close_graph();
+
+    return 0;
+}
