@@ -37,6 +37,12 @@ typedef struct cc_info
     cc_info(int _val) : component_count(_val), time_taken(_val){};
 } cc_info;
 
+typedef struct sssp_info
+{
+    double time_taken;
+    sssp_info(int _val) : time_taken(_val){};
+} sssp_info;
+
 typedef struct pr_map
 {
     int id;
