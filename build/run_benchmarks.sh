@@ -44,6 +44,7 @@ mkdir -p ${RESULT}/pr
 mkdir -p ${RESULT}/tc
 mkdir -p ${RESULT}/bfs
 mkdir -p ${RESULT}/cc
+mkdir -p ${RESULT}/sssp
 
 # for ((scale=11; scale <=20; scale ++ )); do
 #     DATASETS+=( "s${scale}_e8" )
@@ -170,7 +171,30 @@ do
 done
 }
 
+run_sssp()
+{
+for type in "${TYPES[@]}"
+do
+    for ds in "${DATASETS[@]}"
+    do
+        for trials in $(seq 1 8)
+        do
+        echo  "--------------------------------"  >> ${RESULT}/sssp/${ds}.txt
+        date +"%c" >> ${RESULT}/sssp/${ds}.txt
+        ${RELEASE_PATH}/benchmark/sssp -m "${type}_rd_${ds}" -b SSSP -a $DB_DIR/${ds} -s $ds -f ${RESULT}/sssp -r -d -l $type &>> ${RESULT}/sssp/${type}_rd_${ds}.txt
+        done
+
+        # #Run to collect WT_STATS
+        # ${PROFILE_PATH}/benchmark/cc -m "${type}_rd_${ds}" -b CC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/cc -r -d -l $type &>> ${RESULT}/cc/${type}_rd_${ds}.txt
+
+        # #Run with perf
+        # perf record -a --call-graph fp -o ${RESULT}/cc/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/cc -m "${type}_rd_${ds}" -b CC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/cc -r -d -l $type
+    done
+done
+}
+
 # run_pagerank
 # run_bfs
 # run_tc
-run_cc
+# run_cc
+run_sssp
