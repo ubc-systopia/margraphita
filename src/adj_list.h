@@ -442,8 +442,6 @@ class AdjList : public GraphBase
     WT_CURSOR *get_new_in_adjlist_cursor();
     WT_CURSOR *get_new_out_adjlist_cursor();
 
-    void make_indexes() { return; };
-
    private:
     // structure of the graph
     int node_attr_size = 0;  // set on checking the list len

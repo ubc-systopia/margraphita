@@ -1188,22 +1188,6 @@ std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
     return in_nodes_id;
 }
 
-void EdgeKey::make_indexes()
-{
-    if (edge_cursor != nullptr)
-    {
-        CommonUtil::close_cursor(edge_cursor);
-    }
-    if (src_idx_cursor != nullptr)
-    {
-        CommonUtil::close_cursor(src_idx_cursor);
-    }
-    if (dst_idx_cursor != nullptr)
-    {
-        CommonUtil::close_cursor(dst_idx_cursor);
-    }
-    create_indices(session);
-}
 /**
  * @brief Creates the indices on the SRC and the DST column of the edge
  * table. These are not (and should not be) used for inserting data into the

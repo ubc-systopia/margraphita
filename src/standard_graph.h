@@ -531,7 +531,7 @@ class StandardGraph : public GraphBase
     WT_CURSOR *get_new_dst_idx_cursor();
     WT_CURSOR *get_new_src_dst_idx_cursor();
     std::vector<edge> test_cursor_iter(node_id_t node_id);
-    void make_indexes();
+    static void create_indices(WT_SESSION *sess);
 
    private:
     // Cursors
@@ -543,9 +543,7 @@ class StandardGraph : public GraphBase
     WT_CURSOR *dst_index_cursor = NULL;
 
     // Internal methods
-    void init_metadata_cursor();
     void drop_indices();
-    static void create_indices(WT_SESSION *sess);
     int update_node_degree(WT_CURSOR *cursor,
                            node_id_t node_id,
                            degree_t indeg,

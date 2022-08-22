@@ -28,6 +28,13 @@ typedef struct tc_info
           cycle_time(_val){};
 } tc_info;
 
+typedef struct cc_info
+{
+    int component_count;
+    double time_taken;
+    cc_info(int _val) : component_count(_val), time_taken(_val){};
+} cc_info;
+
 typedef struct pr_map
 {
     int id;

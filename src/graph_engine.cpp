@@ -17,13 +17,6 @@ GraphEngine::GraphEngine(graph_engine_opts engine_opts)
     {
         open_connection();
     }
-    graph_stats = this->create_graph_handle();
-    calculate_thread_offsets(num_threads,
-                             graph_stats->get_num_nodes(),
-                             graph_stats->get_num_edges(),
-                             node_ranges,
-                             edge_ranges,
-                             opts.type);
 }
 
 GraphEngine::~GraphEngine()
@@ -61,6 +54,34 @@ GraphBase *GraphEngine::create_graph_handle()
     return ptr;
 }
 
+void GraphEngine::create_indices()
+{
+    WT_SESSION *sess;
+    CommonUtil::open_session(conn, &sess);
+    // Should enforce other handles are closed here (TODO?)
+    if (opts.type == GraphType::Std)
+    {
+        StandardGraph::create_indices(sess);
+    }
+    else if (opts.type == GraphType::EKey)
+    {
+        EdgeKey::create_indices(sess);
+    }
+}
+
+void GraphEngine::calculate_thread_offsets()
+{
+    // Create snapshot here first?
+    GraphBase *graph_stats = this->create_graph_handle();
+    calculate_thread_offsets(num_threads,
+                             graph_stats->get_num_nodes(),
+                             graph_stats->get_num_edges(),
+                             node_ranges,
+                             edge_ranges,
+                             opts.type);
+    graph_stats->close();
+}
+
 void GraphEngine::check_opts_valid()
 {
     if (num_threads < 1)
@@ -78,7 +99,13 @@ void GraphEngine::check_opts_valid()
     }
     if (!CommonUtil::check_dir_exists(opts.stat_log))
     {
-        std::filesystem::create_directories(opts.stat_log);
+        try
+        {
+            std::filesystem::create_directories(opts.stat_log);
+        }
+        catch (exception e)
+        {
+        }
     }
 }
 
