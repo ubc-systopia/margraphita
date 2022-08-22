@@ -25,7 +25,7 @@
 #include "standard_graph.h"
 #include "times.h"
 
-const edgeweight_t DistInf = INT64_MAX;
+const edgeweight_t DistInf = INT32_MAX;
 const node_id_t kMaxBin = numeric_limits<size_t>::max() / 2;
 const size_t kBinSizeThreshold = 1000;
 

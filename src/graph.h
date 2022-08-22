@@ -60,7 +60,6 @@ class GraphBase
     uint64_t get_num_edges();
     void set_num_nodes(uint64_t num_nodes, WT_CURSOR *cursor);
     void set_num_edges(uint64_t num_edges, WT_CURSOR *cursor);
-    virtual void make_indexes() = 0;
     std::string get_db_name() const { return opts.db_name; };
 
     static int _get_table_cursor(std::string table,

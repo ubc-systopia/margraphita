@@ -573,7 +573,7 @@ class EdgeKey : public GraphBase
 
     WT_CURSOR *get_dst_src_idx_cursor();
     WT_CURSOR *get_new_dst_src_idx_cursor();
-    void make_indexes();
+    static void create_indices(WT_SESSION *session);
 
    private:
     // Cursors
@@ -595,7 +595,6 @@ class EdgeKey : public GraphBase
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
 
-    static void create_indices(WT_SESSION *session);
     void drop_indices();
     void close_all_cursors();
 };

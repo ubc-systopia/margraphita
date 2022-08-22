@@ -23,13 +23,14 @@ class GraphEngine
     GraphEngine(graph_engine_opts engine_opts);
     ~GraphEngine();
     GraphBase* create_graph_handle();
+    void create_indices();
+    void calculate_thread_offsets();
     void close_graph();
     edge_range get_edge_range(int thread_id);
     key_range get_key_range(int thread_id);
 
    protected:
     WT_CONNECTION* conn = nullptr;
-    GraphBase* graph_stats;
     std::vector<key_range> node_ranges;
     std::vector<edge_range> edge_ranges;
     LockSet* locks;
