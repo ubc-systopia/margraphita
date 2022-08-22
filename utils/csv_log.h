@@ -57,7 +57,7 @@ void print_csv_info(std::string name, tc_info &info, std::string csv_logdir)
 void print_csv_info(std::string name, cc_info &info, std::string csv_logdir)
 {
     fstream FILE;
-    std::string _name = csv_logdir + "/" + name + "_tc.csv";
+    std::string _name = csv_logdir + "/" + name + "_cc.csv";
     if (access(_name.c_str(), F_OK) == -1)
     {
         // The file does not exist yet.
@@ -69,7 +69,7 @@ void print_csv_info(std::string name, cc_info &info, std::string csv_logdir)
         FILE.open(_name, ios::out | ios::app);
     }
 
-    FILE << name << ",tc," << info.component_count << "," << info.time_taken
+    FILE << name << ",cc," << info.component_count << "," << info.time_taken
          << "\n";
 
     FILE.close();

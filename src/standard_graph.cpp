@@ -89,27 +89,6 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     sess->close(sess, NULL);
 }
 
-void StandardGraph::make_indexes()
-{
-    if (this->edge_cursor != nullptr)
-    {
-        CommonUtil::close_cursor(this->edge_cursor);
-    }
-    if (this->src_dst_index_cursor != nullptr)
-    {
-        CommonUtil::close_cursor(this->src_dst_index_cursor);
-    }
-    if (this->src_index_cursor != nullptr)
-    {
-        CommonUtil::close_cursor(this->src_index_cursor);
-    }
-    if (this->dst_index_cursor != nullptr)
-    {
-        CommonUtil::close_cursor(this->dst_index_cursor);
-    }
-    create_indices(session);
-}
-
 void StandardGraph::init_cursors()
 {
     int ret =
