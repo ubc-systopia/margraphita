@@ -21,7 +21,7 @@ echo " -m cit-Patents"
 echo " -t std"
 exit 1;}
 
-index_create=0
+index_create=1
 RESULT=$(pwd)
 preprocess=1
 insert=1

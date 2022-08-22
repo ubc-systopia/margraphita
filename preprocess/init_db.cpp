@@ -55,12 +55,10 @@ int main(int argc, char *argv[])
     if (init_cli.is_index_create() && opts.type != GraphType::Adj)
     {
         t.start();
-        GraphBase *graph = graphEngine.create_graph_handle();
-        graph->make_indexes();
+        graphEngine.create_indices();
         t.stop();
         cout << "Indices created in " << t.t_micros() << endl;
-        graph->close();
-        graphEngine.close_graph();
-        exit(0);
     }
+    graphEngine.close_graph();
+    exit(0);
 }
