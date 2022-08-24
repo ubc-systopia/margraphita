@@ -196,5 +196,5 @@ done
 # run_pagerank
 # run_bfs
 # run_tc
-# run_cc
-run_sssp
+ run_cc
+#run_sssp

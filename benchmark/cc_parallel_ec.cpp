@@ -19,59 +19,77 @@
 #include "edgekey.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
+#include "platform_atomics.h"
+#include "pvector.h"
 #include "standard_graph.h"
 #include "times.h"
 
 /**
- * Connected Components for undirected graph
+ * Connected Components
  */
 
-std::vector<node_id_t> connected_components(GraphBase* graph, bool is_directed)
+bool Link(node_id_t u, node_id_t v, pvector<node_id_t>& labels)
 {
-    node_id_t numNodes = graph->get_num_nodes();
-    std::vector<node_id_t> labels(numNodes);
-    int comp_num = 0;
-    for (node_id_t i = 0; i < numNodes; i++)
+    bool done = true;
+    node_id_t p1 = labels[u];
+    node_id_t p2 = labels[v];
+    while (p1 != p2)
     {
-        labels[i] = -1;
+        done = false;
+        node_id_t high = p1 > p2 ? p1 : p2;
+        node_id_t low = p1 + (p2 - high);
+        node_id_t p_high = labels[high];
+        // Was already 'low' or succeeded in writing 'low'
+        if ((p_high == low) ||
+            (p_high == high && compare_and_swap(labels[high], high, low)))
+            break;
+        p1 = labels[labels[high]];
+        p2 = labels[low];
     }
+    return done;
+}
 
-    for (node_id_t v = 0; v < numNodes; v++)
+pvector<node_id_t> connected_components(GraphEngine& graph_engine,
+                                        int thread_num,
+                                        bool is_directed)
+{
+    bool done = false;
+    GraphBase* stat = graph_engine.create_graph_handle();
+    node_id_t numNodes = stat->get_num_nodes();
+    stat->close();
+    pvector<node_id_t> labels(numNodes);
+#pragma omp parallel for
+    for (node_id_t n = 0; n < numNodes; n++) labels[n] = n;
+
+    while (!done)
     {
-        if (labels[v] == -1)
+        done = true;
+#pragma omp parallel for reduction(& : done) num_threads(thread_num)
+        for (int i = 0; i < thread_num; i++)
         {
-            comp_num += 1;
-            std::queue<node_id_t> frontier;
-            frontier.push(v);
-            labels[v] = v;
+            GraphBase* graph = graph_engine.create_graph_handle();
+            edge found = {0};
 
-            while (!frontier.empty())
+            EdgeCursor* edge_cursor = graph->get_edge_iter();
+            edge_cursor->set_key(graph_engine.get_edge_range(i));
+            edge_cursor->next(&found);
+            while (found.src_id != -1)
             {
-                node_id_t u = frontier.front();
-                frontier.pop();
-                for (node_id_t k : graph->get_out_nodes_id(u))
-                {
-                    if (labels[k] == -1)
-                    {
-                        labels[k] = v;
-                        frontier.push(k);
-                    }
-                }
-                if (is_directed)
-                {
-                    for (node_id_t k : graph->get_in_nodes_id(u))
-                    {
-                        if (labels[k] == -1)
-                        {
-                            labels[k] = v;
-                            frontier.push(k);
-                        }
-                    }
-                }
+                done &= Link(found.src_id, found.dst_id, labels);
+                edge_cursor->next(&found);
+            }
+            graph->close();
+        }
+
+#pragma omp parallel for schedule(dynamic, 16384)
+        for (node_id_t i = 0; i < numNodes; i++)
+        {
+            while (labels[i] != labels[labels[i]])
+            {
+                labels[i] = labels[labels[i]];
             }
         }
     }
-
     return labels;
 }
 
@@ -96,7 +114,7 @@ int main(int argc, char* argv[])
     opts.stat_log = cc_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
     opts.type = cc_cli.get_graph_type();
-    const int THREAD_NUM = 1;
+    const int THREAD_NUM = 8;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
 
@@ -105,7 +123,7 @@ int main(int argc, char* argv[])
     Times t;
     t.start();
     GraphEngine graphEngine(engine_opts);
-    GraphBase* graph = graphEngine.create_graph_handle();
+    graphEngine.calculate_thread_offsets();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 
@@ -113,8 +131,8 @@ int main(int argc, char* argv[])
     {
         cc_info info(0);
         t.start();
-        std::vector<node_id_t> labels =
-            connected_components(graph, opts.is_directed);
+        pvector<node_id_t> labels =
+            connected_components(graphEngine, THREAD_NUM, opts.is_directed);
         t.stop();
 
         for (uint64_t i = 0; i < labels.size() - 1; i++)
