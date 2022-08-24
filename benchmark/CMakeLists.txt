@@ -34,6 +34,12 @@ target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 add_executable(cc cc.cpp)
 target_link_libraries(cc PUBLIC ${NAME_LIB} graph_utils)
 
+add_executable(cc_parallel cc_parallel.cpp)
+target_link_libraries(cc_parallel PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(cc_parallel_ec cc_parallel_ec.cpp)
+target_link_libraries(cc_parallel_ec PUBLIC ${NAME_LIB} graph_utils)
+
 add_executable(sssp sssp.cpp)
 target_link_libraries(sssp PUBLIC ${NAME_LIB} graph_utils)
 
