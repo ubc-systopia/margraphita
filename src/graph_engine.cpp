@@ -30,9 +30,6 @@ GraphEngine::~GraphEngine()
 
 GraphBase *GraphEngine::create_graph_handle()
 {
-    WT_SESSION *sess;
-    CommonUtil::open_session(conn, &sess);
-
     GraphBase *ptr = nullptr;
     if (opts.type == GraphType::Std)
     {
