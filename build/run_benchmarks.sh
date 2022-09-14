@@ -10,7 +10,7 @@ echo "run_type: One of all, regular, stats, perf. defaults to all."
 exit 1;}
 
 TYPES=( "adj" "std" "ekey" )
-DATASETS=( "s10_e8" ) #"cit-Patents" )
+DATASETS=( "s15_e8" ) #"cit-Patents" )
 RESULT=$GRAPH_PROJECT_DIR/outputs/on_mars
 RUNTYPE=all
 COUNTS=10
@@ -112,7 +112,7 @@ for ds in "${DATASETS[@]}"
 do
     for type in "${TYPES[@]}"
     do
-    # The bfs binary handles running the tests 10 times for 10 different random nodes.
+    The bfs binary handles running the tests 10 times for 10 different random nodes.
     echo  "--------------------------------" >> ${RESULT}/bfs/${ds}.txt
     date +"%c" >> ${RESULT}/bfs/${ds}.txt
     ${RELEASE_PATH}/benchmark/bfs -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs -r -d -l $type &>> ${RESULT}/bfs/${type}_rd_${ds}.txt
@@ -133,18 +133,18 @@ for type in "${TYPES[@]}"
 do
     for ds in "${DATASETS[@]}"
     do
-        for trials in $(seq 1 8)
-        do
-        echo  "--------------------------------"  >> ${RESULT}/tc/${ds}.txt
-        date +"%c" >> ${RESULT}/tc/${ds}.txt
-        ${RELEASE_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
-        done
+        # for trials in $(seq 1 8)
+        # do
+        # echo  "--------------------------------"  >> ${RESULT}/tc/${ds}.txt
+        # date +"%c" >> ${RESULT}/tc/${ds}.txt
+        # ${RELEASE_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
+        # done
 
         #Run to collect WT_STATS
-        ${PROFILE_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
+        # ${PROFILE_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type &>> ${RESULT}/tc/${type}_rd_${ds}.txt
 
         #Run with perf
-        perf record -a --call-graph fp -o ${RESULT}/tc/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/tc -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type
+        perf record -a --call-graph fp -o ${RESULT}/tc/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/tc_iter -m "${type}_rd_${ds}" -b TC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/tc -r -d -l $type
     done
 done
 }
@@ -155,15 +155,23 @@ for type in "${TYPES[@]}"
 do
     for ds in "${DATASETS[@]}"
     do
-        for trials in $(seq 1 8)
-        do
-        echo  "--------------------------------"  >> ${RESULT}/cc/${ds}.txt
-        date +"%c" >> ${RESULT}/cc/${ds}.txt
-        ${RELEASE_PATH}/benchmark/cc -m "${type}_rd_${ds}" -b CC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/cc -r -d -l $type &>> ${RESULT}/cc/${type}_rd_${ds}.txt
-        done
+        # for trials in $(seq 1 1)
+        # do
+        # echo  "--------------------------------"  >> ${RESULT}/cc/${ds}.txt
+        # date +"%c" >> ${RESULT}/cc/${ds}.txt
+        # ${RELEASE_PATH}/benchmark/cc_parallel -m "${type}_rd_${ds}" -b CC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/cc -r -d -l $type &>> ${RESULT}/cc/${type}_rd_${ds}.txt
+        # done
 
-        # #Run to collect WT_STATS
-        # ${PROFILE_PATH}/benchmark/cc -m "${type}_rd_${ds}" -b CC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/cc -r -d -l $type &>> ${RESULT}/cc/${type}_rd_${ds}.txt
+        #Run to collect WT_STATS
+        VARIANTS=("cc" "cc_parallel" "cc_parallel_ec")
+        for variant in "${VARIANTS[@]}"
+        do
+
+            ${PROFILE_PATH}/benchmark/${variant} -m "${type}_rd_${ds}" -b CC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/${variant} -r -d -l $type &>> ${RESULT}/cc/${type}_rd_${ds}.txt
+
+            perf record -a --call-graph fp -o ${RESULT}/${variant}/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/${variant} -m "${type}_rd_${ds}" -b CC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/${variant} -r -d -l $type
+
+        done 
 
         # #Run with perf
         # perf record -a --call-graph fp -o ${RESULT}/cc/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/cc -m "${type}_rd_${ds}" -b CC -a $DB_DIR/${ds} -s $ds -f ${RESULT}/cc -r -d -l $type
@@ -195,6 +203,6 @@ done
 
 # run_pagerank
 # run_bfs
-# run_tc
- run_cc
-#run_sssp
+ run_tc
+# run_cc
+# run_sssp
