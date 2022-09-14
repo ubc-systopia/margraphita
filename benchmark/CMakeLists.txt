@@ -22,6 +22,9 @@ target_link_libraries(bfs PUBLIC ${NAME_LIB} graph_utils)
 add_executable(tc tc.cpp)
 target_link_libraries(tc PUBLIC ${NAME_LIB} graph_utils)
 
+add_executable(tc_iter tc_iter.cpp)
+target_link_libraries(tc_iter PUBLIC ${NAME_LIB} graph_utils)
+
 # ###################################################################################
 # #TEST
 add_executable(pr_iter_getout pr_iter_getout.cpp)
