@@ -187,7 +187,7 @@ time_info *insert_edge_thread(int _tid)
             for (edge e : edjlist)
             {
                 cursor->set_key(cursor, e.src_id, e.dst_id);
-                cursor->set_value(cursor, "");
+                cursor->set_value(cursor, 0, OutOfBand_Val);
                 cursor->insert(cursor);
             }
             cursor->close(cursor);
@@ -270,9 +270,8 @@ time_info *insert_node(int _tid)
                 ekey_cur->set_key(ekey_cur, to_insert.id, OutOfBand_ID);
                 if (read_optimized)
                 {
-                    std::string packed = pack_int_to_str(to_insert.in_degree,
-                                                         to_insert.out_degree);
-                    ekey_cur->set_value(ekey_cur, packed.c_str());
+                    ekey_cur->set_value(
+                        ekey_cur, to_insert.in_degree, to_insert.out_degree);
                 }
                 else
                 {
