@@ -418,17 +418,16 @@ class EkeyNodeCursor : public NodeCursor
         first_time_skip_next:
 
             char *buf;
-            cursor->get_value(
-                cursor,
-                &curr_edge.dst_id,
-                &curr_edge.src_id,
-                &buf);  // getting all of dst, src, in/out degrees at once
-            std::string str(buf);
             int a = 0, b = 0;
-            CommonUtil::extract_from_string(str, &a, &b);
+            cursor->get_value(cursor,
+                              &curr_edge.dst_id,
+                              &curr_edge.src_id,
+                              &found->in_degree,
+                              &found->out_degree);  // getting all of dst, src,
+                                                    // in/out degrees at once
 
-            found->in_degree = a;
-            found->out_degree = b;
+            // found->in_degree = a;
+            // found->out_degree = b;
             found->id = curr_edge.src_id;
 
             if (keys.end != -1 && curr_edge.src_id > keys.end)
