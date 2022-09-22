@@ -46,7 +46,10 @@ const std::string OUT_DEGREE = "out_degree";
 const std::string SRC = "src";
 const std::string DST = "dst";
 const std::string ID = "id";
-const std::string ATTR = "attr";  // Used in EdgeKey as the packed binary.
+const std::string ATTR_FIRST =
+    "attr_fst";  // Used in EdgeKey as the first attribute.
+const std::string ATTR_SECOND =
+    "attr_scnd";  // Used in EdgeKey as the second attribute.
 const std::string WEIGHT = "weight";
 const std::string NODE_TABLE = "node";
 const std::string EDGE_TABLE = "edge";

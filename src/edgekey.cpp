@@ -38,9 +38,9 @@ void EdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // Set up the edge table
     // Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
     // Edge Column Format: iiS
-    vector<string> edge_columns = {SRC, DST, ATTR};
-    string edge_key_format = "qq";   // SRC DST
-    string edge_value_format = "S";  // Packed binary
+    vector<string> edge_columns = {SRC, DST, ATTR_FIRST, ATTR_SECOND};
+    string edge_key_format = "qq";    // SRC DST
+    string edge_value_format = "II";  // Packed binary
     CommonUtil::set_table(
         sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
     if (opts.optimize_create == false)
@@ -68,7 +68,8 @@ void EdgeKey::init_cursors()
     string projection = "(" + SRC + "," + DST + ")";
     ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX, projection, &src_idx_cursor);
     ret = _get_index_cursor(EDGE_TABLE, DST_INDEX, projection, &dst_idx_cursor);
-    projection = "(" + DST + "," + SRC + "," + ATTR + ")";
+    projection =
+        "(" + DST + "," + SRC + "," + ATTR_FIRST + "," + ATTR_SECOND + ")";
     ret = _get_index_cursor(
         EDGE_TABLE, DST_SRC_INDEX, projection, &dst_src_idx_cursor);
 }
@@ -151,13 +152,12 @@ start_add_node:
     edge_cursor->set_key(edge_cursor, to_insert.id, OutOfBand_ID);
     if (opts.read_optimize)
     {
-        string packed = CommonUtil::pack_int_to_str(to_insert.in_degree,
-                                                    to_insert.out_degree);
-        edge_cursor->set_value(edge_cursor, packed.c_str());
+        edge_cursor->set_value(
+            edge_cursor, to_insert.in_degree, to_insert.out_degree);
     }
     else
     {
-        edge_cursor->set_value(edge_cursor, "");
+        edge_cursor->set_value(edge_cursor, 0, 0);
     }
 
     switch (edge_cursor->insert(edge_cursor))
@@ -188,13 +188,12 @@ int EdgeKey::add_node_txn(node to_insert)
     edge_cursor->set_key(edge_cursor, to_insert.id, OutOfBand_ID);
     if (opts.read_optimize)
     {
-        string packed = CommonUtil::pack_int_to_str(to_insert.in_degree,
-                                                    to_insert.out_degree);
-        edge_cursor->set_value(edge_cursor, packed.c_str());
+        edge_cursor->set_value(
+            edge_cursor, to_insert.in_degree, to_insert.out_degree);
     }
     else
     {
-        edge_cursor->set_value(edge_cursor, "");
+        edge_cursor->set_value(edge_cursor, 0, OutOfBand_Val);
     }
     return edge_cursor->insert(edge_cursor);
 }
@@ -381,8 +380,7 @@ int EdgeKey::update_node_degree(node_id_t node_id,
                                 degree_t outdeg)
 {
     edge_cursor->set_key(edge_cursor, node_id, OutOfBand_ID);
-    string val = CommonUtil::pack_int_to_str(indeg, outdeg);
-    edge_cursor->set_value(edge_cursor, val.c_str());
+    edge_cursor->set_value(edge_cursor, indeg, outdeg);
     int ret = edge_cursor->update(edge_cursor);
     edge_cursor->reset(edge_cursor);
     return ret;
@@ -453,12 +451,12 @@ start_add_edge:
 
     if (opts.is_weighted)
     {
-        edge_cursor->set_value(edge_cursor,
-                               std::to_string(to_insert.edge_weight).c_str());
+        edge_cursor->set_value(
+            edge_cursor, to_insert.edge_weight, OutOfBand_Val);
     }
     else
     {
-        edge_cursor->set_value(edge_cursor, "");
+        edge_cursor->set_value(edge_cursor, 0, OutOfBand_Val);
     }
 
     ret = edge_cursor->insert(edge_cursor);
@@ -492,11 +490,11 @@ start_add_edge:
         if (opts.is_weighted)
         {
             edge_cursor->set_value(
-                edge_cursor, std::to_string(to_insert.edge_weight).c_str());
+                edge_cursor, to_insert.edge_weight, OutOfBand_Val);
         }
         else
         {
-            edge_cursor->set_value(edge_cursor, "");
+            edge_cursor->set_value(edge_cursor, 0, OutOfBand_Val);
         }
 
         ret = edge_cursor->insert(edge_cursor);
@@ -1337,7 +1335,8 @@ WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
 {
     if (dst_src_idx_cursor == nullptr)
     {
-        string projection = "(" + DST + "," + SRC + "," + ATTR + ")";
+        string projection =
+            "(" + DST + "," + SRC + "," + ATTR_FIRST + "," + ATTR_SECOND + ")";
         if (_get_index_cursor(
                 EDGE_TABLE, DST_SRC_INDEX, projection, &dst_src_idx_cursor) !=
             0)
@@ -1352,7 +1351,8 @@ WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
 WT_CURSOR *EdgeKey::get_new_dst_src_idx_cursor()
 {
     WT_CURSOR *new_dst_src_idx_cursor = nullptr;
-    string projection = "(" + DST + "," + SRC + "," + ATTR + ")";
+    string projection =
+        "(" + DST + "," + SRC + "," + ATTR_FIRST + "," + ATTR_SECOND + ")";
     if (_get_index_cursor(
             EDGE_TABLE, DST_SRC_INDEX, projection, &new_dst_src_idx_cursor) !=
         0)

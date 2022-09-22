@@ -33,7 +33,9 @@ extern const std::string OUT_DEGREE;
 extern const std::string SRC;
 extern const std::string DST;
 extern const std::string ID;
-extern const std::string ATTR;  // Used in EdgeKey as the packed binary.
+extern const std::string ATTR_FIRST;  // Used in EdgeKey as the first attribute.
+extern const std::string
+    ATTR_SECOND;  // Used in EdgeKey as the second attribute.
 extern const std::string WEIGHT;
 extern const std::string NODE_TABLE;
 extern const std::string EDGE_TABLE;
@@ -51,6 +53,7 @@ typedef int64_t node_id_t;
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
 const node_id_t OutOfBand_ID = -1;
+const degree_t OutOfBand_Val = UINT32_MAX;
 
 typedef enum GraphType
 {
@@ -508,16 +511,13 @@ class CommonUtil
      */
     inline static void __record_to_node_ekey(WT_CURSOR *cur, node *found)
     {
-        char *packed_vec;
         // std::cout << cur->value_format << std::endl;
-        int ret = cur->get_value(cur, &packed_vec);
+        int a = 0, b = 0;
+        int ret = cur->get_value(cur, &a, &b);
         if (ret != 0)
         {
-            throw GraphException("in here");
+            throw GraphException("Failed to get node attributes");
         }
-        std::string str(packed_vec);
-        int a = 0, b = 0;
-        extract_from_string(str, &a, &b);
         found->in_degree = a;
         found->out_degree = b;
     }
@@ -542,15 +542,12 @@ class CommonUtil
 
     inline static void __record_to_edge_ekey(WT_CURSOR *cur, edge *found)
     {
-        char *packed_vec;
-        int ret = cur->get_value(cur, &packed_vec);
+        int a = 0, b = 0;
+        int ret = cur->get_value(cur, &a, &b);
         if (ret != 0)
         {
-            throw GraphException("in here");
+            throw GraphException("Failed to get edge val");
         }
-        std::string str(packed_vec);
-        int a = 0, b = 0;
-        extract_from_string(str, &a, &b);
         found->edge_weight = a;
     }
 };
