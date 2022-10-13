@@ -902,7 +902,7 @@ std::vector<edge> EdgeKey::get_edges()
 
     while (edge_cursor->next(edge_cursor) == 0)
     {
-        edge found;
+        edge found = {0};
         edge_cursor->get_key(edge_cursor, &found.src_id, &found.dst_id);
         if (found.dst_id != OutOfBand_ID)
         {

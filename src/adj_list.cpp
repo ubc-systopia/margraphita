@@ -673,7 +673,7 @@ std::vector<edge> AdjList::get_edges()
     std::vector<edge> edgelist;
     while (edge_cursor->next(edge_cursor) == 0)
     {
-        edge found;
+        edge found = {0};
         edge_cursor->get_key(edge_cursor, &found.src_id, &found.dst_id);
         if (opts.is_weighted)
         {

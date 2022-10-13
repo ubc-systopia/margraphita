@@ -113,6 +113,7 @@ bool CommonUtil::check_dir_exists(std::string path)
         return false;
     }
 #endif
+    return false;
 }
 
 void CommonUtil::set_table(WT_SESSION *session,
