@@ -10,29 +10,14 @@ using namespace std;
 
 typedef struct time_info
 {
-    int64_t insert_time;
-    int64_t read_time;
-    int64_t rback_time;
-    int64_t num_inserted;
-    int64_t num_rollbacks;
-    int64_t num_failures;
-    time_info(int64_t _val)
-        : insert_time(_val),
-          read_time(_val),
-          rback_time(_val),
-          num_inserted(_val),
-          num_rollbacks(_val),
-          num_failures(_val){};
-    time_info(int64_t a, int64_t b, int64_t c)
-        : insert_time(a), read_time(b), num_inserted(c){};
-} time_info;
+    long double insert_time =0;
+    long double read_time=0;
+    long double rback_time =0;
+    size_t num_inserted =0;
+    long num_rollbacks =0;
+    long num_failures =0;
 
-std::string pack_int_to_str(int32_t a, int32_t b)
-{
-    std::stringstream sstream;
-    sstream << a << " " << b;
-    return sstream.str();
-}
+} time_info;
 
 class InsertOpts
 {
@@ -45,17 +30,17 @@ class InsertOpts
     std::vector<std::string> help_strings_;
 
     std::string db_name;
-    enum GraphType graph_type;
+    enum GraphType graph_type {};
     std::string logdir;
     std::string db_path;  // This contains the path to the db dir.
     std::string dataset;
-    double num_edges;
-    double num_nodes;
+    double num_edges{};
+    double num_nodes{};
     bool directed = true;
     bool read_optimize = false;
     int num_threads = 1;
 
-    void add_help_message(char opt, std::string opt_arg, std::string text)
+    void add_help_message(char opt, const std::string& opt_arg, const std::string& text)
     {
         char buf[100];
         snprintf(
@@ -90,7 +75,7 @@ class InsertOpts
         signed char opt_c;
         extern char *optarg;
         bool parse_result = true;
-        while ((opt_c = getopt(argc_, argv_, argstr_.c_str())) != -1)
+        while ((opt_c =(signed char) getopt(argc_, argv_, argstr_.c_str())) != -1)
         {
             handle_args(opt_c, optarg);
         }
@@ -148,7 +133,7 @@ class InsertOpts
         return ret_val;
     }
 
-    GraphType handle_graph_type(char *opt_arg)
+    static GraphType handle_graph_type(char *opt_arg)
     {
         GraphType type;
         if (strcmp(opt_arg, "std") == 0)
@@ -165,34 +150,34 @@ class InsertOpts
         }
         else if (strcmp(opt_arg, "") == 0)
         {
-            throw(
+            throw GraphException(
                 "Please specify the graph representation being used "
                 "for this benchmark. Use -h for help.");
         }
         else
         {
-            throw "Unrecognized graph representation";
+            throw GraphException("Unrecognized graph representation");
         }
         return type;
     }
 
     void print_help()
     {
-        for (std::string h : help_strings_) std::cout << h << std::endl;
+        for (const std::string& h : help_strings_) std::cout << h << std::endl;
         std::exit(0);
     }
 
-    std::string get_db_name() const { return db_name; }
-    std::string get_db_path() const { return db_path; }
-    std::string get_logdir() const { return logdir; }
-    std::string get_dataset() const { return dataset; }
-    double get_num_nodes() const { return num_nodes; }
-    double get_num_edges() const { return num_edges; }
-    bool is_read_optimize() const { return read_optimize; }
-    bool is_directed() const { return directed; }
-    int get_num_threads() const { return num_threads; }
-    GraphType get_graph_type() const { return graph_type; }
-    std::string get_type_str() const
+    [[nodiscard]] std::string get_db_name() const { return db_name; }
+    [[nodiscard]] std::string get_db_path() const { return db_path; }
+    [[nodiscard]] std::string get_logdir() const { return logdir; }
+    [[nodiscard]] std::string get_dataset() const { return dataset; }
+    [[nodiscard]] double get_num_nodes() const { return num_nodes; }
+    [[nodiscard]] double get_num_edges() const { return num_edges; }
+    [[nodiscard]] bool is_read_optimize() const { return read_optimize; }
+    [[nodiscard]] bool is_directed() const { return directed; }
+    [[nodiscard]] int get_num_threads() const { return num_threads; }
+    [[nodiscard]] GraphType get_graph_type() const { return graph_type; }
+    [[nodiscard]] std::string get_type_str() const
     {
         if (graph_type == GraphType::Std)
         {
@@ -202,13 +187,17 @@ class InsertOpts
         {
             return "ekey";
         }
-        else
+        else if (graph_type == GraphType::Adj)
         {
             return "adj";
         }
+        else
+        {
+            return "all";
+        }
     }
 
-    graph_opts make_graph_opts()
+    [[nodiscard]] graph_opts make_graph_opts() const
     {
         graph_opts opts;
         opts.create_new = true;

@@ -3,6 +3,7 @@
 
 #include <getopt.h>
 
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>

@@ -26,9 +26,10 @@ RESULT=$(pwd)
 preprocess=1
 insert=1
 NUM_THREADS=10
+use_tx=1
 
 if [ -z "$*" ]; then echo "No args provided"; usage; fi
-while getopts "d:f:l:o:m:e:n:t:p:i:b:" o; do
+while getopts "d:f:l:o:m:e:n:t:p:i:b:x:" o; do
     case "${o}" in
         (d)
             graph_dir=${OPTARG%/}
@@ -63,6 +64,9 @@ while getopts "d:f:l:o:m:e:n:t:p:i:b:" o; do
         (b)
             insert=${OPTARG}
             ;;
+        (x)
+            use_tx=0
+            ;;
         (*)
             usage
             ;;
@@ -90,9 +94,12 @@ fi
 
 if [ $insert -eq 1 ]
 then
-
-    ${RELEASE_PATH}/preprocess/mt_graphapi_insert -d ${type}_rd_${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT} -m ${NUM_THREADS} >> ${RESULT}/${dataset}_${type}_mtapi_insert_log.txt
-
+    if [ $use_tx -eq 1 ]
+    then
+        ${RELEASE_PATH}/preprocess/mt_graphapi_insert -d ${type}_rd_${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT} -m ${NUM_THREADS} >> ${RESULT}/${dataset}_${type}_mtapi_insert_log.txt
+    else
+        ${RELEASE_PATH}/preprocess/mt_graphapi_insert_notx -d ${type}_rd_${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT} -m ${NUM_THREADS} >> ${RESULT}/${dataset}_${type}_mtapi_insert_log.txt
+    fi
 fi
 
 if [ $index_create -eq 1 ]

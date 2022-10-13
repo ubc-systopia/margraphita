@@ -1,43 +1,30 @@
 #include <getopt.h>
-#include <omp.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
+#include <cstdlib>
+#include <cassert>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <mutex>
+#include <set>
 #include <shared_mutex>
-#include <sstream>
 #include <unordered_map>
+#include <vector>
 
-#include "common.h"
-#include "parallel_hashmap/phmap.h"
-#define MAPNAME phmap::parallel_flat_hash_map
-#define NMSP phmap
 #define NUM_THREADS 16
-#define MTX std::mutex
-#define EXTRAARGS                                                       \
-    , NMSP::priv::hash_default_hash<K>, NMSP::priv::hash_default_eq<K>, \
-        std::allocator<std::pair<const K, V>>, 4, MTX
-
-template <class K, class V>
-using HashT = MAPNAME<K, V EXTRAARGS>;
-using hash_t = HashT<node_id_t, node_id_t>;
-
 double num_edges;
 double num_nodes;
 std::string dataset;
-[[maybe_unused]] std::string out_dir;
 bool map_exit = false;
+std::set<int> nodes;
+std::unordered_map<int, int> remap;
+std::mutex lock;
 
-hash_t remap;
-
-int64_t construct_vertex_mapping(node_id_t beg, node_id_t end)
+int64_t construct_vertex_mapping(int beg, int end)
 {
-    std::string filename = dataset + "_nodes";
+    std::set<int> part_nodes;
+    std::string filename = dataset;
+    std::cout << beg << "\t" << end << std::endl;
     std::ifstream nodefile(filename.c_str());
     int64_t line = 0;
 
@@ -53,13 +40,18 @@ int64_t construct_vertex_mapping(node_id_t beg, node_id_t end)
             }
             else
             {
-                node_id_t val;
-                std::stringstream s_str(tp);
-                s_str >> val;
-                remap[val] = line;
+                std::stringstream sstr(tp);
+                int a, b;
+                sstr >> a;
+                sstr >> b;
+                part_nodes.insert(a);
+                part_nodes.insert(b);
                 line++;
             }
         }
+        lock.lock();
+        nodes.insert(part_nodes.begin(), part_nodes.end());
+        lock.unlock();
         nodefile.close();
     }
     else
@@ -69,9 +61,7 @@ int64_t construct_vertex_mapping(node_id_t beg, node_id_t end)
     return line;
 }
 
-int64_t convert_edge_list(node_id_t beg_offset,
-                          node_id_t end_offset,
-                          node_id_t t_id)
+int64_t convert_edge_list(int beg_offset, int end_offset, int t_id)
 {
     std::ifstream edgefile(dataset.c_str());
 
@@ -81,7 +71,7 @@ int64_t convert_edge_list(node_id_t beg_offset,
     out_filename.push_back('a');
     out_filename.push_back(c);
     std::ofstream outfile(out_filename.c_str());
-    node_id_t line = 0;
+    int line = 0;
     if (edgefile.is_open())
     {
         std::string tp;
@@ -94,7 +84,7 @@ int64_t convert_edge_list(node_id_t beg_offset,
             }
             else
             {
-                node_id_t src, dst;
+                int src, dst;
                 std::stringstream s_str(tp);
                 s_str >> src;
                 s_str >> dst;
@@ -121,7 +111,7 @@ void help()
               << std::endl;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     std::string logfile;
     static struct option long_opts[] = {{"edges", required_argument, 0, 'e'},
@@ -165,60 +155,63 @@ int main(int argc, char *argv[])
 
     int64_t offsets[NUM_THREADS];
     int64_t end_offsets[NUM_THREADS];
+
 #pragma omp parallel for num_threads(NUM_THREADS) shared(num_nodes)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        node_id_t beg = ((i * num_nodes) / NUM_THREADS);
-        node_id_t end = (((i + 1) * num_nodes) / NUM_THREADS);
+        int beg = (int)((i * num_edges) / NUM_THREADS);
+        int end = (int)(((i + 1) * num_edges) / NUM_THREADS);
         offsets[i] = beg;
         end_offsets[i] = construct_vertex_mapping(beg, end);
     }
-    assert(remap.size() == num_nodes);
+    assert(nodes.size() == num_nodes);
 
-    auto __nodes_per_edge = num_nodes / NUM_THREADS;
+    // Construct a map of old to new ID. I don't know how to make this MT :((
     int i = 0;
-    for (auto x : offsets)
+    for (int x : nodes)
     {
-        std::cout << (i * __nodes_per_edge) << "\t(" << x << ","
-                  << end_offsets[i] << ")" << std::endl;
+        remap[x] = i;
         i++;
     }
+
+    // Write out the old ID to new ID map.
     std::filesystem::path path(dataset);
-    std::string out_filename =
-        path.parent_path().string() + "/dense_map_og.txt";
+    std::string out_filename = path.parent_path().string() + "/dense_map.txt";
     std::cout << "\ndense_map file is :" << out_filename << std::endl;
     std::ofstream out(out_filename.c_str());
-    for (auto iter = remap.begin(); iter != remap.end(); ++iter)
+
+    for (auto x : remap)
     {
-        out << iter->first << ":" << iter->second << std::endl;
+        out << x.first << "\t" << x.second << "\n";
+    }
+
+    out.close();
+
+    // Write the nodes file.
+    out_filename = dataset + "_nodes";
+    out.open(out_filename.c_str());
+    for (i = 0; i < num_nodes; i++)
+    {
+        out << i << "\n";
     }
     out.close();
+
     if (map_exit)
     {
         exit(EXIT_SUCCESS);
     }
 
+    // Write out the new graph file with new ID mapping.
     int64_t e_offsets[NUM_THREADS];
     int64_t e_end_offsets[NUM_THREADS];
 #pragma omp parallel for num_threads(NUM_THREADS) shared(num_edges)
-    for (int i = 0; i < NUM_THREADS; i++)
+    for (i = 0; i < NUM_THREADS; i++)
     {
-        node_id_t beg_offset = ((i * num_edges) / NUM_THREADS);
-        node_id_t end_offset = ((i + 1) * num_edges) / NUM_THREADS;
+        int beg_offset = (int)(i * num_edges) / NUM_THREADS;
+        int end_offset = (int)(((i + 1) * num_edges) / NUM_THREADS);
         e_offsets[i] = beg_offset;
         e_end_offsets[i] = convert_edge_list(beg_offset, end_offset, i);
     }
-    std::cout << "-----------------\n\n";
-    i = 0;
-    auto shoulda = num_edges / NUM_THREADS;
-    for (auto x : e_offsets)
-    {
-        std::cout << (i * shoulda) << "\t(" << x << "," << e_end_offsets[i]
-                  << ")" << std::endl;
-        i++;
-    }
-
-    // test the combined file with map
 
     return (EXIT_SUCCESS);
 }

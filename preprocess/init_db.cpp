@@ -1,27 +1,12 @@
-#include <math.h>
-#include <omp.h>
-#include <stdio.h>
+
 #include <sys/mman.h>
-#include <unistd.h>
-
-#include <cassert>
-#include <chrono>
-#include <cstring>
-#include <fstream>
 #include <iostream>
-#include <mutex>
 #include <shared_mutex>
-#include <sstream>
 #include <vector>
-
-#include "adj_list.h"
 #include "command_line.h"
 #include "common.h"
-#include "edgekey.h"
 #include "graph.h"
 #include "graph_engine.h"
-#include "graph_exception.h"
-#include "standard_graph.h"
 #include "times.h"
 
 int main(int argc, char *argv[])

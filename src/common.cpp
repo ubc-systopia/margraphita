@@ -110,6 +110,7 @@ bool CommonUtil::check_dir_exists(std::string path)
         return false;
     }
 #endif
+    return false;
 }
 
 void CommonUtil::set_table(WT_SESSION *session,
@@ -744,13 +745,15 @@ int CommonUtil::open_connection(char *db_name,
         conn_config += ",";
     }
     conn_config +=
-        "statistics=(\"all\"),statistics_log=(wait=0,on_close=true,path=\"" +
-        log_dir + "\")";
+        "statistics=(all),statistics_log=(wait=0,on_close=true,path=" +
+        log_dir + ")";
 #endif
     if (conn_config.size() != 0)
     {
         sprintf(config + strlen("create"), ",%s", conn_config.c_str());
     }
+    // std::cout << config << std::endl;
+    // exit(1);
     if (wiredtiger_open(db_name, NULL, config, conn) != 0)
     {
         fprintf(stderr, "Failed to open connection\n");

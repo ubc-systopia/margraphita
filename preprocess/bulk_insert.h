@@ -1,8 +1,6 @@
 #ifndef BULK_INSERT_H
 #define BULK_INSERT_H
 #include <getopt.h>
-#include <math.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <atomic>
