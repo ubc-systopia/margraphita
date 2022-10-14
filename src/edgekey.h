@@ -581,6 +581,7 @@ class EdgeKey : public GraphBase
     WT_CURSOR *src_idx_cursor = nullptr;
     WT_CURSOR *dst_idx_cursor = nullptr;
     WT_CURSOR *dst_src_idx_cursor = nullptr;
+    WT_CURSOR *random_cursor = nullptr;
 
     // internal methods
     WT_CURSOR *get_metadata_cursor();

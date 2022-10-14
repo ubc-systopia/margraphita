@@ -72,7 +72,7 @@ void test_get_node(AdjList graph)
     assert(found.id == 1);
     // now get a node that does not exist
     found = graph.get_node(test_id2);
-    assert(found.id == 0);
+    assert(found.id == -1);
     found = graph.get_random_node();
     CommonUtil::dump_node(found);
 }

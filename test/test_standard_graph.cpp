@@ -112,7 +112,7 @@ void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
     }
 }
 
-void test_add_edge(StandardGraph graph, bool is_directed)
+void test_add_edge(StandardGraph graph, bool is_directed, bool is_weighted)
 {
     INFO();
     edge to_insert = {
@@ -124,7 +124,10 @@ void test_add_edge(StandardGraph graph, bool is_directed)
     graph.add_edge(to_insert, false);
     edge found = graph.get_edge(test_id1, test_id2);
     CommonUtil::dump_edge(found);
-    assert(found.edge_weight == 333);
+    if (is_weighted)
+    {
+        assert(found.edge_weight == 333);
+    }
     if (!is_directed)
     {
         found = graph.get_edge(test_id2, test_id1);
@@ -491,7 +494,7 @@ void test_EdgeCursor_Range(StandardGraph graph)
 {
     INFO();
     EdgeCursor *edge_cursor = graph.get_edge_iter();
-    edge_cursor->set_key({1, 4}, {8, 1});
+    edge_cursor->set_key({1, 7}, {8, 0});
     edge found;
     int srcIdList[] = {1, 5, 7};
     int dstIdList[] = {7, 6, 8};
@@ -561,7 +564,7 @@ int main()
     test_node_add(graph, opts.read_optimize);
     print_delim();
 
-    test_add_edge(graph, opts.is_directed);
+    test_add_edge(graph, opts.is_directed, opts.is_weighted);
 
     // test get_edge_id()
     test_get_edge_id(graph);
@@ -585,6 +588,7 @@ int main()
 
     // Test deleting a node
     test_node_delete(graph, opts.is_directed);
+    print_delim();
 
     test_InCursor(graph);
     test_OutCursor(graph);

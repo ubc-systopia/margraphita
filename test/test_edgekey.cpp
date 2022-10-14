@@ -73,7 +73,15 @@ void test_get_nodes(EdgeKey graph)
     }
 }
 
-void test_add_edge(EdgeKey graph, bool is_directed)
+void test_get_random_nodes(EdgeKey graph)
+{
+    INFO();
+    fprintf(stderr, "Random node:\n");
+    CommonUtil::dump_node(graph.get_random_node());
+    CommonUtil::dump_node(graph.get_random_node());
+}
+
+void test_add_edge(EdgeKey graph, bool is_directed, bool is_weighted)
 {
     INFO();
     edge to_insert = {
@@ -86,13 +94,13 @@ void test_add_edge(EdgeKey graph, bool is_directed)
     CommonUtil::dump_edge(found);
     assert(found.src_id == 5);
     assert(found.dst_id == 6);
-    assert(found.edge_weight == 333);
+    if (is_weighted) assert(found.edge_weight == 333);
     if (!is_directed)
     {
         found = graph.get_edge(6, 5);
         assert(found.src_id == 6);
         assert(found.src_id == 5);
-        assert(found.edge_weight == 333);
+        if (is_weighted) assert(found.edge_weight == 333);
     }
 
     // Check if the nodes were created.
@@ -330,6 +338,7 @@ void test_InCursor(EdgeKey graph)
     in_cursor->reset();
     int nodeID = 0;
     in_cursor->next(&found, nodeID);
+    fprintf(stderr, "Node id 0:\n");
     CommonUtil::dump_adjlist(found);
 }
 
@@ -346,6 +355,7 @@ void test_OutCursor(EdgeKey graph)
         out_cursor->next(&found);
     }
     out_cursor->reset();
+    fprintf(stderr, "Node id 1:\n");
     int nodeID = 1;
     out_cursor->next(&found, nodeID);
     CommonUtil::dump_adjlist(found);
@@ -451,7 +461,8 @@ int main()
     test_get_node(graph);
     test_node_add(graph, opts.read_optimize);
     test_get_nodes(graph);
-    test_add_edge(graph, opts.is_directed);
+    test_get_random_nodes(graph);
+    test_add_edge(graph, opts.is_directed, opts.is_weighted);
     test_get_edge(graph);
     test_get_out_edges(graph);
     test_get_in_edges(graph);
