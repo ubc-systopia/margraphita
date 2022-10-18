@@ -82,7 +82,7 @@ time_info *insert_edge_thread(int _tid)
         }
 
         cur_ekey->set_key(cur_ekey, e.src_id, e.dst_id);
-        cur_ekey->set_value(cur_ekey, "");
+        cur_ekey->set_value(cur_ekey, 0,OutOfBand_Val);
         if ((ret = cur_ekey->insert(cur_ekey)) != 0)
         {
             PRINT_ERROR(e.src_id, e.dst_id, ret, wiredtiger_strerror(ret))
