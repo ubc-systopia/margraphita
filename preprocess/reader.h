@@ -68,8 +68,6 @@ class EdgeReader
             std::string line;
 
             if (getline(edge_file, line))
-
-            if (getline(filestream, line))
             {
                 std::stringstream s_stream(line);
                 s_stream >> e.src_id;
@@ -94,7 +92,6 @@ class EdgeReader
             }
             else
             {
-
                 is_last = true;
                 write_adjlist_to_file(e);
                 edge_file.close();
@@ -105,7 +102,6 @@ class EdgeReader
         }
         return -1;
     }
-
 
     void write_adjlist_to_file(const edge& e)
     {
@@ -125,7 +121,6 @@ class EdgeReader
             adjlist.push_back(e.dst_id);
         }
     }
-
 };
 }  // namespace reader
 
