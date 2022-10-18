@@ -10,6 +10,7 @@ using namespace std;
 
 typedef struct time_info
 {
+
     long double insert_time = 0;
     long double read_time = 0;
     long double rback_time = 0;
@@ -18,6 +19,7 @@ typedef struct time_info
     long num_failures = 0;
 
 } time_info;
+
 
 class InsertOpts
 {
@@ -30,6 +32,7 @@ class InsertOpts
     std::vector<std::string> help_strings_;
 
     std::string db_name;
+
     enum GraphType graph_type
     {
     };
@@ -38,13 +41,16 @@ class InsertOpts
     std::string dataset;
     double num_edges{};
     double num_nodes{};
+
     bool directed = true;
     bool read_optimize = false;
     int num_threads = 1;
 
+
     void add_help_message(char opt,
                           const std::string &opt_arg,
                           const std::string &text)
+
     {
         char buf[100];
         snprintf(
@@ -79,8 +85,10 @@ class InsertOpts
         signed char opt_c;
         extern char *optarg;
         bool parse_result = true;
+
         while ((opt_c = (signed char)getopt(argc_, argv_, argstr_.c_str())) !=
                -1)
+
         {
             handle_args(opt_c, optarg);
         }
@@ -138,7 +146,9 @@ class InsertOpts
         return ret_val;
     }
 
+
     static GraphType handle_graph_type(char *opt_arg)
+
     {
         GraphType type;
         if (strcmp(opt_arg, "std") == 0)
@@ -168,6 +178,7 @@ class InsertOpts
 
     void print_help()
     {
+
         for (const std::string &h : help_strings_) std::cout << h << std::endl;
         std::exit(0);
     }
@@ -183,6 +194,7 @@ class InsertOpts
     [[nodiscard]] int get_num_threads() const { return num_threads; }
     [[nodiscard]] GraphType get_graph_type() const { return graph_type; }
     [[nodiscard]] std::string get_type_str() const
+
     {
         if (graph_type == GraphType::Std)
         {
@@ -192,6 +204,7 @@ class InsertOpts
         {
             return "ekey";
         }
+
         else if (graph_type == GraphType::Adj)
         {
             return "adj";
@@ -203,6 +216,7 @@ class InsertOpts
     }
 
     [[nodiscard]] graph_opts make_graph_opts() const
+
     {
         graph_opts opts;
         opts.create_new = true;

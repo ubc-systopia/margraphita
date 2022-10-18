@@ -38,6 +38,7 @@ class EdgeReader
         adj_file =
             std::ofstream((_filename + "_" + adj_type), std::ofstream::out);
         if (edge_file.is_open())
+
         {
             int i = 0;
             while (i < beg_offset)
@@ -60,16 +61,21 @@ class EdgeReader
     }
 
     int get_next_edge(edge& e)
+
     {
         if (num_per_chunk > 0)
         {
             std::string line;
+
             if (getline(edge_file, line))
+
+            if (getline(filestream, line))
             {
                 std::stringstream s_stream(line);
                 s_stream >> e.src_id;
                 s_stream >> e.dst_id;
                 num_per_chunk--;
+
                 if (is_first)
                 {
                     last_node_id = e.src_id;
@@ -88,15 +94,18 @@ class EdgeReader
             }
             else
             {
+
                 is_last = true;
                 write_adjlist_to_file(e);
                 edge_file.close();
                 adj_file.close();
+
                 return -1;
             }
         }
         return -1;
     }
+
 
     void write_adjlist_to_file(const edge& e)
     {
@@ -116,6 +125,7 @@ class EdgeReader
             adjlist.push_back(e.dst_id);
         }
     }
+
 };
 }  // namespace reader
 

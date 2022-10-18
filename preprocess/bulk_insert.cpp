@@ -28,6 +28,7 @@ std::string pack_int_to_str(degree_t a, degree_t b)
     return std::string(to_string(a) + to_string(b));
 }
 
+
 const static int NUM_THREADS = 16;
 const static int BUFFER_LENGTH = 20;
 
@@ -43,8 +44,10 @@ std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;
 std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;
 std::mutex lock;
 
+
 void print_time_csvline(const std::string &db_name,
                         const std::string &db_path,
+
                         time_info *edget,
                         time_info *nodet,
                         bool is_readopt,
@@ -189,7 +192,9 @@ time_info *insert_edge_thread(int _tid)
             cursor->set_value(cursor, "");
             if ((ret = cursor->insert(cursor)) != 0)
             {
+
                 PRINT_ERROR(e.src_id, e.dst_id, ret, wiredtiger_strerror(ret))
+
             }
         }
         cursor->close(cursor);

@@ -28,6 +28,7 @@ void print_time_csvline(InsertOpts params, time_info *t)
     std::ofstream log_file;
     std::string logfile_name =
         params.get_logdir() + "/" + params.get_db_name() + "_api_tx.csv";
+
     log_file.open(logfile_name, std::fstream::app);
 
     struct stat st;
@@ -64,6 +65,7 @@ time_info *insert_edge_thread(int _tid,
     outer.start();
     reader::EdgeReader graph_reader(
         std::move(filename), beg, num_per_chunk, "out");
+
     edge to_insert = {0};
     while (graph_reader.get_next_edge(to_insert) == 0)
     {
@@ -92,6 +94,7 @@ time_info *insert_edge_thread(int _tid,
                     info->num_rollbacks++;
                 }
             } while (!succeeded && tries > 0);
+
             if (!succeeded && tries == 0)
             {
                 info->num_failures++;
@@ -105,6 +108,7 @@ time_info *insert_edge_thread(int _tid,
     }
     outer.stop();
     info->insert_time = outer.t_micros();
+
     std::cout << "Time spent in retrying rollbacks: " << info->rback_time
               << "us";
     return info;
@@ -112,7 +116,9 @@ time_info *insert_edge_thread(int _tid,
 
 int main(int argc, char *argv[])
 {
+
     auto *edge_insert_times = new time_info();
+
     InsertOpts test_params(argc, argv);
     if (!test_params.parse_args())
     {
@@ -132,6 +138,7 @@ int main(int argc, char *argv[])
 
     timer.stop();
     std::cout << " Total time to create empty DB was " << timer.t_micros()
+
               << "us" << std::endl;
 
     // Now insert edges
@@ -139,6 +146,7 @@ int main(int argc, char *argv[])
     int NUM_THREADS = test_params.get_num_threads();
     std::cout << "Inserting edges with " << NUM_THREADS << " threads"
               << std::endl;
+
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
@@ -160,10 +168,12 @@ int main(int argc, char *argv[])
     }
     timer.stop();
 
+
     std::cout << "Time to insert in threads: " << timer.t_secs() << "s" << endl;
 
     GraphBase *graph = graphEngine.create_graph_handle();
     timer.start();
+
     for (edge x : failed_inserts)
     {
         graph->add_edge(x, false);
@@ -182,8 +192,10 @@ int main(int argc, char *argv[])
     std::cout << "Number of failures: " << edge_insert_times->num_failures
               << endl;
     std::cout << "Time spent in retrying rollbacks: "
+
               << edge_insert_times->rback_time << " us" << endl;
     std::cout << "Total time taken : " << edge_insert_times->insert_time << "us"
+
               << endl;
 
     // Adjust for threads
@@ -198,6 +210,7 @@ int main(int argc, char *argv[])
     {
         CommonUtil::dump_edge(x);
     }
+
     graphEngine.close_graph();
     return (EXIT_SUCCESS);
 }

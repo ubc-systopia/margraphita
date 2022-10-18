@@ -24,6 +24,7 @@ use_api_for_insert=0
 use_tx=1
 
 while getopts "l:pbiat" o; do
+
     case "${o}" in
         (l)
             log_dir=${OPTARG}
