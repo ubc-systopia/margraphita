@@ -21,8 +21,10 @@ preprocess=1
 bulk_load=1
 index_create=0
 use_api_for_insert=0
+use_tx=1
 
-while getopts "l:pbia" o; do
+while getopts "l:pbiat" o; do
+
     case "${o}" in
         (l)
             log_dir=${OPTARG}
@@ -39,6 +41,9 @@ while getopts "l:pbia" o; do
             ;;
         (i)
             index_create=1
+            ;;
+        (t)
+            use_tx=0
             ;;
         (*)
             usage
@@ -58,7 +63,7 @@ preprocess_func () {
 }
 
 api_insert_func () {
-    ./transaction_check.sh -d $1 -f $2 -o "${DB_DIR}/${3}" -m $3 -n $4 -e $5 -t $6 -l $log_dir -p $preprocess -b $bulk_load -i $index_create
+    ./transaction_check.sh -d $1 -f $2 -o "${DB_DIR}/${3}" -m $3 -n $4 -e $5 -t $6 -l $log_dir -p $preprocess -b $bulk_load -i $index_create -x $use_tx
 }
 
 TYPES=( "std" "adj" "ekey" )
@@ -93,7 +98,7 @@ echo "Now inserting CIT"
 dataset="cit-Patents"
 graph_dir="${KRON_GRAPHS_PATH}/${dataset}"
 graph="${KRON_GRAPHS_PATH}/${dataset}/${dataset}.txt"
-n_nodes=3774768 
+n_nodes=3774768
 n_edges=16518948
 for type in "${TYPES[@]}"
     do

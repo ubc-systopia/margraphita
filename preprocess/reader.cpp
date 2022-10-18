@@ -16,7 +16,7 @@ std::vector<edge> parse_edge_entries(std::string filename)
 {
     std::vector<edge> edges;
     std::ifstream newfile(filename);
-
+    std::cout << filename << std::endl;
     if (newfile.is_open())
     {
         std::string tp;

@@ -134,9 +134,9 @@ echo "#Inserting ${dataset}" >> insert_time.txt
 echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> ${RESULT}/insert_time.txt
 echo "#${dataset}:" >> ${RESULT}/insert_time.txt
 echo "#${dataset}:" >> ${RESULT}/insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt"
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+# "$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt"
 
 fi
 

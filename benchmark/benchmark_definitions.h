@@ -4,7 +4,9 @@
 #include <sys/mman.h>
 
 #include <cassert>
+#include <chrono>
 #include <cstdint>
+#include <sstream>
 
 typedef struct bfs_info
 {
@@ -80,5 +82,17 @@ void make_pr_mmap(int N, T **ptr)
         exit(1);
     }
     assert(ptr != NULL);
+}
+
+std::string generate_timestamp()
+{
+    auto start = std::chrono::system_clock::now();
+    int epoch = std::chrono::duration_cast<std::chrono::seconds>(
+                    start.time_since_epoch())
+                    .count();
+
+    std::stringstream s;
+    s << std::hex << epoch;
+    return s.str();
 }
 #endif
