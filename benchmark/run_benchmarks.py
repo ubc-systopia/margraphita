@@ -36,13 +36,13 @@ class BenchmarkRunner:
         cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b SSSP -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/sssp -r -d -l {graph_type}"
         return cmd
 
-    def make_perf_params(self):
-        return "perf record -e cycles,instructions,cache-references,cache-misses,branch-instructions,branch-misses,context-switches,cpu-migrations,page-faults,minor-faults,major-faults,alignment-faults,emulation-faults,ref-cycles -o perf.data --call-graph fp"
+    def make_perf_params(self, benchmark: str, ds: str, graph_type: str):
+        return f"perf record -e cycles,instructions,cache-references,cache-misses,branch-instructions,branch-misses,context-switches,cpu-migrations,page-faults,minor-faults,major-faults,alignment-faults,emulation-faults,ref-cycles -o {self.config_data['LOG_DIR']}/{benchmark}/{benchmark}_{ds}_{graph_type}_perf.data --call-graph fp"
 
     def run_pr(self):
-        # os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/wt_stats")
-        # os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/iter_get")
-        # os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/iter_map")
+        os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/wt_stats")
+        os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/iter_get")
+        os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/iter_map")
 
         self.log.write("\n\nPAGERANK\n\n")
         for ds in self.datasets:
@@ -54,50 +54,51 @@ class BenchmarkRunner:
                     cmd = self.make_pr_cmd(
                         f"{self.config_data['RELEASE_PATH']}/benchmark/pagerank", ds, graph_type)
                     self.log.write(f"{cmd} \n")
-                    # os.system(cmd)
+                    os.system(cmd)
 
                     cmd = self.make_pr_cmd(
                         f"{self.config_data['RELEASE_PATH']}/benchmark/pr_iter_map", ds, graph_type)
                     self.log.write(f"{cmd} \n")
-                    # os.system(cmd)
+                    os.system(cmd)
 
                     cmd = self.make_pr_cmd(
                         f"{self.config_data['RELEASE_PATH']}/benchmark/pr_iter_getout", ds, graph_type)
                     self.log.write(f"{cmd} \n")
-                    # os.system(cmd)
+                    os.system(cmd)
 
                 # WT_STATS
                 self.log.write("\tWT_STATS\n")
                 cmd = self.make_pr_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/pagerank", ds, graph_type)
                 self.log.write(f"{cmd} \n")
-                # os.system(cmd)
+                os.system(cmd)
 
                 cmd = self.make_pr_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/pr_iter_map", ds, graph_type)
                 self.log.write(f"{cmd} \n")
-                # os.system(cmd)
+                os.system(cmd)
 
                 cmd = self.make_pr_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/pr_iter_getout", ds, graph_type)
                 self.log.write(f"{cmd} \n")
-                # os.system(cmd)
+                os.system(cmd)
 
                 # perf run
-                self.log.write("\t\tPERF\n")
-                cmd = self.make_perf_params() + " " + self.make_pr_cmd(
+                self.log.write("\tPERF\n")
+                cmd = self.make_perf_params("pr", ds, graph_type) + " " + self.make_pr_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/pagerank", ds, graph_type)
                 self.log.write(f"{cmd} \n")
-                # os.system(cmd)
+                os.system(cmd)
 
-                cmd = self.make_perf_params() + " " + self.make_pr_cmd(
+                cmd = self.make_perf_params("pr", f"iter_map_{ds}", graph_type) + " " + self.make_pr_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/pr_iter_map", ds, graph_type)
                 self.log.write(f"{cmd} \n")
-                # os.system(cmd)
+                os.system(cmd)
 
-                cmd = self.make_perf_params() + " " + self.make_pr_cmd(
+                cmd = self.make_perf_params("pr", f"iter_getout_{ds}", graph_type) + " " + self.make_pr_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/pr_iter_getout", ds, graph_type)
-                # os.system(cmd)
+                self.log.write(cmd)
+                os.system(cmd)
                 self.log.write("\n"+("~-"*100)+"\n")
         self.log.write(cmd + "\n" + "="*100 + "\n")
 
@@ -108,21 +109,21 @@ class BenchmarkRunner:
                 cmd = self.make_bfs_cmd(
                     f"{self.config_data['RELEASE_PATH']}/benchmark/bfs", ds, graph_type)
                 self.log.write(f"{cmd} \n")
-                # os.system(cmd)
+                os.system(cmd)
 
                 # WT_STATS
                 self.log.write("\t\tWT_STATS\n")
                 cmd = self.make_bfs_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/bfs", ds, graph_type)
                 self.log.write(f"{cmd} \n")
-                # os.system(cmd)
+                os.system(cmd)
 
                 # perf run
                 self.log.write("\t\tPERF\n")
-                cmd = self.make_bfs_cmd(
+                cmd = self.make_perf_params("bfs", ds, graph_type) + " " + self.make_bfs_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/bfs", ds, graph_type)
                 self.log.write(f"{cmd} \n")
-                # os.system(cmd)
+                os.system(cmd)
         self.log.write(cmd + "\n" + "="*100 + "\n")
 
     def run_tc(self):
@@ -132,21 +133,21 @@ class BenchmarkRunner:
                 cmd = self.make_tc_cmd(
                     f"{self.config_data['RELEASE_PATH']}/benchmark/tc", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
 
                 # WT_STATS
                 self.log.write("\t\tWT_STATS\n")
                 cmd = self.make_tc_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/tc", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
 
                 # perf run
                 self.log.write("\t\tPERF\n")
-                cmd = self.make_tc_cmd(
+                cmd = self.make_perf_params("tc", ds, graph_type) + " " + self.make_tc_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/tc", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
         self.log.write(cmd + "\n" + "="*100 + "\n")
 
     def run_cc(self):
@@ -156,21 +157,21 @@ class BenchmarkRunner:
                 cmd = self.make_cc_cmd(
                     f"{self.config_data['RELEASE_PATH']}/benchmark/cc", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
 
                 # WT_STATS
                 self.log.write("\t\tWT_STATS\n")
                 cmd = self.make_cc_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/cc", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
 
                 # perf run
                 self.log.write("\t\tPERF\n")
-                cmd = self.make_cc_cmd(
+                cmd = self.make_perf_params("cc", ds, graph_type) + " " + self.make_cc_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/cc", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
         self.log.write(cmd + "\n" + "="*100 + "\n")
 
     def run_sssp(self):
@@ -180,21 +181,21 @@ class BenchmarkRunner:
                 cmd = self.make_sssp_cmd(
                     f"{self.config_data['RELEASE_PATH']}/benchmark/sssp", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
 
                 # WT_STATS
                 self.log.write("\t\tWT_STATS\n")
                 cmd = self.make_sssp_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/sssp", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
 
                 # perf run
                 self.log.write("\t\tPERF\n")
-                cmd = self.make_sssp_cmd(
+                cmd = self.make_perf_params("sssp", ds, graph_type) + " " + self.make_sssp_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/sssp", ds, graph_type)
                 self.log.write(cmd)
-                # os.system(cmd)
+                os.system(cmd)
         self.log.write(cmd + "\n" + "="*100 + "\n")
 
 
@@ -205,18 +206,22 @@ def main():
     )
     parser.add_argument("--log_dir", type=str, help="log directory")
     parser.add_argument("--pr", action='store_true',
-                        default=True, help="Run PageRank")
+                        default=False, help="Run PageRank")
     parser.add_argument("--bfs", action='store_true',
-                        default=True, help="Run BFS")
+                        default=False, help="Run BFS")
     parser.add_argument("--tc", action='store_true',
-                        default=True, help="Run TC")
+                        default=False, help="Run TC")
     parser.add_argument("--cc", action='store_true',
-                        default=True, help="Run CC")
+                        default=False, help="Run CC")
     parser.add_argument("--sssp", action='store_true',
-                        default=True, help="Run SSSP")
+                        default=False, help="Run SSSP")
 
     args = parser.parse_args()
     config_data = ConfigReader("config.json").read_config()
+
+    if args.pr and args.bfs and args.tc and args.cc and args.sssp == False:
+        print("No benchmark selected. Exiting")
+        exit(0)
 
     if args.log_dir is None:
         print("Using CWD as log directory")
@@ -233,21 +238,21 @@ def main():
         config_data, config_data['LOG_DIR']+"/benchmark.log")
 
     if args.pr:
-        # os.system(f"mkdir -p {config_data['LOG_DIR']}/pr")
+        os.system(f"mkdir -p {config_data['LOG_DIR']}/pr")
         benchmark_runner.run_pr()
 
     if args.tc:
-        # os.system(f"mkdir -p {config_data['LOG_DIR']}/tc")
+        os.system(f"mkdir -p {config_data['LOG_DIR']}/tc")
         benchmark_runner.run_tc()
 
     if args.bfs:
-        # os.system(f"mkdir -p {config_data['LOG_DIR']}/bfs")
+        os.system(f"mkdir -p {config_data['LOG_DIR']}/bfs")
         benchmark_runner.run_bfs()
     if args.cc:
-        # os.system(f"mkdir -p {config_data['LOG_DIR']}/cc")
+        os.system(f"mkdir -p {config_data['LOG_DIR']}/cc")
         benchmark_runner.run_cc()
     if args.sssp:
-        # os.system(f"mkdir -p {config_data['LOG_DIR']}/sssp")
+        os.system(f"mkdir -p {config_data['LOG_DIR']}/sssp")
         benchmark_runner.run_sssp()
 
 
