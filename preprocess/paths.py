@@ -40,7 +40,6 @@ class ConfigReader:
             print("Please set KRON_GRAPHS_PATH as the path to the kron_gen repo in the build/config.json file.")
             exit(1)
 
-        config_data['LOG_DIR'] = os.path.join(project_dir, "logs")
         config_data['PROFILE_PATH'] = os.path.join(project_dir, "build", "profile")
         config_data['RELEASE_PATH'] = os.path.join(project_dir, "build", "release")
         config_data['STATS_PATH'] = os.path.join(project_dir, "build", "wt_stats")

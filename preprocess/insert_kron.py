@@ -30,11 +30,11 @@ def main():
     args = parser.parse_args()
     config_data = ConfigReader("config.json").read_config()
 
-    if (args.log_dir is None):
+    if args.log_dir is None:
         print("Using CWD as log directory")
         args.log_dir = os.getcwd()
 
-    if (args.bulk and args.use_api):
+    if args.bulk and args.use_api:
         print("Cannot use both bulk and api insert")
         return
 
