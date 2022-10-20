@@ -28,8 +28,8 @@ class BenchmarkRunner:
         cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b TC -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/tc -r -d -l {graph_type}"
         return cmd
 
-    def make_cc_cmd(self, binary_name: str, ds: str, graph_type: str):
-        cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b CC -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/cc -r -d -l {graph_type}"
+    def make_cc_cmd(self, binary_name: str, ds: str, graph_type: str, variant: str):
+        cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b CC -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/{variant} -r -d -l {graph_type}"
         return cmd
 
     def make_sssp_cmd(self, binary_name: str, ds: str, graph_type: str):
@@ -99,8 +99,8 @@ class BenchmarkRunner:
                     f"{self.config_data['STATS_PATH']}/benchmark/pr_iter_getout", ds, graph_type)
                 self.log.write(cmd)
                 os.system(cmd)
-                self.log.write("\n"+("~-"*100)+"\n")
-        self.log.write(cmd + "\n" + "="*100 + "\n")
+                self.log.write("\n" + ("~-" * 100) + "\n")
+        self.log.write("\n" + "=" * 100 + "\n")
 
     def run_bfs(self):
         self.log.write("\n\nBFS\n\n")
@@ -124,7 +124,7 @@ class BenchmarkRunner:
                     f"{self.config_data['STATS_PATH']}/benchmark/bfs", ds, graph_type)
                 self.log.write(f"{cmd} \n")
                 os.system(cmd)
-        self.log.write(cmd + "\n" + "="*100 + "\n")
+        self.log.write("\n" + "=" * 100 + "\n")
 
     def run_tc(self):
         self.log.write("\n\nTC\n\n")
@@ -148,31 +148,33 @@ class BenchmarkRunner:
                     f"{self.config_data['STATS_PATH']}/benchmark/tc", ds, graph_type)
                 self.log.write(cmd)
                 os.system(cmd)
-        self.log.write(cmd + "\n" + "="*100 + "\n")
+        self.log.write("\n" + "=" * 100 + "\n")
 
     def run_cc(self):
         self.log.write("\n\nCC\n\n")
+        variants = ['cc', 'cc_parallel', 'cc_parallel_ec']
         for ds in self.datasets:
             for graph_type in self.types:
-                cmd = self.make_cc_cmd(
-                    f"{self.config_data['RELEASE_PATH']}/benchmark/cc", ds, graph_type)
-                self.log.write(cmd)
-                os.system(cmd)
+                for variant in variants:
+                    cmd = self.make_cc_cmd(
+                        f"{self.config_data['RELEASE_PATH']}/benchmark/{variant}", ds, graph_type, variant)
+                    self.log.write(cmd)
+                    os.system(cmd)
 
-                # WT_STATS
-                self.log.write("\t\tWT_STATS\n")
-                cmd = self.make_cc_cmd(
-                    f"{self.config_data['PROFILE_PATH']}/benchmark/cc", ds, graph_type)
-                self.log.write(cmd)
-                os.system(cmd)
+                    # WT_STATS
+                    self.log.write("\t\tWT_STATS\n")
+                    cmd = self.make_cc_cmd(
+                        f"{self.config_data['PROFILE_PATH']}/benchmark/{variant}", ds, graph_type, variant)
+                    self.log.write(cmd)
+                    os.system(cmd)
 
-                # perf run
-                self.log.write("\t\tPERF\n")
-                cmd = self.make_perf_params("cc", ds, graph_type) + " " + self.make_cc_cmd(
-                    f"{self.config_data['STATS_PATH']}/benchmark/cc", ds, graph_type)
-                self.log.write(cmd)
-                os.system(cmd)
-        self.log.write(cmd + "\n" + "="*100 + "\n")
+                    # perf run
+                    self.log.write("\t\tPERF\n")
+                    cmd = self.make_perf_params("cc", ds, graph_type) + " " + self.make_cc_cmd(
+                        f"{self.config_data['STATS_PATH']}/benchmark/{variant}", ds, graph_type, variant)
+                    self.log.write(cmd)
+                    os.system(cmd)
+        self.log.write("\n" + "=" * 100 + "\n")
 
     def run_sssp(self):
         self.log.write("\n\nSSSP\n\n")
@@ -196,11 +198,10 @@ class BenchmarkRunner:
                     f"{self.config_data['STATS_PATH']}/benchmark/sssp", ds, graph_type)
                 self.log.write(cmd)
                 os.system(cmd)
-        self.log.write(cmd + "\n" + "="*100 + "\n")
+        self.log.write("\n" + "=" * 100 + "\n")
 
 
 def main():
-
     parser = argparse.ArgumentParser(
         description="Run benchmarks"
     )
@@ -219,7 +220,7 @@ def main():
     args = parser.parse_args()
     config_data = ConfigReader("config.json").read_config()
 
-    if args.pr and args.bfs and args.tc and args.cc and args.sssp == False:
+    if not (args.pr or args.bfs or args.tc or args.cc or args.sssp):
         print("No benchmark selected. Exiting")
         exit(0)
 
@@ -235,7 +236,7 @@ def main():
         config_data.update(vars(args))
 
     benchmark_runner = BenchmarkRunner(
-        config_data, config_data['LOG_DIR']+"/benchmark.log")
+        config_data, config_data['LOG_DIR'] + "/benchmark.log")
 
     if args.pr:
         os.system(f"mkdir -p {config_data['LOG_DIR']}/pr")
