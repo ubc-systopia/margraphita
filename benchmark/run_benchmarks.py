@@ -14,7 +14,7 @@ class BenchmarkRunner:
         for scale in range(10, 11):
             self.datasets.append(f"s{scale}_e8")
         self.types = ["std", "adj", "ekey"]
-        self.log = open(log_file, "w")
+        self.log_file = log_file
 
     def make_pr_cmd(self, binary_name: str, ds: str, graph_type: str):
         cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b PR -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/pr -r -d -l {graph_type} -i 10 -t 0.0001"
@@ -43,162 +43,176 @@ class BenchmarkRunner:
         os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/wt_stats")
         os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/iter_get")
         os.system(f"mkdir -p {self.config_data['LOG_DIR']}/pr/iter_map")
-
-        self.log.write("\n\nPAGERANK\n\n")
+        pr_log = open(f"{self.log_file}_pr.log", "w")
+        pr_log.write("PAGERANK\n\n")
         for ds in self.datasets:
             for graph_type in self.types:
-                self.log.write(f"\n\t{graph_type}_rd_{ds}\n")
-                self.log.write("\tREGULAR PR\n")
+                pr_log.write(f"\n\t{graph_type}_rd_{ds}\n")
+                pr_log.write("\tREGULAR PR\n")
                 for trials in range(1, 8):
                     # regular run, 8 runs
                     cmd = self.make_pr_cmd(
                         f"{self.config_data['RELEASE_PATH']}/benchmark/pagerank", ds, graph_type)
-                    self.log.write(f"{cmd} \n")
+                    pr_log.write(f"{cmd} \n")
                     os.system(cmd)
 
                     cmd = self.make_pr_cmd(
                         f"{self.config_data['RELEASE_PATH']}/benchmark/pr_iter_map", ds, graph_type)
-                    self.log.write(f"{cmd} \n")
+                    pr_log.write(f"{cmd} \n")
                     os.system(cmd)
 
                     cmd = self.make_pr_cmd(
                         f"{self.config_data['RELEASE_PATH']}/benchmark/pr_iter_getout", ds, graph_type)
-                    self.log.write(f"{cmd} \n")
+                    pr_log.write(f"{cmd} \n")
                     os.system(cmd)
 
                 # WT_STATS
-                self.log.write("\tWT_STATS\n")
+                pr_log.write("\tWT_STATS\n")
                 cmd = self.make_pr_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/pagerank", ds, graph_type)
-                self.log.write(f"{cmd} \n")
+                pr_log.write(f"{cmd} \n")
                 os.system(cmd)
 
                 cmd = self.make_pr_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/pr_iter_map", ds, graph_type)
-                self.log.write(f"{cmd} \n")
+                pr_log.write(f"{cmd} \n")
                 os.system(cmd)
 
                 cmd = self.make_pr_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/pr_iter_getout", ds, graph_type)
-                self.log.write(f"{cmd} \n")
+                pr_log.write(f"{cmd} \n")
                 os.system(cmd)
 
                 # perf run
-                self.log.write("\tPERF\n")
+                pr_log.write("\tPERF\n")
                 cmd = self.make_perf_params("pr", ds, graph_type) + " " + self.make_pr_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/pagerank", ds, graph_type)
-                self.log.write(f"{cmd} \n")
+                pr_log.write(f"{cmd} \n")
                 os.system(cmd)
 
                 cmd = self.make_perf_params("pr", f"iter_map_{ds}", graph_type) + " " + self.make_pr_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/pr_iter_map", ds, graph_type)
-                self.log.write(f"{cmd} \n")
+                pr_log.write(f"{cmd} \n")
                 os.system(cmd)
 
                 cmd = self.make_perf_params("pr", f"iter_getout_{ds}", graph_type) + " " + self.make_pr_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/pr_iter_getout", ds, graph_type)
-                self.log.write(cmd)
+                pr_log.write(cmd)
                 os.system(cmd)
-                self.log.write("\n" + ("~-" * 100) + "\n")
-        self.log.write("\n" + "=" * 100 + "\n")
+                pr_log.write("\n" + ("~-" * 50) + "\n")
+        pr_log.write("\n" + "=" * 100 + "\n")
+        pr_log.close()
 
     def run_bfs(self):
-        self.log.write("\n\nBFS\n\n")
+        bfs_log = open(f"{self.log_file}_bfs.log", "w")
+        bfs_log.write("\n\nBFS\n\n")
         for ds in self.datasets:
             for graph_type in self.types:
                 cmd = self.make_bfs_cmd(
                     f"{self.config_data['RELEASE_PATH']}/benchmark/bfs", ds, graph_type)
-                self.log.write(f"{cmd} \n")
+                bfs_log.write(f"{cmd} \n")
                 os.system(cmd)
 
                 # WT_STATS
-                self.log.write("\t\tWT_STATS\n")
+                bfs_log.write("\t\tWT_STATS\n")
                 cmd = self.make_bfs_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/bfs", ds, graph_type)
-                self.log.write(f"{cmd} \n")
+                bfs_log.write(f"{cmd} \n")
                 os.system(cmd)
 
                 # perf run
-                self.log.write("\t\tPERF\n")
+                bfs_log.write("\t\tPERF\n")
                 cmd = self.make_perf_params("bfs", ds, graph_type) + " " + self.make_bfs_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/bfs", ds, graph_type)
-                self.log.write(f"{cmd} \n")
+                bfs_log.write(f"{cmd} \n")
                 os.system(cmd)
-        self.log.write("\n" + "=" * 100 + "\n")
+                bfs_log.write("\n" + ("~-" * 50) + "\n")
+        bfs_log.write("\n" + "=" * 100 + "\n")
+        bfs_log.close()
 
     def run_tc(self):
-        self.log.write("\n\nTC\n\n")
+        tc_log = open(f"{self.log_file}_tc.log", "w")
+        tc_log.write("\n\nTC\n\n")
         for ds in self.datasets:
             for graph_type in self.types:
                 cmd = self.make_tc_cmd(
                     f"{self.config_data['RELEASE_PATH']}/benchmark/tc", ds, graph_type)
-                self.log.write(cmd)
+                tc_log.write(cmd)
                 os.system(cmd)
 
                 # WT_STATS
-                self.log.write("\t\tWT_STATS\n")
+                tc_log.write("\t\tWT_STATS\n")
                 cmd = self.make_tc_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/tc", ds, graph_type)
-                self.log.write(cmd)
+                tc_log.write(cmd)
                 os.system(cmd)
 
                 # perf run
-                self.log.write("\t\tPERF\n")
+                tc_log.write("\t\tPERF\n")
                 cmd = self.make_perf_params("tc", ds, graph_type) + " " + self.make_tc_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/tc", ds, graph_type)
-                self.log.write(cmd)
+                tc_log.write(cmd)
                 os.system(cmd)
-        self.log.write("\n" + "=" * 100 + "\n")
+                tc_log.write("\n" + ("~-" * 50) + "\n")
+
+        tc_log.write("\n" + "=" * 100 + "\n")
+        tc_log.close()
 
     def run_cc(self):
-        self.log.write("\n\nCC\n\n")
+        cc_log = open(f"{self.log_file}_cc.log", "w")
+        cc_log.write("CC\n\n")
         variants = ['cc', 'cc_parallel', 'cc_parallel_ec']
         for ds in self.datasets:
             for graph_type in self.types:
                 for variant in variants:
                     cmd = self.make_cc_cmd(
                         f"{self.config_data['RELEASE_PATH']}/benchmark/{variant}", ds, graph_type, variant)
-                    self.log.write(cmd)
+                    cc_log.write(cmd+"\n")
                     os.system(cmd)
 
                     # WT_STATS
-                    self.log.write("\t\tWT_STATS\n")
+                    cc_log.write("\tWT_STATS\n")
                     cmd = self.make_cc_cmd(
                         f"{self.config_data['PROFILE_PATH']}/benchmark/{variant}", ds, graph_type, variant)
-                    self.log.write(cmd)
+                    cc_log.write(cmd+"\n")
                     os.system(cmd)
 
                     # perf run
-                    self.log.write("\t\tPERF\n")
+                    cc_log.write("\tPERF\n")
                     cmd = self.make_perf_params("cc", ds, graph_type) + " " + self.make_cc_cmd(
                         f"{self.config_data['STATS_PATH']}/benchmark/{variant}", ds, graph_type, variant)
-                    self.log.write(cmd)
+                    cc_log.write(cmd+"\n")
                     os.system(cmd)
-        self.log.write("\n" + "=" * 100 + "\n")
+                    cc_log.write("\n" + ("~-" * 50) + "\n")
+        cc_log.write("\n" + "=" * 100 + "\n")
+        cc_log.close()
 
     def run_sssp(self):
-        self.log.write("\n\nSSSP\n\n")
+        sssp_log = open(f"{self.log_file}_sssp.log", "w")
+        sssp_log.write("\n\nSSSP\n\n")
         for ds in self.datasets:
             for graph_type in self.types:
                 cmd = self.make_sssp_cmd(
                     f"{self.config_data['RELEASE_PATH']}/benchmark/sssp", ds, graph_type)
-                self.log.write(cmd)
+                sssp_log.write(cmd)
                 os.system(cmd)
 
                 # WT_STATS
-                self.log.write("\t\tWT_STATS\n")
+                sssp_log.write("\t\tWT_STATS\n")
                 cmd = self.make_sssp_cmd(
                     f"{self.config_data['PROFILE_PATH']}/benchmark/sssp", ds, graph_type)
-                self.log.write(cmd)
+                sssp_log.write(cmd)
                 os.system(cmd)
 
                 # perf run
-                self.log.write("\t\tPERF\n")
+                sssp_log.write("\t\tPERF\n")
                 cmd = self.make_perf_params("sssp", ds, graph_type) + " " + self.make_sssp_cmd(
                     f"{self.config_data['STATS_PATH']}/benchmark/sssp", ds, graph_type)
-                self.log.write(cmd)
+                sssp_log.write(cmd)
                 os.system(cmd)
-        self.log.write("\n" + "=" * 100 + "\n")
+                sssp_log.write("\n" + ("~-" * 50) + "\n")
+        sssp_log.write("\n" + "=" * 100 + "\n")
+        sssp_log.close()
 
 
 def main():
@@ -236,7 +250,7 @@ def main():
         config_data.update(vars(args))
 
     benchmark_runner = BenchmarkRunner(
-        config_data, config_data['LOG_DIR'] + "/benchmark.log")
+        config_data, config_data['LOG_DIR'] + "/benchmark")
 
     if args.pr:
         os.system(f"mkdir -p {config_data['LOG_DIR']}/pr")
