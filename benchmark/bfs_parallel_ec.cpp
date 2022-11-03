@@ -28,6 +28,7 @@
 // debug workflow:
 // get to compile. look at cmakelists in benchmarks.
 
+// eventually swap this find_random_start with any node from the largest connected component. 
 template <typename Graph>
 int find_random_start(Graph &graph)
 {
@@ -54,9 +55,6 @@ void BFS_EC(GraphEngine *graph_engine,
 {
 bool done = false;
 
-GraphBase *graph = graph_engine->create_graph_handle();
-parent[find_random_start(*graph)] = find_random_start(*graph);
-
 while (!done) {
 
     done = true;
@@ -73,10 +71,10 @@ while (!done) {
             while (found.src_id != -1)
             {   
                 // we need to check this edge on the frontier
-                if (parent[found.src_id] != -1 && parent[found.dst_id] == -1)
+                long int old_val = -1;
+                if (parent[found.src_id] != -1 && compare_and_swap(parent[found.dst_id], old_val, found.src_id)) 
                 {   
                     done = false;
-                    parent[found.dst_id] = found.src_id;
                 }
                 edge_cursor->next(&found);
             }
@@ -84,6 +82,66 @@ while (!done) {
             graph->close();
         }
     }
+}
+
+
+
+// BFS verifier does a serial BFS from same source and asserts:
+// - parent[source] = source
+// - parent[v] = u  =>  depth[v] = depth[u] + 1 (except for source)
+// - parent[v] = u  => there is edge from u to v
+// - all vertices reachable from source have a parent
+bool BFSVerifier(GraphEngine* graph_engine, node_id_t source, // i removed 'const' graph_engine
+                 const pvector<node_id_t> &parent) {
+
+  GraphBase *g = graph_engine->create_graph_handle();
+
+  pvector<int> depth(g->get_num_nodes(), -1); 
+  depth[source] = 0;
+  vector<node_id_t> to_visit;
+  to_visit.reserve(g->get_num_nodes());
+  to_visit.push_back(source);
+  for (auto it = to_visit.begin(); it != to_visit.end(); it++) {
+    node_id_t u = *it;
+    for (node_id_t v : g->get_out_nodes_id(u)) {
+      if (depth[v] == -1) {
+        depth[v] = depth[u] + 1;
+        to_visit.push_back(v);
+      }
+    }
+  }
+  for (node_id_t u = 0; u < (node_id_t) g->get_num_nodes(); ++u) { // is this cast ok?
+    if ((depth[u] != -1) && (parent[u] != -1)) {
+      if (u == source) {
+        if (!((parent[u] == u) && (depth[u] == 0))) {
+          cout << "Source wrong" << endl;
+          return false;
+        }
+        continue;
+      }
+      bool parent_found = false;
+      for (node_id_t v : g->get_in_nodes_id(u)) {
+        if (v == parent[u]) {
+          if (depth[v] != depth[u] - 1) {
+            cout << "Wrong depths for " << u << " & " << v << endl;
+            return false;
+          }
+          parent_found = true;
+          break;
+        }
+      }
+      if (!parent_found) {
+        cout << "Couldn't find edge from " << parent[u] << " to " << u << endl;
+        return false;
+      }
+    } else if (depth[u] != parent[u]) {
+      cout << "Reachability mismatch" << endl;
+      return false;
+    }
+
+    g->close();
+  }
+  return true;
 }
 
 int main(int argc, char *argv[])
@@ -112,11 +170,21 @@ int main(int argc, char *argv[])
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
 
-    GraphEngine graphEngine(engine_opts);
+    GraphEngine graph_engine(engine_opts);
 
-    pvector<node_id_t> parent(n, -1); // TODO: set n = number of nodes
+    GraphBase *graph = (&graph_engine)->create_graph_handle();
 
-    BFS_EC(graphEngine, parent, THREAD_NUM)
 
-    return 1
+    pvector<node_id_t> parent(graph->get_num_nodes(), -1);
+
+    node_id_t start = find_random_start(*graph);
+    parent[start] = start; // init parent...
+
+    graph->close();
+
+    BFS_EC(&graph_engine, parent, THREAD_NUM);
+
+    assert(BFSVerifier(&graph_engine, start, parent)); // test for correctness
+
+    return 1;
 }
