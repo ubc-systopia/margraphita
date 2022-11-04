@@ -28,7 +28,6 @@ std::string pack_int_to_str(degree_t a, degree_t b)
     return std::string(to_string(a) + to_string(b));
 }
 
-
 const static int NUM_THREADS = 16;
 const static int BUFFER_LENGTH = 20;
 
@@ -43,7 +42,6 @@ std::string type_opt;
 std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;
 std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;
 std::mutex lock;
-
 
 void print_time_csvline(const std::string &db_name,
                         const std::string &db_path,
@@ -192,9 +190,7 @@ time_info *insert_edge_thread(int _tid)
             cursor->set_value(cursor, 0, OutOfBand_Val);
             if ((ret = cursor->insert(cursor)) != 0)
             {
-
                 PRINT_ERROR(e.src_id, e.dst_id, ret, wiredtiger_strerror(ret))
-
             }
         }
         cursor->close(cursor);
@@ -218,13 +214,13 @@ time_info *insert_node(int _tid)
     Times t;
     t.start();
     std::vector<node> nodes = reader::parse_node_entries(filename);
-    // write nodes vector to a file
-    std::ofstream out((filename + "_read").c_str());
-    for (auto x : nodes)
-    {
-        out << x.id << std::endl;
-    }
-    out.close();
+    // // write nodes vector to a file
+    // std::ofstream out((filename + "_read").c_str());
+    // for (auto x : nodes)
+    // {
+    //     out << x.id << std::endl;
+    // }
+    // out.close();
 
     t.stop();
     info->read_time = t.t_micros();
@@ -284,7 +280,8 @@ time_info *insert_node(int _tid)
             ekey_cur->set_key(ekey_cur, to_insert.id, OutOfBand_ID);
             if (read_optimized)
             {
-                ekey_cur->set_value(ekey_cur,to_insert.in_degree, to_insert.out_degree);
+                ekey_cur->set_value(
+                    ekey_cur, to_insert.in_degree, to_insert.out_degree);
             }
             else
             {
