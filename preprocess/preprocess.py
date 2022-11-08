@@ -68,7 +68,9 @@ class Preprocess:
                 os.system(index_cmd)
 
     def preprocess(self):
+        ##############################
         # assert num_edges matches the number of edges in the graph
+        ##############################
         found_edges = int(check_output(
             ["wc", "-l", self.config_data['graph_path']]).split()[0])
         assert found_edges == self.config_data['num_edges']
@@ -86,14 +88,30 @@ class Preprocess:
             ["wc", "-l", f"{self.config_data['graph_path']}_nodes"]).split()[0])
         self.config_data['num_nodes'] = found_nodes
 
+        ##################################
         # reverse the graph
+        ##################################
         reverse_cmd = f"awk '{{print $2\"\\t\"$1}}' {self.config_data['graph_path']} > {self.config_data['graph_path']}_reverse"
         print(reverse_cmd)
         self.log.write(
             f"Generating the reverse graph (dst, src): {reverse_cmd}\n")
         os.system(reverse_cmd)
+        
+        sort_cmd = f"sort -n -k 1,1 -k 2,2 {self.config_data['graph_path']}_reverse > {self.config_data['graph_path']}_reverse_sorted"
+        self.log.write(f"Running sort command: {sort_cmd}\n")
+        os.system(sort_cmd)
 
+        rename_cmd = f"mv {self.config_data['graph_path']}_reverse_sorted {self.config_data['graph_path']}_reverse"
+        self.log.write(f"Renaming reverse graph: {rename_cmd}\n")
+        os.system(rename_cmd)
+
+        remap_cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/dense_vertexranges -n {found_nodes} -e {found_edges} -f {self.config_data['graph_path']}_reverse"
+        self.log.write(f"Running remap command: {remap_cmd}\n")
+        os.system(remap_cmd)
+
+        ##################################
         # Construct the id map and construct the new graph based on these ID mappings
+        ##################################
         remap_cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/dense_vertexranges -n {found_nodes} -e {found_edges} -f {self.config_data['graph_path']} "
         self.log.write(f"Running remap command: {remap_cmd}\n")
         os.system(remap_cmd)

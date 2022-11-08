@@ -26,7 +26,7 @@ class EdgeReader
     int beg_offset;
     int num_per_chunk;
     std::ifstream edge_file;
-    std::ofstream adj_file;
+    std::ofstream adj_file, edge_file_txt;
     std::pair<int, std::vector<node_id_t>> node_adj_list;
     std::vector<node_id_t> adjlist;  // for adjlist.
     node_id_t last_node_id = 0;
@@ -36,13 +36,8 @@ class EdgeReader
     bool is_right = false;
 
    public:
-    EdgeReader(std::string _filename,
-               int _beg,
-               int _num,
-               std::string adj_type,
-               bool _is_right)
+    EdgeReader(std::string _filename, int _beg, int _num, std::string adj_type)
     {
-        is_right = _is_right;
         filename = _filename;
         beg_offset = _beg;
         num_per_chunk = _num;
@@ -106,15 +101,11 @@ class EdgeReader
         }
         else
         {
-            if (is_right)
-            {
-                std::cout << "End of file reached" << std::endl;
-            }
-
             node_adj_list.first = last_node_id;
             node_adj_list.second = adjlist;
             write_adjlist_to_file(e, node_adj_list);
             edge_file.close();
+            edge_file_txt.close();
             adj_file.close();
             return -1;
         }
@@ -124,8 +115,6 @@ class EdgeReader
         const edge& e,
         const std::pair<int, std::vector<node_id_t>>& node_adj_list)
     {
-        // std::cout << "node id: " << node_adj_list.first << std::endl;
-        // std::cout << e.src_id << " " << e.dst_id << std::endl;
         boost::archive::binary_oarchive oa(adj_file);
         oa << node_adj_list;
         adjlist.clear();
@@ -141,7 +130,7 @@ class AdjReader
     std::string filename;
     std::ifstream adj_file;
     int length = 0;
-    std::pair<int, std::vector<node_id_t>> node_adj_list;
+
 
    public:
     AdjReader(std::string _filename)
@@ -169,6 +158,49 @@ class AdjReader
         else
         {
             adj_file.close();
+            return -1;
+        }
+    }
+};
+
+class NodeReader
+{
+   private:
+    std::string filename;
+    std::ifstream node_file;
+    node n;
+    int length = 0;
+
+   public:
+    NodeReader(std::string _filename)
+    {
+        filename = _filename;
+        node_file = std::ifstream(_filename, std::ifstream::in);
+        if (!node_file.is_open())
+        {
+            throw GraphException("Failed to open the node file for " +
+                                 filename);
+        }
+        node_file.seekg(0, node_file.end);
+        length = node_file.tellg();
+        node_file.seekg(0, node_file.beg);
+    }
+
+    int get_next_node(node& n)
+    {
+        std::string line;
+        if ((node_file.tellg() < length))
+        {
+            getline(node_file, line);
+            std::stringstream s_str(line);
+            s_str >> n.id;
+            n.in_degree = 0;
+            n.out_degree = 0;
+            return 0;
+        }
+        else
+        {
+            node_file.close();
             return -1;
         }
     }
