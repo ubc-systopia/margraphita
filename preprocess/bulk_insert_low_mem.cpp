@@ -392,7 +392,8 @@ int main(int argc, char *argv[])
         time_info *this_time = create_revedge_thread(i);
     }
 
-//#pragma omp parallel for num_threads(NUM_THREADS)
+
+#pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
         create_adj_insert_thread(i, "in");
