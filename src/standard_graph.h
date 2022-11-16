@@ -422,6 +422,11 @@ class StdEdgeCursor : public EdgeCursor
    public:
     StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
+    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess, bool get_weight)
+        : EdgeCursor(cur, sess, get_weight)
+    {
+    }
+
     void next(edge *found)
     {
         if (!has_next)

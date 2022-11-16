@@ -25,6 +25,7 @@ class GraphEngine
     GraphBase* create_graph_handle();
     void create_indices();
     void calculate_thread_offsets();
+    void calculate_thread_offsets_edge_partition();
     void close_graph();
     edge_range get_edge_range(int thread_id);
     key_range get_key_range(int thread_id);
@@ -46,8 +47,12 @@ class GraphEngine
                                   node_id_t num_nodes,
                                   node_id_t num_edges,
                                   std::vector<key_range>& node_ranges,
-                                  std::vector<edge_range>& edge_offsets,
-                                  GraphType type);
+                                  std::vector<edge_range>& edge_offsets);
+    void calculate_thread_offsets_edge_partition(
+        int thread_max,
+        node_id_t num_nodes,
+        node_id_t num_edges,
+        std::vector<edge_range>& edge_offsets);
 };
 
 #endif

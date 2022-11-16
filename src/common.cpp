@@ -990,14 +990,16 @@ std::vector<node_id_t> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
     WT_PACK_STREAM *psp;
     WT_ITEM unpacked;
     size_t used;
+
     wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
     wiredtiger_unpack_item(psp, &unpacked);
     wiredtiger_pack_close(psp, &used);
-    std::vector<node_id_t> unpacked_vec;
 
     int vec_size = (int)size / sizeof(node_id_t);
+    std::vector<node_id_t> unpacked_vec(vec_size);
     for (int i = 0; i < vec_size; i++)
-        unpacked_vec.push_back(((node_id_t *)unpacked.data)[i]);
+        unpacked_vec[i] = ((node_id_t *)unpacked.data)[i];
+
     return unpacked_vec;
 }
 
