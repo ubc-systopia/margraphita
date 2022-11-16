@@ -14,6 +14,12 @@ target_link_libraries(pagerank PUBLIC ${NAME_LIB} graph_utils)
 add_executable(pr_iter_map pagerank_iter_map.cpp)
 target_link_libraries(pr_iter_map PUBLIC ${NAME_LIB} graph_utils)
 
+add_executable(pr_ec pagerank_ec.cpp)
+target_link_libraries(pr_ec PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(pr_vc pagerank_vc.cpp)
+target_link_libraries(pr_vc PUBLIC ${NAME_LIB} graph_utils)
+
 # ###################################################################################
 add_executable(bfs bfs.cpp)
 target_link_libraries(bfs PUBLIC ${NAME_LIB} graph_utils)
@@ -45,6 +51,12 @@ target_link_libraries(cc_parallel_ec PUBLIC ${NAME_LIB} graph_utils)
 
 add_executable(sssp sssp.cpp)
 target_link_libraries(sssp PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(iteration_vc iteration_vc.cpp)
+target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(iteration_ec iteration_ec.cpp)
+target_link_libraries(iteration_ec PUBLIC ${NAME_LIB} graph_utils)
 
 # add_executable(bc bc.cpp)
 # target_link_libraries(bc PUBLIC ${NAME_LIB} graph_utils)
