@@ -1,23 +1,20 @@
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/preprocess.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/preprocess.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/insert_kron.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/insert_kron.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.json ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/paths.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/kron_gen.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/kron_gen.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/transaction_check.sh ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/paths.py ${CMAKE_CURRENT_BINARY_DIR}/../benchmark COPYONLY)
 
-INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${PATH_SRC})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/kron_gen.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
+INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${PATH_SRC} ${Boost_INCLUDE_DIRS})
 
 add_executable(bulk_insert bulk_insert.cpp reader.cpp)
 target_include_directories(bulk_insert PRIVATE ${PMAP})
-target_link_libraries(bulk_insert PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
+target_link_libraries(bulk_insert PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} Threads::Threads graph_utils)
 
 # ###################################################################################
 add_executable(bulk_insert_low_mem bulk_insert_low_mem.cpp reader.h)
-target_include_directories(bulk_insert_low_mem PRIVATE ${PMAP})
-target_link_libraries(bulk_insert_low_mem PUBLIC ${NAME_LIB} Threads::Threads graph_utils)
+target_include_directories(bulk_insert_low_mem PRIVATE ${PMAP} )
+target_link_libraries(bulk_insert_low_mem PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} Threads::Threads graph_utils )
 
 # ###################################################################################
 add_executable(dense_vertexranges dense_vertexranges_set.cpp)
@@ -31,9 +28,9 @@ target_link_libraries(dense_vertexranges PUBLIC ${NAME_LIB} Threads::Threads gra
 
 
 # ###################################################################################
-add_executable(mt_graphapi_insert mt_graphapi_insert.cpp)
-target_include_directories(mt_graphapi_insert PRIVATE ${PATH_SRC})
-target_link_libraries(mt_graphapi_insert PUBLIC ${NAME_LIB} graph_utils)
+#add_executable(mt_graphapi_insert mt_graphapi_insert.cpp)
+#target_include_directories(mt_graphapi_insert PRIVATE ${PATH_SRC})
+#target_link_libraries(mt_graphapi_insert PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 add_executable(init_db init_db.cpp)

@@ -1,8 +1,5 @@
 message(CURR_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}")
-
-# file(COPY ${PATH_BUILD}/run_benchmarks.sh DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(CREATE_LINK ${PATH_BUILD}/run_benchmarks.sh ${CMAKE_CURRENT_BINARY_DIR}/run_benchmarks.sh
-    COPY_ON_ERROR SYMBOLIC)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_benchmarks.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${PATH_SRC})
 
@@ -23,6 +20,10 @@ target_link_libraries(pr_vc PUBLIC ${NAME_LIB} graph_utils)
 # ###################################################################################
 add_executable(bfs bfs.cpp)
 target_link_libraries(bfs PUBLIC ${NAME_LIB} graph_utils)
+
+###################################################################################
+add_executable(bfs_ec bfs_parallel_ec.cpp)
+target_link_libraries(bfs_ec PUBLIC ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 add_executable(tc tc.cpp)

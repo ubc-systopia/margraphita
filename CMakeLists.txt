@@ -122,3 +122,5 @@ add_subdirectory(benchmark)
 add_subdirectory(preprocess)
 
 configure_file(${PROJECT_SOURCE_DIR}/.githooks/pre-commit ${PROJECT_SOURCE_DIR}/.git/hooks COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/config.json ${CMAKE_CURRENT_BINARY_DIR}/preprocess COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/config.json ${CMAKE_CURRENT_BINARY_DIR}/benchmark COPYONLY)

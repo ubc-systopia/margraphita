@@ -2,5 +2,7 @@
     "GRAPH_PROJECT_DIR": "/home/puneet/scratch/margraphita",
     "KRON_GEN_PATH": "/home/puneet/scratch/PaRMAT/Release/PaRMAT",
     "KRON_GRAPHS_PATH": "/drives/hdd_main",
+    "DB_DIR": "/graphs",
+    "LOG_DIR": "/drives/hdd_main/logs",
     "num_threads": 16
 }

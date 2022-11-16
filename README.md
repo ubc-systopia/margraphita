@@ -4,7 +4,15 @@ To build this project, go to the build directory, and update the paths in paths.
 
 Then execute the runner.sh script.
 
-We assume that you have autoconf and build tools installed on your machine.
+# Requirements
+- g++11
+```
+add-apt-repository -y ppa:ubuntu-toolchain-r/test
+apt-get update
+apt-get install g++-11
+```
+- [cmake](https://cmake.org/install/)
+- [Boost](https://www.boost.org/)  (1.80.0 or higher)
 
 We recommend either of the following Kronecker Generators:
 

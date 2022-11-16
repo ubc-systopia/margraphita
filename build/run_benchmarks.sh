@@ -127,6 +127,28 @@ do
 done
 }
 
+# update this...
+# talk with puneet into making this a neater python file.
+run_bfs_ec()
+{
+for ds in "${DATASETS[@]}"
+do
+    for type in "${TYPES[@]}"
+    do
+    echo  "--------------------------------" >> ${RESULT}/bfs_ec/${ds}.txt
+    date +"%c" >> ${RESULT}/bfs/${ds}.txt
+    ${RELEASE_PATH}/benchmark/bfs_ec -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs_ec -r -d -l $type &>> ${RESULT}/bfs_ec/${type}_rd_${ds}.txt
+
+    #Run to collect WT_STATS
+    ${PROFILE_PATH}/benchmark/bfs_ec -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs_ec -r -d -l $type &>> ${RESULT}/bfs_ec/${type}_rd_${ds}.txt
+
+    #Run with perf
+    perf record -a --call-graph fp -o ${RESULT}/bfs_ec/${type}_rd_${ds}_perf.dat ${STATS_PATH}/benchmark/bfs_ec -m "${type}_rd_${ds}" -b BFS -a $DB_DIR/${ds} -s $ds -f ${RESULT}/bfs_ec -r -d -l $type
+    done
+
+done
+}
+
 run_tc()
 {
 for type in "${TYPES[@]}"
@@ -203,6 +225,7 @@ done
 
 # run_pagerank
 # run_bfs
- run_tc
+#run_tc
+run_bfs_ec
 # run_cc
 # run_sssp
