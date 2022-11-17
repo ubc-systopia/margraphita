@@ -24,6 +24,10 @@ class BenchmarkRunner:
         cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b BFS -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/bfs -r -d -l {graph_type}"
         return cmd
 
+    def make_bfs_ec_cmd(self, binary_name: str, ds: str, graph_type: str):
+        cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b BFS_EC -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/bfs -r -d -l {graph_type}"
+        return cmd
+
     def make_tc_cmd(self, binary_name: str, ds: str, graph_type: str):
         cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b TC -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/tc -r -d -l {graph_type}"
         return cmd
@@ -126,6 +130,16 @@ class BenchmarkRunner:
                 os.system(cmd)
         self.log.write("\n" + "=" * 100 + "\n")
 
+    def run_bfs_ec(self):
+        self.log.write("\n\nBFS EC\n\n")
+        for ds in self.datasets:
+            for graph_type in self.types:
+                cmd = self.make_bfs_ec_cmd(
+                    f"{self.config_data['RELEASE_PATH']}/benchmark/bfs_ec", ds, graph_type)
+                self.log.write(f"{cmd} \n")
+                os.system(cmd)
+        self.log.write("\n" + "=" * 100 + "\n")
+
     def run_tc(self):
         self.log.write("\n\nTC\n\n")
         for ds in self.datasets:
@@ -210,6 +224,8 @@ def main():
                         default=False, help="Run PageRank")
     parser.add_argument("--bfs", action='store_true',
                         default=False, help="Run BFS")
+    parser.add_argument("--bfs_ec", action='store_true',
+                        default=False, help="Run BFS EC")           
     parser.add_argument("--tc", action='store_true',
                         default=False, help="Run TC")
     parser.add_argument("--cc", action='store_true',
@@ -220,7 +236,7 @@ def main():
     args = parser.parse_args()
     config_data = ConfigReader("config.json").read_config()
 
-    if not (args.pr or args.bfs or args.tc or args.cc or args.sssp):
+    if not (args.pr or args.bfs or args.tc or args.cc or args.sssp or args.bfs_ec):
         print("No benchmark selected. Exiting")
         exit(0)
 
@@ -249,6 +265,10 @@ def main():
     if args.bfs:
         os.system(f"mkdir -p {config_data['LOG_DIR']}/bfs")
         benchmark_runner.run_bfs()
+    if args.bfs_ec:
+        os.system(f"mkdir -p {config_data['LOG_DIR']}/bfs_ec")
+        benchmark_runner.run_bfs_ec()
+
     if args.cc:
         os.system(f"mkdir -p {config_data['LOG_DIR']}/cc")
         benchmark_runner.run_cc()

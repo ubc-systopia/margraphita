@@ -28,7 +28,6 @@
 // debug workflow:
 // get to compile. look at cmakelists in benchmarks.
 
-// eventually swap this find_random_start with any node from the largest connected component. 
 template <typename Graph>
 int find_random_start(Graph &graph)
 {
@@ -60,9 +59,14 @@ while (!done) {
     done = true;
     #pragma omp parallel for reduction(& : done) num_threads(thread_num)
         for (int i = 0; i < thread_num; i++)
-        {
+        {   
+
+            //cout << "first" << i << endl;
+
             GraphBase *graph = graph_engine->create_graph_handle();
             edge found = {0};
+
+            //cout << "second" << i << endl;
 
             EdgeCursor* edge_cursor = graph->get_edge_iter();
             edge_cursor->set_key(graph_engine->get_edge_range(i));
@@ -71,6 +75,7 @@ while (!done) {
             while (found.src_id != -1)
             {   
                 // we need to check this edge on the frontier
+                //cout << "inside" << endl;
                 long int old_val = -1;
                 if (parent[found.src_id] != -1 && compare_and_swap(parent[found.dst_id], old_val, found.src_id)) 
                 {   
@@ -79,7 +84,10 @@ while (!done) {
                 edge_cursor->next(&found);
             }
 
+            //cout << " close" << endl;
             graph->close();
+
+            //cout << "closed" << endl;
         }
     }
 }
@@ -94,6 +102,8 @@ while (!done) {
 bool BFSVerifier(GraphEngine* graph_engine, node_id_t source, // i removed 'const' graph_engine
                  const pvector<node_id_t> &parent) {
 
+
+  cout << "start BFS verifier" << endl;
   GraphBase *g = graph_engine->create_graph_handle();
 
   pvector<int> depth(g->get_num_nodes(), -1); 
@@ -123,7 +133,7 @@ bool BFSVerifier(GraphEngine* graph_engine, node_id_t source, // i removed 'cons
       for (node_id_t v : g->get_in_nodes_id(u)) {
         if (v == parent[u]) {
           if (depth[v] != depth[u] - 1) {
-            cout << "Wrong depths for " << u << " & " << v << endl;
+            cout << "Wrong depths for " << u << " & " << v << endl; // hitting this error!!!
             return false;
           }
           parent_found = true;
@@ -166,25 +176,36 @@ int main(int argc, char *argv[])
     opts.conn_config = "cache_size=10GB";  // bfs_cli.get_conn_config();
     opts.type = bfs_cli.get_graph_type();
 
-    const int THREAD_NUM = 1;
+    cout << "hi1" << endl;
+
+    const int THREAD_NUM = 8;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
 
+    // int num_trials = bfs_cli.get_num_trials();
+
+    Times t;
+    t.start();
     GraphEngine graph_engine(engine_opts);
+    graph_engine.calculate_thread_offsets();
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;   
 
     GraphBase *graph = (&graph_engine)->create_graph_handle();
 
-
+    cout << "hi" << endl;
     pvector<node_id_t> parent(graph->get_num_nodes(), -1);
 
     node_id_t start = find_random_start(*graph);
-    parent[start] = start; // init parent...
+    parent[start] = start; // init parent... // eventually swap this find_random_start with any node from the largest connected component. 
 
     graph->close();
 
     BFS_EC(&graph_engine, parent, THREAD_NUM);
 
+    cout << "start BFS verifier" << endl;
+
     assert(BFSVerifier(&graph_engine, start, parent)); // test for correctness
 
-    return 1;
+    return 0;
 }
