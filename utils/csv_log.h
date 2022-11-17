@@ -95,6 +95,26 @@ void print_csv_info(std::string name, sssp_info &info, std::string csv_logdir)
     FILE.close();
 }
 
+void print_csv_info(std::string name, iter_info &info, std::string csv_logdir)
+{
+    fstream FILE;
+    std::string _name = csv_logdir + "/" + name + "_sssp.csv";
+    if (access(_name.c_str(), F_OK) == -1)
+    {
+        // The file does not exist yet.
+        FILE.open(_name, ios::out | ios::app);
+        FILE << "#db_name, benchmark, time_taken_usec\n";
+    }
+    else
+    {
+        FILE.open(_name, ios::out | ios::app);
+    }
+
+    FILE << name << ",sssp," << info.time_taken << "\n";
+
+    FILE.close();
+}
+
 void print_to_csv(std::string name,
                   std::vector<double> &times,
                   std::string csvfile)

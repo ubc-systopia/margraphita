@@ -1388,7 +1388,7 @@ NodeCursor *EdgeKey::get_node_iter()
 
 EdgeCursor *EdgeKey::get_edge_iter()
 {
-    return new EkeyEdgeCursor(get_new_edge_cursor(), session);
+    return new EkeyEdgeCursor(get_new_edge_cursor(), session, opts.is_weighted);
 }
 
 WT_CURSOR *EdgeKey::get_node_cursor() { return get_dst_src_idx_cursor(); }

@@ -229,6 +229,7 @@ class EdgeCursor : public table_iterator
    protected:
     key_pair start_edge;
     key_pair end_edge;
+    bool get_weight = true;
 
    public:
     EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
@@ -236,6 +237,14 @@ class EdgeCursor : public table_iterator
         init(composite_edge_cur, sess);
         start_edge = {-1, -1};
         end_edge = {-1, -1};
+    }
+
+    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess, bool get_weight)
+    {
+        init(composite_edge_cur, sess);
+        start_edge = {-1, -1};
+        end_edge = {-1, -1};
+        this->get_weight = get_weight;
     }
 
     // Overwrites set_key(int key) implementation in table_iterator

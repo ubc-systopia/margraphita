@@ -456,6 +456,11 @@ class EkeyEdgeCursor : public EdgeCursor
    public:
     EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
+    EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess, bool get_weight)
+        : EdgeCursor(cur, sess, get_weight)
+    {
+    }
+
     void next(edge *found)
     {
         if (!has_next)
@@ -516,7 +521,10 @@ class EkeyEdgeCursor : public EdgeCursor
                 goto no_next;
             }
         }
-        CommonUtil::__record_to_edge_ekey(cursor, found);
+        if (get_weight)
+        {
+            CommonUtil::__record_to_edge_ekey(cursor, found);
+        }
         return;
 
     no_next:

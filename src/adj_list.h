@@ -328,6 +328,11 @@ class AdjEdgeCursor : public EdgeCursor
    public:
     AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
+    AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess, bool get_weight)
+        : EdgeCursor(cur, sess, get_weight)
+    {
+    }
+
     void next(edge *found)
     {
         if (!has_next)
@@ -372,8 +377,10 @@ class AdjEdgeCursor : public EdgeCursor
                     goto no_next;
                 }
             }
-
-            CommonUtil::__record_to_edge(cursor, found);
+            if (get_weight)
+            {
+                CommonUtil::__record_to_edge(cursor, found);
+            }
         }
         else
         {

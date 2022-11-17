@@ -796,19 +796,13 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
  */
 std::vector<node_id_t> AdjList::get_out_nodes_id(node_id_t node_id)
 {
-    std::vector<node_id_t> out_nodes_id;
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
     std::vector<node_id_t> adjlist = get_adjlist(out_adjlist_cursor, node_id);
-
-    for (auto dst_id : adjlist)
-    {
-        out_nodes_id.push_back(dst_id);
-    }
     out_adjlist_cursor->reset(out_adjlist_cursor);
-    return out_nodes_id;
+    return adjlist;
 }
 
 /**
@@ -892,13 +886,8 @@ std::vector<node_id_t> AdjList::get_in_nodes_id(node_id_t node_id)
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
     std::vector<node_id_t> adjlist = get_adjlist(in_adjlist_cursor, node_id);
-    node found = {0};
-    for (auto src_id : adjlist)
-    {
-        in_nodes_id.push_back(src_id);
-    }
     in_adjlist_cursor->reset(in_adjlist_cursor);
-    return in_nodes_id;
+    return adjlist;
 }
 
 /**
@@ -1064,8 +1053,11 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
     // !APT: Check with puneet
     // We have the entire node we only need the list how to assign it without
     // knowing which table is it in or out?
-
+    // Times t;
+    // t.start();
     CommonUtil::__record_to_adjlist(session, cursor, &adj_list);
+    // t.stop();
+    // std::cout << "Record to adjlist:" << t.t_micros() << '\n';
     cursor->reset(cursor);
     return adj_list.edgelist;
 }
@@ -1277,7 +1269,7 @@ NodeCursor *AdjList::get_node_iter()
 
 EdgeCursor *AdjList::get_edge_iter()
 {
-    return new AdjEdgeCursor(get_new_edge_cursor(), session);
+    return new AdjEdgeCursor(get_new_edge_cursor(), session, opts.is_weighted);
 }
 
 WT_CURSOR *AdjList::get_node_cursor()
