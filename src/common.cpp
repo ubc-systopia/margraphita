@@ -15,12 +15,6 @@
 #include <filesystem>
 #endif
 
-// const std::string METADATA
-
-// Read Optimize columns
-
-// Shared column names
-
 void CommonUtil::create_dir(const std::string& path)
 {
 #ifdef MACOSX
@@ -65,6 +59,7 @@ bool CommonUtil::check_dir_exists(const std::string& path)
         return false;
     }
 #endif
+    return false;
 }
 
 void CommonUtil::set_table(WT_SESSION *session,
