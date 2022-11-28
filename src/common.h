@@ -22,8 +22,6 @@ const std::string DB_DIR = "db_dir";
 const std::string IS_WEIGHTED = "is_weighted";
 const std::string READ_OPTIMIZE = "read_optimize";
 const std::string IS_DIRECTED = "is_directed";
-const std::string CREATE_NEW = "create_new";
-const std::string EDGE_ID = "edge_id";
 
 // Read Optimize columns
 const std::string IN_DEGREE = "in_degree";
@@ -151,8 +149,8 @@ class table_iterator
 class OutCursor : public table_iterator
 {
    protected:
-    key_range keys;
-    int num_nodes;
+    key_range keys{};
+    int num_nodes{};
 
    public:
     OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
@@ -176,8 +174,8 @@ class OutCursor : public table_iterator
 class InCursor : public table_iterator
 {
    protected:
-    key_range keys;
-    int num_nodes;
+    key_range keys{};
+    int num_nodes{};
 
    public:
     InCursor(WT_CURSOR *cur, WT_SESSION *sess)
@@ -201,7 +199,7 @@ class InCursor : public table_iterator
 class NodeCursor : public table_iterator
 {
    protected:
-    key_range keys;
+    key_range keys{};
 
    public:
     NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
@@ -228,8 +226,8 @@ class NodeCursor : public table_iterator
 class EdgeCursor : public table_iterator
 {
    protected:
-    key_pair start_edge;
-    key_pair end_edge;
+    key_pair start_edge{};
+    key_pair end_edge{};
     bool get_weight = true;
 
    public:
@@ -266,10 +264,9 @@ class EdgeCursor : public table_iterator
 class CommonUtil
 {
    public:
-    static void create_dir(std::string path);
-    static void remove_dir(std::string path);
+    static void create_dir(const std::string& path);
 
-    static bool check_dir_exists(std::string path);
+    static bool check_dir_exists(const std::string& path);
 
     static void set_table(WT_SESSION *session,
                           const std::string &prefix,
@@ -277,20 +274,10 @@ class CommonUtil
                           const std::string &key_fmt,
                           const std::string &val_fmt);
 
-    static std::vector<int> get_default_nonstring_attrs(const std::string &fmt);
-
-    static std::vector<std::string> get_default_string_attrs(
-        const std::string &fmt);
-
     static std::string get_db_name(const std::string &prefix,
                                    const std::string &name);
 
     static void check_graph_params(const graph_opts &params);
-
-    static std::string create_string_format(
-        const std::vector<std::string> &to_pack, size_t *size);
-    static std::string create_intvec_format(std::vector<int> to_pack,
-                                            size_t *total_size);
 
     static char *pack_int_vector_wti(WT_SESSION *session,
                                      std::vector<node_id_t> to_pack,
@@ -300,24 +287,24 @@ class CommonUtil
                                                         char *packed_str);
 
     // WT Session and Cursor wrangling operations
-    static int open_cursor(WT_SESSION *session,
+    [[maybe_unused]] static int open_cursor(WT_SESSION *session,
                            WT_CURSOR **cursor,
-                           std::string uri,
+                           const std::string& uri,
                            WT_CURSOR *to_dup,
-                           std::string config);
+                           const std::string& config);
     static int close_cursor(WT_CURSOR *cursor);
     static int close_session(WT_SESSION *session);
     static int close_connection(WT_CONNECTION *conn);
     static int open_connection(char *db_name,
-                               std::string logdir,
-                               std::string config,
+                               const std::string& logdir,
+                               const std::string& config,
                                WT_CONNECTION **conn);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
-    static void check_return(int retval, std::string mesg);
+    static void check_return(int retval, const std::string& mesg);
     static void dump_node(node to_print);
     static void dump_edge(edge to_print);
-    static void dump_adjlist(adjlist to_print);
-    static void dump_edge_index(edge_index to_print);
+    static void dump_adjlist(const adjlist& to_print);
+    [[maybe_unused]] static void dump_edge_index(edge_index to_print);
 
     static int node_to_record(WT_CURSOR *cursor,
                               node to_insert,
@@ -329,7 +316,7 @@ class CommonUtil
     static void read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx);
     static int adjlist_to_record(WT_SESSION *session,
                                  WT_CURSOR *cursor,
-                                 adjlist to_insert);
+                                 const adjlist& to_insert);
     static void record_to_adjlist(WT_SESSION *session,
                                   WT_CURSOR *cursor,
                                   adjlist *found);
@@ -342,21 +329,7 @@ class CommonUtil
  *            Serialization/ Deserialization methods common to all
  *                             *representations*
  **************************************************************************/
-// Because we know that there can only be two. By design.
-inline static void extract_from_string(const std::string &packed_str,
-                                       int *a,
-                                       int *b)
-{
-    std::stringstream strstream(packed_str);
-    strstream >> *a >> *b;
-}
 
-inline static std::string pack_int_to_str(int a, int b)
-{
-    std::stringstream sstream;
-    sstream << a << " " << b;
-    return sstream.str();
-}
 /**
  * @brief This fucntion updates a node with the given attribute vector.
  * This function assumes that only the node attributes are updated here.
@@ -429,7 +402,7 @@ inline void CommonUtil::read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
  */
 inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
                                          WT_CURSOR *cursor,
-                                         adjlist to_insert)
+                                         const adjlist& to_insert)
 {
     cursor->reset(cursor);
     cursor->set_key(cursor, to_insert.node_id);
@@ -461,7 +434,7 @@ inline void CommonUtil::record_to_adjlist(WT_SESSION *session,
     cursor->get_value(cursor, &degree, &item);
     found->edgelist = CommonUtil::unpack_int_vector_wti(
         session, item.size, (char *)item.data);
-    if (degree == 1 && found->edgelist.size() == 0)
+    if (degree == 1 && found->edgelist.empty())
     {
         found->degree = 0;
     }
@@ -493,24 +466,6 @@ inline void CommonUtil::record_to_node_ekey(WT_CURSOR *cur, node *found)
     {
         throw GraphException("Failed to get node attributes");
     }
-    found->in_degree = a;
-    found->out_degree = b;
-}
-
-inline void CommonUtil::record_to_node_ekeyidx(WT_CURSOR *idx_cursor,
-                                               node *found)
-{
-    const char *packed_vec;
-    node temp;
-    std::cout << idx_cursor->key_format << "\t" << idx_cursor->value_format
-              << std::endl;
-    if (idx_cursor->get_value(idx_cursor, &packed_vec) != 0)
-    {
-        throw GraphException("Cannot obtain idx cursor value");
-    }
-    std::string str(packed_vec);
-    int a = 0, b = 0;
-    extract_from_string(str, &a, &b);
     found->in_degree = a;
     found->out_degree = b;
 }

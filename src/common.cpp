@@ -1,12 +1,11 @@
 #include "common.h"
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <wiredtiger.h>
 
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <variant>
 
 #include "graph_exception.h"
 #ifdef MACOSX
@@ -22,7 +21,7 @@
 
 // Shared column names
 
-void CommonUtil::create_dir(std::string path)
+void CommonUtil::create_dir(const std::string& path)
 {
 #ifdef MACOSX
     std::experimental::filesystem::path dirname = path;
@@ -43,17 +42,8 @@ void CommonUtil::create_dir(std::string path)
 #endif
 }
 
-void CommonUtil::remove_dir(std::string path)
-{
-#ifdef MACOSX
-    std::experimental::filesystem::remove_all(path);
-#endif
-#ifdef LINUX
-    std::filesystem::remove_all(path);
-#endif
-}
 
-bool CommonUtil::check_dir_exists(std::string path)
+bool CommonUtil::check_dir_exists(const std::string& path)
 {
 #ifdef MACOSX
     if (std::experimental::filesystem::exists(path))
@@ -75,7 +65,6 @@ bool CommonUtil::check_dir_exists(std::string path)
         return false;
     }
 #endif
-    return false;
 }
 
 void CommonUtil::set_table(WT_SESSION *session,
@@ -110,63 +99,6 @@ void CommonUtil::set_table(WT_SESSION *session,
     }
 }
 
-/**
- * @brief This function is used to construct the default values based on format
- * string.
- *
- * @param fmt This is the format string.
- * @return std::vector<int> This is a vector that contains the default values
- * for format types that are represented as ints. (0)
- */
-std::vector<int> CommonUtil::get_default_nonstring_attrs(const std::string &fmt)
-{
-    std::vector<int> ret;
-    std::string zero_attr = "iIlLqQsShHt";
-
-    for (const char &x : fmt)
-    {
-        if (zero_attr.find(x) != std::string::npos)
-        {
-            ret.emplace_back(0);
-        }
-        else
-        {
-            throw GraphException(
-                "Found a non-int type in format string. Abort!");
-        }
-    }
-    return ret;
-}
-
-/**
- * @brief This function is used to construct the default values based on format
- * string.
- *
- * @param fmt This is the format string.
- * @return std::vector<std::string> This is a vector that contains the default
- * values for format types that are represented as strings. ("")
- */
-std::vector<std::string> CommonUtil::get_default_string_attrs(
-    const std::string &fmt)
-{
-    std::vector<std::string> ret;
-    std::string zero_attr = "iIlLqQsShHt";
-
-    for (const char &x : fmt)
-    {
-        if (zero_attr.find(x) != std::string::npos)
-        {
-            throw GraphException(
-                "Found a non-int type in format string. Abort!");
-        }
-        else
-        {
-            ret.emplace_back("");
-        }
-    }
-    return ret;
-}
-
 std::string CommonUtil::get_db_name(const std::string &prefix,
                                     const std::string &name)
 {
@@ -191,64 +123,6 @@ void CommonUtil::check_graph_params(const graph_opts &params)
         throw GraphException(to_return);
     }
 }
-/**
- * @brief This function is used to compute the format string that are expected
- * by the wiredtiger_pack family of functions. This is also useful to get the
- * value of buffer needed to persist such a string.
- *
- * @param to_pack vector<string> This is the vectorthat needs to be packed
- * @param total_size int* This is a pointer to the variable that holds the size
- * that must be used to alloc a buffer to persist the vector
- * @return fmt std::string this is the format string. The first char in the
- * format string is S to indicate that the first string being packed is the
- * format string.
- */
-std::string CommonUtil::create_string_format(
-    const std::vector<std::string> &to_pack, size_t *total_size)
-{
-    std::string fmt = "Si";  // The first element of the packed string contains
-                             // the format string. Second element contains the
-                             // buffer size needed to unpack this vector
-
-    for (const std::string &item : to_pack)
-    {
-        fmt += 'S';  // std::to_string(item.length()) + 'S';
-        *total_size += (item.length() + 1);  // for \0
-    }
-    *total_size += (fmt.length() + 1 + sizeof(int) +
-                    1);  // Add the size of the first element + \0 + size of int
-                         // + another \0
-    return fmt;
-}
-
-// todo: What I don't understand is that given the size of the strings/ints that
-// need to be packed (sum of all string/int sizes in the vector), should I
-// create a buf of total_size*sizeof(int/char) or should it be total_size bytes
-// in. size?
-/**
- * @brief This function is used to compute the format string that is expected by
- * the wiredtiger_pack family of fucntions. This is used to crearte an
- * appropriately sized buffer to store the packed vector<int>
- *
- * @param to_pack vector<int> - the vector that has to be packed.
- * @param total_size his is a pointer to the variable that holds the size
- * that must be used to alloc a buffer to persist the vector.
- * @return std::string std::string this is the format string. The first char in
- * the format string is S to indicate that the first string being packed in to
- * the stream will be the format string itself.
- */
-std::string CommonUtil::create_intvec_format(std::vector<int> to_pack,
-                                             size_t *total_size)
-{
-    std::string fmt = "S";
-
-    for (auto iter = to_pack.begin(); iter != to_pack.end(); ++iter)
-    {
-        fmt += 'i';
-        *total_size = *total_size + 1;
-    }
-    return fmt;
-}
 
 int CommonUtil::close_cursor(WT_CURSOR *cursor)
 {
@@ -262,7 +136,7 @@ int CommonUtil::close_cursor(WT_CURSOR *cursor)
 
 int CommonUtil::close_session(WT_SESSION *session)
 {
-    if (session->close(session, NULL) != 0)
+    if (session->close(session, nullptr) != 0)
     {
         fprintf(stderr, "Failed to close session\n");
         return (-1);
@@ -272,7 +146,7 @@ int CommonUtil::close_session(WT_SESSION *session)
 
 int CommonUtil::close_connection(WT_CONNECTION *conn)
 {
-    if (conn->close(conn, NULL) != 0)
+    if (conn->close(conn, nullptr) != 0)
     {
         fprintf(stderr, "Failed to close connection\n");
         return (-1);
@@ -281,8 +155,8 @@ int CommonUtil::close_connection(WT_CONNECTION *conn)
 }
 
 int CommonUtil::open_connection(char *db_name,
-                                std::string log_dir,
-                                std::string conn_config,
+                                const std::string& log_dir,
+                                const std::string& conn_config,
                                 WT_CONNECTION **conn)
 {
     char config[1024] = "create";
@@ -297,13 +171,13 @@ int CommonUtil::open_connection(char *db_name,
         "statistics=(all),statistics_log=(wait=0,on_close=true,path=" +
         log_dir + ")";
 #endif
-    if (conn_config.size() != 0)
+    if (!conn_config.empty())
     {
         sprintf(config + strlen("create"), ",%s", conn_config.c_str());
     }
     // std::cout << config << std::endl;
     // exit(1);
-    if (wiredtiger_open(db_name, NULL, config, conn) != 0)
+    if (wiredtiger_open(db_name, nullptr, config, conn) != 0)
     {
         fprintf(stderr, "Failed to open connection\n");
         return (-1);
@@ -319,7 +193,7 @@ int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
     //     return (-1);
     // }
     // return 0;
-    if (conn->open_session(conn, NULL, "isolation=snapshot", session) != 0)
+    if (conn->open_session(conn, nullptr, "isolation=snapshot", session) != 0)
     {
         fprintf(stderr, "Failed to open session\n");
         return (-1);
@@ -327,11 +201,11 @@ int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
     return 0;
 }
 
-int CommonUtil::open_cursor(WT_SESSION *session,
+[[maybe_unused]] int CommonUtil::open_cursor(WT_SESSION *session,
                             WT_CURSOR **cursor,
-                            std::string uri,
+                            const std::string& uri,
                             WT_CURSOR *to_dup,
-                            std::string config)
+                            const std::string& config)
 {
     if (session->open_cursor(
             session, uri.c_str(), to_dup, config.c_str(), cursor) != 0)
@@ -341,7 +215,7 @@ int CommonUtil::open_cursor(WT_SESSION *session,
     return 0;
 }
 
-void CommonUtil::check_return(int retval, std::string mesg)
+void CommonUtil::check_return(int retval, const std::string& mesg)
 {
     if (retval > 0)
     {
@@ -363,13 +237,13 @@ void CommonUtil::dump_edge(edge to_print)
     std::cout << "Weight is:\t" << to_print.edge_weight << std::endl;
 }
 
-void CommonUtil::dump_edge_index(edge_index to_print)
+[[maybe_unused]] void CommonUtil::dump_edge_index(edge_index to_print)
 {
     std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
     std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
 }
 
-void CommonUtil::dump_adjlist(adjlist to_print)
+void CommonUtil::dump_adjlist(const adjlist& to_print)
 {
     std::cout << "Node ID is: \t" << to_print.node_id << std::endl;
     std::cout << "degree is:\t" << to_print.degree << std::endl;
