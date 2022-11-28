@@ -425,13 +425,13 @@ void test_index_cursor(StandardGraph graph)
 
     while (srccur->next(srccur) == 0)
     {
-        CommonUtil::__read_from_edge_idx(srccur, &found);
+        CommonUtil::read_from_edge_idx(srccur, &found);
         CommonUtil::dump_edge(found);
     }
     print_delim();
     while (dstcur->next(dstcur) == 0)
     {
-        CommonUtil::__read_from_edge_idx(dstcur, &found);
+        CommonUtil::read_from_edge_idx(dstcur, &found);
         CommonUtil::dump_edge(found);
     }
 }

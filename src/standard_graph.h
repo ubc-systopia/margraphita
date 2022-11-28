@@ -89,7 +89,7 @@ class StdInCursor : public InCursor
 
         do
         {
-            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
             if (dst == curr_edge.dst_id)
             {
                 found->degree++;
@@ -166,7 +166,7 @@ class StdInCursor : public InCursor
 
         do
         {
-            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil::read_from_edge_idx(cursor, &curr_edge);
             if (curr_edge.dst_id != key)
             {
                 if (keys.end != -1 && next_expected > keys.end)
@@ -265,7 +265,7 @@ class StdOutCursor : public OutCursor
 
         do
         {
-            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
             if (src == curr_edge.src_id)
             {
                 found->degree++;
@@ -342,7 +342,7 @@ class StdOutCursor : public OutCursor
 
         do
         {
-            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil::read_from_edge_idx(cursor, &curr_edge);
             if (curr_edge.src_id != key)
             {
                 if (keys.end != -1 && next_expected > keys.end)
@@ -404,7 +404,7 @@ class StdNodeCursor : public NodeCursor
                 goto no_next;
             }
 
-            CommonUtil::__record_to_node(cursor, found, true);
+            CommonUtil::record_to_node(cursor, found, true);
         }
         else
         {
@@ -473,7 +473,7 @@ class StdEdgeCursor : public EdgeCursor
                 }
             }
 
-            CommonUtil::__record_to_edge(cursor, found);
+            CommonUtil::record_to_edge(cursor, found);
         }
         else
         {

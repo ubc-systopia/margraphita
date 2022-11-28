@@ -16,40 +16,41 @@
 #include "graph_exception.h"
 
 // These are the string constants
-extern const std::string METADATA;
-extern const std::string DB_NAME;
-extern const std::string DB_DIR;
-extern const std::string IS_WEIGHTED;
-extern const std::string READ_OPTIMIZE;
-extern const std::string IS_DIRECTED;
-extern const std::string CREATE_NEW;
-extern const std::string EDGE_ID;
+const std::string METADATA = "metadata";
+const std::string DB_NAME = "db_name";
+const std::string DB_DIR = "db_dir";
+const std::string IS_WEIGHTED = "is_weighted";
+const std::string READ_OPTIMIZE = "read_optimize";
+const std::string IS_DIRECTED = "is_directed";
+const std::string CREATE_NEW = "create_new";
+const std::string EDGE_ID = "edge_id";
 
 // Read Optimize columns
-extern const std::string IN_DEGREE;
-extern const std::string OUT_DEGREE;
+const std::string IN_DEGREE = "in_degree";
+const std::string OUT_DEGREE = "out_degree";
 
 // Shared column names
-extern const std::string SRC;
-extern const std::string DST;
-extern const std::string ID;
-extern const std::string ATTR_FIRST;  // Used in EdgeKey as the first attribute.
-extern const std::string
-    ATTR_SECOND;  // Used in EdgeKey as the second attribute.
-extern const std::string WEIGHT;
-extern const std::string NODE_TABLE;
-extern const std::string EDGE_TABLE;
-extern const std::string SRC_INDEX;
-extern const std::string DST_INDEX;
-extern const std::string SRC_DST_INDEX;
-extern const std::string DST_SRC_INDEX;
+const std::string SRC = "src";
+const std::string DST = "dst";
+const std::string ID = "id";
+const std::string ATTR_FIRST =
+    "attr_fst";  // Used in EdgeKey as the first attribute.
+const std::string ATTR_SECOND =
+    "attr_scnd";  // Used in EdgeKey as the second attribute.
+const std::string WEIGHT = "weight";
+const std::string NODE_TABLE = "node";
+const std::string EDGE_TABLE = "edge";
+const std::string SRC_INDEX = "IX_edge_" + SRC;
+const std::string DST_INDEX = "IX_edge_" + DST;
+const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
+const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
 // specific to AdjList implementation
-extern const std::string IN_ADJLIST;   // New
-extern const std::string OUT_ADJLIST;  // New
-extern const std::string node_count;
-extern const std::string edge_count;
+const std::string OUT_ADJLIST = "adjlistout";
+const std::string IN_ADJLIST = "adjlistin";
+const std::string node_count = "nNodes";
+const std::string edge_count = "nEdges";
 
-typedef int64_t node_id_t;
+typedef int32_t node_id_t;
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
 const node_id_t OutOfBand_ID = -1;
@@ -271,58 +272,25 @@ class CommonUtil
     static bool check_dir_exists(std::string path);
 
     static void set_table(WT_SESSION *session,
-                          std::string prefix,
+                          const std::string &prefix,
                           std::vector<std::string> columns,
-                          std::string key_fmt,
-                          std::string val_fmt);
+                          const std::string &key_fmt,
+                          const std::string &val_fmt);
 
-    static std::vector<int> get_default_nonstring_attrs(std::string fmt);
+    static std::vector<int> get_default_nonstring_attrs(const std::string &fmt);
 
-    static std::vector<std::string> get_default_string_attrs(std::string fmt);
+    static std::vector<std::string> get_default_string_attrs(
+        const std::string &fmt);
 
-    static std::string get_db_name(std::string prefix, std::string name);
+    static std::string get_db_name(const std::string &prefix,
+                                   const std::string &name);
 
-    static void check_graph_params(graph_opts params);
+    static void check_graph_params(const graph_opts &params);
 
-    static std::string create_string_format(std::vector<std::string> to_pack,
-                                            size_t *size);
+    static std::string create_string_format(
+        const std::vector<std::string> &to_pack, size_t *size);
     static std::string create_intvec_format(std::vector<int> to_pack,
                                             size_t *total_size);
-    static char *pack_string_vector_wt(std::vector<std::string>,
-                                       WT_SESSION *session,
-                                       size_t *total_size,
-                                       std::string *fmt);
-
-    static std::vector<std::string> unpack_string_vector_wt(
-        const char *to_unpack, WT_SESSION *session);
-
-    static char *pack_int_vector_wt(std::vector<int>,
-                                    WT_SESSION *session,
-                                    size_t *total_size,
-                                    std::string *fmt);
-    static std::vector<int> unpack_int_vector_wt(const char *to_unpack,
-                                                 WT_SESSION *session);
-
-    static char *pack_string_wt(std::string,
-                                WT_SESSION *session,
-                                std::string *fmt);
-    static std::string unpack_string_wt(const char *to_unpack,
-                                        WT_SESSION *session);
-
-    static char *pack_int_wt(int to_pack, WT_SESSION *session);
-    static int unpack_int_wt(const char *to_unpack, WT_SESSION *session);
-
-    static char *pack_bool_wt(bool, WT_SESSION *session, std::string *fmt);
-    static bool unpack_bool_wt(const char *to_unpack, WT_SESSION *session);
-
-    static std::string pack_string_vector_std(std::vector<std::string> to_pack,
-                                              size_t *size);
-    static std::vector<std::string> unpack_string_vector_std(
-        std::string to_unpack);
-
-    static std::string pack_int_vector_std(std::vector<int> to_pack,
-                                           size_t *size);
-    static std::vector<int> unpack_int_vector_std(std::string packed_str);
 
     static char *pack_int_vector_wti(WT_SESSION *session,
                                      std::vector<node_id_t> to_pack,
@@ -351,214 +319,211 @@ class CommonUtil
     static void dump_adjlist(adjlist to_print);
     static void dump_edge_index(edge_index to_print);
 
-    // Experimental WT_ITEM packing interface
-    static WT_ITEM pack_vector_string(WT_SESSION *session,
-                                      std::vector<std::string> to_pack,
-                                      std::string *fmt);
-    static std::vector<std::string> unpack_vector_string(WT_SESSION *session,
-                                                         WT_ITEM packed,
-                                                         std::string format);
+    static int node_to_record(WT_CURSOR *cursor,
+                              node to_insert,
+                              bool read_optimize);
+    static void record_to_node(WT_CURSOR *cursor,
+                               node *found,
+                               bool read_optimize);
+    static void record_to_edge(WT_CURSOR *cursor, edge *found);
+    static void read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx);
+    static int adjlist_to_record(WT_SESSION *session,
+                                 WT_CURSOR *cursor,
+                                 adjlist to_insert);
+    static void record_to_adjlist(WT_SESSION *session,
+                                  WT_CURSOR *cursor,
+                                  adjlist *found);
+    static void record_to_node_ekey(WT_CURSOR *cur, node *found);
+    static void record_to_node_ekeyidx(WT_CURSOR *idx_cursor, node *found);
+    static void record_to_edge_ekey(WT_CURSOR *cur, edge *found);
+};
 
-    static WT_ITEM pack_vector_int(WT_SESSION *session,
-                                   std::vector<int> to_pack,
-                                   std::string *fmt);
-    static std::vector<int> unpack_vector_int(WT_SESSION *,
-                                              WT_ITEM packed,
-                                              std::string format);
+/***************************************************************************
+ *            Serialization/ Deserialization methods common to all
+ *                             *representations*
+ **************************************************************************/
+// Because we know that there can only be two. By design.
+inline static void extract_from_string(const std::string &packed_str,
+                                       int *a,
+                                       int *b)
+{
+    std::stringstream strstream(packed_str);
+    strstream >> *a >> *b;
+}
 
-    static WT_ITEM pack_items(WT_SESSION *session, std::string fmt, ...);
-
-    /********************************************************************************************
-     *            Serialization/ Deserialization methods common to all
-     *                             *representations*
-     ********************************************************************************************/
-
-    /**
-     * @brief This fucntion updates a node with the given attribute vector.
-     * This function assumes that only the node attributes are updated here.
-     * Node data is modified using get/set_node_data() and degrees are modified
-     * automatically on edge insertions/deletions.
-     * @param node_id The Node ID to be updated
-     * @param new_attrs The new node attribute vector.
-     */
-    inline static int __node_to_record(WT_CURSOR *cursor,
-                                       node to_insert,
-                                       bool read_optimize)
+inline static std::string pack_int_to_str(int a, int b)
+{
+    std::stringstream sstream;
+    sstream << a << " " << b;
+    return sstream.str();
+}
+/**
+ * @brief This fucntion updates a node with the given attribute vector.
+ * This function assumes that only the node attributes are updated here.
+ * Node data is modified using get/set_node_data() and degrees are
+ * modified automatically on edge insertions/deletions.
+ * @param node_id The Node ID to be updated
+ * @param new_attrs The new node attribute vector.
+ */
+inline int CommonUtil::node_to_record(WT_CURSOR *cursor,
+                                      node to_insert,
+                                      bool read_optimize)
+{
+    // cursor cannot be null
+    int ret;
+    cursor->set_key(cursor, to_insert.id);
+    if ((ret = cursor->search(cursor)) != 0)
     {
-        // cursor cannot be null
-        int ret;
-        cursor->set_key(cursor, to_insert.id);
-        if ((ret = cursor->search(cursor)) != 0)
-        {
-            return ret;
-        }
-        if (read_optimize)
-        {
-            cursor->set_value(
-                cursor, to_insert.in_degree, to_insert.out_degree);
-        }
-        else
-        {
-            cursor->set_value(cursor, "");
-        }
-        return cursor->update(cursor);
-    }
-
-    /**
-     * @brief This function reads the record currently being pointed to by the
-     * cursor, and returns the
-     * @param cursor
-     * @return node
-     */
-    inline static void __record_to_node(WT_CURSOR *cursor,
-                                        node *found,
-                                        bool read_optimize)
-    {
-        found->in_degree = 0;
-        found->out_degree = 0;
-
-        if (read_optimize)
-        {
-            cursor->get_value(cursor, &found->in_degree, &found->out_degree);
-        }
-    }
-
-    inline static void __record_to_edge(WT_CURSOR *cursor, edge *found)
-    {
-        if (cursor->get_value(cursor, &found->edge_weight) != 0)
-        {
-            throw GraphException("Could not get the value from the edge table");
-        }
-    }
-    inline static void __read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
-    {
-        idx_cursor->get_value(
-            idx_cursor, &e_idx->src_id, &e_idx->dst_id, &e_idx->edge_weight);
-    }
-
-    /**
-     * @brief This function accepts a cursor to the adjlist table and an adjlist
-     * sturct to insert.
-     * @param cursor A cursor to the in/out adjlist table
-     * @param to_insert The adjlist struct to be inserted into the table pointed
-     * to by the cursor.
-     * @throws GraphException If insertion into the table fails
-     */
-    inline static int __adjlist_to_record(WT_SESSION *session,
-                                          WT_CURSOR *cursor,
-                                          adjlist to_insert)
-    {
-        cursor->reset(cursor);
-        cursor->set_key(cursor, to_insert.node_id);
-        size_t size;
-        WT_ITEM item;
-        char *buf =
-            CommonUtil::pack_int_vector_wti(session, to_insert.edgelist, &size);
-        item.data = buf;
-        item.size = size;
-
-        cursor->set_value(cursor, to_insert.degree, &item);
-        int ret = cursor->update(cursor);
         return ret;
     }
+    if (read_optimize)
+    {
+        cursor->set_value(cursor, to_insert.in_degree, to_insert.out_degree);
+    }
+    else
+    {
+        cursor->set_value(cursor, "");
+    }
+    return cursor->update(cursor);
+}
 
-    /**
-     * @brief This function converts the record the cursor passed points to into
-     * a adjlist struct
-     *
-     * @param cursor the cursor set to the record which needs to be read
-     * @return adjlist the found adjlist struct.
-     */
-    inline static void __record_to_adjlist(WT_SESSION *session,
-                                           WT_CURSOR *cursor,
-                                           adjlist *found)
-    {
-        int32_t degree;
-        WT_ITEM item;
-        cursor->get_value(cursor, &degree, &item);
-        found->edgelist = CommonUtil::unpack_int_vector_wti(
-            session, item.size, (char *)item.data);
-        if (degree == 1 && found->edgelist.size() == 0)
-        {
-            found->degree = 0;
-        }
-        else
-        {
-            found->degree = degree;
-        }
-    }
-    // Because we know that there can only be two. By design.
-    inline static void extract_from_string(std::string packed_str,
-                                           int *a,
-                                           int *b)
-    {
-        std::stringstream strstream(packed_str);
-        strstream >> *a >> *b;
-        return;
-    }
+/**
+ * @brief This function reads the record currently being pointed to by the
+ * cursor, and returns the
+ * @param cursor
+ * @return node
+ */
+inline void CommonUtil::record_to_node(WT_CURSOR *cursor,
+                                       node *found,
+                                       bool read_optimize)
+{
+    found->in_degree = 0;
+    found->out_degree = 0;
 
-    inline static std::string pack_int_to_str(int a, int b)
+    if (read_optimize)
     {
-        std::stringstream sstream;
-        sstream << a << " " << b;
-        return sstream.str();
+        cursor->get_value(cursor, &found->in_degree, &found->out_degree);
     }
-    // Get and Set data from/to an edge table cursor
+}
 
-    /**
-     * @brief This function converts the record the cursor points to into a node
-     * struct. In this representation, we know that the Value can be :
-     * 1. indeg, out_deg for opts.read_optimize node entry
-     * 2. "" for non opts.read_optimize node entry
-     * 3. edge_weight for a weighted edge entry
-     * 4. "" for an unweighted graph.
-     *
-     * Seeing this, it is wasteful to have a serialization/deserialization call.
-     * Save -1 for any of these entries that don't exist.
-     * @param cur the pointer -- already pointing to the record to extract
-     * @param found the node to insert the in and outdegrees for.
-     */
-    inline static void __record_to_node_ekey(WT_CURSOR *cur, node *found)
+inline void CommonUtil::record_to_edge(WT_CURSOR *cursor, edge *found)
+{
+    if (cursor->get_value(cursor, &found->edge_weight) != 0)
     {
-        // std::cout << cur->value_format << std::endl;
-        int a = 0, b = 0;
-        int ret = cur->get_value(cur, &a, &b);
-        if (ret != 0)
-        {
-            throw GraphException("Failed to get node attributes");
-        }
-        found->in_degree = a;
-        found->out_degree = b;
+        throw GraphException("Could not get the value from the edge table");
     }
+}
+inline void CommonUtil::read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
+{
+    idx_cursor->get_value(
+        idx_cursor, &e_idx->src_id, &e_idx->dst_id, &e_idx->edge_weight);
+}
 
-    inline static void __record_to_node_ekeyidx(WT_CURSOR *idx_cursor,
-                                                node *found)
-    {
-        const char *packed_vec;
-        node temp;
-        std::cout << idx_cursor->key_format << "\t" << idx_cursor->value_format
-                  << std::endl;
-        if (idx_cursor->get_value(idx_cursor, &packed_vec) != 0)
-        {
-            throw GraphException("Cannot obtain idx cursor value");
-        }
-        std::string str(packed_vec);
-        int a = 0, b = 0;
-        extract_from_string(str, &a, &b);
-        found->in_degree = a;
-        found->out_degree = b;
-    }
+/**
+ * @brief This function accepts a cursor to the adjlist table and an adjlist
+ * sturct to insert.
+ * @param cursor A cursor to the in/out adjlist table
+ * @param to_insert The adjlist struct to be inserted into the table pointed
+ * to by the cursor.
+ * @throws GraphException If insertion into the table fails
+ */
+inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
+                                         WT_CURSOR *cursor,
+                                         adjlist to_insert)
+{
+    cursor->reset(cursor);
+    cursor->set_key(cursor, to_insert.node_id);
+    size_t size;
+    WT_ITEM item;
+    char *buf =
+        CommonUtil::pack_int_vector_wti(session, to_insert.edgelist, &size);
+    item.data = buf;
+    item.size = size;
 
-    inline static void __record_to_edge_ekey(WT_CURSOR *cur, edge *found)
+    cursor->set_value(cursor, to_insert.degree, &item);
+    int ret = cursor->update(cursor);
+    return ret;
+}
+
+/**
+ * @brief This function converts the record the cursor passed points to into
+ * a adjlist struct
+ *
+ * @param cursor the cursor set to the record which needs to be read
+ * @return adjlist the found adjlist struct.
+ */
+inline void CommonUtil::record_to_adjlist(WT_SESSION *session,
+                                          WT_CURSOR *cursor,
+                                          adjlist *found)
+{
+    int32_t degree;
+    WT_ITEM item;
+    cursor->get_value(cursor, &degree, &item);
+    found->edgelist = CommonUtil::unpack_int_vector_wti(
+        session, item.size, (char *)item.data);
+    if (degree == 1 && found->edgelist.size() == 0)
     {
-        int a = 0, b = 0;
-        int ret = cur->get_value(cur, &a, &b);
-        if (ret != 0)
-        {
-            throw GraphException("Failed to get edge val");
-        }
-        found->edge_weight = a;
+        found->degree = 0;
     }
-};
+    else
+    {
+        found->degree = degree;
+    }
+}
+// Get and Set data from/to an edge table cursor
+/**
+ * @brief This function converts the record the cursor points to into a node
+ * struct. In this representation, we know that the Value can be :
+ * 1. indeg, out_deg for opts.read_optimize node entry
+ * 2. "" for non opts.read_optimize node entry
+ * 3. edge_weight for a weighted edge entry
+ * 4. "" for an unweighted graph.
+ *
+ * Seeing this, it is wasteful to have a serialization/deserialization call.
+ * Save -1 for any of these entries that don't exist.
+ * @param cur the pointer -- already pointing to the record to extract
+ * @param found the node to insert the in and outdegrees for.
+ */
+inline void CommonUtil::record_to_node_ekey(WT_CURSOR *cur, node *found)
+{
+    // std::cout << cur->value_format << std::endl;
+    int a = 0, b = 0;
+    int ret = cur->get_value(cur, &a, &b);
+    if (ret != 0)
+    {
+        throw GraphException("Failed to get node attributes");
+    }
+    found->in_degree = a;
+    found->out_degree = b;
+}
+
+inline void CommonUtil::record_to_node_ekeyidx(WT_CURSOR *idx_cursor,
+                                               node *found)
+{
+    const char *packed_vec;
+    node temp;
+    std::cout << idx_cursor->key_format << "\t" << idx_cursor->value_format
+              << std::endl;
+    if (idx_cursor->get_value(idx_cursor, &packed_vec) != 0)
+    {
+        throw GraphException("Cannot obtain idx cursor value");
+    }
+    std::string str(packed_vec);
+    int a = 0, b = 0;
+    extract_from_string(str, &a, &b);
+    found->in_degree = a;
+    found->out_degree = b;
+}
+
+inline void CommonUtil::record_to_edge_ekey(WT_CURSOR *cur, edge *found)
+{
+    int a = 0, b = 0;
+    int ret = cur->get_value(cur, &a, &b);
+    if (ret != 0)
+    {
+        throw GraphException("Failed to get edge val");
+    }
+    found->edge_weight = a;
+}
 
 #endif

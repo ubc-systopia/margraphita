@@ -33,12 +33,12 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // degrees
     vector<string> node_columns = {ID};  // Always there :)
     string node_value_format;
-    string node_key_format = "q";
+    string node_key_format = "'>i'";
     if (opts.read_optimize)
     {
         node_columns.push_back(IN_DEGREE);
         node_columns.push_back(OUT_DEGREE);
-        node_value_format = "II";
+        node_value_format = "'>II'";
     }
     else
     {
@@ -57,7 +57,7 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // Now prepare the edge value format. starts with II for src,dst. Add
     // another I if weighted
     vector<string> edge_columns = {SRC, DST};
-    string edge_key_format = "qq";
+    string edge_key_format = "ii";
     string edge_value_format = "";  // I if weighted or b if unweighted.
 
     if (opts.is_weighted)
@@ -305,7 +305,7 @@ edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
         found.dst_id = dst_id;
         if (opts.is_weighted)
         {
-            CommonUtil::__read_from_edge_idx(src_dst_index_cursor, &found);
+            CommonUtil::read_from_edge_idx(src_dst_index_cursor, &found);
         }
     }
     src_dst_index_cursor->reset(src_dst_index_cursor);
@@ -319,7 +319,7 @@ node StandardGraph::get_node(node_id_t node_id)
     int ret = node_cursor->search(node_cursor);
     if (ret == 0)
     {
-        CommonUtil::__record_to_node(node_cursor, &found, opts.read_optimize);
+        CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
         found.id = node_id;
     }
     node_cursor->reset(node_cursor);
@@ -342,7 +342,7 @@ node StandardGraph::get_random_node()
         throw GraphException(wiredtiger_strerror(ret));
     }
     random_node_cursor->get_key(random_node_cursor, &found.id);
-    CommonUtil::__record_to_node(
+    CommonUtil::record_to_node(
         this->random_node_cursor, &found, opts.read_optimize);
     return found;
 }
@@ -525,7 +525,7 @@ std::vector<node> StandardGraph::get_nodes()
     while ((ret = node_cursor->next(node_cursor) == 0))
     {
         node item{0};
-        CommonUtil::__record_to_node(node_cursor, &item, opts.read_optimize);
+        CommonUtil::record_to_node(node_cursor, &item, opts.read_optimize);
         node_cursor->get_key(node_cursor, &item.id);
         nodes.push_back(item);
     }
@@ -542,7 +542,7 @@ void StandardGraph::get_nodes(vector<node> &nodes)
     while ((ret = node_cursor->next(node_cursor) == 0))
     {
         node item{0};
-        CommonUtil::__record_to_node(node_cursor, &item, opts.read_optimize);
+        CommonUtil::record_to_node(node_cursor, &item, opts.read_optimize);
         node_cursor->get_key(node_cursor, &item.id);
         nodes.push_back(item);
     }
@@ -691,8 +691,7 @@ start_add_edge:
             node_cursor->search(node_cursor);
             // update in/out degrees for src node in NODE_TABLE
             node found = {0};
-            CommonUtil::__record_to_node(
-                node_cursor, &found, opts.read_optimize);
+            CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
             found.id = to_insert.src_id;
             found.out_degree++;
             ret = update_node_degree(
@@ -722,8 +721,7 @@ start_add_edge:
             node_cursor->set_key(node_cursor, to_insert.dst_id);
             node_cursor->search(node_cursor);
 
-            CommonUtil::__record_to_node(
-                node_cursor, &found, opts.read_optimize);
+            CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
             found.id = to_insert.dst_id;
             found.in_degree++;
             ret = update_node_degree(
@@ -788,7 +786,7 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
         n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
         node_cursor->set_key(node_cursor, n_found.id);
         node_cursor->search(node_cursor);
-        CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
+        CommonUtil::record_to_node(node_cursor, &n_found, opts.read_optimize);
 
         n_found.out_degree = n_found.out_degree - 1;
 
@@ -809,7 +807,7 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
         n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
         node_cursor->set_key(node_cursor, n_found.id);
         node_cursor->search(node_cursor);
-        CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
+        CommonUtil::record_to_node(node_cursor, &n_found, opts.read_optimize);
 
         n_found.in_degree = n_found.in_degree - 1;
 
@@ -897,7 +895,7 @@ start_delete_edge:
         node n_found = {.id = src_id, .in_degree = 0, .out_degree = 0};
         node_cursor->set_key(node_cursor, n_found.id);
         node_cursor->search(node_cursor);
-        CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
+        CommonUtil::record_to_node(node_cursor, &n_found, opts.read_optimize);
 
         n_found.out_degree--;
         if (!opts.is_directed)
@@ -928,7 +926,7 @@ start_delete_edge:
         node_cursor->set_key(node_cursor, n_found.id);
         node_cursor->search(node_cursor);
 
-        CommonUtil::__record_to_node(node_cursor, &n_found, opts.read_optimize);
+        CommonUtil::record_to_node(node_cursor, &n_found, opts.read_optimize);
 
         n_found.in_degree--;
         if (!opts.is_directed)
@@ -974,7 +972,7 @@ int StandardGraph::update_node_degree(WT_CURSOR *cursor,
     }
 
     node found{.id = node_id, .in_degree = in_degree, .out_degree = out_degree};
-    ret = CommonUtil::__node_to_record(cursor, found, opts.read_optimize);
+    ret = CommonUtil::node_to_record(cursor, found, opts.read_optimize);
     cursor->reset(cursor);
     return ret;
 }
@@ -994,7 +992,7 @@ std::vector<edge> StandardGraph::get_edges()
         edge_cursor->get_key(edge_cursor, &found.src_id, &found.dst_id);
         if (opts.is_weighted)
         {
-            CommonUtil::__record_to_edge(edge_cursor, &found);
+            CommonUtil::record_to_edge(edge_cursor, &found);
         }
         edges.push_back(found);
     }
@@ -1022,11 +1020,11 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
     if (src_index_cursor->search(src_index_cursor) == 0)
     {
         edge found = {-1, -1, -1};
-        CommonUtil::__read_from_edge_idx(src_index_cursor, &found);
+        CommonUtil::read_from_edge_idx(src_index_cursor, &found);
         edges.push_back(found);
         while (src_index_cursor->next(src_index_cursor) == 0)
         {
-            CommonUtil::__read_from_edge_idx(src_index_cursor, &found);
+            CommonUtil::read_from_edge_idx(src_index_cursor, &found);
             if (found.src_id == node_id)
             {
                 edges.push_back(found);
@@ -1105,11 +1103,11 @@ vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
     if (dst_index_cursor->search(dst_index_cursor) == 0)
     {
         edge found = {-1, -1, -1};
-        CommonUtil::__read_from_edge_idx(dst_index_cursor, &found);
+        CommonUtil::read_from_edge_idx(dst_index_cursor, &found);
         edges.push_back(found);
         while (dst_index_cursor->next(dst_index_cursor) == 0)
         {
-            CommonUtil::__read_from_edge_idx(dst_index_cursor, &found);
+            CommonUtil::read_from_edge_idx(dst_index_cursor, &found);
             if (found.dst_id == node_id)
             {
                 edges.push_back(found);
@@ -1367,7 +1365,7 @@ node StandardGraph::get_next_node(WT_CURSOR *n_iter)
     node found = {-1};
     if (n_iter->next(n_iter) == 0)
     {
-        CommonUtil::__record_to_node(n_iter, &found, opts.read_optimize);
+        CommonUtil::record_to_node(n_iter, &found, opts.read_optimize);
         n_iter->get_key(n_iter, &found.id);
     }
 
@@ -1380,7 +1378,7 @@ edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
     if (e_iter->next(e_iter) == 0)
     {
         edge found;
-        CommonUtil::__record_to_edge(e_iter, &found);
+        CommonUtil::record_to_edge(e_iter, &found);
         e_iter->get_key(e_iter, &found.src_id, &found.dst_id);
         return found;
     }
@@ -1406,11 +1404,11 @@ vector<edge> StandardGraph::test_cursor_iter(node_id_t node_id)
     if (cursor->search(cursor) == 0)
     {
         edge found;
-        CommonUtil::__read_from_edge_idx(cursor, &found);
+        CommonUtil::read_from_edge_idx(cursor, &found);
         edges.push_back(found);
         while (cursor->next(cursor) == 0)
         {
-            CommonUtil::__read_from_edge_idx(cursor, &found);
+            CommonUtil::read_from_edge_idx(cursor, &found);
             edges.push_back(found);
         }
     }

@@ -39,8 +39,8 @@ void EdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
     // Edge Column Format: iiS
     vector<string> edge_columns = {SRC, DST, ATTR_FIRST, ATTR_SECOND};
-    string edge_key_format = "qq";    // SRC DST
-    string edge_value_format = "II";  // Packed binary
+    string edge_key_format = ">ii";    // SRC DST
+    string edge_value_format = ">II";  // in/out degree(unit32_t)
     CommonUtil::set_table(
         sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
     if (opts.optimize_create == false)
@@ -86,7 +86,7 @@ node EdgeKey::get_node(node_id_t node_id)
     if (edge_cursor->search(edge_cursor) == 0)
     {
         found.id = node_id;
-        CommonUtil::__record_to_node_ekey(edge_cursor, &found);
+        CommonUtil::record_to_node_ekey(edge_cursor, &found);
     }
     edge_cursor->reset(edge_cursor);
     return found;
@@ -127,7 +127,7 @@ node EdgeKey::get_random_node()
         {
             // random_cur->set_key(random_cur, src, dst);
             rando.id = src;
-            CommonUtil::__record_to_node_ekey(random_cursor, &rando);
+            CommonUtil::record_to_node_ekey(random_cursor, &rando);
             break;
         }
     }
@@ -742,7 +742,7 @@ edge EdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
         found.src_id = src_id;
         found.dst_id = dst_id;
         if (opts.is_weighted)
-            CommonUtil::__record_to_edge_ekey(edge_cursor, &found);
+            CommonUtil::record_to_edge_ekey(edge_cursor, &found);
     }
     return found;
 }
@@ -766,7 +766,7 @@ std::vector<node> EdgeKey::get_nodes()
         if (edge_cursor->search(edge_cursor) == 0)
         {
             node found{.id = node_id};
-            CommonUtil::__record_to_node_ekey(edge_cursor, &found);
+            CommonUtil::record_to_node_ekey(edge_cursor, &found);
             nodes.push_back(found);
         }
 
@@ -779,7 +779,7 @@ std::vector<node> EdgeKey::get_nodes()
                 if (edge_cursor->search(edge_cursor) == 0)
                 {
                     node found{.id = node_id};
-                    CommonUtil::__record_to_node_ekey(edge_cursor, &found);
+                    CommonUtil::record_to_node_ekey(edge_cursor, &found);
                     nodes.push_back(found);
                 }
             }
@@ -809,7 +809,7 @@ degree_t EdgeKey::get_out_degree(node_id_t node_id)
         if (edge_cursor->search(edge_cursor) == 0)
         {
             found.id = node_id;
-            CommonUtil::__record_to_node_ekey(edge_cursor, &found);
+            CommonUtil::record_to_node_ekey(edge_cursor, &found);
         }
         edge_cursor->reset(edge_cursor);
         return found.out_degree;
@@ -857,7 +857,7 @@ degree_t EdgeKey::get_in_degree(node_id_t node_id)
         edge_cursor->set_key(edge_cursor, node_id, OutOfBand_ID);
         edge_cursor->search(edge_cursor);
         node found = {0};
-        CommonUtil::__record_to_node_ekey(edge_cursor, &found);
+        CommonUtil::record_to_node_ekey(edge_cursor, &found);
         edge_cursor->reset(edge_cursor);
         return found.in_degree;
     }
@@ -908,7 +908,7 @@ std::vector<edge> EdgeKey::get_edges()
         {
             if (opts.is_weighted)
             {
-                CommonUtil::__record_to_edge_ekey(edge_cursor, &found);
+                CommonUtil::record_to_edge_ekey(edge_cursor, &found);
             }
             edges.push_back(found);
         }
@@ -955,7 +955,7 @@ std::vector<edge> EdgeKey::get_out_edges(node_id_t node_id)
                 if (edge_cursor->search(edge_cursor) == 0)
                 {
                     edge found{.src_id = src_id, .dst_id = dst_id};
-                    CommonUtil::__record_to_edge_ekey(edge_cursor, &found);
+                    CommonUtil::record_to_edge_ekey(edge_cursor, &found);
                     out_edges.push_back(found);
                 }
             }
@@ -1094,7 +1094,7 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
             if (edge_cursor->search(edge_cursor) == 0)
             {
                 edge found{.src_id = src_id, .dst_id = dst_id};
-                CommonUtil::__record_to_edge_ekey(edge_cursor, &found);
+                CommonUtil::record_to_edge_ekey(edge_cursor, &found);
                 in_edges.push_back(found);
             }
             dst_idx_cursor->next(dst_idx_cursor);
@@ -1409,7 +1409,7 @@ node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
         if (e_cur->search(e_cur) == 0)
         {
             found.id = node_id;
-            CommonUtil::__record_to_node_ekey(e_cur, &found);
+            CommonUtil::record_to_node_ekey(e_cur, &found);
         }
     }
     return found;
@@ -1451,7 +1451,7 @@ edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
         {
             if (opts.is_weighted)
             {
-                CommonUtil::__record_to_edge_ekey(e_cur, &found);
+                CommonUtil::record_to_edge_ekey(e_cur, &found);
             }
             break;
         }

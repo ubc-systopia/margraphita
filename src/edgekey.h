@@ -86,7 +86,7 @@ class EkeyInCursor : public InCursor
 
         do
         {
-            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
             if (dst == curr_edge.dst_id)
             {
                 found->degree++;
@@ -164,7 +164,7 @@ class EkeyInCursor : public InCursor
 
         do
         {
-            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil::read_from_edge_idx(cursor, &curr_edge);
             if (curr_edge.dst_id != key)
             {
                 if (keys.end != -1 && next_expected > keys.end)
@@ -264,7 +264,7 @@ class EkeyOutCursor : public OutCursor
 
         do
         {
-            CommonUtil ::__read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
             if (src == curr_edge.src_id)
             {
                 if (curr_edge.dst_id != -1)
@@ -344,7 +344,7 @@ class EkeyOutCursor : public OutCursor
 
         do
         {
-            CommonUtil::__read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil::read_from_edge_idx(cursor, &curr_edge);
             if (curr_edge.src_id != key)
             {
                 if (keys.end != -1 && next_expected > keys.end)
@@ -523,7 +523,7 @@ class EkeyEdgeCursor : public EdgeCursor
         }
         if (get_weight)
         {
-            CommonUtil::__record_to_edge_ekey(cursor, found);
+            CommonUtil::record_to_edge_ekey(cursor, found);
         }
         return;
 

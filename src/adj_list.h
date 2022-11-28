@@ -61,7 +61,7 @@ class AdjInCursor : public InCursor
             goto no_next;
         }
 
-        CommonUtil::__record_to_adjlist(session, cursor, found);
+        CommonUtil::record_to_adjlist(session, cursor, found);
         found->node_id = curr_key;
 
         if (cursor->next(cursor) != 0)
@@ -120,7 +120,7 @@ class AdjInCursor : public InCursor
 
         if (curr_key == key)
         {
-            CommonUtil::__record_to_adjlist(session, cursor, found);
+            CommonUtil::record_to_adjlist(session, cursor, found);
         }
 
         if (keys.end != -1 && curr_key > keys.end)
@@ -190,7 +190,7 @@ class AdjOutCursor : public OutCursor
             goto no_next;
         }
 
-        CommonUtil::__record_to_adjlist(session, cursor, found);
+        CommonUtil::record_to_adjlist(session, cursor, found);
         found->node_id = curr_key;
 
         if (cursor->next(cursor) != 0)
@@ -249,7 +249,7 @@ class AdjOutCursor : public OutCursor
 
         if (curr_key == key)
         {
-            CommonUtil::__record_to_adjlist(session, cursor, found);
+            CommonUtil::record_to_adjlist(session, cursor, found);
         }
 
         if (keys.end != -1 && curr_key > keys.end)
@@ -310,7 +310,7 @@ class AdjNodeCursor : public NodeCursor
                 goto no_next;
             }
 
-            CommonUtil::__record_to_node(cursor, found, true);
+            CommonUtil::record_to_node(cursor, found, true);
         }
         else
         {
@@ -379,7 +379,7 @@ class AdjEdgeCursor : public EdgeCursor
             }
             if (get_weight)
             {
-                CommonUtil::__record_to_edge(cursor, found);
+                CommonUtil::record_to_edge(cursor, found);
             }
         }
         else
