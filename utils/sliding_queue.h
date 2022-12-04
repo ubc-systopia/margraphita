@@ -25,7 +25,7 @@ class QueueBuffer;
 template <typename T>
 class SlidingQueue
 {
-    mmap_helper<T_> mmap_shared;
+    mmap_helper<T> mmap_shared;
     T *shared;
     size_t shared_in;
     size_t shared_out_start;
@@ -39,7 +39,7 @@ class SlidingQueue
         reset();
     }
 
-    ~SlidingQueue() { mmap_shared.unmap() }
+    ~SlidingQueue() { mmap_shared.unmap(); }
 
     void push_back(T to_add) { shared[shared_in++] = to_add; }
 

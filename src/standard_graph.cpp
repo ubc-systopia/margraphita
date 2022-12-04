@@ -33,12 +33,12 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // degrees
     vector<string> node_columns = {ID};  // Always there :)
     string node_value_format;
-    string node_key_format = "'>i'";
+    string node_key_format = "i";
     if (opts.read_optimize)
     {
         node_columns.push_back(IN_DEGREE);
         node_columns.push_back(OUT_DEGREE);
-        node_value_format = "'>II'";
+        node_value_format = "II";
     }
     else
     {

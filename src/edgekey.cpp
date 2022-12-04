@@ -39,8 +39,8 @@ void EdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // Edge Columns: <src> <dst> <weight/in_degree> <out_degree>
     // Edge Column Format: iiS
     vector<string> edge_columns = {SRC, DST, ATTR_FIRST, ATTR_SECOND};
-    string edge_key_format = ">ii";    // SRC DST
-    string edge_value_format = ">II";  // in/out degree(unit32_t)
+    string edge_key_format = "ii";    // SRC DST
+    string edge_value_format = "II";  // in/out degree(unit32_t)
     CommonUtil::set_table(
         sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
     if (opts.optimize_create == false)

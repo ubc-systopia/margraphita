@@ -63,18 +63,18 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     }
     vector<string> node_columns = {ID};
     string node_value_format;
-    string node_key_format = ">i";
+    string node_key_format = "i";
     if (opts.read_optimize)
     {
         node_columns.push_back(IN_DEGREE);
         node_columns.push_back(OUT_DEGREE);
-        node_value_format = ">II";
+        node_value_format = "II";
     }
     else
     {
         node_columns.push_back(
             "na");  // have to do this because the column count must match
-        node_value_format = ">s";  // 1 byte fixed length char[] to hold ""
+        node_value_format = "s";  // 1 byte fixed length char[] to hold ""
     }
     // Now Create the Node Table
     CommonUtil::set_table(
@@ -85,8 +85,8 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // Now prepare the edge value format. starts with II for src,dst. Add
     // another I if weighted
     vector<string> edge_columns = {SRC, DST};
-    string edge_key_format = ">ii";  // SRC DST in the edge table
-    string edge_value_format = "";   // Make I if weighted , x otherwise
+    string edge_key_format = "ii";  // SRC DST in the edge table
+    string edge_value_format = "";  // Make I if weighted , x otherwise
     if (opts.is_weighted)
     {
         edge_columns.push_back(WEIGHT);

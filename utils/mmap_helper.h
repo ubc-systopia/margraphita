@@ -1,7 +1,9 @@
 #ifndef MMAPHELP_H_
 #define MMAPHELP_H_
 
-template <typename T_>
+#include <sys/mman.h>
+
+template <typename T>
 class mmap_helper
 {
    public:
@@ -9,13 +11,13 @@ class mmap_helper
 
     mmap_helper(size_t N)
     {
-        length = sizeof(T_) * N;
-        start_ptr = (T_ *)mmap(NULL,
-                               length,
-                               PROT_READ | PROT_WRITE,
-                               MAP_SHARED | MAP_ANONYMOUS,
-                               -1,
-                               0);
+        length = sizeof(T) * N;
+        start_ptr = (T *)mmap(NULL,
+                              length,
+                              PROT_READ | PROT_WRITE,
+                              MAP_SHARED | MAP_ANONYMOUS,
+                              -1,
+                              0);
         if (start_ptr == MAP_FAILED)
         {
             perror("mmap failed in cons");
@@ -25,9 +27,9 @@ class mmap_helper
 
     mmap_helper(size_t N, int fd)
     {
-        length = sizeof(T_) * N;
+        length = sizeof(T) * N;
         start_ptr =
-            (T_ *)mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+            (T *)mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (start_ptr == MAP_FAILED)
         {
             perror("mmap failed");
@@ -35,7 +37,7 @@ class mmap_helper
         }
     }
 
-    T_ *get_iterator() { return start_ptr; }
+    T *get_iterator() { return start_ptr; }
 
     void unmap()
     {
@@ -47,9 +49,9 @@ class mmap_helper
         start_ptr = nullptr;
     }
 
-    T_ *remap(size_t new_length)
+    T *remap(size_t new_length)
     {
-        start_ptr = (T_ *)mremap(start_ptr, length, new_length, 0);
+        start_ptr = (T *)mremap(start_ptr, length, new_length, 0);
         if (start_ptr == MAP_FAILED)
         {
             perror("mremap failed");
@@ -59,7 +61,7 @@ class mmap_helper
     }
 
    private:
-    T_ *start_ptr;
+    T *start_ptr;
     size_t length;
 };
 
