@@ -229,7 +229,7 @@ int AdjList::add_node(node to_insert)
 int AdjList::add_node_in_txn(node to_insert)
 {
     int ret = 0;
-    node_cursor->set_key(node_cursor, to_insert.id);
+    CommonUtil::set_key(node_cursor, to_insert.id);
 
     if (opts.read_optimize)
     {
@@ -266,7 +266,7 @@ void AdjList::add_node(node_id_t to_insert,
 {
     int ret = 0;
 
-    node_cursor->set_key(node_cursor, to_insert);
+    CommonUtil::set_key(node_cursor, to_insert);
 
     if (opts.read_optimize)
     {
@@ -328,7 +328,7 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
         throw GraphException("Uninitiated Cursor passed to add_adjlist call");
     }
 
-    cursor->set_key(cursor, node_id);
+    CommonUtil::set_key(cursor, node_id);
 
     // Now, initialize the in/out degree to 0 and adjlist to empty list
     WT_ITEM item;
@@ -356,7 +356,7 @@ int AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
         throw GraphException("Uninitiated Cursor passed to delete_adjlist");
     }
 
-    cursor->set_key(cursor, node_id);
+    CommonUtil::set_key(cursor, node_id);
     ret = error_check_remove_txn(cursor->remove(cursor));
     cursor->reset(cursor);
     return ret;
@@ -396,7 +396,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         num_nodes_added++;
     }
 
-    edge_cursor->set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
+    CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
 
     if (opts.is_weighted)
     {
@@ -413,7 +413,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     // insert the reverse edge if undirected
     if (!opts.is_directed)
     {
-        edge_cursor->set_key(edge_cursor, to_insert.dst_id, to_insert.src_id);
+        CommonUtil::set_key(edge_cursor, to_insert.dst_id, to_insert.src_id);
         if (opts.is_weighted)
         {
             edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
@@ -637,7 +637,7 @@ std::vector<node> AdjList::get_nodes()
     {
         node found;
         CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
-        node_cursor->get_key(node_cursor, &found.id);
+        CommonUtil::get_key(node_cursor, &found.id);
         nodelist.push_back(found);
     }
     node_cursor->reset(node_cursor);
@@ -697,7 +697,7 @@ std::vector<edge> AdjList::get_edges()
 edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
     edge found = {-1, -1, -1};
-    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    CommonUtil::set_key(edge_cursor, src_id, dst_id);
     int ret = edge_cursor->search(edge_cursor);
     if (ret == 0)
     {
@@ -746,7 +746,6 @@ int AdjList::update_node_degree(WT_CURSOR *cursor,
                                 uint32_t in_degree,
                                 uint32_t out_degree)
 {
-    cursor->set_key(cursor, node_id);
     if (opts.read_optimize)
     {
         cursor->set_value(cursor, in_degree, out_degree);
@@ -1043,7 +1042,7 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
     int ret;
     adjlist adj_list;
 
-    cursor->set_key(cursor, node_id);
+    CommonUtil::set_key(cursor, node_id);
     ret = cursor->search(cursor);
     if (ret != 0)
     {
@@ -1071,7 +1070,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
     // the caller.
 
     int ret;
-    cursor->set_key(cursor, node_id);
+    CommonUtil::set_key(cursor, node_id);
     if (error_check_read_txn(ret = cursor->search(cursor)))
     {
         return ret;
@@ -1097,7 +1096,7 @@ int AdjList::delete_from_adjlists(WT_CURSOR *cursor,
 
     int ret = 0;
 
-    cursor->set_key(cursor, node_id);
+    CommonUtil::set_key(cursor, node_id);
     if (error_check_read_txn(ret = cursor->search(cursor)))
     {
         return ret;
@@ -1467,7 +1466,7 @@ int AdjList::add_one_node_degree(WT_CURSOR *cursor,
                                  node_id_t to_update,
                                  bool is_out_degree)
 {
-    cursor->set_key(cursor, to_update);
+    CommonUtil::set_key(cursor, to_update);
     int ret;
     if (error_check_read_txn(ret = cursor->search(cursor)))
     {
@@ -1483,6 +1482,7 @@ int AdjList::add_one_node_degree(WT_CURSOR *cursor,
     {
         found.in_degree++;
     }
+    CommonUtil::set_key(cursor, found.id);
     if (error_check_update_txn(
             ret = update_node_degree(
                 cursor, found.id, found.in_degree, found.out_degree)))

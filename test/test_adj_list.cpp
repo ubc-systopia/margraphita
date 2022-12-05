@@ -26,11 +26,11 @@ void create_init_nodes(AdjList graph, bool is_directed)
         graph.add_node(n);
     }
 
-    // for (edge x : SampleGraph::test_edges)
-    // {
-    //     graph.add_edge(x, false);
-    //     edge_cnt++;
-    // }
+    for (edge x : SampleGraph::test_edges)
+    {
+        graph.add_edge(x, false);
+        edge_cnt++;
+    }
 }
 
 void tearDown(AdjList graph) { graph.close(); }
@@ -151,14 +151,14 @@ void test_add_edge(AdjList graph, bool is_directed)
     // Now check if the adjlists were updated
     //  graph.dump_tables();
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
-    in_adj_cur->set_key(in_adj_cur, test_id2);
+    CommonUtil::set_key(in_adj_cur, test_id2);
     assert(in_adj_cur->search(in_adj_cur) == 0);
     in_adj_cur->reset(in_adj_cur);
     std::vector<node_id_t> adjlist = graph.get_adjlist(in_adj_cur, test_id2);
     assert(adjlist.size() == 1);
     if (!is_directed)
     {
-        in_adj_cur->set_key(in_adj_cur, test_id1);
+        CommonUtil::set_key(in_adj_cur, test_id1);
         assert(in_adj_cur->search(in_adj_cur) == 0);
         in_adj_cur->reset(in_adj_cur);
         adjlist = graph.get_adjlist(in_adj_cur, test_id2);
@@ -166,7 +166,7 @@ void test_add_edge(AdjList graph, bool is_directed)
     }
 
     WT_CURSOR *out_adj_cur = graph.get_out_adjlist_cursor();
-    out_adj_cur->set_key(out_adj_cur, test_id1);
+    CommonUtil::set_key(out_adj_cur, test_id1);
     assert(out_adj_cur->search(out_adj_cur) == 0);
     out_adj_cur->reset(out_adj_cur);
     adjlist = graph.get_adjlist(out_adj_cur, test_id1);
@@ -174,7 +174,7 @@ void test_add_edge(AdjList graph, bool is_directed)
 
     if (!is_directed)
     {
-        out_adj_cur->set_key(out_adj_cur, test_id2);
+        CommonUtil::set_key(out_adj_cur, test_id2);
         out_adj_cur->search(out_adj_cur);
         assert(out_adj_cur->search(out_adj_cur) == 0);
         out_adj_cur->reset(out_adj_cur);
@@ -584,9 +584,9 @@ int main()
     WT_CONNECTION *conn = myEngine.public_get_connection();
     AdjList graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
-    // test_get_nodes(graph);
+    test_get_nodes(graph);
     test_get_node(graph);
-    // test_add_edge(graph, opts.is_directed);
+    test_add_edge(graph, opts.is_directed);
     // /*
     // test_add_fail should fail if create_new is false
     // add_edge->add_to_adjlists assumes no duplicate edges.
