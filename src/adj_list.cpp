@@ -33,7 +33,7 @@ AdjList::AdjList(graph_opts &opt_params, WT_CONNECTION *conn)
 bool AdjList::has_node(node_id_t node_id)
 {
     int ret = 0;
-    node_cursor->set_key(node_cursor, node_id);
+    CommonUtil::set_key(node_cursor, node_id);
     ret = node_cursor->search(node_cursor);
     node_cursor->reset(node_cursor);
     if (ret == 0)
@@ -63,7 +63,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     }
     vector<string> node_columns = {ID};
     string node_value_format;
-    string node_key_format = "i";
+    string node_key_format = "u";
     if (opts.read_optimize)
     {
         node_columns.push_back(IN_DEGREE);
@@ -85,7 +85,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // Now prepare the edge value format. starts with II for src,dst. Add
     // another I if weighted
     vector<string> edge_columns = {SRC, DST};
-    string edge_key_format = "ii";  // SRC DST in the edge table
+    string edge_key_format = "uu";  // SRC DST in the edge table
     string edge_value_format = "";  // Make I if weighted , x otherwise
     if (opts.is_weighted)
     {
@@ -107,7 +107,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 
     vector<string> in_adjlist_columns = {ID, IN_DEGREE, IN_ADJLIST};
     vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
-    string adjlist_key_format = "i";  // int32_t
+    string adjlist_key_format = "u";  // int32_t
     string adjlist_value_format =
         "Iu";  // uint32_t for in/out degree, and a variable length byte array
                // for the adjacency list. This HAS to be u. S does not work. s
@@ -192,7 +192,7 @@ int AdjList::add_node(node to_insert)
     session->begin_transaction(session, "isolation=snapshot");
     int ret = 0;
 
-    node_cursor->set_key(node_cursor, to_insert.id);
+    CommonUtil::set_key(node_cursor, to_insert.id);
 
     if (opts.read_optimize)
     {
@@ -306,7 +306,7 @@ int AdjList::add_adjlist(WT_CURSOR *cursor, node_id_t node_id)
         throw GraphException("Uninitiated Cursor passed to add_adjlist call");
     }
 
-    cursor->set_key(cursor, node_id);
+    CommonUtil::set_key(cursor, node_id);
 
     // Now, initialize the in/out degree to 0 and adjlist to empty list
     WT_ITEM item = {.data = {}, .size = 0};  // todo: check
@@ -500,7 +500,7 @@ node AdjList::get_random_node()
     }
 
     CommonUtil::record_to_node(cursor, &found, opts.read_optimize);
-    cursor->get_key(cursor, &found.id);
+    CommonUtil::get_key(cursor, &found.id);
     return found;
 }
 
@@ -653,7 +653,7 @@ std::vector<node> AdjList::get_nodes()
 node AdjList::get_node(node_id_t node_id)
 {
     node found = {-1};
-    node_cursor->set_key(node_cursor, node_id);
+    CommonUtil::set_key(node_cursor, node_id);
     int ret = node_cursor->search(node_cursor);
     if (ret == 0)
     {

@@ -13,11 +13,6 @@
 void create_init_nodes(AdjList graph, bool is_directed)
 {
     INFO()
-    for (node x : SampleGraph::test_nodes)
-    {
-        graph.add_node(x);
-    }
-
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
@@ -31,11 +26,11 @@ void create_init_nodes(AdjList graph, bool is_directed)
         graph.add_node(n);
     }
 
-    for (edge x : SampleGraph::test_edges)
-    {
-        graph.add_edge(x, false);
-        edge_cnt++;
-    }
+    // for (edge x : SampleGraph::test_edges)
+    // {
+    //     graph.add_edge(x, false);
+    //     edge_cnt++;
+    // }
 }
 
 void tearDown(AdjList graph) { graph.close(); }
@@ -589,29 +584,29 @@ int main()
     WT_CONNECTION *conn = myEngine.public_get_connection();
     AdjList graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
-    test_get_nodes(graph);
+    // test_get_nodes(graph);
     test_get_node(graph);
-    test_add_edge(graph, opts.is_directed);
-    /*
-    test_add_fail should fail if create_new is false
-    add_edge->add_to_adjlists assumes no duplicate edges.
-    */
-    test_get_edge(graph);
-    test_get_out_edges(graph);
-    test_get_out_edges(graph);
-    test_get_in_edges(graph);
-    test_get_out_nodes(graph);
-    test_get_in_nodes(graph);
-    test_get_in_degree(graph);
-    test_delete_node(graph, opts.is_directed);
-    // test_delete_isolated_node(graph, opts.is_directed);
+    // test_add_edge(graph, opts.is_directed);
+    // /*
+    // test_add_fail should fail if create_new is false
+    // add_edge->add_to_adjlists assumes no duplicate edges.
+    // */
+    // test_get_edge(graph);
+    // test_get_out_edges(graph);
+    // test_get_out_edges(graph);
+    // test_get_in_edges(graph);
+    // test_get_out_nodes(graph);
+    // test_get_in_nodes(graph);
+    // test_get_in_degree(graph);
+    // test_delete_node(graph, opts.is_directed);
+    // // test_delete_isolated_node(graph, opts.is_directed);
 
-    test_InCursor(graph);
-    test_OutCursor(graph);
-    test_NodeCursor(graph);
-    test_NodeCursor_Range(graph);
-    test_EdgeCursor(graph);
-    test_EdgeCursor_Range(graph);
+    // test_InCursor(graph);
+    // test_OutCursor(graph);
+    // test_NodeCursor(graph);
+    // test_NodeCursor_Range(graph);
+    // test_EdgeCursor(graph);
+    // test_EdgeCursor_Range(graph);
 
     tearDown(graph);
 }

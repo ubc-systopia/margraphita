@@ -264,9 +264,9 @@ class EdgeCursor : public table_iterator
 class CommonUtil
 {
    public:
-    static void create_dir(const std::string& path);
+    static void create_dir(const std::string &path);
 
-    static bool check_dir_exists(const std::string& path);
+    static bool check_dir_exists(const std::string &path);
 
     static void set_table(WT_SESSION *session,
                           const std::string &prefix,
@@ -288,22 +288,26 @@ class CommonUtil
 
     // WT Session and Cursor wrangling operations
     [[maybe_unused]] static int open_cursor(WT_SESSION *session,
-                           WT_CURSOR **cursor,
-                           const std::string& uri,
-                           WT_CURSOR *to_dup,
-                           const std::string& config);
+                                            WT_CURSOR **cursor,
+                                            const std::string &uri,
+                                            WT_CURSOR *to_dup,
+                                            const std::string &config);
     static int close_cursor(WT_CURSOR *cursor);
     static int close_session(WT_SESSION *session);
     static int close_connection(WT_CONNECTION *conn);
     static int open_connection(char *db_name,
-                               const std::string& logdir,
-                               const std::string& config,
+                               const std::string &logdir,
+                               const std::string &config,
                                WT_CONNECTION **conn);
+    static void set_key(WT_CURSOR *cursor, node_id_t key);
+    static void set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
+    static void get_key(WT_CURSOR *cursor, node_id_t *key);
+    static void get_key(WT_CURSOR *cursor, node_id_t *key1, node_id_t *key2);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
-    static void check_return(int retval, const std::string& mesg);
+    static void check_return(int retval, const std::string &mesg);
     static void dump_node(node to_print);
     static void dump_edge(edge to_print);
-    static void dump_adjlist(const adjlist& to_print);
+    static void dump_adjlist(const adjlist &to_print);
     [[maybe_unused]] static void dump_edge_index(edge_index to_print);
 
     static int node_to_record(WT_CURSOR *cursor,
@@ -316,7 +320,7 @@ class CommonUtil
     static void read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx);
     static int adjlist_to_record(WT_SESSION *session,
                                  WT_CURSOR *cursor,
-                                 const adjlist& to_insert);
+                                 const adjlist &to_insert);
     static void record_to_adjlist(WT_SESSION *session,
                                   WT_CURSOR *cursor,
                                   adjlist *found);
@@ -338,13 +342,52 @@ class CommonUtil
  * @param node_id The Node ID to be updated
  * @param new_attrs The new node attribute vector.
  */
+
+inline void CommonUtil::set_key(WT_CURSOR *cursor, node_id_t key)
+{
+    uint32_t a = __builtin_bswap32(key);
+    WT_ITEM k = {.data = &a, .size = sizeof(a)};
+    cursor->set_key(cursor, &k);
+}
+
+inline void CommonUtil::set_key(WT_CURSOR *cursor,
+                                node_id_t key1,
+                                node_id_t key2)
+{
+    uint32_t a = __builtin_bswap32(key1);
+    uint32_t b = __builtin_bswap32(key2);
+    WT_ITEM k1 = {.data = &a, .size = sizeof(a)};
+    WT_ITEM k2 = {.data = &b, .size = sizeof(b)};
+    cursor->set_key(cursor, &k1, &k2);
+}
+
+inline void CommonUtil::get_key(WT_CURSOR *cursor, node_id_t *key)
+{
+    WT_ITEM k;
+    cursor->get_key(cursor, &k);
+    uint32_t a = *(uint32_t *)k.data;
+    *key = __builtin_bswap32(a);
+}
+
+inline void CommonUtil::get_key(WT_CURSOR *cursor,
+                                node_id_t *key1,
+                                node_id_t *key2)
+{
+    WT_ITEM k1, k2;
+    cursor->get_key(cursor, &k1, &k2);
+    uint32_t a = *(uint32_t *)k1.data;
+    uint32_t b = *(uint32_t *)k2.data;
+    *key1 = __builtin_bswap32(a);
+    *key2 = __builtin_bswap32(b);
+}
+
 inline int CommonUtil::node_to_record(WT_CURSOR *cursor,
                                       node to_insert,
                                       bool read_optimize)
 {
     // cursor cannot be null
     int ret;
-    cursor->set_key(cursor, to_insert.id);
+    CommonUtil::set_key(cursor, to_insert.id);
     if ((ret = cursor->search(cursor)) != 0)
     {
         return ret;
@@ -386,10 +429,16 @@ inline void CommonUtil::record_to_edge(WT_CURSOR *cursor, edge *found)
         throw GraphException("Could not get the value from the edge table");
     }
 }
+
+//! todo : fix this
 inline void CommonUtil::read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
 {
-    idx_cursor->get_value(
-        idx_cursor, &e_idx->src_id, &e_idx->dst_id, &e_idx->edge_weight);
+    WT_ITEM src, dst;
+    idx_cursor->get_value(idx_cursor, &src, &dst, &e_idx->edge_weight);
+    uint32_t src_id = *(uint32_t *)src.data;
+    uint32_t dst_id = *(uint32_t *)dst.data;
+    e_idx->src_id = __builtin_bswap32(src_id);
+    e_idx->dst_id = __builtin_bswap32(dst_id);
 }
 
 /**
@@ -402,10 +451,10 @@ inline void CommonUtil::read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
  */
 inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
                                          WT_CURSOR *cursor,
-                                         const adjlist& to_insert)
+                                         const adjlist &to_insert)
 {
     cursor->reset(cursor);
-    cursor->set_key(cursor, to_insert.node_id);
+    CommonUtil::set_key(cursor, to_insert.node_id);
     size_t size;
     WT_ITEM item;
     char *buf =
@@ -460,6 +509,7 @@ inline void CommonUtil::record_to_adjlist(WT_SESSION *session,
 inline void CommonUtil::record_to_node_ekey(WT_CURSOR *cur, node *found)
 {
     // std::cout << cur->value_format << std::endl;
+    //! checked that it works for negative int32_t values.
     int a = 0, b = 0;
     int ret = cur->get_value(cur, &a, &b);
     if (ret != 0)
