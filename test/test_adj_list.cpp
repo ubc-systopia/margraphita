@@ -591,8 +591,8 @@ int main()
     // test_add_fail should fail if create_new is false
     // add_edge->add_to_adjlists assumes no duplicate edges.
     // */
-    // test_get_edge(graph);
-    // test_get_out_edges(graph);
+    test_get_edge(graph);
+    test_get_out_edges(graph);
     // test_get_out_edges(graph);
     // test_get_in_edges(graph);
     // test_get_out_nodes(graph);

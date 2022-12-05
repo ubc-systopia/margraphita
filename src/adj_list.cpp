@@ -675,7 +675,7 @@ std::vector<edge> AdjList::get_edges()
     while (edge_cursor->next(edge_cursor) == 0)
     {
         edge found = {0};
-        edge_cursor->get_key(edge_cursor, &found.src_id, &found.dst_id);
+        CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
         if (opts.is_weighted)
         {
             CommonUtil::record_to_edge(edge_cursor, &found);
@@ -824,7 +824,7 @@ std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
 
     for (auto dst : dst_nodes)
     {
-        edge_cursor->set_key(edge_cursor, node_id, dst);
+        CommonUtil::set_key(edge_cursor, node_id, dst);
         ret = edge_cursor->search(edge_cursor);
         if (ret != 0)
         {
