@@ -80,6 +80,7 @@ typedef struct node
     node_id_t id;  // node ID
     degree_t in_degree = 0;
     degree_t out_degree = 0;
+
 } node;
 
 typedef struct edge
@@ -88,6 +89,7 @@ typedef struct edge
     node_id_t src_id;
     node_id_t dst_id;
     edgeweight_t edge_weight;
+
 } edge;
 
 typedef struct edge_index
@@ -108,8 +110,6 @@ typedef struct edge_range
 {
     key_pair start;
     key_pair end;
-
-    edge_range(key_pair _start, key_pair _end) : start(_start), end(_end) {}
 } edge_range;
 
 typedef struct adjlist
@@ -118,146 +118,6 @@ typedef struct adjlist
     degree_t degree;
     std::vector<node_id_t> edgelist;
 } adjlist;
-
-class table_iterator
-{
-   protected:
-    WT_CURSOR *cursor = nullptr;
-    WT_SESSION *session = nullptr;
-    bool is_first = true;
-    bool has_next = true;
-    void init(WT_CURSOR *cursor_, WT_SESSION *sess_)
-    {
-        cursor = cursor_;
-        session = sess_;
-    }
-    // TODO: Change this to accept a Graph object reference and the table/index
-    // name for which the cursor is sought. Current design needs the user to
-    // know which table to provide a cursor for. This is guaranteed to cause
-    // bugs.
-   public:
-    void set_key(node_id_t key) { cursor->set_key(cursor, key); }
-    bool has_more() { return has_next; };
-    virtual void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-    }
-};
-
-class OutCursor : public table_iterator
-{
-   protected:
-    key_range keys{};
-    int num_nodes{};
-
-   public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
-
-    void set_num_nodes(int num) { num_nodes = num; }
-
-    virtual void next(adjlist *found) = 0;
-    virtual void next(adjlist *found, node_id_t key) = 0;
-};
-
-class InCursor : public table_iterator
-{
-   protected:
-    key_range keys{};
-    int num_nodes{};
-
-   public:
-    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
-
-    void set_num_nodes(int num) { num_nodes = num; }
-
-    virtual void next(adjlist *found) = 0;
-    virtual void next(adjlist *found, node_id_t key) = 0;
-};
-
-class NodeCursor : public table_iterator
-{
-   protected:
-    key_range keys{};
-
-   public:
-    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
-    {
-        init(node_cur, sess);
-        keys = {-1, -1};
-    }
-
-    /**
-     * @brief Set the key range object
-     *
-     * @param _keys the key range object. Set the end key to INT_MAX if you want
-     * to get all the nodes from start node.
-     */
-    virtual void set_key_range(key_range _keys)  // overrided by edgekey
-    {
-        keys = _keys;
-        cursor->set_key(cursor, keys.start);
-    }
-
-    virtual void next(node *found) = 0;
-};
-
-class EdgeCursor : public table_iterator
-{
-   protected:
-    key_pair start_edge{};
-    key_pair end_edge{};
-    bool get_weight = true;
-
-   public:
-    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
-    {
-        init(composite_edge_cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-    }
-
-    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess, bool get_weight)
-    {
-        init(composite_edge_cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-        this->get_weight = get_weight;
-    }
-
-    // Overwrites set_key(int key) implementation in table_iterator
-    void set_key(int key) = delete;
-
-    void set_key(edge_range range)
-    {
-        start_edge = range.start;
-        end_edge = range.end;
-        cursor->set_key(cursor, range.start.src_id, range.start.dst_id);
-    }
-
-    virtual void next(edge *found) = 0;
-};
 
 // TODO: remove unused functions from this class.
 
@@ -530,5 +390,148 @@ inline void CommonUtil::record_to_edge_ekey(WT_CURSOR *cur, edge *found)
     }
     found->edge_weight = a;
 }
+/****
+ * The following are iterator definitions.
+ */
+
+class table_iterator
+{
+   protected:
+    WT_CURSOR *cursor = nullptr;
+    WT_SESSION *session = nullptr;
+    bool is_first = true;
+    bool has_next = true;
+    void init(WT_CURSOR *cursor_, WT_SESSION *sess_)
+    {
+        cursor = cursor_;
+        session = sess_;
+    }
+    // TODO: Change this to accept a Graph object reference and the table/index
+    // name for which the cursor is sought. Current design needs the user to
+    // know which table to provide a cursor for. This is guaranteed to cause
+    // bugs.
+   public:
+    void set_key(node_id_t key) { CommonUtil::set_key(cursor, key); }
+    bool has_more() { return has_next; };
+    virtual void reset()
+    {
+        cursor->reset(cursor);
+        is_first = true;
+        has_next = true;
+    }
+};
+
+class OutCursor : public table_iterator
+{
+   protected:
+    key_range keys{};
+    int num_nodes{};
+
+   public:
+    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        CommonUtil::set_key(cursor, keys.start);
+    }
+
+    void set_num_nodes(int num) { num_nodes = num; }
+
+    virtual void next(adjlist *found) = 0;
+    virtual void next(adjlist *found, node_id_t key) = 0;
+};
+
+class InCursor : public table_iterator
+{
+   protected:
+    key_range keys{};
+    int num_nodes{};
+
+   public:
+    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        init(cur, sess);
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys)
+    {
+        keys = _keys;
+        CommonUtil::set_key(cursor, keys.start);
+    }
+
+    void set_num_nodes(int num) { num_nodes = num; }
+
+    virtual void next(adjlist *found) = 0;
+    virtual void next(adjlist *found, node_id_t key) = 0;
+};
+
+class NodeCursor : public table_iterator
+{
+   protected:
+    key_range keys{};
+
+   public:
+    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
+    {
+        init(node_cur, sess);
+        keys = {-1, -1};
+    }
+
+    /**
+     * @brief Set the key range object
+     *
+     * @param _keys the key range object. Set the end key to INT_MAX if you want
+     * to get all the nodes from start node.
+     */
+    virtual void set_key_range(key_range _keys)  // overrided by edgekey
+    {
+        keys = _keys;
+        CommonUtil::set_key(cursor, keys.start);
+    }
+
+    virtual void next(node *found) = 0;
+};
+
+class EdgeCursor : public table_iterator
+{
+   protected:
+    key_pair start_edge{};
+    key_pair end_edge{};
+    bool get_weight = true;
+
+   public:
+    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
+    {
+        init(composite_edge_cur, sess);
+        start_edge = {-1, -1};
+        end_edge = {-1, -1};
+    }
+
+    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess, bool get_weight)
+    {
+        init(composite_edge_cur, sess);
+        start_edge = {-1, -1};
+        end_edge = {-1, -1};
+        this->get_weight = get_weight;
+    }
+
+    // Overwrites set_key(int key) implementation in table_iterator
+    void set_key(int key) = delete;
+
+    void set_key(edge_range range)
+    {
+        start_edge = range.start;
+        end_edge = range.end;
+        CommonUtil::set_key(cursor, range.start.src_id, range.start.dst_id);
+    }
+
+    virtual void next(edge *found) = 0;
+};
 
 #endif

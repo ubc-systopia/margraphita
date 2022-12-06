@@ -518,7 +518,7 @@ int AdjList::delete_node(node_id_t node_id)
     int ret = 0;
     int num_deleted_edges = 0;
     delete_related_edges_and_adjlists(node_id, &num_deleted_edges);
-    node_cursor->set_key(node_cursor, node_id);
+    CommonUtil::set_key(node_cursor, node_id);
     if ((ret = error_check_remove_txn(node_cursor->remove(node_cursor))))
     {
         return ret;
@@ -723,7 +723,7 @@ edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
 bool AdjList::has_edge(node_id_t src_id, node_id_t dst_id)
 {
     int ret = 0;
-    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    CommonUtil::set_key(edge_cursor, src_id, dst_id);
     ret = edge_cursor->search(edge_cursor);
     edge_cursor->reset(edge_cursor);
     return (ret == 0);  // true if found :)
@@ -938,7 +938,7 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
     // Delete (src_id, dst_id) from edge table
     session->begin_transaction(session, "isolation=snapshot");
     int ret = 0;
-    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    CommonUtil::set_key(edge_cursor, src_id, dst_id);
     if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
     {
         return ret;
@@ -946,7 +946,7 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
     // delete (dst_id, src_id) from edge table if undirected
     if (!opts.is_directed)
     {
-        edge_cursor->set_key(edge_cursor, dst_id, src_id);
+        CommonUtil::set_key(edge_cursor, dst_id, src_id);
         if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
         {
             return ret;
@@ -1016,7 +1016,7 @@ void AdjList::update_edge_weight(node_id_t src_id,
         throw GraphException("Trying to insert weight for an unweighted graph");
     }
     int ret = 0;
-    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    CommonUtil::set_key(edge_cursor, src_id, dst_id);
     edge_cursor->set_value(edge_cursor, edge_weight);
     ret = edge_cursor->insert(edge_cursor);
     if (ret != 0)
@@ -1137,7 +1137,7 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
 
     WT_CURSOR *in_cursor = nullptr;
     int ret = _get_table_cursor(IN_ADJLIST, &in_cursor, session, false, false);
-    in_cursor->set_key(in_cursor, node_id);
+    CommonUtil::set_key(in_cursor, node_id);
     ret = in_cursor->search(in_cursor);
     if (ret != 0)
     {
@@ -1160,7 +1160,7 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
     // Now, get the out_edgelist from the OUTLIST Table to delete from the
     // IN_Table
 
-    out_cursor->set_key(out_cursor, node_id);
+    CommonUtil::set_key(out_cursor, node_id);
     ret = out_cursor->search(out_cursor);
     if (ret != 0)
     {
@@ -1177,7 +1177,7 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
     }
 
     // Now, remove the node from both the tables
-    out_cursor->set_key(out_cursor, node_id);
+    CommonUtil::set_key(out_cursor, node_id);
     ret = out_cursor->remove(out_cursor);
 
     if (ret != 0)
@@ -1186,7 +1186,7 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
                              to_string(node_id) + " from the OUT_ADJLIST");
     }
 
-    in_cursor->set_key(in_cursor, node_id);
+    CommonUtil::set_key(in_cursor, node_id);
     ret = in_cursor->remove(in_cursor);
 
     if (ret != 0)
@@ -1496,7 +1496,7 @@ int AdjList::add_one_node_degree(WT_CURSOR *cursor,
 int AdjList::remove_one_node_degree(node_id_t to_update, bool is_out_degree)
 {
     int ret;
-    node_cursor->set_key(node_cursor, to_update);
+    CommonUtil::set_key(node_cursor, to_update);
     if ((ret = error_check_read_txn(node_cursor->search(node_cursor))))
     {
         return ret;
@@ -1528,7 +1528,7 @@ int AdjList::remove_one_node_degree(node_id_t to_update, bool is_out_degree)
 int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
 {
     int ret = 0;
-    edge_cursor->set_key(edge_cursor, src_id, dst_id);
+    CommonUtil::set_key(edge_cursor, src_id, dst_id);
     if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
     {
         return ret;
@@ -1536,7 +1536,7 @@ int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
     // delete (dst_id, src_id) from edge table if undirected
     if (!opts.is_directed)
     {
-        edge_cursor->set_key(edge_cursor, dst_id, src_id);
+        CommonUtil::set_key(edge_cursor, dst_id, src_id);
         if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
         {
             return ret;

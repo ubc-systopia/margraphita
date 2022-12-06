@@ -54,7 +54,7 @@ class AdjInCursor : public InCursor
         }
 
         node_id_t curr_key;
-        cursor->get_key(cursor, &curr_key);
+        CommonUtil::get_key(cursor, &curr_key);
 
         if (keys.end != -1 && curr_key > keys.end)
         {
@@ -96,7 +96,7 @@ class AdjInCursor : public InCursor
             goto no_next;
         }
 
-        cursor->set_key(cursor, key);
+        CommonUtil::set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -116,7 +116,7 @@ class AdjInCursor : public InCursor
         }
 
         int curr_key;
-        cursor->get_key(cursor, &curr_key);
+        CommonUtil::get_key(cursor, &curr_key);
 
         if (curr_key == key)
         {
@@ -183,7 +183,7 @@ class AdjOutCursor : public OutCursor
         }
 
         int curr_key;
-        cursor->get_key(cursor, &curr_key);
+        CommonUtil::get_key(cursor, &curr_key);
 
         if (keys.end != -1 && curr_key > keys.end)
         {
@@ -225,7 +225,7 @@ class AdjOutCursor : public OutCursor
             goto no_next;
         }
 
-        cursor->set_key(cursor, key);
+        CommonUtil::set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -245,7 +245,7 @@ class AdjOutCursor : public OutCursor
         }
 
         int curr_key;
-        cursor->get_key(cursor, &curr_key);
+        CommonUtil::get_key(cursor, &curr_key);
 
         if (curr_key == key)
         {
@@ -303,8 +303,7 @@ class AdjNodeCursor : public NodeCursor
         if (cursor->next(cursor) == 0)
         {
         first_time_skip_next:
-            // error_check(cursor->get_key(cursor, &found->id));
-            cursor->get_key(cursor, &found->id);
+            CommonUtil::get_key(cursor, &found->id);
             if (keys.end != -1 && found->id > keys.end)
             {
                 goto no_next;
@@ -362,9 +361,7 @@ class AdjEdgeCursor : public EdgeCursor
         if (cursor->next(cursor) == 0)
         {
         first_time_skip_next:
-            // error_check(
-            //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
-            cursor->get_key(cursor, &found->src_id, &found->dst_id);
+            CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
 
             // If end_edge is set
             if (end_edge.src_id != -1)

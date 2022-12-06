@@ -358,37 +358,37 @@ void test_delete_node(AdjList graph, bool is_directed)
     WT_CURSOR *adj_in_cur = graph.get_in_adjlist_cursor();
 
     // Verify node2 exists
-    n_cursor->set_key(n_cursor, SampleGraph::node2.id);
+    CommonUtil::set_key(n_cursor, SampleGraph::node2.id);
     int ret = n_cursor->search(n_cursor);
     assert(ret == 0);
     n_cursor->reset(n_cursor);
 
     // Delete node2 and verify it was actually deleted
     graph.delete_node(SampleGraph::node2.id);
-    n_cursor->set_key(n_cursor, SampleGraph::node2.id);
+    CommonUtil::set_key(n_cursor, SampleGraph::node2.id);
     ret = n_cursor->search(n_cursor);
     assert(ret != 0);
 
     // Verify node2's adjacency lists are deleted
-    adj_out_cur->set_key(adj_out_cur, SampleGraph::node2.id);
+    CommonUtil::set_key(adj_out_cur, SampleGraph::node2.id);
     ret = adj_out_cur->search(adj_out_cur);
     assert(ret != 0);
-    adj_in_cur->set_key(adj_in_cur, SampleGraph::node2.id);
+    CommonUtil::set_key(adj_in_cur, SampleGraph::node2.id);
     ret = adj_in_cur->search(adj_in_cur);
     assert(ret != 0);
 
     // check that edge(2,3) is deleted
-    e_cursor->set_key(e_cursor, 2, 3);
+    CommonUtil::set_key(e_cursor, 2, 3);
     assert(e_cursor->search(e_cursor) != 0);
     // check that edge(1,2) is deleted
-    e_cursor->set_key(e_cursor, 1, 2);
+    CommonUtil::set_key(e_cursor, 1, 2);
     assert(e_cursor->search(e_cursor) != 0);
     // Now delete the reverse edges for undirected graph
     if (is_directed)
     {
-        e_cursor->set_key(e_cursor, 3, 2);
+        CommonUtil::set_key(e_cursor, 3, 2);
         assert(e_cursor->search(e_cursor) != 0);
-        e_cursor->set_key(e_cursor, 2, 1);
+        CommonUtil::set_key(e_cursor, 2, 1);
         assert(e_cursor->search(e_cursor) != 0);
     }
     // Verify that node 2 is deleted from adjlist of node1 and node3
@@ -597,15 +597,15 @@ int main()
     test_get_out_nodes(graph);
     test_get_in_nodes(graph);
     test_get_in_degree(graph);
-    // test_delete_node(graph, opts.is_directed);
+    test_delete_node(graph, opts.is_directed);
     // // test_delete_isolated_node(graph, opts.is_directed);
 
-    // test_InCursor(graph);
-    // test_OutCursor(graph);
-    // test_NodeCursor(graph);
-    // test_NodeCursor_Range(graph);
-    // test_EdgeCursor(graph);
-    // test_EdgeCursor_Range(graph);
+    test_InCursor(graph);
+    test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
 
     tearDown(graph);
 }
