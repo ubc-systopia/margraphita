@@ -553,7 +553,7 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
     int ret = 0;
     if (opts.read_optimize)
     {
-        node_cursor->set_key(node_cursor, node_id);
+        CommonUtil::set_key(node_cursor, node_id);
         ret = node_cursor->search(node_cursor);
         if (ret != 0)
         {
@@ -567,7 +567,7 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
     }
     else
     {
-        in_adjlist_cursor->set_key(in_adjlist_cursor, node_id);
+        CommonUtil::set_key(in_adjlist_cursor, node_id);
         ret = in_adjlist_cursor->search(in_adjlist_cursor);
         if (ret != 0)
         {
@@ -594,7 +594,7 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
     node_cursor->reset(node_cursor);
     if (opts.read_optimize)
     {
-        node_cursor->set_key(node_cursor, node_id);
+        CommonUtil::set_key(node_cursor, node_id);
         ret = node_cursor->search(node_cursor);
         if (ret != 0)
         {
@@ -609,7 +609,7 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
 
     else
     {
-        out_adjlist_cursor->set_key(out_adjlist_cursor, node_id);
+        CommonUtil::set_key(out_adjlist_cursor, node_id);
         ret = out_adjlist_cursor->search(out_adjlist_cursor);
         if (ret != 0)
         {
@@ -906,7 +906,7 @@ std::vector<edge> AdjList::get_in_edges(node_id_t node_id)
 
     for (auto src : src_nodes)
     {
-        edge_cursor->set_key(edge_cursor, src, node_id);
+        CommonUtil::set_key(edge_cursor, src, node_id);
         ret = edge_cursor->search(edge_cursor);
         if (ret != 0)
         {

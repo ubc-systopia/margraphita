@@ -593,11 +593,10 @@ int main()
     // */
     test_get_edge(graph);
     test_get_out_edges(graph);
-    // test_get_out_edges(graph);
-    // test_get_in_edges(graph);
-    // test_get_out_nodes(graph);
-    // test_get_in_nodes(graph);
-    // test_get_in_degree(graph);
+    test_get_in_edges(graph);
+    test_get_out_nodes(graph);
+    test_get_in_nodes(graph);
+    test_get_in_degree(graph);
     // test_delete_node(graph, opts.is_directed);
     // // test_delete_isolated_node(graph, opts.is_directed);
 
