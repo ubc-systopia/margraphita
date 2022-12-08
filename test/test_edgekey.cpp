@@ -35,7 +35,7 @@ void create_init_nodes(EdgeKey graph, bool is_directed)
 
 void test_get_node(EdgeKey graph)
 {
-    INFO();
+    INFO()
     node found = graph.get_node(SampleGraph::node1.id);
     assert(found.id == 1);
     // now get a node that does not exist
@@ -47,7 +47,7 @@ void test_get_node(EdgeKey graph)
 
 void test_node_add(EdgeKey graph, bool read_optimize)
 {
-    INFO();
+    INFO()
     node new_node = {.id = 11, .in_degree = 0, .out_degree = 0};
     graph.add_node(new_node);
     node found = graph.get_node(new_node.id);
@@ -61,7 +61,7 @@ void test_node_add(EdgeKey graph, bool read_optimize)
 
 void test_get_nodes(EdgeKey graph)
 {
-    INFO();
+    INFO()
     for (node x : graph.get_nodes())
     {
         CommonUtil::dump_node(x);
@@ -70,7 +70,7 @@ void test_get_nodes(EdgeKey graph)
 
 void test_get_random_nodes(EdgeKey graph)
 {
-    INFO();
+    INFO()
     fprintf(stderr, "Random node:\n");
     CommonUtil::dump_node(graph.get_random_node());
     CommonUtil::dump_node(graph.get_random_node());
@@ -78,7 +78,7 @@ void test_get_random_nodes(EdgeKey graph)
 
 void test_add_edge(EdgeKey graph, bool is_directed, bool is_weighted)
 {
-    INFO();
+    INFO()
     edge to_insert = {
         .src_id = 5,
         .dst_id = 6,
@@ -125,7 +125,7 @@ void test_add_edge(EdgeKey graph, bool is_directed, bool is_weighted)
 
 void test_get_edge(EdgeKey graph)
 {
-    INFO();
+    INFO()
     edge found =
         graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
     assert(found.src_id == SampleGraph::edge1.src_id);
@@ -140,7 +140,7 @@ void test_get_edge(EdgeKey graph)
 
 void test_get_out_edges(EdgeKey graph)
 {
-    INFO();
+    INFO()
     std::vector<edge> edges = graph.get_out_edges(1);
     assert(edges.size() == 3);
     // compare edge0
@@ -155,7 +155,7 @@ void test_get_out_edges(EdgeKey graph)
 
     // Now test for a node that has no out edge
     edges = graph.get_out_edges(4);
-    assert(edges.size() == 0);
+    assert(edges.empty());
 
     // Now try getting out edges for a node that does not exist
     bool assert_fail = false;
@@ -173,7 +173,7 @@ void test_get_out_edges(EdgeKey graph)
 
 void test_get_out_nodes(EdgeKey graph)
 {
-    INFO();
+    INFO()
     std::vector<node> nodes = graph.get_out_nodes(1);
     std::vector<node_id_t> nodes_id = graph.get_out_nodes_id(1);
     assert(nodes.size() == 3);
@@ -206,7 +206,7 @@ void test_get_out_nodes(EdgeKey graph)
 
 void test_get_in_edges(EdgeKey graph)
 {
-    INFO();
+    INFO()
     std::vector<edge> edges = graph.get_in_edges(3);
     assert(edges.size() == 2);
     // Check edge0
@@ -236,7 +236,7 @@ void test_get_in_edges(EdgeKey graph)
 
 void test_get_in_nodes(EdgeKey graph)
 {
-    INFO();
+    INFO()
     std::vector<node> nodes = graph.get_in_nodes(3);
     std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
     assert(nodes.size() == 2);
@@ -268,7 +268,7 @@ void test_get_in_nodes(EdgeKey graph)
 
 void test_delete_node(EdgeKey graph, bool is_directed)
 {
-    INFO();
+    INFO()
     WT_CURSOR *e_cur = graph.get_edge_cursor();
     // Verify node2 exists
     assert(graph.has_node(SampleGraph::node2.id) == true);
@@ -309,7 +309,7 @@ void test_delete_node(EdgeKey graph, bool is_directed)
 
 void test_get_in_and_out_degree(EdgeKey graph)
 {
-    INFO();
+    INFO()
     int indeg, outdeg;
     indeg = graph.get_in_degree(3);
     outdeg = graph.get_out_degree(1);
@@ -321,7 +321,7 @@ void tearDown(EdgeKey graph) { graph.close(); }
 
 void test_InCursor(EdgeKey graph)
 {
-    INFO();
+    INFO()
     InCursor *in_cursor = graph.get_innbd_iter();
     adjlist found = {0};
     in_cursor->next(&found);
@@ -339,7 +339,7 @@ void test_InCursor(EdgeKey graph)
 
 void test_OutCursor(EdgeKey graph)
 {
-    INFO();
+    INFO()
     OutCursor *out_cursor = graph.get_outnbd_iter();
     adjlist found = {0};
     out_cursor->next(&found);
@@ -358,7 +358,7 @@ void test_OutCursor(EdgeKey graph)
 
 void test_NodeCursor(EdgeKey graph)
 {
-    INFO();
+    INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
     node found = {0, 0, 0};
     int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 11};
@@ -375,7 +375,7 @@ void test_NodeCursor(EdgeKey graph)
 
 void test_NodeCursor_Range(EdgeKey graph)
 {
-    INFO();
+    INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
     int nodeIdList[] = {3, 4, 5, 6};
@@ -393,7 +393,7 @@ void test_NodeCursor_Range(EdgeKey graph)
 
 void test_EdgeCursor(EdgeKey graph)
 {
-    INFO();
+    INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge found;
     int srcIdList[] = {1, 1, 5, 7, 8};
@@ -412,7 +412,7 @@ void test_EdgeCursor(EdgeKey graph)
 
 void test_EdgeCursor_Range(EdgeKey graph)
 {
-    INFO();
+    INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge_cursor->set_key(edge_range(key_pair{1, 4}, key_pair{8, 1}));
     edge found;
@@ -452,14 +452,13 @@ int main()
     EdgeKey graph(opts, conn);
 
     create_init_nodes(graph, opts.is_directed);
-
     test_get_node(graph);
     test_node_add(graph, opts.read_optimize);
     test_get_nodes(graph);
     test_get_random_nodes(graph);
     test_add_edge(graph, opts.is_directed, opts.is_weighted);
     test_get_edge(graph);
-    // test_get_out_edges(graph);
+    test_get_out_edges(graph);
     // test_get_in_edges(graph);
     // test_get_out_nodes(graph);
     // test_get_in_nodes(graph);

@@ -12,7 +12,7 @@
 #include "common.h"
 
 using namespace std;
-const std::string GRAPH_PREFIX = "std";
+[[maybe_unused]] const std::string GRAPH_PREFIX = "std";
 
 StandardGraph::StandardGraph(graph_opts &opt_params, WT_CONNECTION *conn)
     : GraphBase(opt_params, conn)

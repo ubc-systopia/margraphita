@@ -603,7 +603,7 @@ class EdgeKey : public GraphBase
     node get_next_node(WT_CURSOR *n_iter);
     edge get_next_edge(WT_CURSOR *e_iter);
 
-    void drop_indices();
+    [[maybe_unused]] void drop_indices();
     void close_all_cursors();
 };
 #endif

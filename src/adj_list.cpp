@@ -14,7 +14,7 @@
 
 using namespace std;
 
-const std::string GRAPH_PREFIX = "adj";
+[[maybe_unused]] const std::string GRAPH_PREFIX = "adj";
 
 AdjList::AdjList(graph_opts &opt_params, WT_CONNECTION *conn)
     : GraphBase(opt_params, conn)
