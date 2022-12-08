@@ -59,6 +59,9 @@ target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} graph_utils)
 add_executable(iteration_ec iteration_ec.cpp)
 target_link_libraries(iteration_ec PUBLIC ${NAME_LIB} graph_utils)
 
+add_executable(microbenchmark microbenchmark.cpp)
+target_link_libraries(microbenchmark PUBLIC ${NAME_LIB} graph_utils)
+
 # add_executable(bc bc.cpp)
 # target_link_libraries(bc PUBLIC ${NAME_LIB} graph_utils)
 

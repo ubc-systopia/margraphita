@@ -1,5 +1,6 @@
 #ifndef _CSV_LOG_H
 #define CSV_LOG_H
+#include <fstream>
 #include <string>
 
 #include "benchmark_definitions.h"
@@ -115,6 +116,29 @@ void print_csv_info(std::string name, iter_info &info, std::string csv_logdir)
     FILE.close();
 }
 
+void print_csv_info(microbenchmark_info &info, std::string csv_logdir)
+{
+    fstream FILE;
+    std::string _name = csv_logdir + "/" + "microbenchmark.csv";
+    if (access(_name.c_str(), F_OK) == -1)
+    {
+        // The file does not exist yet.
+        FILE.open(_name, ios::out | ios::app);
+        FILE << "thread_count,node_count,fanout,"
+                "CAS_time_taken_usec,binning_time_taken_usec\n";
+    }
+    else
+    {
+        FILE.open(_name, ios::out | ios::app);
+    }
+
+    FILE << info.thread_count << "," << info.node_count << "," << info.fanout
+         << "," << info.time_taken_CAS << "," << info.time_taken_binning
+         << "\n";
+
+    FILE.close();
+}
+
 void print_to_csv(std::string name,
                   std::vector<double> &times,
                   std::string csvfile)
@@ -151,7 +175,7 @@ void print_to_csv(std::string name,
 template <typename T>
 void print_map(int N, T *pr_map, int p_next)
 {
-    ofstream FILE;
+    fstream FILE;
     FILE.open("pr_out.txt", ios::out | ios::ate);
     for (int i = 0; i < N; i++)
     {
