@@ -63,6 +63,25 @@ typedef struct pr_iter_map
     float p_rank[2];
 } pr_iter_map;
 
+typedef struct microbenchmark_info
+{
+    double time_taken_CAS;
+    double time_taken_binning;
+    int thread_count;
+    int node_count;
+    int fanout;
+    microbenchmark_info(double _time_CAS,
+                        double _time_bin,
+                        double _thread_count,
+                        int _node_count,
+                        int _fanout)
+        : time_taken_CAS(_time_CAS),
+          time_taken_binning(_time_bin),
+          thread_count(_thread_count),
+          node_count(_node_count),
+          fanout(_fanout){};
+} microbenchmark_info;
+
 template <typename T>
 void make_pr_mmap(int N, T **ptr)
 {
