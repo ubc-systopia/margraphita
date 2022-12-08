@@ -12,6 +12,7 @@
 #include "graph_exception.h"
 
 using namespace std;
+#define MAKE_EKEY(x) (x + 1)
 
 class EkeyInCursor : public InCursor
 {
@@ -48,7 +49,7 @@ class EkeyInCursor : public InCursor
                 next_expected = keys.start;
             }
 
-            cursor->set_key(cursor, to_search);
+            CommonUtil::set_key(cursor, to_search);
 
             int status;
             // error_check(cursor->search_near(cursor, &status));
@@ -141,7 +142,7 @@ class EkeyInCursor : public InCursor
         next_expected = key + 1;
 
         edge curr_edge;
-        cursor->set_key(cursor, key);
+        CommonUtil::set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -321,7 +322,7 @@ class EkeyOutCursor : public OutCursor
         next_expected = key + 1;
 
         edge curr_edge;
-        cursor->set_key(cursor, key);
+        CommonUtil::set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -385,7 +386,7 @@ class EkeyNodeCursor : public NodeCursor
     void set_key_range(key_range _keys)
     {
         keys = _keys;
-        cursor->set_key(cursor, OutOfBand_ID, keys.start);
+        CommonUtil::set_key(cursor, OutOfBand_ID, keys.start);
     }
 
     void next(node *found)
@@ -498,7 +499,7 @@ class EkeyEdgeCursor : public EdgeCursor
         {
             // error_check(
             //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
-            cursor->get_key(cursor, &found->src_id, &found->dst_id);
+            CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
             if (found->dst_id != -1)
             {
                 goto edge_found;

@@ -13,11 +13,6 @@
 void create_init_nodes(EdgeKey graph, bool is_directed)
 {
     INFO()
-    for (node x : SampleGraph::test_nodes)
-    {
-        graph.add_node(x);
-    }
-
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
@@ -111,7 +106,7 @@ void test_add_edge(EdgeKey graph, bool is_directed, bool is_weighted)
 
     // //Now check if the adjlists were updated
     WT_CURSOR *e_cur = graph.get_edge_cursor();
-    e_cur->set_key(e_cur, 5, OutOfBand_ID);
+    CommonUtil::set_key(e_cur, 5, OutOfBand_ID);
     assert(e_cur->search(e_cur) == 0);
     assert(graph.get_out_degree(5) == 1);
     assert(graph.get_in_degree(6) == 1);
@@ -464,22 +459,22 @@ int main()
     test_get_random_nodes(graph);
     test_add_edge(graph, opts.is_directed, opts.is_weighted);
     test_get_edge(graph);
-    test_get_out_edges(graph);
-    test_get_in_edges(graph);
-    test_get_out_nodes(graph);
-    test_get_in_nodes(graph);
-    test_get_in_and_out_degree(graph);
+    // test_get_out_edges(graph);
+    // test_get_in_edges(graph);
+    // test_get_out_nodes(graph);
+    // test_get_in_nodes(graph);
+    // test_get_in_and_out_degree(graph);
 
-    test_delete_node(graph, opts.is_directed);
-    // // test_delete_isolated_node(graph, opts.is_directed);
+    // test_delete_node(graph, opts.is_directed);
+    // // // test_delete_isolated_node(graph, opts.is_directed);
 
-    test_InCursor(graph);
-    test_OutCursor(graph);
+    // test_InCursor(graph);
+    // test_OutCursor(graph);
 
-    test_NodeCursor(graph);
-    test_NodeCursor_Range(graph);
-    test_EdgeCursor(graph);
-    test_EdgeCursor_Range(graph);
+    // test_NodeCursor(graph);
+    // test_NodeCursor_Range(graph);
+    // test_EdgeCursor(graph);
+    // test_EdgeCursor_Range(graph);
 
     tearDown(graph);
 }

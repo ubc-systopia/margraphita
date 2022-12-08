@@ -51,7 +51,8 @@ const std::string edge_count = "nEdges";
 typedef int32_t node_id_t;
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
-const node_id_t OutOfBand_ID = -1;
+const node_id_t OutOfBand_ID =
+    0;  // Used to be -1. Changed to 0 to avoid issues with unsigned types.
 const degree_t OutOfBand_Val = UINT32_MAX;
 
 typedef enum GraphType
@@ -161,8 +162,8 @@ class CommonUtil
                                WT_CONNECTION **conn);
     static void set_key(WT_CURSOR *cursor, node_id_t key);
     static void set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
-    static void get_key(WT_CURSOR *cursor, node_id_t *key);
-    static void get_key(WT_CURSOR *cursor, node_id_t *key1, node_id_t *key2);
+    static int get_key(WT_CURSOR *cursor, node_id_t *key);
+    static int get_key(WT_CURSOR *cursor, node_id_t *key1, node_id_t *key2);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
     static void check_return(int retval, const std::string &mesg);
     static void dump_node(node to_print);
@@ -187,6 +188,8 @@ class CommonUtil
     static void record_to_node_ekey(WT_CURSOR *cur, node *found);
     static void record_to_node_ekeyidx(WT_CURSOR *idx_cursor, node *found);
     static void record_to_edge_ekey(WT_CURSOR *cur, edge *found);
+    static void get_val_ekeyidx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b);
+
 };
 
 /***************************************************************************
@@ -221,24 +224,26 @@ inline void CommonUtil::set_key(WT_CURSOR *cursor,
     cursor->set_key(cursor, &k1, &k2);
 }
 
-inline void CommonUtil::get_key(WT_CURSOR *cursor, node_id_t *key)
+inline int CommonUtil::get_key(WT_CURSOR *cursor, node_id_t *key)
 {
     WT_ITEM k;
-    cursor->get_key(cursor, &k);
+    int ret = cursor->get_key(cursor, &k);
     uint32_t a = *(uint32_t *)k.data;
     *key = __builtin_bswap32(a);
+    return ret;
 }
 
-inline void CommonUtil::get_key(WT_CURSOR *cursor,
+inline int CommonUtil::get_key(WT_CURSOR *cursor,
                                 node_id_t *key1,
                                 node_id_t *key2)
 {
     WT_ITEM k1, k2;
-    cursor->get_key(cursor, &k1, &k2);
+    int ret = cursor->get_key(cursor, &k1, &k2);
     uint32_t a = *(uint32_t *)k1.data;
     uint32_t b = *(uint32_t *)k2.data;
     *key1 = __builtin_bswap32(a);
     *key2 = __builtin_bswap32(b);
+    return ret;
 }
 
 inline int CommonUtil::node_to_record(WT_CURSOR *cursor,
@@ -299,6 +304,16 @@ inline void CommonUtil::read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
     uint32_t dst_id = *(uint32_t *)dst.data;
     e_idx->src_id = __builtin_bswap32(src_id);
     e_idx->dst_id = __builtin_bswap32(dst_id);
+}
+
+inline void CommonUtil::get_val_ekeyidx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b)
+{
+    WT_ITEM x, y;
+    idx_cursor->get_value(idx_cursor, &x, &y);
+    uint32_t src_id = *(uint32_t *)x.data;
+    uint32_t dst_id = *(uint32_t *)y.data;
+    *a = __builtin_bswap32(src_id);
+    *b = __builtin_bswap32(dst_id);
 }
 
 /**
