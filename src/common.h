@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cert-err58-cpp"
 #ifndef BASE_COMMON
 #define BASE_COMMON
 
@@ -550,3 +552,5 @@ class EdgeCursor : public table_iterator
 };
 
 #endif
+
+#pragma clang diagnostic pop

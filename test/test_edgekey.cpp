@@ -197,8 +197,8 @@ void test_get_out_nodes(EdgeKey graph)
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(4);
     nodes_id = graph.get_out_nodes_id(4);
-    assert(nodes.size() == 0);
-    assert(nodes_id.size() == 0);
+    assert(nodes.empty());
+    assert(nodes_id.empty());
 
     // test for a node that does not exist
     bool assert_fail = false;
@@ -232,7 +232,7 @@ void test_get_in_edges(EdgeKey graph)
 
     // now test for a node that has no in-edge
     edges = graph.get_in_edges(4);
-    assert(edges.size() == 0);
+    assert(edges.empty());
 
     // Now try getting in edges for a node that does not exist.
     bool assert_fail = false;
@@ -265,8 +265,8 @@ void test_get_in_nodes(EdgeKey graph)
     // test for a node that has no in_edge
     nodes = graph.get_in_nodes(4);
     nodes_id = graph.get_in_nodes_id(4);
-    assert(nodes.size() == 0);
-    assert(nodes_id.size() == 0);
+    assert(nodes.empty());
+    assert(nodes_id.empty());
 
     // test for a node that does not exist
     bool assert_fail = false;
@@ -326,7 +326,7 @@ void test_delete_node(EdgeKey graph, bool is_directed)
 void test_get_in_and_out_degree(EdgeKey graph)
 {
     INFO()
-    int indeg, outdeg;
+    degree_t indeg, outdeg;
     indeg = graph.get_in_degree(3);
     outdeg = graph.get_out_degree(1);
     assert(indeg == 2);
@@ -483,9 +483,9 @@ int main()
     test_get_in_and_out_degree(graph);
 
     test_delete_node(graph, opts.is_directed);
-    // // // test_delete_isolated_node(graph, opts.is_directed);
+    //test_delete_isolated_node(graph, opts.is_directed);
 
-    // test_InCursor(graph);
+     test_InCursor(graph);
     // test_OutCursor(graph);
 
     // test_NodeCursor(graph);
