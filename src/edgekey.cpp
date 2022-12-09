@@ -767,10 +767,10 @@ std::vector<node> EdgeKey::get_nodes()
         node_id_t node_id, temp;
         CommonUtil::get_val_ekeyidx(dst_idx_cursor, &node_id, &temp);
         assert(temp == OutOfBand_ID);  // this should be true
-        CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+        CommonUtil::set_key(edge_cursor, node_id, OutOfBand_ID);
         if (edge_cursor->search(edge_cursor) == 0)
         {
-            node found{.id = node_id};
+            node found{.id = OG_KEY(node_id)};
             CommonUtil::record_to_node_ekey(edge_cursor, &found);
             nodes.push_back(found);
         }
@@ -781,10 +781,10 @@ std::vector<node> EdgeKey::get_nodes()
             if (temp == OutOfBand_ID)
             {
                 CommonUtil::set_key(
-                    edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+                    edge_cursor, node_id, OutOfBand_ID);
                 if (edge_cursor->search(edge_cursor) == 0)
                 {
-                    node found{.id = node_id};
+                    node found{.id = OG_KEY(node_id)};
                     CommonUtil::record_to_node_ekey(edge_cursor, &found);
                     nodes.push_back(found);
                 }
@@ -830,8 +830,8 @@ degree_t EdgeKey::get_out_degree(node_id_t node_id)
             while (ret == 0)
             {
                 node_id_t src, dst;
-                src_idx_cursor->get_value(src_idx_cursor, &src, &dst);
-                if (src == node_id)
+                CommonUtil::get_val_ekeyidx(src_idx_cursor, &src, &dst);
+                if (src == MAKE_EKEY(node_id))
                 {
                     if (dst != OutOfBand_ID)
                     {
@@ -877,8 +877,8 @@ degree_t EdgeKey::get_in_degree(node_id_t node_id)
             while (ret == 0)
             {
                 node_id_t src, dst;
-                dst_idx_cursor->get_value(dst_idx_cursor, &src, &dst);
-                if (src == node_id)
+                CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src, &dst);
+                if (src == MAKE_EKEY(node_id))
                 {
                     if (dst != OutOfBand_ID)
                     {
@@ -1064,7 +1064,6 @@ std::vector<node_id_t> EdgeKey::get_out_nodes_id(node_id_t node_id)
 std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
 {
     std::vector<edge> in_edges;
-
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
@@ -1074,21 +1073,30 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
     if (search_ret == 0)
     {
         node_id_t src_id, dst_id;
-        dst_idx_cursor->get_value(dst_idx_cursor, &src_id, &dst_id);
+        CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
+//        std::cout << "(src, dst) : " << src_id << " , " << dst_id <<std::endl;
 
         do
         {
-            CommonUtil::set_key(
-                edge_cursor, MAKE_EKEY(src_id), MAKE_EKEY(dst_id));
-            if (edge_cursor->search(edge_cursor) == 0)
-            {
-                edge found{.src_id = src_id, .dst_id = dst_id};
-                CommonUtil::record_to_edge_ekey(edge_cursor, &found);
+            edge found;
+            found.src_id = OG_KEY(src_id);
+            found.dst_id = OG_KEY(dst_id);
+            found.edge_weight = 0;
+            if(opts.is_weighted){
+                CommonUtil::set_key(
+                    edge_cursor, src_id, dst_id);
+                if (edge_cursor->search(edge_cursor) == 0)
+                {
+                    CommonUtil::record_to_edge_ekey(edge_cursor, &found);
+                    in_edges.push_back(found);
+                }
+            }else{
                 in_edges.push_back(found);
             }
+
             dst_idx_cursor->next(dst_idx_cursor);
-            dst_idx_cursor->get_value(dst_idx_cursor, &src_id, &dst_id);
-        } while (dst_id == node_id);
+            CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
+        } while (dst_id == MAKE_EKEY(node_id));
     }
     edge_cursor->reset(edge_cursor);
     dst_idx_cursor->reset(dst_idx_cursor);
@@ -1105,38 +1113,32 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
 std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
 {
     std::vector<node> in_nodes;
-
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
     CommonUtil::set_key(dst_idx_cursor, MAKE_EKEY(node_id));
-    if (dst_idx_cursor->search(dst_idx_cursor) == 0)
+    int search_ret = dst_idx_cursor->search(dst_idx_cursor);
+    if (search_ret == 0)
     {
         node_id_t src_id, dst_id;
-        if (dst_idx_cursor->get_value(dst_idx_cursor, &src_id, &dst_id) != 0)
-        {
-            throw GraphException("here" + to_string(__LINE__));
-        }
-
+        CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
         do
         {
-            in_nodes.push_back(get_node(src_id));
+            in_nodes.push_back(get_node(OG_KEY(src_id)));
             if (dst_idx_cursor->next(dst_idx_cursor) == 0)
             {
-                if (dst_idx_cursor->get_value(
-                        dst_idx_cursor, &src_id, &dst_id) != 0)
-                {
-                    throw GraphException("here" + to_string(__LINE__));
-                }
+                CommonUtil::get_val_ekeyidx(
+                        dst_idx_cursor, &src_id, &dst_id);
             }
             else
             {
                 break;
             }
 
-        } while (dst_id == node_id);
+        } while (dst_id == MAKE_EKEY(node_id));
     }
+    edge_cursor->reset(edge_cursor);
     dst_idx_cursor->reset(dst_idx_cursor);
     return in_nodes;
 }
@@ -1160,15 +1162,15 @@ std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
     if (dst_idx_cursor->search(dst_idx_cursor) == 0)
     {
         node_id_t src_id, dst_id;
-        dst_idx_cursor->get_value(dst_idx_cursor, &src_id, &dst_id);
-        while (dst_id == node_id)
+        CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
+        while (dst_id == MAKE_EKEY(node_id))
         {
-            in_nodes_id.push_back(src_id);
+            in_nodes_id.push_back(OG_KEY(src_id));
             if (dst_idx_cursor->next(dst_idx_cursor) != 0)
             {
                 break;
             }
-            dst_idx_cursor->get_value(dst_idx_cursor, &src_id, &dst_id);
+            CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
         }
     }
     dst_idx_cursor->reset(dst_idx_cursor);

@@ -138,6 +138,16 @@ void test_get_edge(EdgeKey graph)
     assert(found.edge_weight == -1);
 }
 
+void test_get_edges(EdgeKey graph)
+{
+    INFO()
+    std::vector<edge> edges = graph.get_edges();
+    for (auto e : edges)
+    {
+        CommonUtil::dump_edge(e);
+    }
+}
+
 void test_get_out_edges(EdgeKey graph)
 {
     INFO()
@@ -208,6 +218,10 @@ void test_get_in_edges(EdgeKey graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_in_edges(3);
+    for (auto  e : edges)
+    {
+        CommonUtil::dump_edge(e);
+    }
     assert(edges.size() == 2);
     // Check edge0
     assert(edges.at(0).src_id == SampleGraph::edge2.src_id);
@@ -238,6 +252,8 @@ void test_get_in_nodes(EdgeKey graph)
 {
     INFO()
     std::vector<node> nodes = graph.get_in_nodes(3);
+    for (auto n : nodes)
+        CommonUtil::dump_node(n);
     std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
     assert(nodes.size() == 2);
     assert(nodes_id.size() == 2);
@@ -458,11 +474,13 @@ int main()
     test_get_random_nodes(graph);
     test_add_edge(graph, opts.is_directed, opts.is_weighted);
     test_get_edge(graph);
+    test_get_edges(graph);
     test_get_out_edges(graph);
-    // test_get_in_edges(graph);
     test_get_out_nodes(graph);
-    // test_get_in_nodes(graph);
-    // test_get_in_and_out_degree(graph);
+    test_get_in_edges(graph);
+
+    test_get_in_nodes(graph);
+    test_get_in_and_out_degree(graph);
 
     // test_delete_node(graph, opts.is_directed);
     // // // test_delete_isolated_node(graph, opts.is_directed);
