@@ -301,8 +301,8 @@ int EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
 
     do
     {
-        idx_cur->get_value(idx_cur, &src, &dst);
-        CommonUtil::set_key(e_cur, MAKE_EKEY(src), MAKE_EKEY(dst));
+        CommonUtil::get_val_ekeyidx(idx_cur, &src, &dst);
+        CommonUtil::set_key(e_cur, src, dst);
 
         ret = e_cur->remove(e_cur);
         switch (ret)
@@ -327,14 +327,14 @@ int EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
         {
             node temp;
 
-            if (src != node_id)
+            if (src != MAKE_EKEY(node_id))
             {
-                temp = get_node(src);
+                temp = get_node(OG_KEY(src));
                 temp.out_degree--;
             }
             else
             {
-                temp = get_node(dst);
+                temp = get_node(OG_KEY(dst));
                 temp.in_degree--;
             }
 

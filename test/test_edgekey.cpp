@@ -291,23 +291,23 @@ void test_delete_node(EdgeKey graph, bool is_directed)
 
     // Delete node2 and verify it was actually deleted
     graph.delete_node(SampleGraph::node2.id);
-    e_cur->set_key(e_cur, SampleGraph::node2.id, -1);
+    CommonUtil::set_key(e_cur, SampleGraph::node2.id, -1);
     int ret = e_cur->search(e_cur);
     assert(ret != 0);
 
     // check that edge(2,3) is deleted
-    e_cur->set_key(e_cur, 2, 3);
+    CommonUtil::set_key(e_cur, 2, 3);
     assert(e_cur->search(e_cur) != 0);
     // check that edge(1,2) is deleted
-    e_cur->set_key(e_cur, 1, 2);
+    CommonUtil::set_key(e_cur, 1, 2);
     assert(e_cur->search(e_cur) != 0);
 
     // Now delete the reverse edges for undirected graph
     if (is_directed)
     {
-        e_cur->set_key(e_cur, 3, 2);
+        CommonUtil::set_key(e_cur, 3, 2);
         assert(e_cur->search(e_cur) != 0);
-        e_cur->set_key(e_cur, 2, 1);
+        CommonUtil::set_key(e_cur, 2, 1);
         assert(e_cur->search(e_cur) != 0);
     }
     // Verify that the in and out degrees of node 1 and 3 got updated
@@ -482,7 +482,7 @@ int main()
     test_get_in_nodes(graph);
     test_get_in_and_out_degree(graph);
 
-    // test_delete_node(graph, opts.is_directed);
+    test_delete_node(graph, opts.is_directed);
     // // // test_delete_isolated_node(graph, opts.is_directed);
 
     // test_InCursor(graph);
