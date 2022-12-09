@@ -6,8 +6,8 @@
 #include "graph_exception.h"
 #include "sample_graph.h"
 #include "standard_graph.h"
-
-#define INFO() fprintf(stderr, "Now running: %s\n", __FUNCTION__);
+#define delim "--------------"
+#define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 
 void create_init_nodes(StandardGraph graph, bool is_directed)
 {
@@ -37,7 +37,7 @@ void tearDown(StandardGraph graph) { graph.close(); }
 
 void test_node_add(StandardGraph graph, bool read_optimize)
 {
-    INFO();
+    INFO()
     node new_node = {.id = 11, .in_degree = 0, .out_degree = 0};
     graph.add_node(new_node);
     node found = graph.get_node(new_node.id);
@@ -51,7 +51,7 @@ void test_node_add(StandardGraph graph, bool read_optimize)
 
 void test_node_delete(StandardGraph graph, bool is_directed)
 {
-    INFO();
+    INFO()
     node to_delete = SampleGraph::node2;
     graph.delete_node(to_delete.id);
 
@@ -89,7 +89,7 @@ void test_node_delete(StandardGraph graph, bool is_directed)
 
 void test_get_edge_id(StandardGraph graph)
 {
-    INFO();
+    INFO()
     assert(graph.has_edge(1, 2) == true);  // Edge ID 1
     assert(graph.has_edge(1, 3) == true);  // Edge ID 2
     assert(graph.has_edge(2, 3) == true);  // Edge ID 3
@@ -99,7 +99,7 @@ void test_get_edge_id(StandardGraph graph)
 
 void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
 {
-    INFO();
+    INFO()
     if (is_directed)
     {
         assert(graph.get_num_nodes() == 6);
@@ -114,7 +114,7 @@ void test_get_num_nodes_and_edges(StandardGraph graph, bool is_directed)
 
 void test_add_edge(StandardGraph graph, bool is_directed, bool is_weighted)
 {
-    INFO();
+    INFO()
     edge to_insert = {
         .src_id = 5,
         .dst_id = 6,
@@ -137,14 +137,14 @@ void test_add_edge(StandardGraph graph, bool is_directed, bool is_weighted)
 
 void test_get_node(StandardGraph graph)
 {
-    INFO();
+    INFO()
     node found = graph.get_node(1);
     assert(found.id == 1);
 }
 
 void test_get_in_degree(StandardGraph graph, bool is_directed)
 {
-    INFO();
+    INFO()
     if (is_directed)
     {
         assert(graph.get_in_degree(1) == 0);
@@ -165,7 +165,7 @@ void test_get_in_degree(StandardGraph graph, bool is_directed)
 
 void test_get_out_degree(StandardGraph graph, bool is_directed)
 {
-    INFO();
+    INFO()
     if (is_directed)
     {
         assert(graph.get_out_degree(1) == 3);
@@ -182,7 +182,7 @@ void test_get_out_degree(StandardGraph graph, bool is_directed)
 
 void test_get_nodes(StandardGraph graph)
 {
-    INFO();
+    INFO()
     for (node x : graph.get_nodes())
     {
         CommonUtil::dump_node(x);
@@ -191,7 +191,7 @@ void test_get_nodes(StandardGraph graph)
 
 void test_get_out_edges(StandardGraph graph)
 {
-    INFO();
+    INFO()
     int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
     std::vector<edge> edges = graph.get_out_edges(test_id1);
     assert(edges.size() == 3);
@@ -225,7 +225,7 @@ void test_get_out_edges(StandardGraph graph)
 
 void test_get_out_nodes(StandardGraph graph)
 {
-    INFO();
+    INFO()
     int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
     std::vector<node> nodes = graph.get_out_nodes(test_id1);
     std::vector<node_id_t> nodes_id = graph.get_out_nodes_id(test_id1);
@@ -272,7 +272,7 @@ void test_get_out_nodes(StandardGraph graph)
 
 void test_get_in_nodes(StandardGraph graph)
 {
-    INFO();
+    INFO()
     std::vector<node> nodes = graph.get_in_nodes(3);
     std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
     assert(nodes.size() == 2);
@@ -304,7 +304,7 @@ void test_get_in_nodes(StandardGraph graph)
 
 void test_get_in_edges(StandardGraph graph)
 {
-    INFO();
+    INFO()
     std::vector<edge> edges = graph.get_in_edges(3);
     assert(edges.size() == 2);
     // Check edge0
@@ -334,7 +334,7 @@ void test_get_in_edges(StandardGraph graph)
 
 void test_cursor(StandardGraph graph)
 {
-    INFO();
+    INFO()
     for (edge x : graph.test_cursor_iter(2))
     {
         CommonUtil::dump_edge(x);
@@ -343,7 +343,7 @@ void test_cursor(StandardGraph graph)
 
 void test_get_edges(StandardGraph graph, bool is_directed)
 {
-    INFO();
+    INFO()
     vector<edge> edges = graph.get_edges();
     for (auto j : edges)
     {
@@ -376,7 +376,7 @@ void print_delim() { cout << endl << "--------------------" << endl; }
 
 void test_InCursor(StandardGraph graph)
 {
-    INFO();
+    INFO()
     InCursor *in_cursor = graph.get_innbd_iter();
     adjlist found = {0};
     in_cursor->next(&found);
@@ -397,7 +397,7 @@ void test_InCursor(StandardGraph graph)
 
 void test_OutCursor(StandardGraph graph)
 {
-    INFO();
+    INFO()
     OutCursor *out_cursor = graph.get_outnbd_iter();
     adjlist found = {0};
     out_cursor->next(&found);
@@ -428,7 +428,7 @@ void test_index_cursor(StandardGraph graph)
         CommonUtil::read_from_edge_idx(srccur, &found);
         CommonUtil::dump_edge(found);
     }
-    print_delim();
+
     while (dstcur->next(dstcur) == 0)
     {
         CommonUtil::read_from_edge_idx(dstcur, &found);
@@ -438,7 +438,7 @@ void test_index_cursor(StandardGraph graph)
 
 void test_NodeCursor(StandardGraph graph)
 {
-    INFO();
+    INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
     int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
@@ -455,7 +455,7 @@ void test_NodeCursor(StandardGraph graph)
 
 void test_NodeCursor_Range(StandardGraph graph)
 {
-    INFO();
+    INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
     int nodeIdList[] = {3, 4, 5, 6};
@@ -473,7 +473,7 @@ void test_NodeCursor_Range(StandardGraph graph)
 
 void test_EdgeCursor(StandardGraph graph)
 {
-    INFO();
+    INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge found;
     int srcIdList[] = {1, 1, 5, 7, 8};
@@ -492,7 +492,7 @@ void test_EdgeCursor(StandardGraph graph)
 
 void test_EdgeCursor_Range(StandardGraph graph)
 {
-    INFO();
+    INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge_cursor->set_key(edge_range(key_pair{1, 4}, key_pair{8, 1}));
     edge found;
@@ -535,67 +535,55 @@ int main()
 
     StandardGraph graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
-    print_delim();
 
-    test_index_cursor(graph);
-    print_delim();
-    // Test num_get_nodes and num_get_edges
+    // test_index_cursor(graph);
 
-    test_get_num_nodes_and_edges(graph, opts.is_directed);
-    print_delim();
+    // // Test num_get_nodes and num_get_edges
 
-    // Test get_node()
-    test_get_node(graph);
-    print_delim();
+    // test_get_num_nodes_and_edges(graph, opts.is_directed);
 
-    // Test get_in_degree()
-    test_get_in_degree(graph, opts.is_directed);
-    print_delim();
+    // // Test get_node()
+    // test_get_node(graph);
 
-    // Test get_out_degree()
-    test_get_out_degree(graph, opts.is_directed);
-    print_delim();
+    // // Test get_in_degree()
+    // test_get_in_degree(graph, opts.is_directed);
 
-    // test get_nodes()
-    test_get_nodes(graph);
-    print_delim();
+    // // Test get_out_degree()
+    // test_get_out_degree(graph, opts.is_directed);
 
-    // Test adding a node
-    test_node_add(graph, opts.read_optimize);
-    print_delim();
+    // // test get_nodes()
+    // test_get_nodes(graph);
 
-    test_add_edge(graph, opts.is_directed, opts.is_weighted);
+    // // Test adding a node
+    // test_node_add(graph, opts.read_optimize);
 
-    // test get_edge_id()
-    test_get_edge_id(graph);
-    print_delim();
+    // test_add_edge(graph, opts.is_directed, opts.is_weighted);
 
-    // test get_edge and get_edges
-    test_get_edges(graph, opts.is_directed);
-    print_delim();
+    // // test get_edge_id()
+    // test_get_edge_id(graph);
 
-    // test_cursor(graph);
+    // // test get_edge and get_edges
+    // test_get_edges(graph, opts.is_directed);
 
-    // test get_in_nodes_and_edges
-    test_get_in_edges(graph);
-    test_get_in_nodes(graph);
-    print_delim();
+    // // test_cursor(graph);
 
-    // test get_out_nodes_and_edges
-    test_get_out_edges(graph);
-    test_get_out_nodes(graph);
-    print_delim();
+    // // test get_in_nodes_and_edges
+    // test_get_in_edges(graph);
+    // test_get_in_nodes(graph);
 
-    // Test deleting a node
-    test_node_delete(graph, opts.is_directed);
-    print_delim();
+    // // test get_out_nodes_and_edges
+    // test_get_out_edges(graph);
+    // test_get_out_nodes(graph);
 
-    test_InCursor(graph);
-    test_OutCursor(graph);
-    test_NodeCursor(graph);
-    test_NodeCursor_Range(graph);
-    test_EdgeCursor(graph);
-    test_EdgeCursor_Range(graph);
+    // // Test deleting a node
+    // test_node_delete(graph, opts.is_directed);
+
+    // test_InCursor(graph);
+    // test_OutCursor(graph);
+    // test_NodeCursor(graph);
+    // test_NodeCursor_Range(graph);
+    // test_EdgeCursor(graph);
+    // test_EdgeCursor_Range(graph);
 
     // Test std_graph teardown
     tearDown(graph);
