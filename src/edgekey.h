@@ -13,6 +13,7 @@
 
 using namespace std;
 #define MAKE_EKEY(x) (x + 1)
+#define OG_KEY(x) (x -1)
 
 class EkeyInCursor : public InCursor
 {

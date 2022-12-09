@@ -948,7 +948,6 @@ std::vector<edge> EdgeKey::get_out_edges(node_id_t node_id)
             {
                 edge_cursor->get_value(edge_cursor, &found.edge_weight, &temp);
                 out_edges.push_back(found);
-                CommonUtil::dump_edge(found);
             }else{
                 break;
             }
@@ -957,6 +956,7 @@ std::vector<edge> EdgeKey::get_out_edges(node_id_t node_id)
     }else{
         throw GraphException ("The node " + to_string(node_id) + " does not exist in the graph");
     }
+    edge_cursor->reset(edge_cursor);
     return out_edges;
 }
 
@@ -970,41 +970,42 @@ std::vector<edge> EdgeKey::get_out_edges(node_id_t node_id)
 std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
 {
     std::vector<node> out_nodes;
-
-    if (!has_node(node_id))
+    WT_CURSOR *e_cur ;
+    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, true) !=
+        0)
     {
-        throw GraphException("There is no node with ID " + to_string(node_id));
+        throw GraphException("Could not get a cursor to the Edge table");
     }
-    CommonUtil::set_key(src_idx_cursor, MAKE_EKEY(node_id));
-    int search_ret = src_idx_cursor->search(src_idx_cursor);
-    int flag = 0;
-    if (search_ret == 0)
+
+    CommonUtil::set_key(e_cur, MAKE_EKEY(node_id), OutOfBand_ID);
+
+    int temp;
+    if (e_cur->search(e_cur) == 0)
     {
-        node_id_t src, dst;
-        do
+        while (true)
         {
-            src_idx_cursor->get_value(src_idx_cursor, &src, &dst);
-            // don't need to check if src == node_id because search_ret was
-            // 0
-            if (src != node_id)
+            node found;
+            node_id_t src_id, dst_id;
+            if (e_cur->next(e_cur) != 0)
             {
                 break;
             }
-            if (src == node_id && dst == OutOfBand_ID)
+            CommonUtil::get_key(e_cur, &src_id, &dst_id);
+            if(src_id == MAKE_EKEY(node_id))
             {
-                flag++;
-            }
-            else
+                found = get_node(OG_KEY(dst_id));
+                out_nodes.push_back(found);
+                CommonUtil::dump_node(found);
+            }else
             {
-                out_nodes.push_back(get_node(dst));
+                break;
             }
-        } while (src == node_id && src_idx_cursor->next(src_idx_cursor) == 0 &&
-                 flag <= 1);  // flag check ensures that if the first entry
-                              // we hit was (node_id, -1), we try to look
-                              // for the next entry the cursor points to to
-                              // see if it has a (node_id, <dst>) entry.
+        }
+
+    }else{
+        throw GraphException ("The node " + to_string(node_id) + " does not exist in the graph");
     }
-    src_idx_cursor->reset(src_idx_cursor);
+    e_cur->close(e_cur);
     return out_nodes;
 }
 
@@ -1018,41 +1019,39 @@ std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
 std::vector<node_id_t> EdgeKey::get_out_nodes_id(node_id_t node_id)
 {
     std::vector<node_id_t> out_nodes_id;
-
-    if (!has_node(node_id))
+    WT_CURSOR *e_cur ;
+    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, true) !=
+        0)
     {
-        throw GraphException("There is no node with ID " + to_string(node_id));
+        throw GraphException("Could not get a cursor to the Edge table");
     }
-    CommonUtil::set_key(src_idx_cursor, MAKE_EKEY(node_id));
-    int search_ret = src_idx_cursor->search(src_idx_cursor);
-    int flag = 0;
-    if (search_ret == 0)
+
+    CommonUtil::set_key(e_cur, MAKE_EKEY(node_id), OutOfBand_ID);
+
+    int temp;
+    if (e_cur->search(e_cur) == 0)
     {
-        node_id_t src, dst;
-        do
+        while (true)
         {
-            src_idx_cursor->get_value(src_idx_cursor, &src, &dst);
-            // don't need to check if src == node_id because search_ret was
-            // 0
-            if (src != node_id)
+            node_id_t src_id, dst_id;
+            if (e_cur->next(e_cur) != 0)
             {
                 break;
             }
-            if (src == node_id && dst == OutOfBand_ID)
+            CommonUtil::get_key(e_cur, &src_id, &dst_id);
+            if(src_id == MAKE_EKEY(node_id))
             {
-                flag++;
-            }
-            else
+                out_nodes_id.push_back(OG_KEY(dst_id));
+            }else
             {
-                out_nodes_id.push_back(dst);
+                break;
             }
-        } while (src == node_id && src_idx_cursor->next(src_idx_cursor) == 0 &&
-                 flag <= 1);  // flag check ensures that if the first entry
-                              // we hit was (node_id, -1), we try to look
-                              // for the next entry the cursor points to to
-                              // see if it has a (node_id, <dst>) entry.
+        }
+
+    }else{
+        throw GraphException ("The node " + to_string(node_id) + " does not exist in the graph");
     }
-    src_idx_cursor->reset(src_idx_cursor);
+    e_cur->close(e_cur);
     return out_nodes_id;
 }
 

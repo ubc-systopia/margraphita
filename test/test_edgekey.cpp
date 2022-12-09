@@ -460,7 +460,7 @@ int main()
     test_get_edge(graph);
     test_get_out_edges(graph);
     // test_get_in_edges(graph);
-    // test_get_out_nodes(graph);
+    test_get_out_nodes(graph);
     // test_get_in_nodes(graph);
     // test_get_in_and_out_degree(graph);
 
