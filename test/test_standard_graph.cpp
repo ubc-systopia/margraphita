@@ -535,55 +535,45 @@ int main()
 
     StandardGraph graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
+    test_index_cursor(graph);
+    // Test num_get_nodes and num_get_edges
+    test_get_num_nodes_and_edges(graph, opts.is_directed);
+    // Test get_node()
+    test_get_node(graph);
+    // Test get_in_degree()
+    test_get_in_degree(graph, opts.is_directed);
 
-    // test_index_cursor(graph);
+    // Test get_out_degree()
+    test_get_out_degree(graph, opts.is_directed);
 
-    // // Test num_get_nodes and num_get_edges
+    // test get_nodes()
+    test_get_nodes(graph);
 
-    // test_get_num_nodes_and_edges(graph, opts.is_directed);
+    // Test adding a node
+    test_node_add(graph, opts.read_optimize);
+    test_add_edge(graph, opts.is_directed, opts.is_weighted);
+    // test get_edge and get_edges
+    test_get_edges(graph, opts.is_directed);
 
-    // // Test get_node()
-    // test_get_node(graph);
+    test_cursor(graph);
 
-    // // Test get_in_degree()
-    // test_get_in_degree(graph, opts.is_directed);
+    // test get_in_nodes_and_edges
+    test_get_in_edges(graph);
+    test_get_in_nodes(graph);
 
-    // // Test get_out_degree()
-    // test_get_out_degree(graph, opts.is_directed);
-
-    // // test get_nodes()
-    // test_get_nodes(graph);
-
-    // // Test adding a node
-    // test_node_add(graph, opts.read_optimize);
-
-    // test_add_edge(graph, opts.is_directed, opts.is_weighted);
-
-    // // test get_edge_id()
-    // test_get_edge_id(graph);
-
-    // // test get_edge and get_edges
-    // test_get_edges(graph, opts.is_directed);
-
-    // // test_cursor(graph);
-
-    // // test get_in_nodes_and_edges
-    // test_get_in_edges(graph);
-    // test_get_in_nodes(graph);
-
-    // // test get_out_nodes_and_edges
-    // test_get_out_edges(graph);
-    // test_get_out_nodes(graph);
+    // test get_out_nodes_and_edges
+    test_get_out_edges(graph);
+    test_get_out_nodes(graph);
 
     // // Test deleting a node
-    // test_node_delete(graph, opts.is_directed);
+    test_node_delete(graph, opts.is_directed);
 
     // test_InCursor(graph);
-    // test_OutCursor(graph);
-    // test_NodeCursor(graph);
-    // test_NodeCursor_Range(graph);
-    // test_EdgeCursor(graph);
-    // test_EdgeCursor_Range(graph);
+    //  test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
 
     // Test std_graph teardown
     tearDown(graph);

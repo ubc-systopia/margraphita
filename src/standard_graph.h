@@ -73,7 +73,9 @@ class StdInCursor : public InCursor
             goto no_next;
         }
 
-        cursor->get_value(cursor, &src, &dst);
+        CommonUtil::get_val_idx(cursor, &src, &dst);
+        std::cout << __LINE__ << ": (src: " << src << " dst: " << dst << ")"
+                  << std::endl;
 
         found->degree = 0;
         found->edgelist.clear();
@@ -81,6 +83,8 @@ class StdInCursor : public InCursor
 
         if (dst != next_expected)
         {
+            std::cout << __LINE__ << "(dst:" << dst
+                      << " , next_expected: " << next_expected << std::endl;
             found->node_id = next_expected;
             next_expected += 1;
             return;
@@ -90,6 +94,9 @@ class StdInCursor : public InCursor
         do
         {
             CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
+            std::cout << __LINE__ << ": here " << dst << " " << next_expected
+                      << std::endl;
+            CommonUtil::dump_edge(curr_edge);
             if (dst == curr_edge.dst_id)
             {
                 found->degree++;
@@ -143,7 +150,7 @@ class StdInCursor : public InCursor
         next_expected = key + 1;
 
         edge curr_edge;
-        cursor->set_key(cursor, key);
+        CommonUtil::set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -319,7 +326,7 @@ class StdOutCursor : public OutCursor
         next_expected = key + 1;
 
         edge curr_edge;
-        cursor->set_key(cursor, key);
+        CommonUtil::set_key(cursor, key);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -398,7 +405,7 @@ class StdNodeCursor : public NodeCursor
         {
         first_time_skip_next:
             // error_check(cursor->get_key(cursor, &found->id));
-            cursor->get_key(cursor, &found->id);
+            CommonUtil::get_key(cursor, &found->id);
             if (keys.end != -1 && found->id > keys.end)
             {
                 goto no_next;
@@ -459,7 +466,7 @@ class StdEdgeCursor : public EdgeCursor
         first_time_skip_next:
             // error_check(
             //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
-            cursor->get_key(cursor, &found->src_id, &found->dst_id);
+            CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
 
             // If end_edge is set
             if (end_edge.src_id != -1)

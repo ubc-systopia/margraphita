@@ -273,7 +273,7 @@ int StandardGraph::add_node_txn(node to_insert)
  */
 bool StandardGraph::has_node(node_id_t node_id)
 {
-    node_cursor->set_key(node_cursor, node_id);
+    CommonUtil::set_key(node_cursor, node_id);
     int ret = node_cursor->search(node_cursor);
     node_cursor->reset(node_cursor);
     return (ret == 0);
@@ -621,7 +621,6 @@ start_add_edge:
     }
 
     ret = edge_cursor->insert(edge_cursor);
-    CommonUtil::dump_edge(to_insert);
 
     switch (ret)
     {

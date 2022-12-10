@@ -190,8 +190,7 @@ class CommonUtil
     static void record_to_node_ekey(WT_CURSOR *cur, node *found);
     static void record_to_node_ekeyidx(WT_CURSOR *idx_cursor, node *found);
     static void record_to_edge_ekey(WT_CURSOR *cur, edge *found);
-    static void get_val_ekeyidx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b);
-
+    static void get_val_idx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b);
 };
 
 /***************************************************************************
@@ -236,8 +235,8 @@ inline int CommonUtil::get_key(WT_CURSOR *cursor, node_id_t *key)
 }
 
 inline int CommonUtil::get_key(WT_CURSOR *cursor,
-                                node_id_t *key1,
-                                node_id_t *key2)
+                               node_id_t *key1,
+                               node_id_t *key2)
 {
     WT_ITEM k1, k2;
     int ret = cursor->get_key(cursor, &k1, &k2);
@@ -308,7 +307,9 @@ inline void CommonUtil::read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
     e_idx->dst_id = __builtin_bswap32(dst_id);
 }
 
-inline void CommonUtil::get_val_ekeyidx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b)
+inline void CommonUtil::get_val_idx(WT_CURSOR *idx_cursor,
+                                    node_id_t *a,
+                                    node_id_t *b)
 {
     WT_ITEM x, y;
     idx_cursor->get_value(idx_cursor, &x, &y);

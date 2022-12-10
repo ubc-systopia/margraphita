@@ -301,7 +301,7 @@ int EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
 
     do
     {
-        CommonUtil::get_val_ekeyidx(idx_cur, &src, &dst);
+        CommonUtil::get_val_idx(idx_cur, &src, &dst);
         CommonUtil::set_key(e_cur, src, dst);
 
         ret = e_cur->remove(e_cur);
@@ -765,7 +765,7 @@ std::vector<node> EdgeKey::get_nodes()
     if (dst_idx_cursor->search(dst_idx_cursor) == 0)
     {
         node_id_t node_id, temp;
-        CommonUtil::get_val_ekeyidx(dst_idx_cursor, &node_id, &temp);
+        CommonUtil::get_val_idx(dst_idx_cursor, &node_id, &temp);
         assert(temp == OutOfBand_ID);  // this should be true
         CommonUtil::set_key(edge_cursor, node_id, OutOfBand_ID);
         if (edge_cursor->search(edge_cursor) == 0)
@@ -777,7 +777,7 @@ std::vector<node> EdgeKey::get_nodes()
 
         while (dst_idx_cursor->next(dst_idx_cursor) == 0)
         {
-            CommonUtil::get_val_ekeyidx(dst_idx_cursor, &node_id, &temp);
+            CommonUtil::get_val_idx(dst_idx_cursor, &node_id, &temp);
             if (temp == OutOfBand_ID)
             {
                 CommonUtil::set_key(
@@ -830,7 +830,7 @@ degree_t EdgeKey::get_out_degree(node_id_t node_id)
             while (ret == 0)
             {
                 node_id_t src, dst;
-                CommonUtil::get_val_ekeyidx(src_idx_cursor, &src, &dst);
+                CommonUtil::get_val_idx(src_idx_cursor, &src, &dst);
                 if (src == MAKE_EKEY(node_id))
                 {
                     if (dst != OutOfBand_ID)
@@ -877,7 +877,7 @@ degree_t EdgeKey::get_in_degree(node_id_t node_id)
             while (ret == 0)
             {
                 node_id_t src, dst;
-                CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src, &dst);
+                CommonUtil::get_val_idx(dst_idx_cursor, &src, &dst);
                 if (src == MAKE_EKEY(node_id))
                 {
                     if (dst != OutOfBand_ID)
@@ -1073,7 +1073,7 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
     if (search_ret == 0)
     {
         node_id_t src_id, dst_id;
-        CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
+        CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
 //        std::cout << "(src, dst) : " << src_id << " , " << dst_id <<std::endl;
 
         do
@@ -1095,7 +1095,7 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
             }
 
             dst_idx_cursor->next(dst_idx_cursor);
-            CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
+            CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
         } while (dst_id == MAKE_EKEY(node_id));
     }
     edge_cursor->reset(edge_cursor);
@@ -1122,13 +1122,13 @@ std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
     if (search_ret == 0)
     {
         node_id_t src_id, dst_id;
-        CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
+        CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
         do
         {
             in_nodes.push_back(get_node(OG_KEY(src_id)));
             if (dst_idx_cursor->next(dst_idx_cursor) == 0)
             {
-                CommonUtil::get_val_ekeyidx(
+                CommonUtil::get_val_idx(
                         dst_idx_cursor, &src_id, &dst_id);
             }
             else
@@ -1162,7 +1162,7 @@ std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
     if (dst_idx_cursor->search(dst_idx_cursor) == 0)
     {
         node_id_t src_id, dst_id;
-        CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
+        CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
         while (dst_id == MAKE_EKEY(node_id))
         {
             in_nodes_id.push_back(OG_KEY(src_id));
@@ -1170,7 +1170,7 @@ std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
             {
                 break;
             }
-            CommonUtil::get_val_ekeyidx(dst_idx_cursor, &src_id, &dst_id);
+            CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
         }
     }
     dst_idx_cursor->reset(dst_idx_cursor);
