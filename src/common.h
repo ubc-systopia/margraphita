@@ -191,6 +191,11 @@ class CommonUtil
     static void record_to_node_ekeyidx(WT_CURSOR *idx_cursor, node *found);
     static void record_to_edge_ekey(WT_CURSOR *cur, edge *found);
     static void get_val_idx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b);
+    static void get_ekey_dst_src_val(WT_CURSOR *idx_cursor,
+                                     node_id_t *a,
+                                     node_id_t *b,
+                                     degree_t *in,
+                                     degree_t *out);
 };
 
 /***************************************************************************
@@ -319,6 +324,25 @@ inline void CommonUtil::get_val_idx(WT_CURSOR *idx_cursor,
     *b = __builtin_bswap32(dst_id);
 }
 
+inline void CommonUtil::get_ekey_dst_src_val(WT_CURSOR *idx_cursor,
+                                             node_id_t *a,
+                                             node_id_t *b,
+                                             degree_t *in,
+                                             degree_t *out)
+{
+    WT_ITEM x, y;
+    degree_t in_degree, out_degree;
+    idx_cursor->get_value(idx_cursor, &x, &y, &in_degree, &out_degree);
+
+    uint32_t sid = *(uint32_t *)x.data;
+    uint32_t did = *(uint32_t *)y.data;
+
+    *a = __builtin_bswap32(sid);
+    *b = __builtin_bswap32(did);
+    *in = in_degree;
+    *out = out_degree;
+}
+
 /**
  * @brief This function accepts a cursor to the adjlist table and an adjlist
  * sturct to insert.
@@ -424,10 +448,10 @@ class table_iterator
         cursor = cursor_;
         session = sess_;
     }
-    // TODO: Change this to accept a Graph object reference and the table/index
-    // name for which the cursor is sought. Current design needs the user to
-    // know which table to provide a cursor for. This is guaranteed to cause
-    // bugs.
+    // TODO: Change this to accept a Graph object reference and the
+    // table/index name for which the cursor is sought. Current design needs
+    // the user to know which table to provide a cursor for. This is
+    // guaranteed to cause bugs.
    public:
     void set_key(node_id_t key) { CommonUtil::set_key(cursor, key); }
     bool has_more() { return has_next; };
@@ -504,8 +528,8 @@ class NodeCursor : public table_iterator
     /**
      * @brief Set the key range object
      *
-     * @param _keys the key range object. Set the end key to INT_MAX if you want
-     * to get all the nodes from start node.
+     * @param _keys the key range object. Set the end key to INT_MAX if you
+     * want to get all the nodes from start node.
      */
     virtual void set_key_range(key_range _keys)  // overrided by edgekey
     {

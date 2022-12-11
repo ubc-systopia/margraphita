@@ -218,7 +218,7 @@ void test_get_in_edges(EdgeKey graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_in_edges(3);
-    for (auto  e : edges)
+    for (auto e : edges)
     {
         CommonUtil::dump_edge(e);
     }
@@ -252,8 +252,7 @@ void test_get_in_nodes(EdgeKey graph)
 {
     INFO()
     std::vector<node> nodes = graph.get_in_nodes(3);
-    for (auto n : nodes)
-        CommonUtil::dump_node(n);
+    for (auto n : nodes) CommonUtil::dump_node(n);
     std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
     assert(nodes.size() == 2);
     assert(nodes_id.size() == 2);
@@ -483,13 +482,13 @@ int main()
     test_get_in_and_out_degree(graph);
 
     test_delete_node(graph, opts.is_directed);
-    //test_delete_isolated_node(graph, opts.is_directed);
+    // test_delete_isolated_node(graph, opts.is_directed);
 
-     test_InCursor(graph);
+    // test_InCursor(graph);
     // test_OutCursor(graph);
 
-    // test_NodeCursor(graph);
-    // test_NodeCursor_Range(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
     // test_EdgeCursor(graph);
     // test_EdgeCursor_Range(graph);
 

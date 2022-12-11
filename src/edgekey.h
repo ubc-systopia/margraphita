@@ -13,7 +13,7 @@
 
 using namespace std;
 #define MAKE_EKEY(x) (x + 1)
-#define OG_KEY(x) (x -1)
+#define OG_KEY(x) (x - 1)
 
 class EkeyInCursor : public InCursor
 {
@@ -70,7 +70,7 @@ class EkeyInCursor : public InCursor
             goto no_next;
         }
 
-        cursor->get_value(cursor, &src, &dst);
+        CommonUtil::get_val_idx(cursor, &src, &dst);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -250,7 +250,7 @@ class EkeyOutCursor : public OutCursor
             goto no_next;
         }
 
-        cursor->get_value(cursor, &src, &dst);
+        CommonUtil::get_val_idx(cursor, &src, &dst);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -418,19 +418,16 @@ class EkeyNodeCursor : public NodeCursor
         if (cursor->next(cursor) == 0)
         {
         first_time_skip_next:
-
-            char *buf;
-            int a = 0, b = 0;
-            cursor->get_value(cursor,
-                              &curr_edge.dst_id,
-                              &curr_edge.src_id,
-                              &found->in_degree,
-                              &found->out_degree);  // getting all of dst, src,
-                                                    // in/out degrees at once
-
-            // found->in_degree = a;
-            // found->out_degree = b;
-            found->id = curr_edge.src_id;
+            CommonUtil::get_ekey_dst_src_val(
+                cursor,
+                &curr_edge.dst_id,
+                &curr_edge.src_id,
+                &found->in_degree,
+                &found->out_degree);  // getting all of dst, src,
+                                      // in/out degrees at once
+            found->id = OG_KEY(curr_edge.src_id);
+            curr_edge.src_id -= 1;
+            curr_edge.dst_id -= 1;
 
             if (keys.end != -1 && curr_edge.src_id > keys.end)
             {
