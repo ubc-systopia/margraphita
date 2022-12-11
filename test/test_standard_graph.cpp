@@ -391,6 +391,7 @@ void test_InCursor(StandardGraph graph)
 
     in_cursor->next(&found, 3);
     assert(found.node_id == 3);
+    std::cout << "found.edgelist.size() = " << found.edgelist.size() << endl;
     assert(found.edgelist.size() ==
            1);  // size is 1 after deleting node 2; 2 if not deleted
 }
@@ -565,11 +566,11 @@ int main()
     test_get_out_edges(graph);
     test_get_out_nodes(graph);
 
-    // // Test deleting a node
+    // Test deleting a node
     test_node_delete(graph, opts.is_directed);
 
-    // test_InCursor(graph);
-    //  test_OutCursor(graph);
+    test_InCursor(graph);
+    test_OutCursor(graph);
     test_NodeCursor(graph);
     test_NodeCursor_Range(graph);
     test_EdgeCursor(graph);

@@ -74,8 +74,6 @@ class StdInCursor : public InCursor
         }
 
         CommonUtil::get_val_idx(cursor, &src, &dst);
-        std::cout << __LINE__ << ": (src: " << src << " dst: " << dst << ")"
-                  << std::endl;
 
         found->degree = 0;
         found->edgelist.clear();
@@ -83,8 +81,6 @@ class StdInCursor : public InCursor
 
         if (dst != next_expected)
         {
-            std::cout << __LINE__ << "(dst:" << dst
-                      << " , next_expected: " << next_expected << std::endl;
             found->node_id = next_expected;
             next_expected += 1;
             return;
@@ -94,9 +90,6 @@ class StdInCursor : public InCursor
         do
         {
             CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
-            std::cout << __LINE__ << ": here " << dst << " " << next_expected
-                      << std::endl;
-            CommonUtil::dump_edge(curr_edge);
             if (dst == curr_edge.dst_id)
             {
                 found->degree++;
@@ -256,7 +249,7 @@ class StdOutCursor : public OutCursor
             goto no_next;
         }
 
-        cursor->get_value(cursor, &src, &dst);
+        CommonUtil::get_val_idx(cursor, &src, &dst);
 
         found->degree = 0;
         found->edgelist.clear();
