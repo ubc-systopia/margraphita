@@ -489,8 +489,8 @@ int main()
 
     test_NodeCursor(graph);
     test_NodeCursor_Range(graph);
-    // test_EdgeCursor(graph);
-    // test_EdgeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
 
     tearDown(graph);
 }

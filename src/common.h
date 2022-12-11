@@ -566,7 +566,7 @@ class EdgeCursor : public table_iterator
     // Overwrites set_key(int key) implementation in table_iterator
     void set_key(int key) = delete;
 
-    void set_key(edge_range range)
+    virtual void set_key(edge_range range)
     {
         start_edge = range.start;
         end_edge = range.end;

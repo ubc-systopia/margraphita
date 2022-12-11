@@ -459,6 +459,14 @@ class EkeyEdgeCursor : public EdgeCursor
         : EdgeCursor(cur, sess, get_weight)
     {
     }
+    void set_key(edge_range range)
+    {
+        start_edge = range.start;
+        end_edge = range.end;
+        CommonUtil::set_key(cursor,
+                            MAKE_EKEY(range.start.src_id),
+                            MAKE_EKEY(range.start.dst_id));
+    }
 
     void next(edge *found)
     {
@@ -479,6 +487,7 @@ class EkeyEdgeCursor : public EdgeCursor
                 int status;
                 // error_check(cursor->search_near(cursor, &status));
                 cursor->search_near(cursor, &status);
+                std::cout << "status: " << status << std::endl;
                 if (status >= 0)
                 {
                     goto skip_first_advance;
@@ -498,6 +507,8 @@ class EkeyEdgeCursor : public EdgeCursor
             // error_check(
             //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
             CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
+            found->src_id -= 1;
+            found->dst_id -= 1;
             if (found->dst_id != -1)
             {
                 goto edge_found;
