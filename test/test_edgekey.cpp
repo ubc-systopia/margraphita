@@ -467,24 +467,24 @@ int main()
     EdgeKey graph(opts, conn);
 
     create_init_nodes(graph, opts.is_directed);
-    test_get_node(graph);
-    test_node_add(graph, opts.read_optimize);
-    test_get_nodes(graph);
-    test_get_random_nodes(graph);
-    test_add_edge(graph, opts.is_directed, opts.is_weighted);
-    test_get_edge(graph);
-    test_get_edges(graph);
-    test_get_out_edges(graph);
-    test_get_out_nodes(graph);
-    test_get_in_edges(graph);
+    // test_get_node(graph);
+    // test_node_add(graph, opts.read_optimize);
+    // test_get_nodes(graph);
+    // test_get_random_nodes(graph);
+    // test_add_edge(graph, opts.is_directed, opts.is_weighted);
+    // test_get_edge(graph);
+    // test_get_edges(graph);
+    // test_get_out_edges(graph);
+    // test_get_out_nodes(graph);
+    // test_get_in_edges(graph);
 
-    test_get_in_nodes(graph);
-    test_get_in_and_out_degree(graph);
+    // test_get_in_nodes(graph);
+    // test_get_in_and_out_degree(graph);
 
     test_delete_node(graph, opts.is_directed);
     // test_delete_isolated_node(graph, opts.is_directed);
 
-    // test_InCursor(graph);
+    test_InCursor(graph);
     // test_OutCursor(graph);
 
     test_NodeCursor(graph);

@@ -860,7 +860,6 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
     std::vector<node_id_t> adjlist = get_adjlist(in_adjlist_cursor, node_id);
-    node found = {0};
     for (auto src_id : adjlist)
     {
         in_nodes.push_back(get_node(src_id));
@@ -1249,7 +1248,7 @@ OutCursor *AdjList::get_outnbd_iter()
     OutCursor *toReturn =
         new AdjOutCursor(get_new_out_adjlist_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
+    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
     return toReturn;
 }
 
@@ -1258,7 +1257,7 @@ InCursor *AdjList::get_innbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new AdjInCursor(get_new_in_adjlist_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
+    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
     return toReturn;
 }
 

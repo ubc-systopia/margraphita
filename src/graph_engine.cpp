@@ -110,8 +110,9 @@ void GraphEngine::check_opts_valid()
         {
             std::filesystem::create_directories(opts.stat_log);
         }
-        catch (exception e)
+        catch (GraphException &G)
         {
+            std::cout << G.what() << std::endl;
         }
     }
 }

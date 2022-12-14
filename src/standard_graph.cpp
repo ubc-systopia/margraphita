@@ -210,7 +210,7 @@ int StandardGraph::add_node(node to_insert)
 {
     int ret = 0;
 
-start_add_node:
+    // start_add_node:
     session->begin_transaction(session, "isolation=snapshot");
 
     CommonUtil::set_key(node_cursor, to_insert.id);
@@ -360,7 +360,7 @@ int StandardGraph::delete_node(node_id_t node_id)
     int num_edges_to_add = 0;
     int ret = 0;
 
-start_delete_node:
+    // start_delete_node:
     num_nodes_to_add = 0;
     num_edges_to_add = 0;
     ret = 0;
@@ -576,7 +576,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
     int ret = 0;
-start_add_edge:
+    // start_add_edge:
     num_nodes_to_add = 0;
     num_edges_to_add = 0;
     ret = 0;
@@ -832,7 +832,7 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
     int num_edges_to_add = 0;
     int ret = 0;
-start_delete_edge:
+    // start_delete_edge:
     num_edges_to_add = 0;
     ret = 0;
     session->begin_transaction(session, "isolation=snapshot");
@@ -1324,7 +1324,7 @@ OutCursor *StandardGraph::get_outnbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new StdOutCursor(get_new_src_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
+    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
     return toReturn;
 }
 
@@ -1333,7 +1333,7 @@ InCursor *StandardGraph::get_innbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new StdInCursor(get_new_dst_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
+    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
     return toReturn;
 }
 

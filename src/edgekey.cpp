@@ -4,13 +4,14 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <cstdlib>
+
 #include "common.h"
 
 using namespace std;
@@ -146,7 +147,7 @@ node EdgeKey::get_random_node()
  */
 int EdgeKey::add_node(node to_insert)
 {
-//start_add_node:
+    // start_add_node:
     session->begin_transaction(session, "isolation=snapshot");
 
     CommonUtil::set_key(edge_cursor, MAKE_EKEY(to_insert.id), OutOfBand_ID);
@@ -409,7 +410,7 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
     int ret = 0;
-start_add_edge:
+    // start_add_edge:
     num_nodes_to_add = 0;
     num_edges_to_add = 0;
     ret = 0;
@@ -418,8 +419,7 @@ start_add_edge:
     // Ensure src and dst nodes exist
     if (!is_bulk)
     {
-        
-        if (! has_node(to_insert.src_id))
+        if (!has_node(to_insert.src_id))
         {
             node src{.id = to_insert.src_id};
             ret = error_check_add_edge(add_node_txn(src));
@@ -433,7 +433,7 @@ start_add_edge:
                 num_nodes_to_add += 1;
             }
         }
-        if(! has_node(to_insert.dst_id))
+        if (!has_node(to_insert.dst_id))
         {
             node dst{.id = to_insert.dst_id};
             ret = error_check_add_edge(add_node_txn(dst));
@@ -603,7 +603,7 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
 {
     int num_edges_to_add = 0;
     int ret = 0;
-start_delete_edge:
+    // start_delete_edge:
     num_edges_to_add = 0;
     ret = 0;
     session->begin_transaction(session, "isolation=snapshot");
@@ -780,8 +780,7 @@ std::vector<node> EdgeKey::get_nodes()
             CommonUtil::get_val_idx(dst_idx_cursor, &node_id, &temp);
             if (temp == OutOfBand_ID)
             {
-                CommonUtil::set_key(
-                    edge_cursor, node_id, OutOfBand_ID);
+                CommonUtil::set_key(edge_cursor, node_id, OutOfBand_ID);
                 if (edge_cursor->search(edge_cursor) == 0)
                 {
                     node found{.id = OG_KEY(node_id)};
@@ -909,7 +908,7 @@ std::vector<edge> EdgeKey::get_edges()
     while (edge_cursor->next(edge_cursor) == 0)
     {
         edge found = {0};
-        CommonUtil:: get_key(edge_cursor, &found.src_id, &found.dst_id);
+        CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
         if (found.dst_id != OutOfBand_ID)
         {
             if (opts.is_weighted)
@@ -932,29 +931,33 @@ std::vector<edge> EdgeKey::get_edges()
 std::vector<edge> EdgeKey::get_out_edges(node_id_t node_id)
 {
     std::vector<edge> out_edges;
-     CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+    CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
 
-     int temp;
-     if (edge_cursor->search(edge_cursor) == 0)
+    int temp;
+    if (edge_cursor->search(edge_cursor) == 0)
     {
         while (true)
         {
             edge found;
             if (edge_cursor->next(edge_cursor) != 0) break;
             CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
-            found.src_id -=1;
-            found.dst_id -=1;
-            if((found.src_id == node_id) &(found.dst_id != OutOfBand_ID))
+            found.src_id -= 1;
+            found.dst_id -= 1;
+            if ((found.src_id == node_id) & (found.dst_id != OutOfBand_ID))
             {
                 edge_cursor->get_value(edge_cursor, &found.edge_weight, &temp);
                 out_edges.push_back(found);
-            }else{
+            }
+            else
+            {
                 break;
             }
         }
-
-    }else{
-        throw GraphException ("The node " + to_string(node_id) + " does not exist in the graph");
+    }
+    else
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
     }
     edge_cursor->reset(edge_cursor);
     return out_edges;
@@ -970,16 +973,14 @@ std::vector<edge> EdgeKey::get_out_edges(node_id_t node_id)
 std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
 {
     std::vector<node> out_nodes;
-    WT_CURSOR *e_cur ;
-    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, true) !=
-        0)
+    WT_CURSOR *e_cur;
+    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, true) != 0)
     {
         throw GraphException("Could not get a cursor to the Edge table");
     }
 
     CommonUtil::set_key(e_cur, MAKE_EKEY(node_id), OutOfBand_ID);
 
-    int temp;
     if (e_cur->search(e_cur) == 0)
     {
         while (true)
@@ -991,19 +992,22 @@ std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
                 break;
             }
             CommonUtil::get_key(e_cur, &src_id, &dst_id);
-            if(src_id == MAKE_EKEY(node_id))
+            if (src_id == MAKE_EKEY(node_id))
             {
                 found = get_node(OG_KEY(dst_id));
                 out_nodes.push_back(found);
                 CommonUtil::dump_node(found);
-            }else
+            }
+            else
             {
                 break;
             }
         }
-
-    }else{
-        throw GraphException ("The node " + to_string(node_id) + " does not exist in the graph");
+    }
+    else
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
     }
     e_cur->close(e_cur);
     return out_nodes;
@@ -1019,16 +1023,14 @@ std::vector<node> EdgeKey::get_out_nodes(node_id_t node_id)
 std::vector<node_id_t> EdgeKey::get_out_nodes_id(node_id_t node_id)
 {
     std::vector<node_id_t> out_nodes_id;
-    WT_CURSOR *e_cur ;
-    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, true) !=
-        0)
+    WT_CURSOR *e_cur;
+    if (_get_table_cursor(EDGE_TABLE, &e_cur, session, false, true) != 0)
     {
         throw GraphException("Could not get a cursor to the Edge table");
     }
 
     CommonUtil::set_key(e_cur, MAKE_EKEY(node_id), OutOfBand_ID);
 
-    int temp;
     if (e_cur->search(e_cur) == 0)
     {
         while (true)
@@ -1039,17 +1041,20 @@ std::vector<node_id_t> EdgeKey::get_out_nodes_id(node_id_t node_id)
                 break;
             }
             CommonUtil::get_key(e_cur, &src_id, &dst_id);
-            if(src_id == MAKE_EKEY(node_id))
+            if (src_id == MAKE_EKEY(node_id))
             {
                 out_nodes_id.push_back(OG_KEY(dst_id));
-            }else
+            }
+            else
             {
                 break;
             }
         }
-
-    }else{
-        throw GraphException ("The node " + to_string(node_id) + " does not exist in the graph");
+    }
+    else
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
     }
     e_cur->close(e_cur);
     return out_nodes_id;
@@ -1074,7 +1079,8 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
     {
         node_id_t src_id, dst_id;
         CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
-//        std::cout << "(src, dst) : " << src_id << " , " << dst_id <<std::endl;
+        //        std::cout << "(src, dst) : " << src_id << " , " << dst_id
+        //        <<std::endl;
 
         do
         {
@@ -1082,15 +1088,17 @@ std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
             found.src_id = OG_KEY(src_id);
             found.dst_id = OG_KEY(dst_id);
             found.edge_weight = 0;
-            if(opts.is_weighted){
-                CommonUtil::set_key(
-                    edge_cursor, src_id, dst_id);
+            if (opts.is_weighted)
+            {
+                CommonUtil::set_key(edge_cursor, src_id, dst_id);
                 if (edge_cursor->search(edge_cursor) == 0)
                 {
                     CommonUtil::record_to_edge_ekey(edge_cursor, &found);
                     in_edges.push_back(found);
                 }
-            }else{
+            }
+            else
+            {
                 in_edges.push_back(found);
             }
 
@@ -1128,8 +1136,7 @@ std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
             in_nodes.push_back(get_node(OG_KEY(src_id)));
             if (dst_idx_cursor->next(dst_idx_cursor) == 0)
             {
-                CommonUtil::get_val_idx(
-                        dst_idx_cursor, &src_id, &dst_id);
+                CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
             }
             else
             {
@@ -1359,7 +1366,7 @@ OutCursor *EdgeKey::get_outnbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new EkeyOutCursor(get_new_src_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
+    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
     return toReturn;
 }
 
@@ -1368,7 +1375,7 @@ InCursor *EdgeKey::get_innbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new EkeyInCursor(get_new_dst_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, (int64_t)num_nodes - 1});
+    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
     return toReturn;
 }
 
