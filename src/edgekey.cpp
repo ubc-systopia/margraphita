@@ -124,10 +124,10 @@ node EdgeKey::get_random_node()
         {
             break;
         }
-        if (dst == OutOfBand_ID)
+        if (dst == OutOfBand_ID)git 
         {
             // random_cur->set_key(random_cur, src, dst);
-            rando.id = src;
+            rando.id = OG_KEY(src);
             CommonUtil::record_to_node_ekey(random_cursor, &rando);
             break;
         }
