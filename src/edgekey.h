@@ -17,7 +17,7 @@ using namespace std;
 
 class EkeyInCursor : public InCursor
 {
-    node_id_t next_expected = 0;
+    node_id_t next_expected = 1;
     bool data_remaining = true;
 
    public:
@@ -44,16 +44,15 @@ class EkeyInCursor : public InCursor
 
             node_id_t to_search = 0;
 
-            if (keys.start != -1)
+            if (keys.start != 0)
             {
                 to_search = keys.start;
                 next_expected = keys.start;
             }
 
-            CommonUtil::set_key(cursor, to_search);
+            CommonUtil::set_key(cursor, MAKE_EKEY(to_search));
 
             int status;
-            // error_check(cursor->search_near(cursor, &status));
             cursor->search_near(cursor, &status);
             if (status < 0)
             {
@@ -74,11 +73,11 @@ class EkeyInCursor : public InCursor
 
         found->degree = 0;
         found->edgelist.clear();
-        found->node_id = dst;
+        found->node_id = OG_KEY(dst);
 
         if (dst != next_expected)
         {
-            found->node_id = next_expected;
+            found->node_id = OG_KEY(next_expected);
             next_expected += 1;
             return;
         }
@@ -92,7 +91,7 @@ class EkeyInCursor : public InCursor
             if (dst == curr_edge.dst_id)
             {
                 found->degree++;
-                found->edgelist.push_back(curr_edge.src_id);
+                found->edgelist.push_back(OG_KEY(curr_edge.src_id));
             }
             else
             {
@@ -117,7 +116,7 @@ class EkeyInCursor : public InCursor
         }
         found->degree = 0;
         found->edgelist.clear();
-        found->node_id = next_expected;
+        found->node_id = OG_KEY(next_expected);
         next_expected += 1;
     }
 
