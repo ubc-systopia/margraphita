@@ -192,7 +192,7 @@ class EkeyInCursor : public InCursor
 class EkeyOutCursor : public OutCursor
 {
    private:
-    node_id_t next_expected = 0;
+    node_id_t next_expected = 1;
     bool data_remaining = true;
 
    public:
@@ -221,7 +221,7 @@ class EkeyOutCursor : public OutCursor
 
             if (keys.start != -1)
             {
-                next_expected = keys.start;
+                next_expected = MAKE_EKEY(keys.start);
                 int status;
                 // error_check(cursor->search_near(cursor, &status));
                 cursor->search_near(cursor, &status);
@@ -244,20 +244,21 @@ class EkeyOutCursor : public OutCursor
             }
         }
 
-        if (keys.end != -1 && next_expected > keys.end)
+        if (keys.end != -1 && next_expected > MAKE_EKEY(keys.end))
         {
             goto no_next;
         }
 
         CommonUtil::get_val_idx(cursor, &src, &dst);
-
         found->degree = 0;
         found->edgelist.clear();
-        found->node_id = src;
+        found->node_id = OG_KEY(src);
+
+        CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
 
         if (src != next_expected)
         {
-            found->node_id = next_expected;
+            found->node_id = OG_KEY(next_expected);
             next_expected += 1;
             return;
         }
@@ -268,10 +269,10 @@ class EkeyOutCursor : public OutCursor
             CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
             if (src == curr_edge.src_id)
             {
-                if (curr_edge.dst_id != -1)
+                if (curr_edge.dst_id != 0)
                 {
                     found->degree++;
-                    found->edgelist.push_back(curr_edge.dst_id);
+                    found->edgelist.push_back(OG_KEY(curr_edge.dst_id));
                 }
             }
             else
@@ -319,10 +320,10 @@ class EkeyOutCursor : public OutCursor
             goto no_next;
         }
 
-        next_expected = key + 1;
+        next_expected = MAKE_EKEY(key) + 1;
 
         edge curr_edge;
-        CommonUtil::set_key(cursor, key);
+        CommonUtil::set_key(cursor, MAKE_EKEY(key));
 
         found->degree = 0;
         found->edgelist.clear();
@@ -346,17 +347,17 @@ class EkeyOutCursor : public OutCursor
         do
         {
             CommonUtil::read_from_edge_idx(cursor, &curr_edge);
-            if (curr_edge.src_id != key)
+            if (OG_KEY(curr_edge.src_id) != key)
             {
-                if (keys.end != -1 && next_expected > keys.end)
+                if (keys.end != -1 && OG_KEY(next_expected) > keys.end)
                 {
                     has_next = false;
                 }
                 return;
             }
-            if (curr_edge.dst_id != -1)
+            if (curr_edge.dst_id != 0)
             {
-                found->edgelist.push_back(curr_edge.dst_id);
+                found->edgelist.push_back(OG_KEY(curr_edge.dst_id));
                 found->degree++;
             }
         } while (cursor->next(cursor) == 0);

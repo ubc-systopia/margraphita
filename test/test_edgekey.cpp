@@ -348,9 +348,10 @@ void test_InCursor(EdgeKey graph)
         in_cursor->next(&found);
     }
     in_cursor->reset();
+    // testing next() with a key
     int nodeID = 0;
     in_cursor->next(&found, nodeID);
-    fprintf(stderr, "Node id 0:\n");
+    fprintf(stderr, "\n ---- \ndumping node 0:\n");
     CommonUtil::dump_adjlist(found);
 }
 
@@ -367,7 +368,8 @@ void test_OutCursor(EdgeKey graph)
         out_cursor->next(&found);
     }
     out_cursor->reset();
-    fprintf(stderr, "Node id 1:\n");
+    // testing next() with a key
+    fprintf(stderr, "\n ---- \ndumping node 1:\n");
     int nodeID = 1;
     out_cursor->next(&found, nodeID);
     CommonUtil::dump_adjlist(found);
@@ -460,7 +462,7 @@ int main()
     opts.db_name = "test_eKey";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = "home/puneet/scratch/margraphita";//std::getenv("GRAPH_PROJECT_DIR");
+    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
 
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
@@ -469,30 +471,27 @@ int main()
     EdgeKey graph(opts, conn);
 
     create_init_nodes(graph, opts.is_directed);
-     test_get_node(graph);
-     test_node_add(graph, opts.read_optimize);
-   test_get_nodes(graph);
-     test_get_random_nodes(graph);
-     test_add_edge(graph, opts.is_directed, opts.is_weighted);
-     test_get_edge(graph);
-     test_get_edges(graph);
-     test_get_out_edges(graph);
-     test_get_out_nodes(graph);
-     test_get_in_edges(graph);
+    test_get_node(graph);
+    test_node_add(graph, opts.read_optimize);
+    test_get_nodes(graph);
+    test_get_random_nodes(graph);
+    test_add_edge(graph, opts.is_directed, opts.is_weighted);
+    test_get_edge(graph);
+    test_get_edges(graph);
+    test_get_out_edges(graph);
+    test_get_out_nodes(graph);
+    test_get_in_edges(graph);
 
-     test_get_in_nodes(graph);
-     test_get_in_and_out_degree(graph);
+    test_get_in_nodes(graph);
+    test_get_in_and_out_degree(graph);
 
     test_delete_node(graph, opts.is_directed);
-    // test_delete_isolated_node(graph, opts.is_directed);
-        test_NodeCursor(graph);
-        test_NodeCursor_Range(graph);
-        test_EdgeCursor(graph);
-        test_EdgeCursor_Range(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
     test_InCursor(graph);
-    // test_OutCursor(graph);
-
-
+    test_OutCursor(graph);
 
     tearDown(graph);
 }
