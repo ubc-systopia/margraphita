@@ -151,19 +151,16 @@ struct BinPair
             mybin = _pair[me];
             cur_tail = mybin->_idx;
             new_tail = cur_tail + count;
-            printf("R");
             // current bin is full, try the next bin
             if (new_tail > mybin->_size)
             {
                 switch_bin(count);
-                
             }
             else if (compare_and_swap(mybin->_idx, cur_tail, new_tail))
             {
                 break;
             }
         }
-        
         *active = me;
         *tail = cur_tail;
     }
@@ -266,8 +263,7 @@ struct Bins
 
     void init_bin(uint64_t max_num, uint64_t size)
     {
-        _bin_size = size / 8;
-
+        _bin_size = size;
         _bin_pairs = new BinPair *[_bin_count];
         for (int i = 0; i < _bin_count; i++)
         {
@@ -345,6 +341,7 @@ struct Bins
             uint64_t *const cur_buf = _buf[tid] + bid * _bin_buf_size;
             int buf_idx = _buf_idx[tid][bid];
             if (buf_idx > 0) _bin_pairs[bid]->append(cur_buf, buf_idx);
+            _buf_idx[tid][bid] = 0;
         }
     }
 

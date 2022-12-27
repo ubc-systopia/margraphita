@@ -13,7 +13,11 @@
 
 #define ITER 10
 #define THREADNUM_MAX 16
-#define FANOUT_MAX 2
+#define FANOUT_MAX 16384
+
+#define BIN_SIZE 2048
+#define BIN_NUM_BUCKETS 16
+#define BIN_THREAD_LOCAL_BUFFER_SIZE 256
 
 vector<int> a;
 vector<vector<int>> *updates;
@@ -89,9 +93,8 @@ long double CAS(int n, int num_threads, int fanout)
             }
         }
     }
-    cleanup_updates();
-
     t.stop();
+    cleanup_updates();
     return t.t_micros();
 }
 
@@ -112,7 +115,12 @@ inline bool try_gather(blaze::Bins *bins)
     return true;
 }
 
-long double bin_method(int n, int num_threads, int bucket_size, int fanout)
+long double bin_method(int n,
+                       int num_threads,
+                       int num_buckets,
+                       int bucket_size,
+                       int local_buf_size,
+                       int fanout)
 {
     omp_set_nested(1);
     int numthread_scatter = num_threads / 2;
@@ -121,7 +129,7 @@ long double bin_method(int n, int num_threads, int bucket_size, int fanout)
     int bin_count = numthread_scatter;
     int bin_buf_size = bucket_size;
     blaze::Bins bins(
-        n, numthread_scatter, 512, 1000, bucket_size, 0.0);
+        n, numthread_scatter, bucket_size, num_buckets, local_buf_size, 0.0);
 
     generate_updates(n, numthread_scatter, fanout);
     int updates_per_thread = n / numthread_scatter * fanout;
@@ -152,10 +160,12 @@ long double bin_method(int n, int num_threads, int bucket_size, int fanout)
                 }
 #pragma omp critical
                 {
+                    bins.flush(i);
                     finished_count++;
                     if (finished_count == numthread_scatter)
                     {
-                        done = true;
+                        bins.flush_all();
+                        atomic_store(&done, true);
                     }
                 }
             }
@@ -164,28 +174,23 @@ long double bin_method(int n, int num_threads, int bucket_size, int fanout)
 #pragma omp parallel for num_threads(numthread_gather)
             for (int j = 0; j < numthread_gather; j++)
             {
+                bool binning_done = false;
                 while (true)
                 {
                     bool job_exists = try_gather(&bins);
-                    if (!job_exists && done)
+                    if (binning_done && !job_exists)
                     {
-                        bins.flush(j);
                         break;
+                    }
+                    if (atomic_load(&done))
+                    {
+                        binning_done = true;
                     }
                 }
             }
 
 #pragma omp taskwait
             {
-                bins.flush_all();
-                while (true)
-                {
-                    bool job_exists = try_gather(&bins);
-                    if (!job_exists)
-                    {
-                        break;
-                    }
-                }
                 bins.reset();
             }
         }
@@ -203,14 +208,18 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    for (int threadNum = 16; threadNum <= THREADNUM_MAX; threadNum *= 2)
+    for (int threadNum = 2; threadNum <= THREADNUM_MAX; threadNum *= 2)
     {
         int nodeCount = 10000;
-        for (int fanout = FANOUT_MAX; fanout <= FANOUT_MAX; fanout *= 2)
+        for (int fanout = 16384; fanout <= FANOUT_MAX; fanout *= 2)
         {
             init(nodeCount);
-            long double time_bin =
-                bin_method(nodeCount, threadNum, 8, fanout);
+            long double time_bin = bin_method(nodeCount,
+                                              threadNum,
+                                              BIN_NUM_BUCKETS,
+                                              BIN_SIZE,
+                                              BIN_THREAD_LOCAL_BUFFER_SIZE,
+                                              fanout);
             verify(nodeCount, threadNum);
             printf("%Lf\n", time_bin);
 
