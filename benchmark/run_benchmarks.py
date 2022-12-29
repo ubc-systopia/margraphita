@@ -15,6 +15,7 @@ class BenchmarkRunner:
             self.datasets.append(f"s{scale}_e8")
         self.types = ["std", "adj", "ekey"]
         self.log = open(log_file, "w")
+        self.neo4j = Neo4J()
 
     def make_pr_cmd(self, binary_name: str, ds: str, graph_type: str):
         cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b PR -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/pr -r -d -l {graph_type} -i 10 -t 0.0001"
@@ -50,6 +51,8 @@ class BenchmarkRunner:
 
         self.log.write("\n\nPAGERANK\n\n")
         for ds in self.datasets:
+            #self.neo4j.import(ds_url) # import into database
+
             for graph_type in self.types:
                 self.log.write(f"\n\t{graph_type}_rd_{ds}\n")
                 self.log.write("\tREGULAR PR\n")
@@ -104,6 +107,15 @@ class BenchmarkRunner:
                 self.log.write(cmd)
                 os.system(cmd)
                 self.log.write("\n" + ("~-" * 100) + "\n")
+
+                # neo4j run
+                # logs = self.neo4j.run_pr()
+                # self.log.write() # write the logs!!! output from neo4j run...
+            
+            #self.neo4j.drop() # drop graph from database
+        
+        neo4j.run_neo4j_pr(self.datasets, self.log) # ADD THIS CALL!
+        
         self.log.write("\n" + "=" * 100 + "\n")
 
     def run_bfs(self):
@@ -128,6 +140,9 @@ class BenchmarkRunner:
                     f"{self.config_data['STATS_PATH']}/benchmark/bfs", ds, graph_type)
                 self.log.write(f"{cmd} \n")
                 os.system(cmd)
+
+        neo4j.run_neo4j_bfs(self.datasets, self.log) # ADD THIS CALL!
+
         self.log.write("\n" + "=" * 100 + "\n")
 
     def run_bfs_ec(self):
@@ -162,6 +177,10 @@ class BenchmarkRunner:
                     f"{self.config_data['STATS_PATH']}/benchmark/tc", ds, graph_type)
                 self.log.write(cmd)
                 os.system(cmd)
+            
+
+        neo4j.run_neo4j_tc(self.datasets, self.log) # ADD THIS CALL!
+
         self.log.write("\n" + "=" * 100 + "\n")
 
     def run_cc(self):
@@ -188,6 +207,9 @@ class BenchmarkRunner:
                         f"{self.config_data['STATS_PATH']}/benchmark/{variant}", ds, graph_type, variant)
                     self.log.write(cmd)
                     os.system(cmd)
+
+        neo4j.run_neo4j_cc(self.datasets, self.log) # ADD THIS CALL!
+
         self.log.write("\n" + "=" * 100 + "\n")
 
     def run_sssp(self):
@@ -212,8 +234,9 @@ class BenchmarkRunner:
                     f"{self.config_data['STATS_PATH']}/benchmark/sssp", ds, graph_type)
                 self.log.write(cmd)
                 os.system(cmd)
-        self.log.write("\n" + "=" * 100 + "\n")
 
+        neo4j.run_neo4j_sssp(self.datasets, self.log) # ADD THIS CALL!
+        self.log.write("\n" + "=" * 100 + "\n")
 
 def main():
     parser = argparse.ArgumentParser(

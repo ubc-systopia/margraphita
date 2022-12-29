@@ -568,6 +568,26 @@ void test_EdgeCursor_Range(AdjList graph)
     }
 }
 
+void test_bfs_ec(AdjList graph)
+{
+    INFO();
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge_cursor->set_key(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    edge found;
+    int srcIdList[] = {1, 5, 7};
+    int dstIdList[] = {7, 6, 8};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
+    }
+}
+
 int main()
 {
     const int THREAD_NUM = 1;

@@ -77,6 +77,12 @@ def main():
         preprocess_obj.log.write(
             "Finished inserting " + dataset_name + "\n-------------------\n")
 
+        # 1 run cc. returns a pvector for parents
+        # 2 run algo to get a node of the largest cc
+        # 3 write (graph_name, node_id) to a text file
+        # 4 in run_benchmarks use python cli to (graph_name, node_id) from the text_file
+        # 
+
 
 if __name__ == "__main__":
     main()

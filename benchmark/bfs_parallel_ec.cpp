@@ -25,6 +25,8 @@
 #include "standard_graph.h"
 #include "times.h"
 
+#define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
+
 // debug workflow:
 // get to compile. look at cmakelists in benchmarks.
 
@@ -154,6 +156,91 @@ bool BFSVerifier(GraphEngine* graph_engine, node_id_t source, // i removed 'cons
   return true;
 }
 
+void create_init_nodes(AdjList graph, bool is_directed)
+{
+    INFO()
+    for (node x : SampleGraph::test_nodes)
+    {
+        graph.add_node(x);
+    }
+
+    if (!is_directed)
+    {
+        SampleGraph::create_undirected_edges();
+        assert(SampleGraph::test_edges.size() ==
+               6);  // checking if directed edges got created and stored in
+                    // test_edges
+    }
+    int edge_cnt = 1;
+    for (node n : SampleGraph::test_nodes)
+    {
+        graph.add_node(n);
+    }
+
+    for (edge x : SampleGraph::test_edges)
+    {
+        graph.add_edge(x, false);
+        edge_cnt++;
+    }
+}
+
+void tearDown(AdjList graph) { graph.close(); }
+
+void test_bfs_ec(AdjList graph)
+{
+
+  // testing
+    const int THREAD_NUM = 1;
+    graph_opts opts;
+    opts.create_new = true;
+    opts.optimize_create = false;
+    opts.is_directed = true;
+    opts.read_optimize = true;
+    opts.is_weighted = true;
+    opts.type = GraphType::Adj;
+    opts.db_dir = "./db";
+    opts.db_name = "test_adj";
+    opts.conn_config = "cache_size=10GB";
+    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
+
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
+    GraphEngineTest myEngine(engine_opts);
+    WT_CONNECTION *conn = myEngine.public_get_connection();
+    AdjList graph(opts, conn);
+
+    create_init_nodes(graph, opts.is_directed);
+
+    // start testing
+
+    // print out parent vector
+
+    Times t;
+    t.start();
+    GraphEngine graph_engine(engine_opts);
+    graph_engine.calculate_thread_offsets();
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;   
+
+    GraphBase *graph = (&graph_engine)->create_graph_handle();
+
+    cout << "hi" << endl;
+    pvector<node_id_t> parent(graph->get_num_nodes(), -1);
+
+    node_id_t start = find_random_start(*graph);
+    parent[start] = start; // init parent... // eventually swap this find_random_start with any node from the largest connected component. 
+
+    graph->close();
+
+
+    BFS_EC(&myEngine, parent, THREAD_NUM) ;// how do we use graph?
+
+    INFO();
+
+
+    tearDown(graph);
+}
+
 int main(int argc, char *argv[])
 {
     cout << "Running Edge-centric BFS" << endl;
@@ -184,6 +271,9 @@ int main(int argc, char *argv[])
 
     // int num_trials = bfs_cli.get_num_trials();
 
+    // test
+    test_bfs_ec();
+    
     Times t;
     t.start();
     GraphEngine graph_engine(engine_opts);
