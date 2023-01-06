@@ -113,8 +113,6 @@ struct BinPair
     // non-active bin should be in the accumulate state
     void switch_bin(int count)
     {
-        const lock_guard<mutex> lock(_lock);
-
         int me = atomic_load(&_active);
         Bin *mybin = _pair[me];
 
@@ -147,6 +145,7 @@ struct BinPair
 
         while (1)
         {
+            const lock_guard<mutex> lock(_lock);
             me = atomic_load(&_active);
             mybin = _pair[me];
             cur_tail = mybin->_idx;
@@ -180,6 +179,7 @@ struct BinPair
         for (int i = 0; i < 2; i++)
         {
             bin = _pair[i];
+            // printf("flushed:%d\n", bin->_idx);
             if (!bin->is_accumulate() && !bin->empty())
             {
                 _full_bins->push(bin);
@@ -281,6 +281,7 @@ struct Bins
         }
         int bin_count_in_bits = (int)log2((float)_bin_count);
         _bin_shift = msb - bin_count_in_bits;
+        printf("msb, %d bin shift, %d\n", msb, _bin_shift);
     }
 
     void deinit_bin()

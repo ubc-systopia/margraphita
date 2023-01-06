@@ -12,15 +12,16 @@
 #include "times.h"
 
 #define ITER 10
-#define THREADNUM_MAX 16
-#define FANOUT_MAX 16384
+#define THREADNUM_MAX 4
+#define FANOUT_MAX 512
 
-#define BIN_SIZE 2048
-#define BIN_NUM_BUCKETS 16
-#define BIN_THREAD_LOCAL_BUFFER_SIZE 256
+#define BIN_SIZE 524288
+#define BIN_NUM_BUCKETS 1
+#define BIN_THREAD_LOCAL_BUFFER_SIZE 262144
 
 vector<int> a;
-vector<vector<int>> *updates;
+vector<int> updates;
+vector<vector<int>> *partitioned_updates;
 
 void init(int n)
 {
@@ -47,31 +48,43 @@ void verify(int n, int t)
     {
         sum += a[i];
     }
-    printf("%d\n", sum);
+    printf("-----%d------\n", sum);
     // assert(sum == n*t);
 }
 
-void generate_updates(int n, int num_threads, int fanout)
+void generate_updates(int n, int fanout)
 {
     srand(time(NULL));
+    updates.clear();
+    updates.resize(n * fanout);
+    for (int i = 0; i < n * fanout; i++)
+    {
+        updates[i] = rand() % n;
+    }
+}
+
+void partition_updates(int n, int num_threads, int fanout)
+{
     int updates_per_thread = n / num_threads * fanout;
-    updates =
+    partitioned_updates =
         new vector<vector<int>>(num_threads, vector<int>(updates_per_thread));
 
+    int count = 0;
     for (int i = 0; i < num_threads; i++)
     {
         for (int j = 0; j < updates_per_thread; j++)
         {
-            (*updates)[i][j] = rand() % n;  // Generate updates
+            (*partitioned_updates)[i][j] = updates[count];
+            count++;
         }
     }
 }
 
-void cleanup_updates() { free(updates); }
+void cleanup_updates() { free(partitioned_updates); }
 
 long double CAS(int n, int num_threads, int fanout)
 {
-    generate_updates(n, num_threads, fanout);
+    partition_updates(n, num_threads, fanout);
     int updates_per_thread = n / num_threads * fanout;
 
     Times t;
@@ -84,7 +97,7 @@ long double CAS(int n, int num_threads, int fanout)
             for (int j = 0; j < updates_per_thread; j++)
             {
                 bool swapped = false;
-                int to_update = (*updates)[i][j];
+                int to_update = (*partitioned_updates)[i][j];
                 while (!swapped)
                 {
                     swapped = compare_and_swap(
@@ -105,6 +118,7 @@ inline bool try_gather(blaze::Bins *bins)
     uint64_t *bin = full_bin->get_bin();
     uint64_t bin_size = full_bin->get_size();
     int idx = full_bin->get_idx();
+    // printf("%d\n", idx);
     for (int i = 0; i < idx; i++)
     {
         uint32_t dst = (uint32_t)(bin[i] >> 32);
@@ -131,7 +145,7 @@ long double bin_method(int n,
     blaze::Bins bins(
         n, numthread_scatter, bucket_size, num_buckets, local_buf_size, 0.0);
 
-    generate_updates(n, numthread_scatter, fanout);
+    partition_updates(n, numthread_scatter, fanout);
     int updates_per_thread = n / numthread_scatter * fanout;
 
     Times t;
@@ -147,7 +161,7 @@ long double bin_method(int n,
                                           n,                  \
                                           finished_count,     \
                                           updates_per_thread, \
-                                          updates) num_threads(2)
+                                          partitioned_updates) num_threads(2)
 #pragma omp single
         {
 #pragma omp task
@@ -156,7 +170,7 @@ long double bin_method(int n,
             {
                 for (int j = 0; j < updates_per_thread; j++)
                 {
-                    bins.append(i, (*updates)[i][j], 1);
+                    bins.append(i, (*partitioned_updates)[i][j], 1);
                 }
 #pragma omp critical
                 {
@@ -164,7 +178,6 @@ long double bin_method(int n,
                     finished_count++;
                     if (finished_count == numthread_scatter)
                     {
-                        bins.flush_all();
                         atomic_store(&done, true);
                     }
                 }
@@ -191,6 +204,16 @@ long double bin_method(int n,
 
 #pragma omp taskwait
             {
+                bins.flush_all();
+                while (true)
+                {
+                    bool job_exists = try_gather(&bins);
+                    if (!job_exists)
+                    {
+                        break;
+                    }
+                }
+                // verify(1, 1);
                 bins.reset();
             }
         }
@@ -208,12 +231,14 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    for (int threadNum = 2; threadNum <= THREADNUM_MAX; threadNum *= 2)
+    for (int threadNum = THREADNUM_MAX; threadNum <= THREADNUM_MAX;
+         threadNum *= 2)
     {
         int nodeCount = 10000;
-        for (int fanout = 16384; fanout <= FANOUT_MAX; fanout *= 2)
+        for (int fanout = FANOUT_MAX; fanout <= FANOUT_MAX; fanout *= 2)
         {
             init(nodeCount);
+            generate_updates(nodeCount, fanout);
             long double time_bin = bin_method(nodeCount,
                                               threadNum,
                                               BIN_NUM_BUCKETS,
