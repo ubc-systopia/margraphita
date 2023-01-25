@@ -149,7 +149,7 @@ time_info *insert_edge_thread(int _tid)
 
         for (edge e : edjlist)
         {
-            cursor->set_key(cursor, e.src_id, e.dst_id);
+            CommonUtil::set_key(cursor, e.src_id, e.dst_id);
             cursor->set_value(cursor, e.edge_weight);
             if ((ret = cursor->insert(cursor)) != 0)
             {
@@ -168,7 +168,7 @@ time_info *insert_edge_thread(int _tid)
 
         for (edge e : edjlist)
         {
-            cursor->set_key(cursor, e.src_id, e.dst_id);
+            CommonUtil::set_key(cursor, e.src_id, e.dst_id);
             cursor->set_value(cursor, 0);
             if ((ret = cursor->insert(cursor)) != 0)
             {
@@ -186,7 +186,7 @@ time_info *insert_edge_thread(int _tid)
 
         for (edge e : edjlist)
         {
-            cursor->set_key(cursor, e.src_id, e.dst_id);
+            CommonUtil::set_key(cursor, e.src_id, e.dst_id);
             cursor->set_value(cursor, 0, OutOfBand_Val);
             if ((ret = cursor->insert(cursor)) != 0)
             {
@@ -256,7 +256,7 @@ time_info *insert_node(int _tid)
         if (type_opt == "std")
         {
             int ret;
-            std_cur->set_key(std_cur, to_insert.id);
+            CommonUtil::set_key(std_cur, to_insert.id);
 
             if (read_optimized)
             {
@@ -277,7 +277,7 @@ time_info *insert_node(int _tid)
         else if (type_opt == "ekey")
         {
             int ret;
-            ekey_cur->set_key(ekey_cur, to_insert.id, OutOfBand_ID);
+            CommonUtil::set_key(ekey_cur, to_insert.id, OutOfBand_ID);
             if (read_optimized)
             {
                 ekey_cur->set_value(
@@ -297,7 +297,7 @@ time_info *insert_node(int _tid)
         else if (type_opt == "adj")
         {
             int ret;
-            adj_cur->set_key(adj_cur, to_insert.id);
+            CommonUtil::set_key(adj_cur, to_insert.id);
             if (read_optimized)
             {
                 adj_cur->set_value(
@@ -314,8 +314,8 @@ time_info *insert_node(int _tid)
             }
 
             // Now insert into in and out tables.
-            adj_incur->set_key(adj_incur, to_insert.id);
-            adj_outcur->set_key(adj_outcur, to_insert.id);
+            CommonUtil::set_key(adj_incur, to_insert.id);
+            CommonUtil::set_key(adj_outcur, to_insert.id);
             try
             {
                 WT_ITEM item;

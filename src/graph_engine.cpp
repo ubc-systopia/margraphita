@@ -108,6 +108,8 @@ void GraphEngine::check_opts_valid()
     {
         try
         {
+            std::cout << "Creating stat log directory " << opts.stat_log
+                      << std::endl;
             std::filesystem::create_directories(opts.stat_log);
         }
         catch (GraphException &G)
@@ -115,11 +117,15 @@ void GraphEngine::check_opts_valid()
             std::cout << G.what() << std::endl;
         }
     }
+    std::cout << "db_dir = " << opts.db_dir << std::endl;
+    std::cout << "db_name = " << opts.db_name << std::endl;
 }
 
 void GraphEngine::create_new_graph()
 {
     std::string dirname = opts.db_dir + "/" + opts.db_name;
+    std::cout << "Creating new graph at " << dirname << std::endl;
+    exit(-1);
     CommonUtil::create_dir(dirname);
     if (CommonUtil::open_connection(const_cast<char *>(dirname.c_str()),
                                     opts.stat_log,

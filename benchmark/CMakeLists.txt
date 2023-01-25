@@ -22,8 +22,8 @@ add_executable(bfs bfs.cpp)
 target_link_libraries(bfs PUBLIC ${NAME_LIB} graph_utils)
 
 ###################################################################################
-add_executable(bfs_ec bfs_parallel_ec.cpp)
-target_link_libraries(bfs_ec PUBLIC ${NAME_LIB} graph_utils)
+#add_executable(bfs_ec bfs_parallel_ec.cpp)
+#target_link_libraries(bfs_ec PUBLIC ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 add_executable(tc tc.cpp)

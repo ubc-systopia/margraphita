@@ -31,8 +31,13 @@ def main():
     config_data = ConfigReader("config.json").read_config()
 
     if args.log_dir is None:
-        print("Using CWD as log directory")
-        args.log_dir = os.getcwd()
+        if "LOG_DIR" in config_data:
+            args.log_dir = config_data['LOG_DIR']
+            if not os.path.exists(args.log_dir):
+                os.mkdir(args.log_dir)
+        else:
+            print("Using CWD as log directory")
+            args.log_dir = os.getcwd()
 
     if args.bulk and args.use_api:
         print("Cannot use both bulk and api insert")

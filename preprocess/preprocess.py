@@ -22,18 +22,18 @@ class Preprocess:
             cmd += " -r"
         return cmd
 
-    def build_index_cmd(self, graph_type: str, is_ro: bool):
-        cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/init_db -b PR"
+    def build_index_cmd(self, graph_type: str, is_ro: bool): 
+        cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/init_db -b PR -f {self.config_data['log_dir']}"
         cmd += f" -m {graph_type}_" + (
             "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['output_dir']}"
         cmd += f" -s {self.config_data['dataset_name']} -d -l {graph_type} -x"
         if is_ro:
             cmd += " -r"
         return cmd
-
+#-f is for log_dir and stats_dir
     def build_init_cmd(self, graph_type: str, is_ro: bool):
         cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/init_db -n -m {graph_type}_" + (
-            "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['output_dir']} -s {self.config_data['dataset_name']} -o -d -l {graph_type} -e"
+            "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['output_dir']} -s {self.config_data['dataset_name']} -o -d -l {graph_type} -e -f {self.config_data['log_dir']}"
         if is_ro:
             cmd += " -r"
         return cmd

@@ -1,6 +1,7 @@
 import json
 import os
 import json
+import subprocess
 
 
 class ConfigReader:
@@ -39,6 +40,15 @@ class ConfigReader:
         except KeyError:
             print("Please set KRON_GRAPHS_PATH as the path to the kron_gen repo in the build/config.json file.")
             exit(1)
+
+        try:
+            log_dir = config_data['LOG_DIR']
+            git_hash_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('ascii')
+            print(f"The commit hash is {git_hash_id}")
+            config_data['LOG_DIR'] = os.path.join(log_dir, git_hash_id)
+        except KeyError:
+            print("no log directory found. will default to CWD")
+            config_data['LOG_DIR'] = os.path.join(os.getcwd(), git_hash_id)
 
         config_data['PROFILE_PATH'] = os.path.join(project_dir, "build", "profile")
         config_data['RELEASE_PATH'] = os.path.join(project_dir, "build", "release")
