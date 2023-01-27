@@ -24,6 +24,10 @@ class StdInCursor : public InCursor
 
     void next(adjlist *found)
     {
+        node_id_t src;
+        node_id_t dst;
+        edge curr_edge;
+
         if (!has_next)
         {
             goto no_next;
@@ -33,11 +37,6 @@ class StdInCursor : public InCursor
         {
             goto no_data_remaining;
         }
-
-        node_id_t src;
-        node_id_t dst;
-
-        edge curr_edge;
 
         if (is_first)
         {
@@ -123,6 +122,7 @@ class StdInCursor : public InCursor
 
     void next(adjlist *found, node_id_t key)
     {
+        edge curr_edge;
         // Must reset OutCursor if already no_next
         if (!has_next)
         {
@@ -142,7 +142,6 @@ class StdInCursor : public InCursor
 
         next_expected = key + 1;
 
-        edge curr_edge;
         CommonUtil::set_key(cursor, key);
 
         found->degree = 0;
@@ -200,6 +199,10 @@ class StdOutCursor : public OutCursor
 
     void next(adjlist *found)
     {
+        node_id_t src;
+        node_id_t dst;
+        edge curr_edge;
+
         if (!has_next)
         {
             goto no_next;
@@ -209,11 +212,6 @@ class StdOutCursor : public OutCursor
         {
             goto no_data_remaining;
         }
-
-        node_id_t src;
-        node_id_t dst;
-
-        edge curr_edge;
 
         if (is_first)
         {
@@ -299,6 +297,7 @@ class StdOutCursor : public OutCursor
 
     void next(adjlist *found, node_id_t key)
     {
+        edge curr_edge;
         // Must reset OutCursor if already no_next
         if (!has_next)
         {
@@ -318,7 +317,6 @@ class StdOutCursor : public OutCursor
 
         next_expected = key + 1;
 
-        edge curr_edge;
         CommonUtil::set_key(cursor, key);
 
         found->degree = 0;

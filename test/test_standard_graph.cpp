@@ -461,7 +461,7 @@ void test_NodeCursor_Range(StandardGraph graph)
     node found;
     int nodeIdList[] = {3, 4, 5, 6};
     int i = 0;
-    node_cursor->set_key_range(key_range{.start = 3, .end = 6});
+    node_cursor->set_key_range(key_range(3,6));
     node_cursor->next(&found);
     while (found.id != -1)
     {

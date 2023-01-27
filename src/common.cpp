@@ -17,39 +17,20 @@
 
 void CommonUtil::create_dir(const std::string& path)
 {
-#ifdef MACOSX
-    std::experimental::filesystem::path dirname = path;
-    if (std::experimental::filesystem::exists(dirname))
-    {
-        std::experimental::filesystem::remove_all(
-            dirname);  // remove if exists;
-    }
-    std::experimental::filesystem::create_directories(dirname);
-#endif
-#ifdef LINUX
+
     std::filesystem::path dirname = path;
     if (std::filesystem::exists(dirname))
     {
         std::filesystem::remove_all(dirname);  // remove if exists;
     }
     std::filesystem::create_directories(dirname);
-#endif
+
 }
 
 
 bool CommonUtil::check_dir_exists(const std::string& path)
 {
-#ifdef MACOSX
-    if (std::experimental::filesystem::exists(path))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-#endif
-#ifdef LINUX
+
     if (std::filesystem::exists(path))
     {
         return true;
@@ -58,8 +39,6 @@ bool CommonUtil::check_dir_exists(const std::string& path)
     {
         return false;
     }
-#endif
-    return false;
 }
 
 void CommonUtil::set_table(WT_SESSION *session,
@@ -168,7 +147,7 @@ int CommonUtil::open_connection(char *db_name,
 #endif
     if (!conn_config.empty())
     {
-        sprintf(config + strlen("create"), ",%s", conn_config.c_str());
+        snprintf(config + strlen("create"), 1018, ",%s", conn_config.c_str());
     }
     // std::cout << config << std::endl;
     // exit(1);

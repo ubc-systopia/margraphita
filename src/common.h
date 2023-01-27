@@ -87,16 +87,19 @@ typedef struct node
 typedef struct edge
 {
     // int32_t id;
-    node_id_t src_id;
-    node_id_t dst_id;
-    edgeweight_t edge_weight;
+    node_id_t src_id = 0;
+    node_id_t dst_id = 0;
+    edgeweight_t edge_weight = 0;
 
 } edge;
 
 typedef struct edge_index
 {
-    node_id_t src_id;
-    node_id_t dst_id;
+    node_id_t src_id = 0;
+    node_id_t dst_id = 0;
+    edge_index() : src_id(0), dst_id(0) {}
+    edge_index(node_id_t a, node_id_t b) : src_id(a), dst_id(b) {}
+
 } edge_index;
 
 typedef struct edge_index key_pair;
@@ -105,12 +108,16 @@ typedef struct key_range
 {
     node_id_t start;
     node_id_t end;
+    key_range() : start(), end() {}
+    key_range(node_id_t a, node_id_t b) : start(a), end(b) {}
 } key_range;
 
 typedef struct edge_range
 {
     key_pair start;
     key_pair end;
+    edge_range() : start() , end() {}
+    edge_range(key_pair a, key_pair b) : start(a), end(b) {}
 } edge_range;
 
 typedef struct adjlist
