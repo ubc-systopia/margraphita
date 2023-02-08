@@ -221,9 +221,10 @@ void test_get_in_edges(EdgeKey graph)
     INFO()
     std::vector<edge> edges = graph.get_in_edges(3);
     for (auto e : edges)
-    {
-        CommonUtil::dump_edge(e);
-    }
+        for (auto e : edges)
+        {
+            CommonUtil::dump_edge(e);
+        }
     assert(edges.size() == 2);
     // Check edge0
     assert(edges.at(0).src_id == SampleGraph::edge2.src_id);
@@ -399,7 +400,7 @@ void test_NodeCursor_Range(EdgeKey graph)
     node found;
     int nodeIdList[] = {3, 4, 5, 6};
     int i = 0;
-    node_cursor->set_key_range(key_range{.start = 3, .end = 6});
+    node_cursor->set_key_range(key_range{3, 6});
     node_cursor->next(&found);
     while (found.id != -1)
     {

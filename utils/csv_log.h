@@ -1,4 +1,4 @@
-#ifndef _CSV_LOG_H
+#ifndef CSV_LOG_H
 #define CSV_LOG_H
 #include <string>
 
