@@ -70,6 +70,8 @@ class GraphBase
 
    protected:
     graph_opts opts;
+    int local_nnodes = 0;
+    int local_nedges = 0;
     WT_CONNECTION *connection;
     WT_SESSION *session;
     LockSet *locks = nullptr;

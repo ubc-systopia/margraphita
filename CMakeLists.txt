@@ -8,13 +8,23 @@ include(FetchContent)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   MESSAGE("Building on MacOSX")
   add_compile_definitions(MACOSX)
+  SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g")
+  SET(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
+  SET(OMP_INCLUDE_DIR "/usr/local/opt/libomp/include")
+  SET(OpenMP_CXX_LIB_NAMES "omp")
+  SET(OpenMP_omp_LIBRARY /usr/local/opt/libomp/lib/libomp.dylib)
+
+  SET(LIB_THREADS omp)
+
 else()
   MESSAGE("Building on Linux")
   add_compile_definitions(LINUX)
+  SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -fopenmp -g")
+  find_package(Threads) # To include pthreads
+  SET(LIB_THREADS Threads::Threads)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
-SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -fopenmp -g")
 
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
   MESSAGE("Generating a debug build")
@@ -69,27 +79,32 @@ ELSE()
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
-find_package(Threads) # To include pthreads
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set (wt_shared_lib ${WIREDTIGER_LIB}/libwiredtiger.11.0.0.dylib)
+else()
+  set (wt_shared_lib ${WIREDTIGER_LIB}/libwiredtiger.11.0.0.so)
+endif()
+
 find_package(Git QUIET)
 
-# ######################################################
-# Include fmtlib and Boost Serialization              #
-# ######################################################
-FetchContent_Declare(fmt
-        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-        GIT_TAG master
-        )
-FetchContent_MakeAvailable(fmt)
-
-find_package(Boost 1.80.0 EXACT COMPONENTS serialization REQUIRED)
-if (Boost_FOUND)
-
-  message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
-  message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
-  message(STATUS "Boost_VERSION: ${Boost_VERSION}")
-
-  include_directories(${Boost_INCLUDE_DIRS})
-endif ()
+## ######################################################
+## Include fmtlib and Boost Serialization              #
+## ######################################################
+#FetchContent_Declare(fmt
+#        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+#        GIT_TAG master
+#        )
+#FetchContent_MakeAvailable(fmt)
+#
+#find_package(Boost 1.80.0 EXACT COMPONENTS serialization REQUIRED)
+#if (Boost_FOUND)
+#
+#  message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+#  message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
+#  message(STATUS "Boost_VERSION: ${Boost_VERSION}")
+#
+#  include_directories(${Boost_INCLUDE_DIRS})
+#endif ()
 
 # ######################################################
 # Define paths and targets for GraphAPI lib and tests #
@@ -105,6 +120,8 @@ SET(PATH_TEST "${PROJECT_SOURCE_DIR}/test")
 SET(BENCHMARK "${PROJECT_SOURCE_DIR}/benchmark")
 SET(UTILS "${PROJECT_SOURCE_DIR}/utils")
 SET(PMAP "${UTILS}/parallel_hashmap")
+
+message("WT SO IS ${wt_shared_lib}")
 
 # Create GraphAPI static library
 add_subdirectory(src)

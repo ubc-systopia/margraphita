@@ -1,36 +1,27 @@
 #include "common.h"
 
-#include <cstdlib>
 #include <wiredtiger.h>
 
+#include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <string>
 
 #include "graph_exception.h"
-#ifdef MACOSX
-#include <experimental/filesystem>
-#endif
-#ifdef LINUX
-#include <filesystem>
-#endif
 
-void CommonUtil::create_dir(const std::string& path)
+void CommonUtil::create_dir(const std::string &path)
 {
-
     std::filesystem::path dirname = path;
     if (std::filesystem::exists(dirname))
     {
         std::filesystem::remove_all(dirname);  // remove if exists;
     }
     std::filesystem::create_directories(dirname);
-
 }
 
-
-bool CommonUtil::check_dir_exists(const std::string& path)
+bool CommonUtil::check_dir_exists(const std::string &path)
 {
-
     if (std::filesystem::exists(path))
     {
         return true;
@@ -129,8 +120,8 @@ int CommonUtil::close_connection(WT_CONNECTION *conn)
 }
 
 int CommonUtil::open_connection(char *db_name,
-                                const std::string& log_dir,
-                                const std::string& conn_config,
+                                const std::string &log_dir,
+                                const std::string &conn_config,
                                 WT_CONNECTION **conn)
 {
     char config[1024] = "create";
@@ -176,10 +167,10 @@ int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
 }
 
 [[maybe_unused]] int CommonUtil::open_cursor(WT_SESSION *session,
-                            WT_CURSOR **cursor,
-                            const std::string& uri,
-                            WT_CURSOR *to_dup,
-                            const std::string& config)
+                                             WT_CURSOR **cursor,
+                                             const std::string &uri,
+                                             WT_CURSOR *to_dup,
+                                             const std::string &config)
 {
     if (session->open_cursor(
             session, uri.c_str(), to_dup, config.c_str(), cursor) != 0)
@@ -189,7 +180,7 @@ int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
     return 0;
 }
 
-void CommonUtil::check_return(int retval, const std::string& mesg)
+void CommonUtil::check_return(int retval, const std::string &mesg)
 {
     if (retval > 0)
     {
@@ -217,7 +208,7 @@ void CommonUtil::dump_edge(edge to_print)
     std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
 }
 
-void CommonUtil::dump_adjlist(const adjlist& to_print)
+void CommonUtil::dump_adjlist(const adjlist &to_print)
 {
     std::cout << "Node ID is: \t" << to_print.node_id << std::endl;
     std::cout << "degree is:\t" << to_print.degree << std::endl;

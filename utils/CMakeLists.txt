@@ -1,5 +1,5 @@
 add_library(graph_utils INTERFACE)
 include_directories($PATH_SRC $BENCHMARK)
 INCLUDE_DIRECTORIES("${PATH_INCLUDE}")
-TARGET_LINK_LIBRARIES(${NAME_LIB} PUBLIC ${WIREDTIGER_LIB}/libwiredtiger.so)
+TARGET_LINK_LIBRARIES(${NAME_LIB} PUBLIC ${wt_shared_lib})
 target_include_directories(graph_utils INTERFACE ${PATH_SRC} ${BENCHMARK})

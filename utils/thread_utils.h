@@ -1,7 +1,12 @@
 #ifndef _THREAD_UTILS_H_
 #define _THREAD_UTILS_H_
 
+#ifdef MACOSX
+#include "/usr/local/opt/libomp/include/omp.h"
+#else
 #include <omp.h>
+#endif
+
 #include <wiredtiger.h>
 
 #include <cassert>

@@ -1,7 +1,11 @@
 #ifndef LOCK
 #define LOCK
 
+#ifdef MACOSX
+#include "/usr/local/opt/libomp/include/omp.h"
+#else
 #include <omp.h>
+#endif
 
 class LockSet
 {

@@ -19,7 +19,6 @@ class GraphEngine
         int num_threads;
         graph_opts opts;
     };
-
     GraphEngine(graph_engine_opts engine_opts);
     ~GraphEngine();
     GraphBase* create_graph_handle();
