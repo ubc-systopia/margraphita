@@ -315,7 +315,6 @@ class EkeyOutCursor : public OutCursor
 
         next_expected = MAKE_EKEY(key) + 1;
 
-        edge curr_edge;
         CommonUtil::set_key(cursor, MAKE_EKEY(key));
 
         found->degree = 0;

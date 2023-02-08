@@ -10,6 +10,7 @@ graph_api
 src/db/
 cscope.out
 tags
+build/*
 build/profile/
 build/release/
 build/wt_stats/
