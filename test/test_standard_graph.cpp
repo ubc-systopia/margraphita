@@ -12,10 +12,13 @@
 void create_init_nodes(StandardGraph graph, bool is_directed)
 {
     INFO()
+    int node_count = 0;
     for (node x : SampleGraph::test_nodes)
     {
-        graph.add_node(x);
+        assert(graph.add_node(x) == 0);
+        node_count++;
     }
+    assert(node_count == 6);
 
     if (!is_directed)
     {
@@ -25,12 +28,16 @@ void create_init_nodes(StandardGraph graph, bool is_directed)
                10);  // checking if directed edges got created and stored in
                      // test_edges
     }
-    int edge_cnt = 1;
+
+    std::cout << "Insert Edges Now\n";
+    int edge_cnt = 0;
     for (edge x : SampleGraph::test_edges)
     {
+        std::cout << "Edge (" << x.src_id << " , " << x.dst_id << ")\n";
         graph.add_edge(x, false);
         edge_cnt++;
     }
+    assert(edge_cnt == SampleGraph::test_edges.size());
 }
 
 void tearDown(StandardGraph graph) { graph.close(); }
@@ -423,7 +430,6 @@ void test_index_cursor(StandardGraph graph)
     srccur->reset(srccur);
     dstcur->reset(dstcur);
     edge found = {0};
-
     while (srccur->next(srccur) == 0)
     {
         CommonUtil::read_from_edge_idx(srccur, &found);
@@ -461,7 +467,7 @@ void test_NodeCursor_Range(StandardGraph graph)
     node found;
     int nodeIdList[] = {3, 4, 5, 6};
     int i = 0;
-    node_cursor->set_key_range(key_range(3,6));
+    node_cursor->set_key_range(key_range(3, 6));
     node_cursor->next(&found);
     while (found.id != -1)
     {

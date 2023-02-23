@@ -291,3 +291,11 @@ char *CommonUtil::pack_int_vector_wti(WT_SESSION *session,
 
     return (char *)pack_buf;
 }
+
+void CommonUtil::log_msg(const std::string_view message,
+                         const std::source_location location)
+{
+    std::cerr << "file: " << location.file_name() << "(" << location.line()
+              << ":" << location.column() << ") `" << location.function_name()
+              << "`: " << message << '\n';
+}

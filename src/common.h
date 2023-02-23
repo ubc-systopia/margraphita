@@ -5,8 +5,10 @@
 #include <stdio.h>
 #include <wiredtiger.h>
 
+#include <bitset>
 #include <iostream>
 #include <map>
+#include <source_location>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -116,7 +118,7 @@ typedef struct edge_range
 {
     key_pair start;
     key_pair end;
-    edge_range() : start() , end() {}
+    edge_range() : start(), end() {}
     edge_range(key_pair a, key_pair b) : start(a), end(b) {}
 } edge_range;
 
@@ -153,7 +155,9 @@ class CommonUtil
     static std::vector<node_id_t> unpack_int_vector_wti(WT_SESSION *session,
                                                         size_t size,
                                                         char *packed_str);
-
+    static void log_msg(
+        const std::string_view message,
+        const std::source_location location = std::source_location::current());
     // WT Session and Cursor wrangling operations
     [[maybe_unused]] static int open_cursor(WT_SESSION *session,
                                             WT_CURSOR **cursor,

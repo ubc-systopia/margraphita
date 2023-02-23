@@ -552,7 +552,7 @@ class StandardGraph : public GraphBase
                            degree_t indeg,
                            degree_t outdeg);
     void delete_related_edges(WT_CURSOR *index_cursor, node_id_t node_id);
-    int error_check_add_edge(int ret);
+    int error_check(int ret);
     int add_node_txn(node to_insert);
     int delete_edge_txn(node_id_t src_id,
                         node_id_t dst_id,

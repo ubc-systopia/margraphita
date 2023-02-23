@@ -2,10 +2,7 @@
 
 #include <wiredtiger.h>
 
-#include <cassert>
 #include <cstring>
-#include <filesystem>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 
@@ -42,7 +39,7 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     }
     else
     {
-        node_columns.push_back(
+        node_columns.emplace_back(
             "na");  // have to do this because the column count must match.
         node_value_format = "s";  // 1 byte fixed length char[] to hold ""
     }
@@ -58,7 +55,7 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // another I if weighted
     vector<string> edge_columns = {SRC, DST};
     string edge_key_format = "uu";
-    string edge_value_format = "";  // I if weighted or b if unweighted.
+    string edge_value_format;  // I if weighted or b if unweighted.
 
     if (opts.is_weighted)
     {
@@ -67,7 +64,7 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     }
     else
     {
-        edge_columns.push_back("na");
+        edge_columns.emplace_back("na");
         edge_value_format += 'b';  // One byte to store ""
     }
 
@@ -75,7 +72,7 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     CommonUtil::set_table(
         sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
 
-    if (opts.optimize_create == false)
+    if (!opts.optimize_create)
     {
         /**
          *  Create indices with graph.
@@ -86,7 +83,7 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
          */
         create_indices(sess);
     }
-    sess->close(sess, NULL);
+    sess->close(sess, nullptr);
 }
 
 void StandardGraph::init_cursors()
@@ -251,6 +248,7 @@ int StandardGraph::add_node(node to_insert)
 
 int StandardGraph::add_node_txn(node to_insert)
 {
+    std::cout << "\tin add_node_txn; inserting " << to_insert.id << "\n";
     CommonUtil::set_key(node_cursor, to_insert.id);
     if (opts.read_optimize)
     {
@@ -549,21 +547,19 @@ void StandardGraph::get_nodes(vector<node> &nodes)
     node_cursor->reset(node_cursor);
 }
 
-int StandardGraph::error_check_add_edge(int ret)
+int StandardGraph::error_check(int ret)
 {
     switch (ret)
     {
         case 0:
             return 0;
         case WT_DUPLICATE_KEY:
-            return -1;
         case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
-            return 1;
         default:
             session->rollback_transaction(session, NULL);
-            throw GraphException(wiredtiger_strerror(ret));
+            CommonUtil::log_msg("Error code: " + to_string(ret));
     }
+    return ret;
 }
 
 /**
@@ -576,76 +572,59 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
     int ret = 0;
-    // start_add_edge:
-    num_nodes_to_add = 0;
-    num_edges_to_add = 0;
-    ret = 0;
+
     session->begin_transaction(session, "isolation=snapshot");
+    bool src_exists = has_node(to_insert.src_id);
+    bool dst_exists = has_node(to_insert.dst_id);
     // Ensure src and dst nodes exist
     if (!is_bulk)
     {
-        node src{.id = to_insert.src_id};
-        ret = error_check_add_edge(add_node_txn(src));
-        if (ret == 1)
+        if (!src_exists)
         {
-            return WT_ROLLBACK;
-            // goto start_add_edge;
-        }
-        else if (ret == 0)
-        {
+            node src = {0};
+            if (opts.is_directed)
+            {
+                src = {.id = to_insert.src_id, .in_degree = 0, .out_degree = 1};
+            }
+            else
+            {
+                src = {.id = to_insert.src_id, .in_degree = 1, .out_degree = 1};
+            }
+            ret = error_check(add_node_txn(src));
+            if (ret != 0)
+            {
+                return ret;  // ret == 1 means rollback, ret == -1 means
+                             // duplicate key
+            }
             num_nodes_to_add += 1;
         }
-
-        node dst{.id = to_insert.dst_id};
-        ret = error_check_add_edge(add_node_txn(dst));
-        if (ret == 1)
+        if (!dst_exists)
         {
-            return WT_ROLLBACK;
-            // goto start_add_edge;
-        }
-        else if (ret == 0)
-        {
+            node dst = {0};
+            if (opts.is_directed)
+            {
+                dst = {.id = to_insert.dst_id, .in_degree = 1, .out_degree = 0};
+            }
+            else
+            {
+                dst = {.id = to_insert.dst_id, .in_degree = 1, .out_degree = 1};
+            }
+            ret = error_check(add_node_txn(dst));
+            if (ret != 0)
+            {
+                return ret;
+            }
             num_nodes_to_add += 1;
         }
-    }
+        /*At this point the src and dst nodes exists in the context of the
+        transaction, but have not yet been .committed to the database. If the
+        transaction is rolled back, the nodes will be removed. In the following
+        steps, if we try to edit the node (to increment the degree), we will get
+        a WT_ROLLBACK error. We need to handle this case by rolling back the
+        transaction and starting over.
+        */
 
-    CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
-
-    if (opts.is_weighted)
-    {
-        edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
-    }
-    else
-    {
-        edge_cursor->set_value(edge_cursor, 0);
-    }
-
-    ret = edge_cursor->insert(edge_cursor);
-
-    switch (ret)
-    {
-        case 0:
-            num_edges_to_add += 1;
-            break;
-        case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
-            return WT_ROLLBACK;
-            // goto start_add_edge;
-        case WT_DUPLICATE_KEY:
-            session->rollback_transaction(session, NULL);
-            return WT_DUPLICATE_KEY;
-            // return;
-        default:
-            session->rollback_transaction(session, NULL);
-            throw GraphException("Failed to insert edge between " +
-                                 std::to_string(to_insert.src_id) + " and " +
-                                 std::to_string(to_insert.dst_id) +
-                                 wiredtiger_strerror(ret));
-    }
-
-    if (!opts.is_directed)
-    {
-        CommonUtil::set_key(edge_cursor, to_insert.dst_id, to_insert.src_id);
+        CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
 
         if (opts.is_weighted)
         {
@@ -656,91 +635,106 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             edge_cursor->set_value(edge_cursor, 0);
         }
 
-        ret = edge_cursor->insert(edge_cursor);
-
-        switch (ret)
+        ret = error_check(edge_cursor->insert(edge_cursor));
+        if (!ret)
         {
-            case 0:
-                num_edges_to_add += 1;
-                break;
-            case WT_ROLLBACK:
-                session->rollback_transaction(session, NULL);
-                return WT_ROLLBACK;
-                // goto start_add_edge;
-            case WT_DUPLICATE_KEY:
-                session->rollback_transaction(session, NULL);
-                return WT_DUPLICATE_KEY;
-                // return;
-            default:
-                session->rollback_transaction(session, NULL);
-                throw GraphException("Failed to insert edge between " +
-                                     std::to_string(to_insert.src_id) +
-                                     " and " +
-                                     std::to_string(to_insert.dst_id) +
-                                     wiredtiger_strerror(ret));
+            num_edges_to_add += 1;
         }
-    }
-
-    if (!is_bulk)
-    {
-        // If opts.read_optimized is true, we update in/out degreees in the node
-        // table.
-        if (this->opts.read_optimize)
+        else
         {
-            CommonUtil::set_key(node_cursor, to_insert.src_id);
-            node_cursor->search(node_cursor);
-            // update in/out degrees for src node in NODE_TABLE
-            node found = {0};
-            CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
-            found.id = to_insert.src_id;
-            found.out_degree++;
-            ret = update_node_degree(
-                node_cursor,
-                found.id,
-                found.in_degree,
-                found.out_degree);  //! pass the cursor to this function
+            CommonUtil::log_msg("Failed to insert edge between " +
+                                std::to_string(to_insert.src_id) + " and " +
+                                std::to_string(to_insert.dst_id) +
+                                wiredtiger_strerror(ret));
+            return ret;
+        }
 
-            switch (ret)
+        if (!opts.is_directed)
+        {
+            CommonUtil::set_key(
+                edge_cursor, to_insert.dst_id, to_insert.src_id);
+
+            if (opts.is_weighted)
             {
-                case 0:
-                    break;
-                case WT_ROLLBACK:
-                    session->rollback_transaction(session, NULL);
-                    return WT_ROLLBACK;
-                    // goto start_add_edge;
-                case WT_NOTFOUND:
-                // WT_NOTFOUND should not occur
-                default:
-                    session->rollback_transaction(session, NULL);
-                    throw GraphException("Could not update the node with ID" +
-                                         std::to_string(to_insert.src_id) +
-                                         wiredtiger_strerror(ret));
+                edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
+            }
+            else
+            {
+                edge_cursor->set_value(edge_cursor, 0);
             }
 
-            // update in/out degrees for the dst node in the NODE_TABLE
-            CommonUtil::set_key(node_cursor, to_insert.dst_id);
-            node_cursor->search(node_cursor);
-
-            CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
-            found.id = to_insert.dst_id;
-            found.in_degree++;
-            ret = update_node_degree(
-                node_cursor, found.id, found.in_degree, found.out_degree);
-            switch (ret)
+            ret = error_check(edge_cursor->insert(edge_cursor));
+            if (!ret)
             {
-                case 0:
-                    break;
-                case WT_ROLLBACK:
-                    session->rollback_transaction(session, NULL);
-                    return WT_ROLLBACK;
-                    // goto start_add_edge;
-                case WT_NOTFOUND:
-                    // WT_NOTFOUND should not occur
-                default:
-                    session->rollback_transaction(session, NULL);
-                    throw GraphException("Could not update the node with ID" +
-                                         std::to_string(to_insert.dst_id) +
-                                         wiredtiger_strerror(ret));
+                num_edges_to_add += 1;
+            }
+            else
+            {
+                CommonUtil::log_msg("Failed to insert (reverse) edge between " +
+                                    std::to_string(to_insert.dst_id) + " and " +
+                                    std::to_string(to_insert.src_id) +
+                                    wiredtiger_strerror(ret));
+                return ret;
+            }
+        }
+
+        if (!is_bulk)
+        {
+            // If opts.read_optimized is true, we update in/out degreees in the
+            // node table.
+            if (this->opts.read_optimize)
+            {
+                // If the node exists, search and update. Otherwise, insert.
+                if (src_exists)
+                {
+                    CommonUtil::set_key(node_cursor, to_insert.src_id);
+                    node_cursor->search(node_cursor);
+                    // update in/out degrees for src node in NODE_TABLE
+                    node found = {0};
+                    CommonUtil::record_to_node(
+                        node_cursor, &found, opts.read_optimize);
+                    found.id = to_insert.src_id;
+                    found.out_degree++;
+                    ret = error_check(update_node_degree(
+                        node_cursor,
+                        found.id,
+                        found.in_degree,
+                        found
+                            .out_degree));  //! pass the cursor to this function
+
+                    if (ret != 0)
+                    {
+                        CommonUtil::log_msg(
+                            "Failed to update node degree for node " +
+                            std::to_string(to_insert.src_id) +
+                            wiredtiger_strerror(ret));
+                        return ret;
+                    }
+                }
+
+                if (dst_exists)
+                {
+                    // update in/out degrees for the dst node in the NODE_TABLE
+                    CommonUtil::set_key(node_cursor, to_insert.dst_id);
+                    node_cursor->search(node_cursor);
+                    node found = {0};
+                    CommonUtil::record_to_node(
+                        node_cursor, &found, opts.read_optimize);
+                    found.id = to_insert.dst_id;
+                    found.in_degree++;
+                    ret = error_check(update_node_degree(node_cursor,
+                                                         found.id,
+                                                         found.in_degree,
+                                                         found.out_degree));
+                    if (ret != 0)
+                    {
+                        CommonUtil::log_msg(
+                            "Failed to update node degree for node " +
+                            std::to_string(to_insert.dst_id) +
+                            wiredtiger_strerror(ret));
+                        return ret;
+                    }
+                }
             }
         }
     }
@@ -777,8 +771,8 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
 
     // Delete reverse edge is handled by caller
 
-    // Update in/out degrees for the src and dst nodes if the graph is read
-    // optimized
+    // Update in/out degrees for the src and dst nodes if the graph is
+    // read optimized
 
     // Update src node's in/out degrees
     if (opts.read_optimize)
@@ -887,8 +881,8 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
         }
     }
     edge_cursor->reset(edge_cursor);
-    // Update in/out degrees for the src and dst nodes if the graph is read
-    // optimized
+    // Update in/out degrees for the src and dst nodes if the graph is
+    // read optimized
     if (opts.read_optimize)
     {
         // Update src node's in/out degrees
@@ -980,7 +974,8 @@ int StandardGraph::update_node_degree(WT_CURSOR *cursor,
 /**
  * @brief Get all edges in the edge table
  *
- * @return std::vector<edge> the vector containing all edges in the edge table
+ * @return std::vector<edge> the vector containing all edges in the edge
+ * table
  */
 std::vector<edge> StandardGraph::get_edges()
 {
@@ -1040,8 +1035,8 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
 }
 
 /**
- * @brief This function is used to get all the nodes that have an incoming edge
- * from node_id
+ * @brief This function is used to get all the nodes that have an
+ * incoming edge from node_id
  * @param node_id the node for which out edges are being searched
  * @return vector<node> The vector of out nodes
  */
@@ -1063,7 +1058,8 @@ vector<node> StandardGraph::get_out_nodes(node_id_t node_id)
 
 /**
  * @brief This function is used to get ids of all the nodes that have an
- * incoming edge from node_id; uses one less cursor search than get_out_nodes
+ * incoming edge from node_id; uses one less cursor search than
+ * get_out_nodes
  *
  * @param node_id the node for which out edges are being searched
  * @return vector<node> The vector of out nodes
@@ -1123,8 +1119,8 @@ vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
 }
 
 /**
- * @brief This function is used to get the list of nodes that have edges to
- * node_id
+ * @brief This function is used to get the list of nodes that have edges
+ * to node_id
  *
  * @param node_id for identifying the node to search
  * @return vector<node> set of nodes that have edges to node_id
@@ -1147,11 +1143,12 @@ vector<node> StandardGraph::get_in_nodes(node_id_t node_id)
 }
 
 /**
- * @brief This function is used to get the the ids of list of nodes that have
- * edges to node_id; uses one less search than get_in_nodes
+ * @brief This function is used to get the the ids of list of nodes that
+ * have edges to node_id; uses one less search than get_in_nodes
  *
  * @param node_id for identifying the node to search
- * @return vector<node_ids> Id of set of nodes that have edges to node_id
+ * @return vector<node_ids> Id of set of nodes that have edges to
+ * node_id
  */
 vector<node_id_t> StandardGraph::get_in_nodes_id(node_id_t node_id)
 {
@@ -1351,16 +1348,17 @@ EdgeCursor *StandardGraph::get_edge_iter()
 
 /**
  * @brief This is a function that I am using to test how search using
- * cursors works. It returns a cursor pointing to the first entry where the
- * condition is true and you can call next() on the cursor to get all
- * records that match the condition -- Break when the condition is not true
- * anymore.
+ * cursors works. It returns a cursor pointing to the first entry where
+ * the condition is true and you can call next() on the cursor to get
+ * all records that match the condition -- Break when the condition is
+ * not true anymore.
  *
  * @param node_id
  * @return vector<edge>
  */
 
-// WT_CURSOR *StandardGraph::get_node_iter() { return get_node_cursor(); }
+// WT_CURSOR *StandardGraph::get_node_iter() { return get_node_cursor();
+// }
 
 node StandardGraph::get_next_node(WT_CURSOR *n_iter)
 {
@@ -1373,7 +1371,8 @@ node StandardGraph::get_next_node(WT_CURSOR *n_iter)
 
     return found;
 }
-// WT_CURSOR *StandardGraph::get_edge_iter() { return get_edge_cursor(); }
+// WT_CURSOR *StandardGraph::get_edge_iter() { return get_edge_cursor();
+// }
 
 edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
 {
