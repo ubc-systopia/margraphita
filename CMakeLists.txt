@@ -4,6 +4,7 @@ project(graphapi VERSION 1.0
   LANGUAGES CXX)
 
 include(FetchContent)
+message("CXX compiler version ${CMAKE_CXX_COMPILER_VERSION}")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   MESSAGE("Building on MacOSX")
@@ -43,6 +44,7 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
         TEST_COMMAND ""
     )
   endif()
+
   SET(WIREDTIGER_LIB "${PROJECT_SOURCE_DIR}/libs/wiredtiger/build_debug")
 
   if(stat)
@@ -62,10 +64,11 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 ELSE()
   MESSAGE("Generating a release build (-O3)")
   MESSAGE("Generating a Release build for WiredTiger")
+
   if(NOT EXISTS "${PROJECT_SOURCE_DIR}/libs/wiredtiger/build/wt")
-  MESSAGE("${PROJECT_SOURCE_DIR}/libs/wiredtiger/build/wt")
-  include(ExternalProject)
-  ExternalProject_Add(wiredtiger
+    MESSAGE("${PROJECT_SOURCE_DIR}/libs/wiredtiger/build/wt")
+    include(ExternalProject)
+    ExternalProject_Add(wiredtiger
       BUILD_ALWAYS false
       GIT_REPOSITORY https://github.com/wiredtiger/wiredtiger
       GIT_TAG 11.0.0
@@ -73,16 +76,17 @@ ELSE()
       BINARY_DIR "${PROJECT_SOURCE_DIR}/libs/wiredtiger/build"
       INSTALL_COMMAND ""
       TEST_COMMAND ""
-  )
+    )
   endif()
+
   SET(WIREDTIGER_LIB "${PROJECT_SOURCE_DIR}/libs/wiredtiger/build")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set (wt_shared_lib ${WIREDTIGER_LIB}/libwiredtiger.11.0.0.dylib)
+  set(wt_shared_lib ${WIREDTIGER_LIB}/libwiredtiger.11.0.0.dylib)
 else()
-  set (wt_shared_lib ${WIREDTIGER_LIB}/libwiredtiger.11.0.0.so)
+  set(wt_shared_lib ${WIREDTIGER_LIB}/libwiredtiger.so.11.0.0)
 endif()
 
 find_package(Git QUIET)
@@ -96,21 +100,20 @@ find_package(Git QUIET)
 #        )
 #FetchContent_MakeAvailable(fmt)
 #
-#find_package(Boost 1.80.0 EXACT COMPONENTS serialization REQUIRED)
-#if (Boost_FOUND)
-#
-#  message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
-#  message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
-#  message(STATUS "Boost_VERSION: ${Boost_VERSION}")
-#
-#  include_directories(${Boost_INCLUDE_DIRS})
-#endif ()
+find_package(Boost COMPONENTS serialization REQUIRED)
+
+if(Boost_FOUND)
+ message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
+ message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
+ message(STATUS "Boost_VERSION: ${Boost_VERSION}")
+
+ include_directories(${Boost_INCLUDE_DIRS})
+endif ()
 
 # ######################################################
 # Define paths and targets for GraphAPI lib and tests #
 # ######################################################
 SET(NAME_LIB "GraphAPI")
-
 
 SET(PATH_BUILD "${PROJECT_SOURCE_DIR}/build")
 SET(PATH_INCLUDE "${PROJECT_SOURCE_DIR}/libs/wiredtiger/build"
