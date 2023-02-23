@@ -547,7 +547,7 @@ void StandardGraph::get_nodes(vector<node> &nodes)
     node_cursor->reset(node_cursor);
 }
 
-int StandardGraph::error_check(int ret)
+int StandardGraph::error_check(int ret, std::source_location loc)
 {
     switch (ret)
     {
@@ -557,7 +557,9 @@ int StandardGraph::error_check(int ret)
         case WT_ROLLBACK:
         default:
             session->rollback_transaction(session, NULL);
-            CommonUtil::log_msg("Error code: " + to_string(ret));
+            CommonUtil::log_msg("Error code( " + to_string(ret) +
+                                    ") :" + wiredtiger_strerror(ret),
+                                loc);
     }
     return ret;
 }
@@ -590,7 +592,8 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             {
                 src = {.id = to_insert.src_id, .in_degree = 1, .out_degree = 1};
             }
-            ret = error_check(add_node_txn(src));
+            ret =
+                error_check(add_node_txn(src), std::source_location::current());
             if (ret != 0)
             {
                 return ret;  // ret == 1 means rollback, ret == -1 means
@@ -598,6 +601,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             }
             num_nodes_to_add += 1;
         }
+        node_cursor->reset(node_cursor);
         if (!dst_exists)
         {
             node dst = {0};
@@ -609,7 +613,8 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             {
                 dst = {.id = to_insert.dst_id, .in_degree = 1, .out_degree = 1};
             }
-            ret = error_check(add_node_txn(dst));
+            ret =
+                error_check(add_node_txn(dst), std::source_location::current());
             if (ret != 0)
             {
                 return ret;
@@ -635,7 +640,8 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             edge_cursor->set_value(edge_cursor, 0);
         }
 
-        ret = error_check(edge_cursor->insert(edge_cursor));
+        ret = error_check(edge_cursor->insert(edge_cursor),
+                          std::source_location::current());
         if (!ret)
         {
             num_edges_to_add += 1;
@@ -663,7 +669,8 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                 edge_cursor->set_value(edge_cursor, 0);
             }
 
-            ret = error_check(edge_cursor->insert(edge_cursor));
+            ret = error_check(edge_cursor->insert(edge_cursor),
+                              std::source_location::current());
             if (!ret)
             {
                 num_edges_to_add += 1;
@@ -695,12 +702,13 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                         node_cursor, &found, opts.read_optimize);
                     found.id = to_insert.src_id;
                     found.out_degree++;
-                    ret = error_check(update_node_degree(
-                        node_cursor,
-                        found.id,
-                        found.in_degree,
-                        found
-                            .out_degree));  //! pass the cursor to this function
+                    ret = error_check(
+                        update_node_degree(node_cursor,
+                                           found.id,
+                                           found.in_degree,
+                                           found.out_degree),
+                        std::source_location::current());  //! pass the cursor
+                                                           //! to this function
 
                     if (ret != 0)
                     {
@@ -725,7 +733,8 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                     ret = error_check(update_node_degree(node_cursor,
                                                          found.id,
                                                          found.in_degree,
-                                                         found.out_degree));
+                                                         found.out_degree),
+                                      std::source_location::current());
                     if (ret != 0)
                     {
                         CommonUtil::log_msg(
