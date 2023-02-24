@@ -12,12 +12,12 @@
 #include "times.h"
 
 #define ITER 10
-#define THREADNUM_MAX 4
-#define FANOUT_MAX 512
+#define THREADNUM_MAX 16
+#define FANOUT_MAX 16384
 
-#define BIN_SIZE 524288
-#define BIN_NUM_BUCKETS 1
-#define BIN_THREAD_LOCAL_BUFFER_SIZE 262144
+#define BIN_SIZE 512
+#define BIN_NUM_BUCKETS 1000
+#define BIN_THREAD_LOCAL_BUFFER_SIZE 64
 
 vector<int> a;
 vector<int> updates;
@@ -231,11 +231,10 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    for (int threadNum = THREADNUM_MAX; threadNum <= THREADNUM_MAX;
-         threadNum *= 2)
+    for (int threadNum = 2; threadNum <= THREADNUM_MAX; threadNum *= 2)
     {
         int nodeCount = 10000;
-        for (int fanout = FANOUT_MAX; fanout <= FANOUT_MAX; fanout *= 2)
+        for (int fanout = 1; fanout <= FANOUT_MAX; fanout *= 2)
         {
             init(nodeCount);
             generate_updates(nodeCount, fanout);
