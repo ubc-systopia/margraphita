@@ -25,7 +25,15 @@ int main()
     opts.db_name = "ekey_rd_s10_e8";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
+    if (const char *env_p = std::getenv("GRAPH_PROJECT_DIR"))
+    {
+        opts.stat_log = std::string(env_p);
+    }
+    else
+    {
+        std::cout << "GRAPH_PROJECT_DIR not set. Using CWD" << std::endl;
+        opts.stat_log = "./";
+    }
     opts.type = GraphType::Std;
 
     const int THREAD_NUM = 8;

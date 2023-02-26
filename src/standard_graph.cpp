@@ -592,8 +592,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             {
                 src = {.id = to_insert.src_id, .in_degree = 1, .out_degree = 1};
             }
-            ret =
-                error_check(add_node_txn(src), std::source_location::current());
+            ret = error_check(add_node_txn(src), SRC_LOC);
             if (ret != 0)
             {
                 return ret;  // ret == 1 means rollback, ret == -1 means
@@ -613,8 +612,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             {
                 dst = {.id = to_insert.dst_id, .in_degree = 1, .out_degree = 1};
             }
-            ret =
-                error_check(add_node_txn(dst), std::source_location::current());
+            ret = error_check(add_node_txn(dst), SRC_LOC);
             if (ret != 0)
             {
                 return ret;
@@ -640,8 +638,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             edge_cursor->set_value(edge_cursor, 0);
         }
 
-        ret = error_check(edge_cursor->insert(edge_cursor),
-                          std::source_location::current());
+        ret = error_check(edge_cursor->insert(edge_cursor), SRC_LOC);
         if (!ret)
         {
             num_edges_to_add += 1;
@@ -669,8 +666,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                 edge_cursor->set_value(edge_cursor, 0);
             }
 
-            ret = error_check(edge_cursor->insert(edge_cursor),
-                              std::source_location::current());
+            ret = error_check(edge_cursor->insert(edge_cursor), SRC_LOC);
             if (!ret)
             {
                 num_edges_to_add += 1;
@@ -702,13 +698,12 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                         node_cursor, &found, opts.read_optimize);
                     found.id = to_insert.src_id;
                     found.out_degree++;
-                    ret = error_check(
-                        update_node_degree(node_cursor,
-                                           found.id,
-                                           found.in_degree,
-                                           found.out_degree),
-                        std::source_location::current());  //! pass the cursor
-                                                           //! to this function
+                    ret = error_check(update_node_degree(node_cursor,
+                                                         found.id,
+                                                         found.in_degree,
+                                                         found.out_degree),
+                                      SRC_LOC);  //! pass the cursor
+                                                 //! to this function
 
                     if (ret != 0)
                     {
@@ -734,7 +729,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                                                          found.id,
                                                          found.in_degree,
                                                          found.out_degree),
-                                      std::source_location::current());
+                                      SRC_LOC);
                     if (ret != 0)
                     {
                         CommonUtil::log_msg(

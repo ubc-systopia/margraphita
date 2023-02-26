@@ -6,6 +6,7 @@
 #include <wiredtiger.h>
 
 #include <bitset>
+#include <cassert>
 #include <iostream>
 #include <map>
 #include <source_location>
@@ -16,6 +17,8 @@
 #include <vector>
 
 #include "graph_exception.h"
+
+#define SRC_LOC std::source_location::current()
 
 // These are the string constants
 const std::string METADATA = "metadata";
@@ -366,6 +369,8 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
 {
     cursor->reset(cursor);
     CommonUtil::set_key(cursor, to_insert.node_id);
+    int ret = cursor->search(cursor);  // <-- things fail if I remove this. Why?
+
     size_t size;
     WT_ITEM item;
     char *buf =
@@ -374,8 +379,16 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
     item.size = size;
 
     cursor->set_value(cursor, to_insert.degree, &item);
-    int ret = cursor->update(cursor);
-    return ret;
+
+    ret = cursor->update(cursor);
+    if (ret)
+    {
+        CommonUtil::log_msg("Error inserting into adjlist table" +
+                            std::to_string(ret) + " - " +
+                            wiredtiger_strerror(ret));
+    }
+    cursor->reset(cursor);
+    return 0;
 }
 
 /**

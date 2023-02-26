@@ -428,7 +428,7 @@ class AdjList : public GraphBase
     EdgeCursor *get_edge_iter();
 
     // edgeweight_t get_edge_weight(node_id_t src_id, node_id_t dst_id);
-    void update_edge_weight(
+    [[maybe_unused]] void update_edge_weight(
         node_id_t src_id,
         node_id_t dst_id,
         edgeweight_t edge_weight);  // todo <-- is this implemented?
@@ -457,14 +457,14 @@ class AdjList : public GraphBase
     WT_CURSOR *out_adjlist_cursor = NULL;
 
     // AdjList specific internal methods:
-    node get_next_node(WT_CURSOR *n_cur);
-    edge get_next_edge(WT_CURSOR *e_cur);
+    [[maybe_unused]] node get_next_node(WT_CURSOR *n_cur);
+    [[maybe_unused]] edge get_next_edge(WT_CURSOR *e_cur);
     int add_adjlist(WT_CURSOR *cursor, node_id_t node_id);
     void add_adjlist(WT_CURSOR *cursor,
                      node_id_t node_id,
                      std::vector<node_id_t> &list);
     int delete_adjlist(WT_CURSOR *cursor, node_id_t node_id);
-    void delete_node_from_adjlists(node_id_t node_id);
+    [[maybe_unused]] void delete_node_from_adjlists(node_id_t node_id);
     int add_to_adjlists(WT_CURSOR *cursor,
                         node_id_t node_id,
                         node_id_t to_insert);
@@ -478,7 +478,7 @@ class AdjList : public GraphBase
                            degree_t indeg,
                            degree_t outdeg);
 
-    void dump_tables();
+    [[maybe_unused]] void dump_tables();
     void create_indices() { return; }  // here because defined in interface
 
     int add_one_node_degree(WT_CURSOR *cursor,

@@ -3,9 +3,7 @@
 #include <wiredtiger.h>
 
 #include <algorithm>
-#include <cassert>
 #include <cstring>
-#include <filesystem>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -32,11 +30,10 @@ AdjList::AdjList(graph_opts &opt_params, WT_CONNECTION *conn)
  */
 bool AdjList::has_node(node_id_t node_id)
 {
-    int ret = 0;
     CommonUtil::set_key(node_cursor, node_id);
-    ret = node_cursor->search(node_cursor);
+    int ret = node_cursor->search(node_cursor);
     node_cursor->reset(node_cursor);
-    if (ret == 0)
+    if (!ret)
     {
         return true;
     }
@@ -48,7 +45,7 @@ bool AdjList::has_node(node_id_t node_id)
 void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 {
     // Initialize edge ID for the edge table
-    // AdjList has no edge id in the edge table but we are using the same
+    // AdjList has no edge id in the edge table, but we are using the same
     // structure as used by Standardgraph. So, the edge_id value will be -999
     // for all edges in the AdjList implementation.
 
@@ -72,7 +69,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     }
     else
     {
-        node_columns.push_back(
+        node_columns.emplace_back(
             "na");  // have to do this because the column count must match
         node_value_format = "s";  // 1 byte fixed length char[] to hold ""
     }
@@ -86,7 +83,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // another I if weighted
     vector<string> edge_columns = {SRC, DST};
     string edge_key_format = "uu";  // SRC DST in the edge table
-    string edge_value_format = "";  // Make I if weighted , x otherwise
+    string edge_value_format;       // Make I if weighted , x otherwise
     if (opts.is_weighted)
     {
         edge_columns.push_back(WEIGHT);
@@ -94,11 +91,11 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     }
     else
     {
-        edge_columns.push_back("NA");
+        edge_columns.emplace_back("NA");
         edge_value_format +=
             "b";  // uses 8 bits, which is the smallest possible value (?) other
                   // than x -- padded byte which I don't fully understand
-        // TODO: check if this is referrred anywhere in the unweighted code path
+        // TODO: check if this is referred anywhere in the unweighted code path
     }
 
     // Create edge table
@@ -112,8 +109,6 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
         "Iu";  // uint32_t for in/out degree, and a variable length byte array
                // for the adjacency list. This HAS to be u. S does not work. s
                // needs the number.
-    string node_count = "nNodes";
-    string edge_count = "nEdges";
 
     // Create adjlist_in_edges table
     CommonUtil::set_table(sess,
@@ -128,14 +123,14 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
                           out_adjlist_columns,
                           adjlist_key_format,
                           adjlist_value_format);
-    sess->close(sess, NULL);
+    sess->close(sess, nullptr);
 }
 
 void AdjList::init_cursors()
 {
-    int ret = 0;
     // metadata_cursor initialization
-    ret = _get_table_cursor(METADATA, &metadata_cursor, session, false, false);
+    int ret =
+        _get_table_cursor(METADATA, &metadata_cursor, session, false, false);
     if (ret != 0)
     {
         throw GraphException("Could not get a cursor to the metadata table:" +
@@ -149,7 +144,7 @@ void AdjList::init_cursors()
                              string(wiredtiger_strerror(ret)));
     }
     // edge_cursor initialization
-    ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, false);
+    ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, true);
     if (ret != 0)
     {
         throw GraphException("Could not get a cursor to the edge table:" +
@@ -190,7 +185,7 @@ void AdjList::init_cursors()
 int AdjList::add_node(node to_insert)
 {
     session->begin_transaction(session, "isolation=snapshot");
-    int ret = 0;
+    int ret;
 
     CommonUtil::set_key(node_cursor, to_insert.id);
 
@@ -220,7 +215,7 @@ int AdjList::add_node(node to_insert)
     {
         return ret;
     }
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nnodes(1);
     return ret;
 }
@@ -228,7 +223,7 @@ int AdjList::add_node(node to_insert)
 // This function does not handle the add_node numbers
 int AdjList::add_node_in_txn(node to_insert)
 {
-    int ret = 0;
+    int ret;
     CommonUtil::set_key(node_cursor, to_insert.id);
 
     if (opts.read_optimize)
@@ -242,19 +237,43 @@ int AdjList::add_node_in_txn(node to_insert)
         node_cursor->set_value(node_cursor, "");
     }
 
-    if ((ret = error_check_insert_txn(node_cursor->insert(node_cursor), true)))
+    if ((ret = error_check_insert_txn(node_cursor->insert(node_cursor), false)))
     {
+        if (ret == WT_DUPLICATE_KEY)
+        {
+            CommonUtil::log_msg(
+                "Duplicate key in add_node_in_txn. Node " +
+                to_string(to_insert.id) +
+                " already exists. : " + wiredtiger_strerror(ret));
+            return 0;  // this is a duplicate key, continue.
+        }
         return ret;
     }
 
     if ((ret = error_check_insert_txn(
-             add_adjlist(in_adjlist_cursor, to_insert.id), true)))
+             add_adjlist(in_adjlist_cursor, to_insert.id), false)))
     {
+        if (ret == WT_DUPLICATE_KEY)
+        {
+            CommonUtil::log_msg(
+                "Duplicate key in add_node_in_txn. Node " +
+                to_string(to_insert.id) +
+                " already exists. : " + wiredtiger_strerror(ret));
+            return 0;  // this is a duplicate key, continue.
+        }
         return ret;
     }
     if ((ret = error_check_insert_txn(
-             add_adjlist(out_adjlist_cursor, to_insert.id), true)))
+             add_adjlist(out_adjlist_cursor, to_insert.id), false)))
     {
+        if (ret == WT_DUPLICATE_KEY)
+        {
+            CommonUtil::log_msg(
+                "Duplicate key in add_adjlist. An adjlist for node " +
+                to_string(to_insert.id) +
+                " already exists. : " + wiredtiger_strerror(ret));
+            return 0;  // this is a duplicate key, continue.
+        }
         return ret;
     }
     return ret;
@@ -264,7 +283,7 @@ void AdjList::add_node(node_id_t to_insert,
                        std::vector<node_id_t> &inlist,
                        std::vector<node_id_t> &outlist)
 {
-    int ret = 0;
+    int ret;
 
     CommonUtil::set_key(node_cursor, to_insert);
 
@@ -301,7 +320,7 @@ void AdjList::add_node(node_id_t to_insert,
 int AdjList::add_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 {
     // Check if the cursor is not NULL, else throw exception
-    if (cursor == NULL)
+    if (cursor == nullptr)
     {
         throw GraphException("Uninitiated Cursor passed to add_adjlist call");
     }
@@ -321,9 +340,8 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
                           node_id_t node_id,
                           std::vector<node_id_t> &list)
 {
-    int ret = 0;
     // Check if the cursor is not NULL, else throw exception
-    if (cursor == NULL)
+    if (cursor == nullptr)
     {
         throw GraphException("Uninitiated Cursor passed to add_adjlist call");
     }
@@ -336,8 +354,7 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
     cursor->set_value(
         cursor, list.size(), &item);  // serialize the vector and send ""
 
-    ret = cursor->insert(cursor);
-    if (ret != 0)
+    if (cursor->insert(cursor) != 0)
     {
         throw GraphException("Failed to add node_id" + std::to_string(node_id));
     }
@@ -349,7 +366,7 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
  **/
 int AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 {
-    int ret = 0;
+    int ret;
     // Check if the cursor is not NULL, else throw exception
     if (cursor == nullptr)
     {
@@ -358,6 +375,13 @@ int AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 
     CommonUtil::set_key(cursor, node_id);
     ret = error_check_remove_txn(cursor->remove(cursor));
+    if (ret)
+    {
+        CommonUtil::log_msg("Failed to delete adjlist for node_id " +
+                                std::to_string(node_id) + "; TX rolled back.",
+                            SRC_LOC);
+        return ret;
+    }
     cursor->reset(cursor);
     return ret;
 }
@@ -378,24 +402,35 @@ int AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 
 int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 {
-    int ret = 0;
+    int ret;
     int num_nodes_added = 0;
 
     session->begin_transaction(session, "isolation=snapshot");
 
+    /*****Insert SRC and DST if they don't exist.*****/
     node src = {0};
     src.id = to_insert.src_id;
-    if (!add_node_in_txn(src))
+    if (add_node_in_txn(src))
     {
-        num_nodes_added++;
+        CommonUtil::log_msg(
+            "Failed to add node_id " + std::to_string(to_insert.dst_id),
+            std::source_location::current());
+        return WT_ROLLBACK;
     }
+    num_nodes_added++;
+
     node dst = {0};
     dst.id = to_insert.dst_id;
-    if (!add_node_in_txn(dst))
+    if (add_node_in_txn(dst))
     {
-        num_nodes_added++;
+        CommonUtil::log_msg(
+            "Failed to add node_id " + std::to_string(to_insert.dst_id),
+            std::source_location::current());
+        return WT_ROLLBACK;
     }
+    num_nodes_added++;
 
+    /***** Insert edge *****/
     CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
 
     if (opts.is_weighted)
@@ -428,19 +463,23 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
             return ret;
         }
     }
+    /*** Insert AdjLists ***/
     if (is_bulk_insert)
     {
         return ret;  // we have already added adjlists while adding nodes.
     }
     //! This assumes that there are no duplicate edges.
     // Concurrency control for add_to_adjlists handled within add_to_adjlists
-    if ((ret = add_to_adjlists(
-             out_adjlist_cursor, to_insert.src_id, to_insert.dst_id)))
+    ret =
+        add_to_adjlists(out_adjlist_cursor, to_insert.src_id, to_insert.dst_id);
+    if (ret != 0)
     {
         return ret;
     }
-    if ((ret = add_to_adjlists(
-             in_adjlist_cursor, to_insert.dst_id, to_insert.src_id)))
+    //! This inserts the wrong node into the out_adjlist table.
+    ret =
+        add_to_adjlists(in_adjlist_cursor, to_insert.dst_id, to_insert.src_id);
+    if (ret)
     {
         return ret;
     }
@@ -474,7 +513,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
             return ret;
         }
     }
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nnodes(num_nodes_added);
     add_to_nedges(1);
     if (!opts.is_directed)
@@ -515,12 +554,15 @@ int AdjList::delete_node(node_id_t node_id)
     // Delete Edges
     // Concurrency handled within delete_related_edges_and_adjlists
     session->begin_transaction(session, "isolation=snapshot");
-    int ret = 0;
+    int ret;
     int num_deleted_edges = 0;
     delete_related_edges_and_adjlists(node_id, &num_deleted_edges);
     CommonUtil::set_key(node_cursor, node_id);
     if ((ret = error_check_remove_txn(node_cursor->remove(node_cursor))))
     {
+        CommonUtil::log_msg("Failed to delete node_id " +
+                                std::to_string(node_id) + "; TX rolled back.",
+                            SRC_LOC);
         return ret;
     }
     node_cursor->reset(node_cursor);
@@ -536,7 +578,7 @@ int AdjList::delete_node(node_id_t node_id)
     {
         return ret;
     }
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nnodes(-1);
     add_to_nedges(-num_deleted_edges);
     return ret;
@@ -550,7 +592,7 @@ int AdjList::delete_node(node_id_t node_id)
  */
 uint32_t AdjList::get_in_degree(node_id_t node_id)
 {
-    int ret = 0;
+    int ret;
     if (opts.read_optimize)
     {
         CommonUtil::set_key(node_cursor, node_id);
@@ -590,13 +632,11 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
  */
 uint32_t AdjList::get_out_degree(node_id_t node_id)
 {
-    int ret = 0;
     node_cursor->reset(node_cursor);
     if (opts.read_optimize)
     {
         CommonUtil::set_key(node_cursor, node_id);
-        ret = node_cursor->search(node_cursor);
-        if (ret != 0)
+        if (node_cursor->search(node_cursor) != 0)
         {
             throw GraphException("Could not find a node with ID " +
                                  std::to_string(node_id));
@@ -610,8 +650,7 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
     else
     {
         CommonUtil::set_key(out_adjlist_cursor, node_id);
-        ret = out_adjlist_cursor->search(out_adjlist_cursor);
-        if (ret != 0)
+        if (out_adjlist_cursor->search(out_adjlist_cursor) != 0)
         {
             throw GraphException("Could not find a node with ID " +
                                  std::to_string(node_id) + " in the adjlist");
@@ -632,8 +671,8 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
 std::vector<node> AdjList::get_nodes()
 {
     std::vector<node> nodelist;
-    int ret;
-    while ((ret = node_cursor->next(node_cursor) == 0))
+
+    while ((node_cursor->next(node_cursor) == 0))
     {
         node found;
         CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
@@ -722,7 +761,7 @@ edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
  */
 bool AdjList::has_edge(node_id_t src_id, node_id_t dst_id)
 {
-    int ret = 0;
+    int ret;
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     ret = edge_cursor->search(edge_cursor);
     edge_cursor->reset(edge_cursor);
@@ -813,7 +852,7 @@ std::vector<node_id_t> AdjList::get_out_nodes_id(node_id_t node_id)
  */
 std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
 {
-    int ret = 0;
+    int ret;
     std::vector<edge> out_edges;
     std::vector<node_id_t> dst_nodes;
     if (!has_node(node_id))
@@ -899,7 +938,7 @@ std::vector<edge> AdjList::get_in_edges(node_id_t node_id)
 {
     std::vector<edge> in_edges;
     std::vector<node_id_t> src_nodes;
-    int ret = 0;
+    int ret;
 
     src_nodes = get_adjlist(in_adjlist_cursor, node_id);
 
@@ -940,6 +979,10 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
     {
+        CommonUtil::log_msg("Failed to delete edge ()" +
+                                std::to_string(src_id) + "," +
+                                std::to_string(dst_id) + "); TX rolled back.",
+                            SRC_LOC);
         return ret;
     }
     // delete (dst_id, src_id) from edge table if undirected
@@ -948,6 +991,10 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
         CommonUtil::set_key(edge_cursor, dst_id, src_id);
         if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
         {
+            CommonUtil::log_msg(
+                "Failed to delete edge ()" + std::to_string(dst_id) + "," +
+                    std::to_string(src_id) + "); TX rolled back.",
+                SRC_LOC);
             return ret;
         }
     }
@@ -988,7 +1035,7 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
             return ret;
         }
     }
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nedges(-1);
     if (!opts.is_directed)
     {
@@ -1006,15 +1053,15 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
  * @throws GraphException if trying to update weight for an unweighted graph, if
  * the edge cursor could not be found, or if the update operation fails.
  */
-void AdjList::update_edge_weight(node_id_t src_id,
-                                 node_id_t dst_id,
-                                 int32_t edge_weight)
+[[maybe_unused]] void AdjList::update_edge_weight(node_id_t src_id,
+                                                  node_id_t dst_id,
+                                                  int32_t edge_weight)
 {
     if (!opts.is_weighted)
     {
         throw GraphException("Trying to insert weight for an unweighted graph");
     }
-    int ret = 0;
+    int ret;
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     edge_cursor->set_value(edge_cursor, edge_weight);
     ret = edge_cursor->insert(edge_cursor);
@@ -1049,14 +1096,7 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
                              " in the AdjList");
     }
 
-    // !APT: Check with puneet
-    // We have the entire node we only need the list how to assign it without
-    // knowing which table is it in or out?
-    // Times t;
-    // t.start();
     CommonUtil::record_to_adjlist(session, cursor, &adj_list);
-    // t.stop();
-    // std::cout << "Record to adjlist:" << t.t_micros() << '\n';
     cursor->reset(cursor);
     return adj_list.edgelist;
 }
@@ -1074,14 +1114,22 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
     {
         return ret;
     }
-    adjlist found;
+    adjlist found = adjlist();
     found.node_id = node_id;
     CommonUtil::record_to_adjlist(
         session, cursor, &found);  //<-- This works just fine.
-    found.edgelist.push_back(to_insert);
+    found.edgelist.emplace_back(
+        to_insert);  // this needs to be converted first.
     found.degree += 1;
     ret = error_check_insert_txn(
         CommonUtil::adjlist_to_record(session, cursor, found), false);
+    if (ret != 0)
+    {
+        CommonUtil::log_msg("Could not insert adjlist for " +
+                                std::to_string(node_id) +
+                                "; TX NOT rolled back.",
+                            SRC_LOC);
+    }
     cursor->reset(cursor);
     return ret;
 }
@@ -1093,7 +1141,7 @@ int AdjList::delete_from_adjlists(WT_CURSOR *cursor,
     // Not checking for directional or undirectional that would be taken
     // care by the caller.
 
-    int ret = 0;
+    int ret;
 
     CommonUtil::set_key(cursor, node_id);
     if (error_check_read_txn(ret = cursor->search(cursor)))
@@ -1125,7 +1173,7 @@ int AdjList::delete_from_adjlists(WT_CURSOR *cursor,
 }
 
 // CONCURRENCY CONTROL NOT IMPLEMENTED FOR THIS METHOD YET
-void AdjList::delete_node_from_adjlists(node_id_t node_id)
+[[maybe_unused]] void AdjList::delete_node_from_adjlists(node_id_t node_id)
 {
     // We need to delete the node from both tables
     // and go through all the adjlist values, iterate over its edgelist and
@@ -1135,10 +1183,10 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
     std::vector<node_id_t> out_edgelist;
 
     WT_CURSOR *in_cursor = nullptr;
-    int ret = _get_table_cursor(IN_ADJLIST, &in_cursor, session, false, false);
+    _get_table_cursor(IN_ADJLIST, &in_cursor, session, false, false);
     CommonUtil::set_key(in_cursor, node_id);
-    ret = in_cursor->search(in_cursor);
-    if (ret != 0)
+
+    if (in_cursor->search(in_cursor) != 0)
     {
         throw GraphException("Could not find " + std::to_string(node_id) +
                              " in the AdjList Table");
@@ -1149,7 +1197,7 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
     // node_id from its neighbors
 
     WT_CURSOR *out_cursor = nullptr;
-    ret = _get_table_cursor(OUT_ADJLIST, &out_cursor, session, false, false);
+    _get_table_cursor(OUT_ADJLIST, &out_cursor, session, false, false);
 
     for (auto neighbor : in_edgelist)
     {
@@ -1160,8 +1208,7 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
     // IN_Table
 
     CommonUtil::set_key(out_cursor, node_id);
-    ret = out_cursor->search(out_cursor);
-    if (ret != 0)
+    if (out_cursor->search(out_cursor) != 0)
     {
         throw GraphException("Could not find " + std::to_string(node_id) +
                              " in the AdjList Table");
@@ -1177,18 +1224,16 @@ void AdjList::delete_node_from_adjlists(node_id_t node_id)
 
     // Now, remove the node from both the tables
     CommonUtil::set_key(out_cursor, node_id);
-    ret = out_cursor->remove(out_cursor);
 
-    if (ret != 0)
+    if (out_cursor->remove(out_cursor) != 0)
     {
         throw GraphException("Could not delete node with ID " +
                              to_string(node_id) + " from the OUT_ADJLIST");
     }
 
     CommonUtil::set_key(in_cursor, node_id);
-    ret = in_cursor->remove(in_cursor);
 
-    if (ret != 0)
+    if (in_cursor->remove(in_cursor) != 0)
     {
         throw GraphException("Could not delete node with ID " +
                              to_string(node_id) + " from the IN_ADJLIST");
@@ -1378,7 +1423,7 @@ WT_CURSOR *AdjList::get_new_out_adjlist_cursor()
     return new_out_adjlist_cursor;
 }
 
-node AdjList::get_next_node(WT_CURSOR *n_cur)
+[[maybe_unused]] node AdjList::get_next_node(WT_CURSOR *n_cur)
 {
     node found = {0};
     if (n_cur->next(n_cur) == 0)
@@ -1393,7 +1438,7 @@ node AdjList::get_next_node(WT_CURSOR *n_cur)
     return found;
 }
 
-edge AdjList::get_next_edge(WT_CURSOR *e_cur)
+[[maybe_unused]] edge AdjList::get_next_edge(WT_CURSOR *e_cur)
 {
     edge found = {0};
     if (e_cur->next(e_cur) == 0)
@@ -1411,13 +1456,12 @@ edge AdjList::get_next_edge(WT_CURSOR *e_cur)
     return found;
 }
 
-void AdjList::dump_tables()
+[[maybe_unused]] void AdjList::dump_tables()
 {
-    int ret;
     cout << "------\n"
          << "Nodes:\n"
          << "------\n";
-    while ((ret = node_cursor->next(node_cursor)) == 0)
+    while (node_cursor->next(node_cursor) == 0)
     {
         node found;
         node_cursor->get_key(node_cursor, &found.id);
@@ -1430,7 +1474,7 @@ void AdjList::dump_tables()
     cout << "------\n"
          << "Edges:\n"
          << "------\n";
-    while ((ret = edge_cursor->next(edge_cursor)) == 0)
+    while (edge_cursor->next(edge_cursor) == 0)
     {
         edge found;
         edge_cursor->get_key(edge_cursor, &found.src_id, &found.dst_id);
@@ -1442,7 +1486,7 @@ void AdjList::dump_tables()
     cout << "------\n"
          << "In Adjlist:\n"
          << "------\n";
-    while ((ret = in_adjlist_cursor->next(in_adjlist_cursor)) == 0)
+    while (in_adjlist_cursor->next(in_adjlist_cursor) == 0)
     {
         adjlist found;
         in_adjlist_cursor->get_key(in_adjlist_cursor, &found.node_id);
@@ -1454,7 +1498,7 @@ void AdjList::dump_tables()
     cout << "------\n"
          << "Out Adjlist:\n"
          << "------\n";
-    while ((ret = out_adjlist_cursor->next(out_adjlist_cursor)) == 0)
+    while (out_adjlist_cursor->next(out_adjlist_cursor) == 0)
     {
         adjlist found;
         out_adjlist_cursor->get_key(out_adjlist_cursor, &found.node_id);
@@ -1532,6 +1576,10 @@ int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
     {
+        CommonUtil::log_msg("Failed to delete edge ()" +
+                                std::to_string(src_id) + "," +
+                                std::to_string(dst_id) + "); TX rolled back.",
+                            SRC_LOC);
         return ret;
     }
     // delete (dst_id, src_id) from edge table if undirected
@@ -1540,6 +1588,10 @@ int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
         CommonUtil::set_key(edge_cursor, dst_id, src_id);
         if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
         {
+            CommonUtil::log_msg(
+                "Failed to delete edge ()" + std::to_string(dst_id) + "," +
+                    std::to_string(src_id) + "); TX rolled back.",
+                SRC_LOC);
             return ret;
         }
     }
@@ -1590,16 +1642,26 @@ int AdjList::error_check_insert_txn(int return_val, bool ignore_duplicate_key)
         case 0:
             return 0;
         case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         case WT_DUPLICATE_KEY:
             if (!ignore_duplicate_key)
             {
-                session->rollback_transaction(session, NULL);
+                // session->rollback_transaction(session, nullptr);
+                /*Rolling back the transaction here is not necessary if the
+                 * cursor has been opened with overwrite=false. A plain warning
+                 * is enough. */
+                CommonUtil::log_msg("WT_DUPLICATE_KEY error in insert_txn",
+                                    SRC_LOC);
             }
             return WT_DUPLICATE_KEY;
+        case WT_NOTFOUND:
+            //! Should we roll back the transaction here? This should not
+            //! happen.
+            CommonUtil::log_msg("WT_NOTFOUND error in insert_txn", SRC_LOC);
+            return WT_NOTFOUND;
         default:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             throw GraphException("Failed to complete insert action" +
                                  std::string(wiredtiger_strerror(return_val)));
     }
@@ -1612,10 +1674,10 @@ int AdjList::error_check_update_txn(int return_val)
         case 0:
             return 0;
         case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         default:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             throw GraphException("Failed to complete update action" +
                                  std::string(wiredtiger_strerror(return_val)));
     }
@@ -1628,13 +1690,13 @@ int AdjList::error_check_read_txn(int return_val)
         case 0:
             return 0;
         case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         case WT_NOTFOUND:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_NOTFOUND;
         default:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             throw GraphException("Failed to complete read action" +
                                  std::string(wiredtiger_strerror(return_val)));
     }
@@ -1647,11 +1709,10 @@ int AdjList::error_check_remove_txn(int return_val)
         case 0:
             return 0;
         case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         default:
-            session->rollback_transaction(session, NULL);
-            throw GraphException("Failed to complete read action" +
-                                 std::string(wiredtiger_strerror(return_val)));
+            session->rollback_transaction(session, nullptr);
     }
+    return return_val;
 }

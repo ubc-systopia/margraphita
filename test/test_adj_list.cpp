@@ -8,7 +8,7 @@
 #include "sample_graph.h"
 
 #define delim "--------------"
-#define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
+#define INFO() fprintf(stdout, "%s\nNow running: %s\n", delim, __FUNCTION__);
 
 void create_init_nodes(AdjList graph, bool is_directed)
 {
@@ -141,7 +141,6 @@ void test_add_edge(AdjList graph, bool is_directed)
         found = graph.get_edge(test_id2, test_id1);
         assert(found.edge_weight == 333);
     }
-
     // Check if the nodes were created.
     node got = graph.get_node(test_id1);
     assert(got.id == 5);
@@ -576,7 +575,15 @@ int main()
     opts.db_dir = "./db";
     opts.db_name = "test_adj";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
+    if (const char *env_p = std::getenv("GRAPH_PROJECT_DIR"))
+    {
+        opts.stat_log = std::string(env_p);
+    }
+    else
+    {
+        std::cout << "GRAPH_PROJECT_DIR not set. Using CWD" << std::endl;
+        opts.stat_log = "./";
+    }
 
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
@@ -587,10 +594,10 @@ int main()
     test_get_nodes(graph);
     test_get_node(graph);
     test_add_edge(graph, opts.is_directed);
-    // /*
-    // test_add_fail should fail if create_new is false
-    // add_edge->add_to_adjlists assumes no duplicate edges.
-    // */
+    /*
+     test_add_fail should fail if create_new is false
+     add_edge->add_to_adjlists assumes no duplicate edges.
+     */
     test_get_edge(graph);
     test_get_out_edges(graph);
     test_get_in_edges(graph);

@@ -463,7 +463,15 @@ int main()
     opts.db_name = "test_eKey";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
-    opts.stat_log = std::getenv("GRAPH_PROJECT_DIR");
+    if (const char *env_p = std::getenv("GRAPH_PROJECT_DIR"))
+    {
+        opts.stat_log = std::string(env_p);
+    }
+    else
+    {
+        std::cout << "GRAPH_PROJECT_DIR not set. Using CWD" << std::endl;
+        opts.stat_log = "./";
+    }
 
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
