@@ -495,12 +495,12 @@ int main()
     test_get_in_and_out_degree(graph);
 
     test_delete_node(graph, opts.is_directed);
-    test_NodeCursor(graph);
-    test_NodeCursor_Range(graph);
     test_EdgeCursor(graph);
     test_EdgeCursor_Range(graph);
     test_InCursor(graph);
     test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
 
     tearDown(graph);
 }

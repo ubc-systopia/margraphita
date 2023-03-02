@@ -379,7 +379,7 @@ class EkeyNodeCursor : public NodeCursor
     void set_key_range(key_range _keys)
     {
         keys = _keys;
-        CommonUtil::set_key(cursor, OutOfBand_ID, keys.start);
+        CommonUtil::set_key(cursor, OutOfBand_ID, MAKE_EKEY(keys.start));
     }
 
     void next(node *found)
@@ -410,15 +410,15 @@ class EkeyNodeCursor : public NodeCursor
         {
         first_time_skip_next:
 
-            cursor->get_value(cursor,
+            CommonUtil::get_ekey_dst_src_val(cursor,
                               &curr_edge.dst_id,
                               &curr_edge.src_id,
                               &found->in_degree,
                               &found->out_degree);  // getting all of dst, src,
                                                     // in/out degrees at once
 
-            // found->in_degree = a;
-            // found->out_degree = b;
+            curr_edge.src_id = OG_KEY(curr_edge.src_id);
+            curr_edge.dst_id = OG_KEY(curr_edge.dst_id);
             found->id = curr_edge.src_id;
 
             if (keys.end != -1 && curr_edge.src_id > keys.end)

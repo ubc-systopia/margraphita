@@ -41,10 +41,10 @@
             "MIMode": "lldb"
         },
         {
-            "name": "(gdb) Launch",
+            "name": "test_adjlist_gdb",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/puneet/scratch/margraphita/build/test/test_adj_list",
+            "program": "/home/puneet/scratch/margraphita/build/debug/test/test_adj_list",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
