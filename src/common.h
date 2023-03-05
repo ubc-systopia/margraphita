@@ -91,7 +91,7 @@ typedef struct node
 
 typedef struct edge
 {
-    // int32_t id;
+    uint32_t id = 0;
     node_id_t src_id = 0;
     node_id_t dst_id = 0;
     edgeweight_t edge_weight = 0;
