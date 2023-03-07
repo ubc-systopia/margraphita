@@ -8,6 +8,7 @@
 #include "graph_exception.h"
 #include "lock.h"
 #include "standard_graph.h"
+#include "edgelist.h"
 
 using namespace std;
 

@@ -65,6 +65,7 @@ typedef enum GraphType
     Std,
     Adj,
     EKey,
+    EList,
 } GraphType;
 
 struct graph_opts
@@ -91,11 +92,10 @@ typedef struct node
 
 typedef struct edge
 {
-    uint32_t id = 0;
+    int32_t id = 0;
     node_id_t src_id = 0;
     node_id_t dst_id = 0;
     edgeweight_t edge_weight = 0;
-
 } edge;
 
 typedef struct edge_index
@@ -176,8 +176,16 @@ class CommonUtil
                                WT_CONNECTION **conn);
     static void set_key(WT_CURSOR *cursor, node_id_t key);
     static void set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
+    static void set_key(WT_CURSOR *cursor,
+                        int32_t id,
+                        node_id_t key1,
+                        node_id_t key2);
     static int get_key(WT_CURSOR *cursor, node_id_t *key);
     static int get_key(WT_CURSOR *cursor, node_id_t *key1, node_id_t *key2);
+    static int get_key(WT_CURSOR *cursor,
+                       int32_t *id,
+                       node_id_t *key1,
+                       node_id_t *key2);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
     static void check_return(int retval, const std::string &mesg);
     static void dump_node(node to_print);
@@ -242,6 +250,18 @@ inline void CommonUtil::set_key(WT_CURSOR *cursor,
     cursor->set_key(cursor, &k1, &k2);
 }
 
+inline void CommonUtil::set_key(WT_CURSOR *cursor,
+                                int32_t id,
+                                node_id_t key1,
+                                node_id_t key2)
+{
+    uint32_t a = __builtin_bswap32(key1);
+    uint32_t b = __builtin_bswap32(key2);
+    WT_ITEM k1 = {.data = &a, .size = sizeof(a)};
+    WT_ITEM k2 = {.data = &b, .size = sizeof(b)};
+    cursor->set_key(cursor, id, &k1, &k2);
+}
+
 inline int CommonUtil::get_key(WT_CURSOR *cursor, node_id_t *key)
 {
     WT_ITEM k;
@@ -261,6 +281,22 @@ inline int CommonUtil::get_key(WT_CURSOR *cursor,
     uint32_t b = *(uint32_t *)k2.data;
     *key1 = __builtin_bswap32(a);
     *key2 = __builtin_bswap32(b);
+    return ret;
+}
+
+inline int CommonUtil::get_key(WT_CURSOR *cursor,
+                               int32_t *id,
+                               node_id_t *key1,
+                               node_id_t *key2)
+{
+    WT_ITEM k1, k2;
+    int32_t found_id;
+    int ret = cursor->get_key(cursor, &found_id, &k1, &k2);
+    uint32_t a = *(uint32_t *)k1.data;
+    uint32_t b = *(uint32_t *)k2.data;
+    *key1 = __builtin_bswap32(a);
+    *key2 = __builtin_bswap32(b);
+    *id = found_id;
     return ret;
 }
 

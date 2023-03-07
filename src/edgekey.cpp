@@ -740,7 +740,7 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
  */
 edge EdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {-1, -1, -1};
+    edge found = {-1, -1, -1, -1};
     CommonUtil::set_key(edge_cursor, MAKE_EKEY(src_id), MAKE_EKEY(dst_id));
     if (edge_cursor->search(edge_cursor) == 0)
     {

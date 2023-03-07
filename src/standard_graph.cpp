@@ -248,7 +248,6 @@ int StandardGraph::add_node(node to_insert)
 
 int StandardGraph::add_node_txn(node to_insert)
 {
-    std::cout << "\tin add_node_txn; inserting " << to_insert.id << "\n";
     CommonUtil::set_key(node_cursor, to_insert.id);
     if (opts.read_optimize)
     {
@@ -294,7 +293,7 @@ bool StandardGraph::has_edge(node_id_t src_id, node_id_t dst_id)
 
 edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {-1, -1, -1};
+    edge found = {-1, -1, -1, -1};
     CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
     int ret = src_dst_index_cursor->search(src_dst_index_cursor);
     if (ret == 0)
@@ -357,11 +356,6 @@ int StandardGraph::delete_node(node_id_t node_id)
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
     int ret = 0;
-
-    // start_delete_node:
-    num_nodes_to_add = 0;
-    num_edges_to_add = 0;
-    ret = 0;
 
     session->begin_transaction(session, "isolation=snapshot");
 
@@ -987,7 +981,7 @@ std::vector<edge> StandardGraph::get_edges()
     vector<edge> edges;
     while ((ret = edge_cursor->next(edge_cursor) == 0))
     {
-        edge found = {-1, -1, -1};
+        edge found = {-1, -1, -1, -1};
         CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
         if (opts.is_weighted)
         {

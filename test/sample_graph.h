@@ -4,17 +4,17 @@
 #include "common.h"
 namespace SampleGraph
 {
-edge edge1 = {.src_id = 1, .dst_id = 2};
+edge edge1 = {.id =0, .src_id = 1, .dst_id = 2, .edge_weight = 0};
 
-edge edge2 = {.src_id = 1, .dst_id = 3};
+edge edge2 = {.id = 1, .src_id = 1, .dst_id = 3, .edge_weight =0};
 
-edge edge3 = {.src_id = 2, .dst_id = 3};
+edge edge3 = {.id =2, .src_id = 2, .dst_id = 3, .edge_weight =0};
 
-edge edge4 = {.src_id = 1, .dst_id = 7};
+edge edge4 = {.id =3, .src_id = 1, .dst_id = 7, .edge_weight =0};
 
-edge edge5 = {.src_id = 7, .dst_id = 8};
+edge edge5 = {.id=4, .src_id = 7, .dst_id = 8, .edge_weight =0};
 
-edge edge6 = {.src_id = 8, .dst_id = 7};
+edge edge6 = {.id =6, .src_id = 8, .dst_id = 7, .edge_weight =0};
 
 node node1 = {.id = 1};
 

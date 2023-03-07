@@ -1,6 +1,7 @@
 #include "graph_engine.h"
 
 #include <filesystem>
+
 using namespace std;
 
 GraphEngine::GraphEngine(graph_engine_opts engine_opts)
@@ -43,6 +44,10 @@ GraphBase *GraphEngine::create_graph_handle()
     {
         ptr = new EdgeKey(opts, conn);
     }
+    else if (opts.type == GraphType::EList)
+    {
+        ptr = new UnOrderedEdgeList(opts, conn);
+    }
     else
     {
         throw GraphException("Failed to create graph object");
@@ -63,6 +68,14 @@ void GraphEngine::create_indices()
     else if (opts.type == GraphType::EKey)
     {
         EdgeKey::create_indices(sess);
+    }
+    else if (opts.type == GraphType::EList)
+    {
+        UnOrderedEdgeList::create_indices(sess);
+    }
+    else
+    {
+        throw GraphException("Failed to create graph object");
     }
 }
 
@@ -145,6 +158,14 @@ void GraphEngine::create_new_graph()
     else if (opts.type == GraphType::EKey)
     {
         EdgeKey::create_wt_tables(opts, conn);
+    }
+    else if (opts.type == GraphType::EList)
+    {
+        UnOrderedEdgeList::create_wt_tables(opts, conn);
+    }
+    else
+    {
+        throw GraphException("Failed to create graph object");
     }
 
     GraphBase::create_metadata_table(opts, conn);

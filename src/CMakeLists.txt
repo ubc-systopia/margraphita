@@ -14,9 +14,8 @@ FILE(GLOB SOURCES_LIB "${OMP_INCLUDE_DIR}/omp.h"
     "${PATH_SRC}/adj_list.h"
     "${PATH_SRC}/edgekey.cpp"
     "${PATH_SRC}/edgekey.h"
-        "${PATH_SRC}/unordered_edgelist.h"
-        "${PATH_SRC}/unordered_edgelist.cpp")
-
+    "${PATH_SRC}/edgelist.cpp"
+    "${PATH_SRC}/edgelist.h")
 
 # Create GraphAPI.a (static library)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -24,16 +23,18 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 else()
     INCLUDE_DIRECTORIES("${PATH_INCLUDE}")
 endif()
-ADD_LIBRARY(${NAME_LIB} STATIC "${SOURCES_LIB}" )
+
+ADD_LIBRARY(${NAME_LIB} STATIC "${SOURCES_LIB}")
 TARGET_LINK_LIBRARIES(${NAME_LIB} PUBLIC ${wt_shared_lib} dl ${OpenMP_omp_LIBRARY})
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+
 foreach(dir ${dirs})
-  message(STATUS "dir='${dir}'")
+    message(STATUS "dir='${dir}'")
 endforeach()
 
-## This adds -ldl to linker list
-#TARGET_LINK_LIBRARIES(${NAME_LIB} PUBLIC dl)
+# # This adds -ldl to linker list
+# TARGET_LINK_LIBRARIES(${NAME_LIB} PUBLIC dl)
 #
-## This adds -lpthread to linker list
-#TARGET_LINK_LIBRARIES(${NAME_LIB} PUBLIC ${CMAKE_THREAD_LIBS_INIT})
+# # This adds -lpthread to linker list
+# TARGET_LINK_LIBRARIES(${NAME_LIB} PUBLIC ${CMAKE_THREAD_LIBS_INIT})

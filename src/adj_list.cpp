@@ -735,7 +735,7 @@ std::vector<edge> AdjList::get_edges()
  */
 edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {-1, -1, -1};
+    edge found = {-1, -1, -1, -1};
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     int ret = edge_cursor->search(edge_cursor);
     if (ret == 0)
@@ -1451,7 +1451,7 @@ WT_CURSOR *AdjList::get_new_out_adjlist_cursor()
     }
     else
     {
-        found = {-1, -1, -1};
+        found = {-1, -1, -1, -1};
     }
     return found;
 }
