@@ -100,6 +100,15 @@ void test_get_out_degree(UnOrderedEdgeList graph, bool is_directed)
     }
 }
 
+void test_get_nodes(UnOrderedEdgeList graph)
+{
+    INFO()
+    for (node x : graph.get_nodes())
+    {
+        CommonUtil::dump_node(x);
+    }
+}
+
 void tearDown(UnOrderedEdgeList graph) { graph.close(); }
 
 int main()
@@ -146,7 +155,8 @@ int main()
     test_get_out_degree(graph, opts.is_directed);
 
     // test get_nodes()
-    // test_get_nodes(graph);
+    test_get_nodes(graph);
+
     // Test std_graph teardown
     tearDown(graph);
 
