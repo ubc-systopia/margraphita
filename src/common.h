@@ -7,6 +7,7 @@
 
 #include <bitset>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <source_location>
@@ -186,6 +187,7 @@ class CommonUtil
                        int32_t *id,
                        node_id_t *key1,
                        node_id_t *key2);
+    static node_id_t extract_flip_endian(WT_ITEM id);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
     static void check_return(int retval, const std::string &mesg);
     static void dump_node(node to_print);
@@ -231,6 +233,13 @@ class CommonUtil
  * @param node_id The Node ID to be updated
  * @param new_attrs The new node attribute vector.
  */
+
+inline node_id_t CommonUtil::extract_flip_endian(WT_ITEM id)
+{
+    node_id_t a;
+    memcpy(&a, id.data, sizeof(a));
+    return __builtin_bswap32(a);
+}
 
 inline void CommonUtil::set_key(WT_CURSOR *cursor, node_id_t key)
 {

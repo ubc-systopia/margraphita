@@ -578,13 +578,11 @@ std::vector<edge> UnOrderedEdgeList::get_edges()
     while (edge_cursor->next(edge_cursor) == 0)
     {
         edge found = {-1, -1, -1, -1};
-        CommonUtil::get_key(
-            edge_cursor, &found.id, &found.src_id, &found.dst_id);
-        if (opts.is_weighted)
-        {
-            CommonUtil::record_to_edge(edge_cursor, &found);
-        }
-
+        WT_ITEM id;
+        edge_cursor->get_key(edge_cursor, &id);
+        edge_cursor->get_value(
+            edge_cursor, &found.src_id, &found.dst_id, &found.edge_weight);
+        found.id = CommonUtil::extract_flip_endian(id);
         edgelist.push_back(found);
     }
     edge_cursor->reset(edge_cursor);
@@ -601,12 +599,17 @@ std::vector<edge> UnOrderedEdgeList::get_edges()
 edge UnOrderedEdgeList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
     edge found = {-1, -1, -1, -1};
-    CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
+    src_dst_index_cursor->set_key(src_dst_index_cursor, src_id, dst_id);
     int ret = src_dst_index_cursor->search(src_dst_index_cursor);
     if (ret == 0)
     {
-        CommonUtil::get_key(
-            src_dst_index_cursor, &found.src_id, &found.dst_id, &found.id);
+        WT_ITEM id;
+        src_dst_index_cursor->get_value(src_dst_index_cursor,
+                                        &id,
+                                        &found.src_id,
+                                        &found.dst_id,
+                                        &found.edge_weight);
+        found.id = CommonUtil::extract_flip_endian(id);
     }
     src_dst_index_cursor->reset(src_dst_index_cursor);
     return found;
@@ -622,7 +625,8 @@ edge UnOrderedEdgeList::get_edge(node_id_t src_id, node_id_t dst_id)
  */
 bool UnOrderedEdgeList::has_edge(node_id_t src_id, node_id_t dst_id)
 {
-    CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
+    src_dst_index_cursor->reset(src_dst_index_cursor);
+    src_dst_index_cursor->set_key(src_dst_index_cursor, src_id, dst_id);
     int ret = src_dst_index_cursor->search(src_dst_index_cursor);
     return (ret == 0 ? true : false);
 }

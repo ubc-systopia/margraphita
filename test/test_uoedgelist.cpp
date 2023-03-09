@@ -109,6 +109,95 @@ void test_get_nodes(UnOrderedEdgeList graph)
     }
 }
 
+void test_has_edge(UnOrderedEdgeList graph)
+{
+    INFO()
+    assert(graph.has_edge(1, 2));
+    assert(graph.has_edge(1, 3));
+    assert(graph.has_edge(2, 3));
+    assert(graph.has_edge(1, 7));
+    assert(graph.has_edge(7, 8));
+    assert(graph.has_edge(8, 7));
+}
+
+void test_get_edge(UnOrderedEdgeList graph, bool is_directed)
+{
+    INFO()
+    edge found =
+        graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
+    assert(found.src_id == SampleGraph::edge1.src_id);
+    assert(found.dst_id == SampleGraph::edge1.dst_id);
+}
+
+void test_node_add(UnOrderedEdgeList graph, bool read_optimize)
+{
+    INFO()
+    node new_node = {.id = 11, .in_degree = 0, .out_degree = 0};
+    graph.add_node(new_node);
+    node found = graph.get_node(new_node.id);
+    assert(new_node.id == found.id);
+    if (read_optimize)
+    {
+        assert(found.in_degree == 0);
+        assert(found.out_degree == 0);
+    }
+}
+
+void test_add_edge(UnOrderedEdgeList graph, bool is_directed, bool is_weighted)
+{
+    INFO()
+    edge to_insert = {
+        .id = 7,
+        .src_id = 5,
+        .dst_id = 6,
+        .edge_weight = 333};  // node 5 and 6 dont exist yet so we must also
+                              // check if the nodes get created
+    int test_id1 = 5, test_id2 = 6;
+    graph.add_edge(to_insert, false);
+    edge found = graph.get_edge(test_id1, test_id2);
+    CommonUtil::dump_edge(found);
+    if (is_weighted)
+    {
+        assert(found.edge_weight == 333);
+    }
+    if (!is_directed)
+    {
+        found = graph.get_edge(test_id2, test_id1);
+        assert(found.edge_weight == 333);
+    }
+}
+
+void test_get_edges(UnOrderedEdgeList graph, bool is_directed)
+{
+    INFO()
+    vector<edge> edges = graph.get_edges();
+    for (auto j : edges)
+    {
+        CommonUtil::dump_edge(j);
+    }
+
+    if (!is_directed)
+    {
+        assert(edges.size() == 12);
+    }
+    else
+    {
+        assert(edges.size() == 7);
+    }
+    edge found =
+        graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
+    assert(found.src_id == SampleGraph::edge1.src_id);
+    assert(found.dst_id == SampleGraph::edge1.dst_id);
+    // not testing weight since not set
+
+    // Now get a non-existent edge
+    int test_id1 = 222, test_id2 = 333;
+    found = graph.get_edge(test_id1, test_id2);
+    assert(found.src_id == -1);
+    assert(found.dst_id == -1);
+    assert(found.edge_weight == -1);
+}
+
 void tearDown(UnOrderedEdgeList graph) { graph.close(); }
 
 int main()
@@ -150,12 +239,20 @@ int main()
     test_get_node(graph);
     // Test get_in_degree()
     test_get_in_degree(graph, opts.is_directed);
-
     // Test get_out_degree()
     test_get_out_degree(graph, opts.is_directed);
-
     // test get_nodes()
     test_get_nodes(graph);
+
+    // Test adding a node
+    test_node_add(graph, opts.read_optimize);
+    test_add_edge(graph, opts.is_directed, opts.is_weighted);
+    // test get_edge and get_edges
+    test_get_edges(graph, opts.is_directed);
+
+    // test has_edge()
+    test_has_edge(graph);
+    // test_get_edge(graph, opts.is_directed);
 
     // Test std_graph teardown
     tearDown(graph);
