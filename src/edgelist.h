@@ -29,13 +29,13 @@ class UnOrderedEdgeList : public GraphBase
     std::vector<node> get_nodes() override;
     std::vector<edge> get_edges() override;
     bool has_edge(node_id_t src_id, node_id_t dst_id) override;
-    
+
     int add_node_txn(node to_insert);
 
     node get_node(node_id_t node_id) override;
     node get_random_node() override;
-    degree_t get_in_degree(node_id_t node_id) override { return 0; };
-    degree_t get_out_degree(node_id_t node_id) override { return 0; };
+    degree_t get_in_degree(node_id_t node_id) override;
+    degree_t get_out_degree(node_id_t node_id) override;
 
     std::vector<edge> get_out_edges(node_id_t node_id) override;
     std::vector<node> get_out_nodes(node_id_t node_id) override;

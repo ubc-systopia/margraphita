@@ -269,11 +269,15 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
 
         if (opts.is_weighted)
         {
-            edge_cursor->set_value(edge_cursor, to_insert.dst_id, to_insert.src_id,to_insert.edge_weight);
+            edge_cursor->set_value(edge_cursor,
+                                   to_insert.src_id,
+                                   to_insert.dst_id,
+                                   to_insert.edge_weight);
         }
         else
         {
-            edge_cursor->set_value(edge_cursor, to_insert.dst_id, to_insert.src_id, 0);
+            edge_cursor->set_value(
+                edge_cursor, to_insert.src_id, to_insert.dst_id, 0);
         }
 
         ret = error_check(edge_cursor->insert(edge_cursor), SRC_LOC);
@@ -296,11 +300,15 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
 
             if (opts.is_weighted)
             {
-                edge_cursor->set_value(edge_cursor, to_insert.dst_id, to_insert.src_id,to_insert.edge_weight);
+                edge_cursor->set_value(edge_cursor,
+                                       to_insert.dst_id,
+                                       to_insert.src_id,
+                                       to_insert.edge_weight);
             }
             else
             {
-                edge_cursor->set_value(edge_cursor, to_insert.dst_id, to_insert.src_id, 0);
+                edge_cursor->set_value(
+                    edge_cursor, to_insert.dst_id, to_insert.src_id, 0);
             }
 
             ret = error_check(edge_cursor->insert(edge_cursor), SRC_LOC);
@@ -425,6 +433,100 @@ node UnOrderedEdgeList::get_random_node()
     return found;
 }
 
+degree_t UnOrderedEdgeList::get_in_degree(node_id_t node_id)
+{
+    degree_t count = 0;
+    if (this->opts.read_optimize)
+    {
+        node found = get_node(node_id);
+        return found.in_degree;
+    }
+    else
+    {
+        if (!has_node(node_id))
+        {
+            throw GraphException("Node " + std::to_string(node_id) +
+                                 "does not exist");
+        }
+        // We can use raw cursor ops here because the cursor key (dst) is int
+        // (not 'u')
+        dst_index_cursor->set_key(dst_index_cursor, node_id);
+        if (dst_index_cursor->search(dst_index_cursor) == 0)
+        {
+            count++;
+            while (dst_index_cursor->next(dst_index_cursor) == 0)
+            {
+                edge found;
+                WT_ITEM key;
+                dst_index_cursor->get_value(dst_index_cursor,
+                                            &key,
+                                            &found.src_id,
+                                            &found.dst_id,
+                                            &found.edge_weight);
+                if (found.dst_id != node_id)
+                {
+                    break;
+                }
+                else
+                {
+                    count++;
+                }
+            }
+        }
+
+        dst_index_cursor->reset(dst_index_cursor);
+        return count;
+    }
+}
+
+degree_t UnOrderedEdgeList::get_out_degree(node_id_t node_id)
+{
+    {
+        degree_t count = 0;
+        if (this->opts.read_optimize)
+        {
+            node found = get_node(node_id);
+            return found.out_degree;
+        }
+        else
+        {
+            if (!has_node(node_id))
+            {
+                throw GraphException("Node " + std::to_string(node_id) +
+                                     "does not exist");
+            }
+            // We can use raw cursor ops here because the cursor key (dst) is
+            // int (not 'u')
+            src_index_cursor->set_key(src_index_cursor, node_id);
+            if (src_index_cursor->search(src_index_cursor) == 0)
+            {
+                count++;
+                while (src_index_cursor->next(src_index_cursor) == 0)
+                {
+                    edge found;
+                    WT_ITEM key;
+                    src_index_cursor->get_value(src_index_cursor,
+                                                &key,
+                                                &found.src_id,
+                                                &found.dst_id,
+                                                &found.edge_weight);
+                    if (found.src_id != node_id)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            src_index_cursor->reset(src_index_cursor);
+            return count;
+        }
+    }
+}
+
 /**
  * @brief Get all nodes in the graph
  *
@@ -499,18 +601,14 @@ std::vector<edge> UnOrderedEdgeList::get_edges()
 edge UnOrderedEdgeList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
     edge found = {-1, -1, -1, -1};
-    // CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
-    // int ret = src_dst_index_cursor->search(src_dst_index_cursor);
-    // if (ret == 0)  // FIXME:
-    // {
-    //     found.src_id = src_id;
-    //     found.dst_id = dst_id;
-    //     found.id = if (opts.is_weighted)
-    //     {
-    //         CommonUtil::read_from_edge_idx(src_dst_index_cursor, &found);
-    //     }
-    // }
-    // src_dst_index_cursor->reset(src_dst_index_cursor);
+    CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
+    int ret = src_dst_index_cursor->search(src_dst_index_cursor);
+    if (ret == 0)
+    {
+        CommonUtil::get_key(
+            src_dst_index_cursor, &found.src_id, &found.dst_id, &found.id);
+    }
+    src_dst_index_cursor->reset(src_dst_index_cursor);
     return found;
 }
 
@@ -524,8 +622,9 @@ edge UnOrderedEdgeList::get_edge(node_id_t src_id, node_id_t dst_id)
  */
 bool UnOrderedEdgeList::has_edge(node_id_t src_id, node_id_t dst_id)
 {
-    int ret;
-    return 0;
+    CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
+    int ret = src_dst_index_cursor->search(src_dst_index_cursor);
+    return (ret == 0 ? true : false);
 }
 
 int UnOrderedEdgeList::error_check_insert_txn(int return_val,
@@ -543,8 +642,8 @@ int UnOrderedEdgeList::error_check_insert_txn(int return_val,
             {
                 // session->rollback_transaction(session, nullptr);
                 /*Rolling back the transaction here is not necessary if the
-                 * cursor has been opened with overwrite=false. A plain warning
-                 * is enough. */
+                 * cursor has been opened with overwrite=false. A plain
+                 * warning is enough. */
                 CommonUtil::log_msg("WT_DUPLICATE_KEY error in insert_txn",
                                     SRC_LOC);
             }

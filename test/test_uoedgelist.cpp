@@ -40,6 +40,66 @@ void create_init_nodes(UnOrderedEdgeList graph, bool is_directed)
     assert(edge_cnt == SampleGraph::test_edges.size());
 }
 
+void test_get_num_nodes_and_edges(UnOrderedEdgeList graph, bool is_directed)
+{
+    INFO()
+    if (is_directed)
+    {
+        assert(graph.get_num_nodes() == 6);
+        assert(graph.get_num_edges() == 6);
+    }
+    else
+    {
+        assert(graph.get_num_nodes() == 6);
+        assert(graph.get_num_edges() == 10);
+    }
+}
+
+void test_get_node(UnOrderedEdgeList graph)
+{
+    INFO()
+    node found = graph.get_node(1);
+    assert(found.id == 1);
+}
+
+void test_get_in_degree(UnOrderedEdgeList graph, bool is_directed)
+{
+    INFO()
+    if (is_directed)
+    {
+        assert(graph.get_in_degree(1) == 0);
+        assert(graph.get_in_degree(2) == 1);
+        assert(graph.get_in_degree(3) == 2);
+        assert(graph.get_in_degree(7) == 2);
+        assert(graph.get_in_degree(8) == 1);
+    }
+    else
+    {
+        assert(graph.get_in_degree(1) == 3);
+        assert(graph.get_in_degree(2) == 2);
+        assert(graph.get_in_degree(3) == 2);
+        assert(graph.get_in_degree(7) == 2);
+        assert(graph.get_in_degree(8) == 1);
+    }
+}
+
+void test_get_out_degree(UnOrderedEdgeList graph, bool is_directed)
+{
+    INFO()
+    if (is_directed)
+    {
+        assert(graph.get_out_degree(1) == 3);
+        assert(graph.get_out_degree(2) == 1);
+        assert(graph.get_out_degree(3) == 0);
+    }
+    else
+    {
+        assert(graph.get_out_degree(1) == 3);
+        assert(graph.get_out_degree(2) == 2);
+        assert(graph.get_out_degree(3) == 2);
+    }
+}
+
 void tearDown(UnOrderedEdgeList graph) { graph.close(); }
 
 int main()
@@ -75,7 +135,18 @@ int main()
 
     UnOrderedEdgeList graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
+    // Test num_get_nodes and num_get_edges
+    test_get_num_nodes_and_edges(graph, opts.is_directed);
+    // Test get_node()
+    test_get_node(graph);
+    // Test get_in_degree()
+    test_get_in_degree(graph, opts.is_directed);
 
+    // Test get_out_degree()
+    test_get_out_degree(graph, opts.is_directed);
+
+    // test get_nodes()
+    // test_get_nodes(graph);
     // Test std_graph teardown
     tearDown(graph);
 
