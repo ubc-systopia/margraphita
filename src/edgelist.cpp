@@ -785,31 +785,331 @@ int UnOrderedEdgeList::error_check(int ret, std::source_location loc)
 
 std::vector<edge> UnOrderedEdgeList::get_out_edges(node_id_t node_id)
 {
-    std::vector<edge> blank;
-    return blank;
+    vector<edge> edges;
+    if (!has_node(node_id))
+    {
+        throw GraphException("Could not find node with id" +
+                             to_string(node_id));
+    }
+
+    src_index_cursor->set_key(src_index_cursor, node_id);
+    if (src_index_cursor->search(src_index_cursor) == 0)
+    {
+        edge found = {-1, -1, -1, -1};
+        WT_ITEM id;
+        src_index_cursor->get_value(src_index_cursor,
+                                    &id,
+                                    &found.src_id,
+                                    &found.dst_id,
+                                    &found.edge_weight);
+        found.id = CommonUtil::extract_flip_endian(id);
+        edges.push_back(found);
+        while (src_index_cursor->next(src_index_cursor) == 0)
+        {
+            src_index_cursor->get_value(src_index_cursor,
+                                        &id,
+                                        &found.src_id,
+                                        &found.dst_id,
+                                        &found.edge_weight);
+            found.id = CommonUtil::extract_flip_endian(id);
+            if (found.src_id == node_id)
+            {
+                edges.push_back(found);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    src_index_cursor->reset(src_index_cursor);
+    return edges;
 }
 std::vector<node> UnOrderedEdgeList::get_out_nodes(node_id_t node_id)
 {
-    std::vector<node> blank;
-    return blank;
+    vector<edge> out_edges;
+    vector<node> nodes;
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    out_edges = get_out_edges(node_id);
+    for (edge out_edge : out_edges)
+    {
+        nodes.push_back(get_node(out_edge.dst_id));
+    }
+    return nodes;
 }
 std::vector<node_id_t> UnOrderedEdgeList::get_out_nodes_id(node_id_t node_id)
 {
-    std::vector<node_id_t> blank;
-    return blank;
+    vector<edge> out_edges;
+    vector<node_id_t> node_ids;
+    if (!has_node(node_id))
+    {
+        throw GraphException("There is no node with ID " + to_string(node_id));
+    }
+    out_edges = get_out_edges(node_id);
+    for (edge out_edge : out_edges)
+    {
+        node_ids.push_back(out_edge.dst_id);
+    }
+    return node_ids;
 }
 std::vector<edge> UnOrderedEdgeList::get_in_edges(node_id_t node_id)
 {
-    std::vector<edge> blank;
-    return blank;
+    vector<edge> edges;
+
+    if (!has_node(node_id))
+    {
+        throw GraphException("Could not find node with id" +
+                             to_string(node_id));
+    }
+    dst_index_cursor->set_key(dst_index_cursor, node_id);
+    if (dst_index_cursor->search(dst_index_cursor) == 0)
+    {
+        edge found = {-1, -1, -1, -1};
+        WT_ITEM id;
+        dst_index_cursor->get_value(dst_index_cursor,
+                                    &id,
+                                    &found.src_id,
+                                    &found.dst_id,
+                                    &found.edge_weight);
+        found.id = CommonUtil::extract_flip_endian(id);
+        edges.push_back(found);
+        while (dst_index_cursor->next(dst_index_cursor) == 0)
+        {
+            dst_index_cursor->get_value(dst_index_cursor,
+                                        &id,
+                                        &found.src_id,
+                                        &found.dst_id,
+                                        &found.edge_weight);
+            if (found.dst_id == node_id)
+            {
+                found.id = CommonUtil::extract_flip_endian(id);
+                edges.push_back(found);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    dst_index_cursor->reset(dst_index_cursor);
+    return edges;
 }
 std::vector<node> UnOrderedEdgeList::get_in_nodes(node_id_t node_id)
 {
-    std::vector<node> blank;
-    return blank;
+    vector<node> nodes;
+    if (!has_node(node_id))
+    {
+        throw GraphException("Could not find node with id" +
+                             to_string(node_id));
+    }
+
+    vector<edge> in_edges = get_in_edges(node_id);
+    for (edge in_edge : in_edges)
+    {
+        nodes.push_back(get_node(in_edge.src_id));
+    }
+    return nodes;
 }
 std::vector<node_id_t> UnOrderedEdgeList::get_in_nodes_id(node_id_t node_id)
 {
-    std::vector<node_id_t> blank;
-    return blank;
+    vector<node_id_t> nodes;
+    if (!has_node(node_id))
+    {
+        throw GraphException("Could not find node with id" +
+                             to_string(node_id));
+    }
+
+    vector<edge> in_edges = get_in_edges(node_id);
+    for (edge in_edge : in_edges)
+    {
+        nodes.push_back(in_edge.src_id);
+    }
+    return nodes;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_node_cursor()
+{
+    if (node_cursor == nullptr)
+    {
+        int ret =
+            _get_table_cursor(NODE_TABLE, &node_cursor, session, false, true);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a node cursor");
+        }
+    }
+
+    return node_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_new_node_cursor()
+{
+    WT_CURSOR *new_node_cursor = nullptr;
+    int ret =
+        _get_table_cursor(NODE_TABLE, &new_node_cursor, session, false, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a node cursor");
+    }
+
+    return new_node_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_edge_cursor()
+{
+    if (edge_cursor == nullptr)
+    {
+        int ret =
+            _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, false);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get an edge cursor");
+        }
+    }
+
+    return edge_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_new_edge_cursor()
+{
+    WT_CURSOR *new_edge_cursor = nullptr;
+    int ret =
+        _get_table_cursor(EDGE_TABLE, &new_edge_cursor, session, false, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get an edge cursor");
+    }
+
+    return new_edge_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_src_idx_cursor()
+{
+    if (src_index_cursor == nullptr)
+    {
+        string projection =
+            "(" + ID + "," + SRC + "," + DST + "," + WEIGHT + ")";
+        if (_get_index_cursor(
+                EDGE_TABLE, SRC_INDEX, projection, &(src_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a SRC index cursor on the edge table");
+        }
+    }
+
+    return src_index_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_new_src_idx_cursor()
+{
+    WT_CURSOR *new_src_index_cursor = nullptr;
+    string projection = "(" + ID + "," + SRC + "," + DST + "," + WEIGHT + ")";
+    if (_get_index_cursor(
+            EDGE_TABLE, SRC_INDEX, projection, &new_src_index_cursor) != 0)
+    {
+        throw GraphException(
+            "Could not get a SRC index cursor on the edge table");
+    }
+
+    return new_src_index_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_dst_idx_cursor()
+{
+    if (dst_index_cursor == nullptr)
+    {
+        string projection =
+            "(" + ID + "," + SRC + "," + DST + "," + WEIGHT + ")";
+        if (_get_index_cursor(
+                EDGE_TABLE, DST_INDEX, projection, &(dst_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a DST index cursor on the edge table");
+        }
+    }
+
+    return dst_index_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_new_dst_idx_cursor()
+{
+    WT_CURSOR *new_dst_index_cursor = nullptr;
+    string projection = "(" + ID + "," + SRC + "," + DST + "," + WEIGHT + ")";
+    if (_get_index_cursor(
+            EDGE_TABLE, DST_INDEX, projection, &new_dst_index_cursor) != 0)
+    {
+        throw GraphException(
+            "Could not get a DST index cursor on the edge table");
+    }
+
+    return new_dst_index_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_src_dst_idx_cursor()
+{
+    if (src_dst_index_cursor == nullptr)
+    {
+        string projection =
+            "(" + ID + "," + SRC + "," + DST + "," + WEIGHT + ")";
+        if (_get_index_cursor(EDGE_TABLE,
+                              SRC_DST_INDEX,
+                              projection,
+                              &(src_dst_index_cursor)) != 0)
+        {
+            throw GraphException(
+                "Could not get a DST index cursor on the edge table");
+        }
+    }
+
+    return src_dst_index_cursor;
+}
+
+WT_CURSOR *UnOrderedEdgeList::get_new_src_dst_idx_cursor()
+{
+    WT_CURSOR *new_src_dst_index_cursor = nullptr;
+    string projection = "(" + ID + "," + SRC + "," + DST + "," + WEIGHT + ")";
+    if (_get_index_cursor(
+            EDGE_TABLE, SRC_DST_INDEX, projection, &new_src_dst_index_cursor) !=
+        0)
+    {
+        throw GraphException(
+            "Could not get a DST index cursor on the edge table");
+    }
+
+    return new_src_dst_index_cursor;
+}
+
+OutCursor *UnOrderedEdgeList::get_outnbd_iter()
+{
+    uint64_t num_nodes = this->get_num_nodes();
+    OutCursor *toReturn =
+        new UOEdgeListOutCursor(get_new_src_idx_cursor(), session);
+    toReturn->set_num_nodes(num_nodes);
+    toReturn->set_key_range(
+        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+    return toReturn;
+}
+
+InCursor *UnOrderedEdgeList::get_innbd_iter()
+{
+    uint64_t num_nodes = this->get_num_nodes();
+    InCursor *toReturn =
+        new UOEdgeListInCursor(get_new_dst_idx_cursor(), session);
+    toReturn->set_num_nodes(num_nodes);
+    toReturn->set_key_range(
+        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+    return toReturn;
+}
+
+NodeCursor *UnOrderedEdgeList::get_node_iter()
+{
+    return new UOEdgeListNodeCursor(get_new_node_cursor(), session);
+}
+
+EdgeCursor *UnOrderedEdgeList::get_edge_iter()
+{
+    return new UOEdgeListEdgeCursor(get_new_edge_cursor(), session);
 }

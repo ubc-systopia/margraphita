@@ -198,6 +198,287 @@ void test_get_edges(UnOrderedEdgeList graph, bool is_directed)
     assert(found.edge_weight == -1);
 }
 
+void test_get_in_edges(UnOrderedEdgeList graph)
+{
+    INFO()
+    std::vector<edge> edges = graph.get_in_edges(3);
+    assert(edges.size() == 2);
+    // Check edge0
+    assert(edges.at(0).src_id == SampleGraph::edge2.src_id);
+    assert(edges.at(0).dst_id == SampleGraph::edge2.dst_id);
+    // Check edge1
+    assert(edges.at(1).src_id == SampleGraph::edge3.src_id);
+    assert(edges.at(1).dst_id == SampleGraph::edge3.dst_id);
+
+    // now test for a node that has no in-edge
+    edges = graph.get_in_edges(4);
+    assert(edges.size() == 0);
+
+    // Now try getting in edges for a node that does not exist.
+    bool assert_fail = false;
+    try
+    {
+        edges = graph.get_out_edges(1500);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_in_nodes(UnOrderedEdgeList graph)
+{
+    INFO()
+    std::vector<node> nodes = graph.get_in_nodes(3);
+    std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
+    assert(nodes.size() == 2);
+    assert(nodes_id.size() == 2);
+    assert(nodes.at(0).id == SampleGraph::node1.id);
+    assert(nodes.at(0).id == nodes_id.at(0));
+    assert(nodes.at(1).id == SampleGraph::node2.id);
+    assert(nodes.at(1).id == nodes_id.at(1));
+
+    // test for a node that has no in_edge
+    nodes = graph.get_in_nodes(4);
+    nodes_id = graph.get_in_nodes_id(4);
+    assert(nodes.size() == 0);
+    assert(nodes_id.size() == 0);
+
+    // test for a node that does not exist
+    bool assert_fail = false;
+    try
+    {
+        nodes = graph.get_in_nodes(1500);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_out_edges(UnOrderedEdgeList graph)
+{
+    INFO()
+    int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
+    std::vector<edge> edges = graph.get_out_edges(test_id1);
+    assert(edges.size() == 3);
+    // compare edge0
+    assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
+    assert(edges.at(0).dst_id == SampleGraph::edge1.dst_id);
+    // compare edge1
+    assert(edges.at(1).src_id == SampleGraph::edge2.src_id);
+    assert(edges.at(1).dst_id == SampleGraph::edge2.dst_id);
+    // compare edge4
+    assert(edges.at(2).src_id == SampleGraph::edge4.src_id);
+    assert(edges.at(2).dst_id == SampleGraph::edge4.dst_id);
+
+    // Now test for a node that has no out edge
+    edges = graph.get_out_edges(test_id2);
+    assert(edges.size() == 0);
+
+    // Now try getting out edges for a node that does not exist
+    bool assert_fail = false;
+    try
+    {
+        edges = graph.get_out_edges(test_id3);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_out_nodes(UnOrderedEdgeList graph)
+{
+    INFO()
+    int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
+    std::vector<node> nodes = graph.get_out_nodes(test_id1);
+    std::vector<node_id_t> nodes_id = graph.get_out_nodes_id(test_id1);
+    assert(nodes.size() == 3);
+    assert(nodes_id.size() == 3);
+    assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
+    assert(nodes.at(0).id == nodes_id.at(0));
+    assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
+    assert(nodes.at(1).id == nodes_id.at(1));
+    assert(nodes.at(2).id == SampleGraph::node7.id);  // edge(1->7)
+    assert(nodes.at(2).id == nodes_id.at(2));
+
+    // test for a node that has no out-edge
+    nodes = graph.get_out_nodes(test_id2);
+    nodes_id = graph.get_out_nodes_id(test_id2);
+    assert(nodes.size() == 0);
+    assert(nodes_id.size() == 0);
+
+    // test for a node that does not exist
+    bool assert_fail = false;
+    try
+    {
+        nodes = graph.get_out_nodes(test_id3);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+
+    assert_fail = false;
+    try
+    {
+        nodes_id = graph.get_out_nodes_id(test_id3);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_InCursor(UnOrderedEdgeList graph)
+{
+    INFO()
+    InCursor *in_cursor = graph.get_innbd_iter();
+    adjlist found = {0};
+    in_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found = {0};
+        in_cursor->next(&found);
+    }
+
+    in_cursor->reset();
+
+    in_cursor->next(&found, 3);
+    assert(found.node_id == 3);
+    std::cout << "found.edgelist.size() = " << found.edgelist.size() << endl;
+    assert(found.edgelist.size() ==
+           2);  // size is 1 after deleting node 2; 2 if not deleted
+}
+
+void test_OutCursor(UnOrderedEdgeList graph)
+{
+    INFO()
+    OutCursor *out_cursor = graph.get_outnbd_iter();
+    adjlist found = {0};
+    out_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found = {0};
+        out_cursor->next(&found);
+    }
+
+    out_cursor->reset();
+    out_cursor->next(&found, 1);
+    assert(found.node_id == 1);
+    assert(found.edgelist.size() ==
+           3);  // size is 2 after deleting node 2; 3 if not deleted
+}
+
+void test_index_cursor(UnOrderedEdgeList graph)
+{
+    WT_CURSOR *srccur = graph.get_src_idx_cursor();
+    WT_CURSOR *dstcur = graph.get_dst_idx_cursor();
+
+    srccur->reset(srccur);
+    dstcur->reset(dstcur);
+    edge found = {0};
+    while (srccur->next(srccur) == 0)
+    {
+        CommonUtil::read_from_edge_idx(srccur, &found);
+        CommonUtil::dump_edge(found);
+    }
+
+    while (dstcur->next(dstcur) == 0)
+    {
+        CommonUtil::read_from_edge_idx(dstcur, &found);
+        CommonUtil::dump_edge(found);
+    }
+}
+
+void test_NodeCursor(UnOrderedEdgeList graph)
+{
+    INFO()
+    NodeCursor *node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {
+        1, 2, 3, 4, 5, 6, 7, 8, 11};  // we are not deleting node 2
+    int i = 0;
+    node_cursor->next(&found);
+    while (found.id != -1)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor->next(&found);
+        i++;
+    }
+}
+
+void test_NodeCursor_Range(UnOrderedEdgeList graph)
+{
+    INFO()
+    NodeCursor *node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {3, 4, 5, 6};
+    int i = 0;
+    node_cursor->set_key_range(key_range(3, 6));
+    node_cursor->next(&found);
+    while (found.id != -1)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor->next(&found);
+        i++;
+    }
+}
+
+void test_EdgeCursor(UnOrderedEdgeList graph)
+{
+    INFO()
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge found;
+    int srcIdList[] = {1, 1, 5, 7, 8};
+    int dstIdList[] = {3, 7, 6, 8, 7};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
+    }
+}
+
+void test_EdgeCursor_Range(UnOrderedEdgeList graph)
+{
+    INFO()
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge_cursor->set_key(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    edge found;
+    int srcIdList[] = {1, 5, 7};
+    int dstIdList[] = {7, 6, 8};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != -1)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
+    }
+}
+
 void tearDown(UnOrderedEdgeList graph) { graph.close(); }
 
 int main()
@@ -252,8 +533,20 @@ int main()
 
     // test has_edge()
     test_has_edge(graph);
-    // test_get_edge(graph, opts.is_directed);
+    test_get_edge(graph, opts.is_directed);
 
+    // test get_in_nodes_and_edges
+    test_get_in_edges(graph);
+    test_get_in_nodes(graph);
+
+    // test get_out_nodes_and_edges
+    test_get_out_edges(graph);
+    test_get_out_nodes(graph);
+
+    test_InCursor(graph);
+    test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
     // Test std_graph teardown
     tearDown(graph);
 
