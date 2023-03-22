@@ -55,3 +55,49 @@ class ConfigReader:
         config_data['STATS_PATH'] = os.path.join(project_dir, "build", "wt_stats")
         config_data['OUTPUT_PATH'] = os.path.join(project_dir, "outputs")
         return config_data
+
+class GraphDatasetReader:
+    def __init__(self, config_file):
+        self.config_file = config_file
+        self.config = None
+    
+    def read_config(self):
+        config_data = {}
+        with open(self.config_file, 'r') as file_handle:
+            config_data = json.load(file_handle)
+
+        config_ok = True
+        for dataset in config_data:
+            try :
+                assert(os.path.exists(dataset['graph_path']) )
+            except AssertionError:
+                print(f"Graph file {dataset['graph_path']} not found. Please check the path.")
+                config_ok = False
+            except KeyError:
+                print(f"Missing keys; Please check the config file.")
+                config_ok = False
+            
+            try:
+                dataset['num_nodes'] = int(dataset['num_nodes'])
+                assert(dataset['num_nodes'] > 0)
+            except KeyError:
+                print(f"Missing num_nodes for {dataset['dataset_name']}; Please check the config file.")
+                config_ok = False
+            except AssertionError:
+                print(f"Error while parsing {dataset['dataset_name']} : num_nodes must be a positive integer")
+                config_ok = False
+
+            try:
+                dataset['num_edges'] = int(dataset['num_edges'])
+                assert(dataset['num_edges'] > 0)
+            except KeyError:
+                print(f"Missing num_edges for {dataset['dataset_name']}; Please check the config file.")
+                config_ok = False
+            except AssertionError:
+                print(f"Error while parsing {dataset['dataset_name']} : num_edges must be a positive integer")
+                config_ok = False
+        if(not config_ok):
+            exit(1)
+        else:
+            return config_data
+        

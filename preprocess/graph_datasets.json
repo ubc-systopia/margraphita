@@ -1,0 +1,20 @@
+[
+    {
+        "num_edges": 16518948,
+        "num_nodes": 3774768,
+        "dataset_name": "citPatents",
+        "graph_path": "/drives/hdd_main/cit-Patents/cit-Patents.txt"
+    },
+    {
+        "num_edges": 68993773,
+        "num_nodes": 4847571,
+        "dataset_name": "soc-LiveJournal1",
+        "graph_path": "/drives/hdd_main/soc-LiveJournal1/soc-LiveJournal1.txt"
+    },
+    {
+        "num_nodes": 52579682,
+        "num_edges": 1963263821,
+        "dataset_name": "twitter_mpi",
+        "graph_path": "/drives/hdd_main/twitter_mpi/twitter_mpi.txt"
+    }
+]

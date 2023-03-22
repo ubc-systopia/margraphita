@@ -1,5 +1,6 @@
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/preprocess.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/insert_kron.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/graph_datasets.json ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/paths.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/paths.py ${CMAKE_CURRENT_BINARY_DIR}/../benchmark COPYONLY)
 

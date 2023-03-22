@@ -7,6 +7,7 @@ import argparse
 from datetime import datetime
 from preprocess import Preprocess
 from paths import ConfigReader
+from paths import GraphDatasetReader
 import pprint
 import grp
 
@@ -27,6 +28,8 @@ def main():
                         default=True, help="create index")
     parser.add_argument("--use_api", action='store_true', default=False,
                         help="use transactional GraphAPI")
+    parser.add_argument("--low_mem", action='store_true', default=False,
+                        help="use low memory mode")
 
     args = parser.parse_args()
     config_data = ConfigReader("config.json").read_config()
@@ -90,6 +93,34 @@ def main():
             api_insert(config_data)
         preprocess_obj.log.write(
             "Finished inserting " + dataset_name + "\n-------------------\n")
+
+    #To insert graphs that are not Kronecker graphs
+    # This can be read from a DB, but for now we just read from a file
+    config_data = GraphDatasetReader("graph_datasets.json").read_config()
+    for dataset in config_data:
+        config_data['graph_dir'] = os.path.dirname(dataset['graph_dir'])
+        graph = dataset['graph_path']
+        config_data['output_dir'] = os.path.join(
+            args['DB_DIR'], dataset_name)
+        config_data['scale'] = 0
+        print(config_data)
+
+        preprocess_obj = Preprocess(config_data)
+        print("is bulk: " + str(args.bulk)
+              + " \nindex: " + str(args.index)
+                + " \npreprocess: " + str(args.preprocess))
+        if (args.preprocess):
+            preprocess_obj.preprocess()
+        if (args.bulk):
+            preprocess_obj.bulk_insert()
+        if (args.index):
+            preprocess_obj.create_index()
+        else:
+            api_insert(config_data)
+        preprocess_obj.log.write(
+            "Finished inserting " + dataset_name + "\n-------------------\n")
+
+      
 
 
 if __name__ == "__main__":

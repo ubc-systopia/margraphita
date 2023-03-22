@@ -17,7 +17,12 @@ class Preprocess:
         self.log.write(self.log_entry)
 
     def build_bulk_cmd(self, graph_type: str, is_ro: bool):
-        cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/bulk_insert -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['graph_path']} -t {graph_type} -p {self.config_data['output_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log "
+        if config['low_mem']:
+            bulk_binary = "bulk_insert_low_mem"
+        else:
+            bulk_binary = "bulk_insert"
+
+        cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['graph_path']} -t {graph_type} -p {self.config_data['output_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log "
         if is_ro:
             cmd += " -r"
         return cmd
