@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "adj_list.h"
+#include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
@@ -103,18 +104,8 @@ int main(int argc, char* argv[])
     }
 
     graph_opts opts;
-    opts.create_new = pr_cli.is_create_new();
-    opts.is_directed = pr_cli.is_directed();
-    opts.read_optimize = pr_cli.is_read_optimize();
-    opts.is_weighted = pr_cli.is_weighted();
-    opts.optimize_create = pr_cli.is_create_optimized();
-    opts.db_name = pr_cli.get_db_name();  //${type}_rd_${ds}
-    opts.db_dir = pr_cli.get_db_path();
-    std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
-    opts.stat_log = pr_log + "/" + opts.db_name;
-    opts.stat_log = pr_log + "/" + opts.db_name;
-    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
-    opts.type = pr_cli.get_graph_type();
+    get_graph_opts(pr_cli, opts);
+    opts.stat_log = pr_cli.get_logdir() + "/" + opts.db_name;
 
     const int THREAD_NUM = 8;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,

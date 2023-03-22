@@ -86,17 +86,10 @@ int main(int argc, char *argv[])
         return -1;
     }
     graph_opts opts;
-    opts.create_new = sssp_cli.is_create_new();
-    opts.is_directed = sssp_cli.is_directed();
-    opts.read_optimize = sssp_cli.is_read_optimize();
-    opts.is_weighted = sssp_cli.is_weighted();
-    opts.optimize_create = sssp_cli.is_create_optimized();
-    opts.db_name = sssp_cli.get_db_name();
-    opts.db_dir = sssp_cli.get_db_path();
-    std::string sssp_log = sssp_cli.get_logdir();
-    opts.stat_log = sssp_log + "/" + opts.db_name;
-    opts.conn_config = "cache_size=10GB";
-    opts.type = sssp_cli.get_graph_type();
+    get_graph_opts(sssp_cli, opts);
+    std::string sssp_log = opts.stat_log =
+        sssp_cli.get_logdir() + "/" + opts.db_name;
+
     const int THREAD_NUM = 1;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};

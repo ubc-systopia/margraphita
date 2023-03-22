@@ -235,17 +235,8 @@ int main(int argc, char *argv[])
     }
 
     graph_opts opts;
-    opts.create_new = bfs_cli.is_create_new();
-    opts.is_directed = bfs_cli.is_directed();
-    opts.read_optimize = bfs_cli.is_read_optimize();
-    opts.is_weighted = bfs_cli.is_weighted();
-    opts.optimize_create = bfs_cli.is_create_optimized();
-    opts.db_name = bfs_cli.get_db_name();  //${type}_rd_${ds}
-    opts.db_dir = bfs_cli.get_db_path();
-    std::string bfs_log = bfs_cli.get_logdir();  //$RESULT/$bmark
-    opts.stat_log = bfs_log + "/" + opts.db_name;
-    opts.conn_config = "cache_size=10GB";  // bfs_cli.get_conn_config();
-    opts.type = bfs_cli.get_graph_type();
+    create_graph_opts(bfs_cli, opts);
+    opts.stat_log = bfs_cli.get_logdir() + "/" + opts.db_name;
 
     const int THREAD_NUM = 1;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,

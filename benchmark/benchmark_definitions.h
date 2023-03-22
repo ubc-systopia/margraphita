@@ -119,4 +119,18 @@ std::string generate_timestamp()
 //     }
 // }
 
+template <typename T>
+void get_graph_opts(T &cli, graph_opts &opts)
+{
+    opts.create_new = cli.is_create_new();
+    opts.is_directed = cli.is_directed();
+    opts.read_optimize = cli.is_read_optimize();
+    opts.is_weighted = cli.is_weighted();
+    opts.optimize_create = cli.is_create_optimized();
+    opts.db_name = cli.get_db_name();  //${type}_rd_${ds}
+    opts.db_dir = cli.get_db_path();
+    opts.conn_config = "cache_size=10GB";  // pr_cli.get_conn_config();
+    opts.type = cli.get_graph_type();
+}
+
 #endif

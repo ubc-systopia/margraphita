@@ -115,17 +115,9 @@ int main(int argc, char *argv[])
     }
 
     graph_opts opts;
-    opts.create_new = tc_cli.is_create_new();
-    opts.is_directed = tc_cli.is_directed();
-    opts.read_optimize = tc_cli.is_read_optimize();
-    opts.is_weighted = tc_cli.is_weighted();
-    opts.optimize_create = tc_cli.is_create_optimized();
-    opts.db_name = tc_cli.get_db_name();  //${type}_rd_${ds}
-    opts.db_dir = tc_cli.get_db_path();
-    std::string tc_log = tc_cli.get_logdir();  //$RESULT/$bmark
-    opts.stat_log = tc_log + "/" + opts.db_name;
-    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
-    opts.type = tc_cli.get_graph_type();
+    get_graph_opts(tc_cli, opts);
+    opts.stat_log = tc_cli.get_logdir() + "/" + opts.db_name;
+
     const int THREAD_NUM = 1;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
@@ -163,7 +155,7 @@ int main(int argc, char *argv[])
         std::cout << "Cycle Triangles count = " << info.cycle_count
                   << std::endl;
 
-        print_csv_info(opts.db_name, info, tc_log);
+        print_csv_info(opts.db_name, info, tc_cli.get_logdir());
     }
     graph->close();
     graphEngine.close_graph();
