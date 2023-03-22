@@ -22,7 +22,7 @@ class Preprocess:
             cmd += " -r"
         return cmd
 
-    def build_index_cmd(self, graph_type: str, is_ro: bool): 
+    def build_index_cmd(self, graph_type: str, is_ro: bool):
         cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/init_db -b PR -f {self.config_data['log_dir']}"
         cmd += f" -m {graph_type}_" + (
             "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['output_dir']}"
@@ -30,7 +30,8 @@ class Preprocess:
         if is_ro:
             cmd += " -r"
         return cmd
-#-f is for log_dir and stats_dir
+# -f is for log_dir and stats_dir
+
     def build_init_cmd(self, graph_type: str, is_ro: bool):
         cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/init_db -n -m {graph_type}_" + (
             "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['output_dir']} -s {self.config_data['dataset_name']} -o -d -l {graph_type} -e -f {self.config_data['log_dir']}"
@@ -75,6 +76,9 @@ class Preprocess:
             ["wc", "-l", self.config_data['graph_path']]).split()[0])
         assert found_edges == self.config_data['num_edges']
 
+        ##############################
+        # compute num_nodes from the graph
+        ##############################
         # sed the graph to replace tabs with newlines and compute number of nodes
         sed_cmd = f"sed 's/\\t/\\n/' {self.config_data['graph_path']} > {self.config_data['graph_path']}.tmp"
         print(sed_cmd)
@@ -96,7 +100,7 @@ class Preprocess:
         self.log.write(
             f"Generating the reverse graph (dst, src): {reverse_cmd}\n")
         os.system(reverse_cmd)
-        
+
         sort_cmd = f"sort -n -k 1,1 -k 2,2 {self.config_data['graph_path']}_reverse > {self.config_data['graph_path']}_reverse_sorted"
         self.log.write(f"Running sort command: {sort_cmd}\n")
         os.system(sort_cmd)

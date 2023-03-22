@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 from subprocess import check_output
 from paths import ConfigReader
+import grp
 
 
 class BenchmarkRunner:
@@ -216,6 +217,12 @@ class BenchmarkRunner:
 
 
 def main():
+
+    # Set the group ID to 'graphs'
+    group_id = grp.getgrnam("graphs").gr_gid
+    os.setgid(group_id)
+    assert (os.getgid() == group_id)
+
     parser = argparse.ArgumentParser(
         description="Run benchmarks"
     )

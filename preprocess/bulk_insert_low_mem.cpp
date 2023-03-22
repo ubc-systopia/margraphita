@@ -24,14 +24,14 @@
 template <class K, class V>
 using HashT = MAPNAME<K, V EXTRA_ARGS>;
 using hash_t = HashT<node_id_t, uint32_t>;
-using vec_hash_t = HashT<node_id_t, std::vector<node_id_t >>;
+using vec_hash_t = HashT<node_id_t, std::vector<node_id_t>>;
 
-#define PRINT_ERROR(src, dst, ret, msg)                        \
+#define PRINT_ERROR(src, dst, ret, msg)                            \
     std::cout << "Error inserting edge (" << (src) << "," << (dst) \
               << "). ret= " << (ret) << " : " << (msg) << std::endl;
-#define PRINT_NODE_ERROR(node, ret, msg)                                      \
-    std::cout << "Error inserting node " << (node) << ". ret = " << (ret) << ": " \
-              << (msg) << std::endl;
+#define PRINT_NODE_ERROR(node, ret, msg)                                  \
+    std::cout << "Error inserting node " << (node) << ". ret = " << (ret) \
+              << ": " << (msg) << std::endl;
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
 double num_edges;
 double num_nodes;
@@ -44,14 +44,15 @@ hash_t out_adj_list;
 vec_hash_t merged_adjlists;
 std::string type_opt;
 
-time_info *insert_edge_thread(int _tid)
+void insert_edge_thread(int _tid)
 {
     int tid = _tid;
     std::string filename = dataset + "_edges";
     char c = (char)(97 + tid);
     filename.push_back('a');
     filename.push_back(c);
-    auto *info = new time_info();
+
+    int32_t edge_id = (tid * num_per_chunk);
 
     reader::EdgeReader graph_reader(
         std::move(filename), 0, num_per_chunk, "out");
@@ -67,32 +68,34 @@ time_info *insert_edge_thread(int _tid)
     sess_adj->open_cursor(sess_adj, "table:edge", nullptr, nullptr, &cur_adj);
 
     conn_ekey->open_session(conn_ekey, nullptr, nullptr, &sess_ekey);
-    sess_ekey->open_cursor(sess_ekey, "table:edge", nullptr, nullptr, &cur_ekey);
+    sess_ekey->open_cursor(
+        sess_ekey, "table:edge", nullptr, nullptr, &cur_ekey);
 
     while (graph_reader.get_next_edge(e) == 0)
     {
         int ret;
-        cur_std->set_key(cur_std, e.src_id, e.dst_id);
+        e.id = edge_id++;  // Setting this here in case we need to use it later.
+        CommonUtil::set_key(cur_std, e.src_id, e.dst_id);
         cur_std->set_value(cur_std, e.edge_weight);
         if ((ret = cur_std->insert(cur_std)) != 0)
         {
             PRINT_ERROR(e.src_id, e.dst_id, ret, wiredtiger_strerror(ret))
         }
 
-        cur_adj->set_key(cur_adj, e.src_id, e.dst_id);
-        cur_adj->set_value(cur_adj, 0);
+        CommonUtil::set_key(cur_adj, e.src_id, e.dst_id);
+        cur_adj->set_value(cur_adj, e.edge_weight);
         if ((ret = cur_adj->insert(cur_adj)) != 0)
         {
             PRINT_ERROR(e.src_id, e.dst_id, ret, wiredtiger_strerror(ret))
         }
 
-        cur_ekey->set_key(cur_ekey, e.src_id, e.dst_id);
+        CommonUtil::set_key(cur_ekey, e.src_id, e.dst_id);
         cur_ekey->set_value(cur_ekey, 0, OutOfBand_Val);
         if ((ret = cur_ekey->insert(cur_ekey)) != 0)
         {
             PRINT_ERROR(e.src_id, e.dst_id, ret, wiredtiger_strerror(ret))
         }
-        out_adj_list[e.src_id]+=1;
+        out_adj_list[e.src_id] += 1;
     }
 
     cur_std->close(cur_std);
@@ -102,37 +105,31 @@ time_info *insert_edge_thread(int _tid)
     sess_adj->close(sess_adj, nullptr);
     sess_ekey->close(sess_ekey, nullptr);
     sess_std->close(sess_std, nullptr);
-
-    return info;
 }
 
-time_info *create_revedge_thread(int _tid)
+void create_revedge_thread(int _tid)
 {
     int tid = _tid;
     std::string filename = dataset + "_reverse_edges";
     char c = (char)(97 + tid);
     filename.push_back('a');
     filename.push_back(c);
-    auto *info = new time_info();
+
     reader::EdgeReader graph_reader(
         std::move(filename), 0, num_per_chunk, "in");
     edge e;
     while (graph_reader.get_next_edge(e) == 0)
     {
-        in_adj_list[e.src_id]+=1;
+        in_adj_list[e.src_id] += 1;
     }
-
-    return info;
 }
-
-time_info *insert_node(int _tid)
+void insert_node(int _tid)
 {
     int tid = _tid;  //*(int *)arg;
     std::string filename = dataset + "_nodes";
     char c = (char)(97 + tid);
     filename.push_back('a');
     filename.push_back(c);
-    auto *info = new time_info();
 
     WT_CURSOR *std_cur, *ekey_cur, *adj_cur;
     WT_SESSION *std_sess, *ekey_sess, *adj_sess;
@@ -144,7 +141,8 @@ time_info *insert_node(int _tid)
     adj_sess->open_cursor(adj_sess, "table:node", nullptr, nullptr, &adj_cur);
 
     conn_ekey->open_session(conn_ekey, nullptr, nullptr, &ekey_sess);
-    ekey_sess->open_cursor(ekey_sess, "table:edge", nullptr, nullptr, &ekey_cur);
+    ekey_sess->open_cursor(
+        ekey_sess, "table:edge", nullptr, nullptr, &ekey_cur);
 
     reader::NodeReader graph_reader(std::move(filename));
     node to_insert;
@@ -154,7 +152,7 @@ time_info *insert_node(int _tid)
         to_insert.in_degree = in_adj_list[to_insert.id];
         to_insert.out_degree = out_adj_list[to_insert.id];
 
-        std_cur->set_key(std_cur, to_insert.id);
+        CommonUtil::set_key(std_cur, to_insert.id);
         if (read_optimized)
         {
             std_cur->set_value(
@@ -171,7 +169,7 @@ time_info *insert_node(int _tid)
             PRINT_NODE_ERROR(to_insert.id, ret, wiredtiger_strerror(ret))
         }
 
-        adj_cur->set_key(adj_cur, to_insert.id);
+        CommonUtil::set_key(adj_cur, to_insert.id);
         if (read_optimized)
         {
             adj_cur->set_value(
@@ -186,7 +184,7 @@ time_info *insert_node(int _tid)
             PRINT_NODE_ERROR(to_insert.id, ret, wiredtiger_strerror(ret))
         }
 
-        ekey_cur->set_key(ekey_cur, to_insert.id, OutOfBand_ID);
+        CommonUtil::set_key(ekey_cur, to_insert.id, OutOfBand_ID);
         if (read_optimized)
         {
             ekey_cur->set_value(
@@ -208,35 +206,38 @@ time_info *insert_node(int _tid)
     std_sess->close(std_sess, nullptr);
     adj_sess->close(adj_sess, nullptr);
     ekey_sess->close(ekey_sess, nullptr);
-
-    return info;
 }
 
-void create_adj_insert_thread(int _tid, const string& adj_type)
+void create_adj_insert_thread(int _tid, const string &adj_type)
 {
     int tid = _tid;
     std::string filename = dataset;
-    if(adj_type == "in")
+    if (adj_type == "in")
     {
-        filename+= "_reverse_edgesa";
-    }else{
-        filename+="_edgesa";
+        filename += "_reverse_edgesa";
+    }
+    else
+    {
+        filename += "_edgesa";
     }
     char c = (char)(97 + tid);
     filename.push_back(c);
     filename.push_back('_');
-    filename+=adj_type;
-    auto *info = new time_info();
+    filename += adj_type;
+
     reader::AdjReader adj_reader(filename);
     std::pair<int, std::vector<node_id_t>> node_adj_list;
 
     WT_CURSOR *adjlist_cur;
     WT_SESSION *adj_sess;
     conn_adj->open_session(conn_adj, nullptr, nullptr, &adj_sess);
-    if(adj_type == "in"){
+    if (adj_type == "in")
+    {
         adj_sess->open_cursor(
             adj_sess, "table:adjlistin", nullptr, nullptr, &adjlist_cur);
-    }else{
+    }
+    else
+    {
         adj_sess->open_cursor(
             adj_sess, "table:adjlistout", nullptr, nullptr, &adjlist_cur);
     }
@@ -250,50 +251,52 @@ void create_adj_insert_thread(int _tid, const string& adj_type)
         {
             if (merged_adjlists.contains(node_adj_list.first))
             {
-                node_adj_list.second.insert(node_adj_list.second.end(),
-                                            merged_adjlists[node_adj_list.first].begin(),
-                                            merged_adjlists[node_adj_list.first].end());
+                node_adj_list.second.insert(
+                    node_adj_list.second.end(),
+                    merged_adjlists[node_adj_list.first].begin(),
+                    merged_adjlists[node_adj_list.first].end());
                 merged_adjlists[node_adj_list.first] = node_adj_list.second;
             }
 
             first = false;
         }
-         if (!ret)
-         {
-             adjlist_cur->set_key(adjlist_cur, node_adj_list.first);
-             try
-             {
-                 WT_ITEM item;
-                 item.data = CommonUtil::pack_int_vector_wti(
-                     adj_sess, node_adj_list.second, &item.size);
-                 adjlist_cur->set_value(adjlist_cur, node_adj_list.second.size(), &item);
-             }
-             catch (const std::out_of_range &oor)
-             {
-                 WT_ITEM item = {.data = {}, .size = 0};  // todo: check
-                 adjlist_cur->set_value(adjlist_cur, 0, &item);
-             }
-             adjlist_cur->insert(adjlist_cur);
-         }
-
+        if (!ret)
+        {
+            adjlist_cur->set_key(adjlist_cur, node_adj_list.first);
+            try
+            {
+                WT_ITEM item;
+                item.data = CommonUtil::pack_int_vector_wti(
+                    adj_sess, node_adj_list.second, &item.size);
+                adjlist_cur->set_value(
+                    adjlist_cur, node_adj_list.second.size(), &item);
+            }
+            catch (const std::out_of_range &oor)
+            {
+                WT_ITEM item = {.data = {}, .size = 0};  // todo: check
+                adjlist_cur->set_value(adjlist_cur, 0, &item);
+            }
+            adjlist_cur->insert(adjlist_cur);
+        }
 
     } while (ret == 0);
-    for (const auto& conflict_nodes : merged_adjlists)
+    for (const auto &conflict_nodes : merged_adjlists)
     {
         adjlist_cur->set_key(adjlist_cur, conflict_nodes.first);
-        try{
+        try
+        {
             WT_ITEM item;
             item.data = CommonUtil::pack_int_vector_wti(
                 adj_sess, conflict_nodes.second, &item.size);
-            adjlist_cur->set_value(adjlist_cur, conflict_nodes.second.size(), &item);
+            adjlist_cur->set_value(
+                adjlist_cur, conflict_nodes.second.size(), &item);
         }
-        catch(const std::out_of_range &oor)
+        catch (const std::out_of_range &oor)
         {
             WT_ITEM item = {.data = {}, .size = 0};  // todo: check
             adjlist_cur->set_value(adjlist_cur, 0, &item);
         }
         adjlist_cur->insert(adjlist_cur);
-
     }
     adjlist_cur->close(adjlist_cur);
     adj_sess->close(adj_sess, nullptr);
@@ -327,6 +330,9 @@ int main(int argc, char *argv[])
     conn_config += "," + stat_config;
 #endif
     num_per_chunk = (int)(params.get_num_edges() / NUM_THREADS);
+    // We are using edge IDs now so we might need to assign a unique range to
+    // each thread
+
     // open std connection
     type_opt = "all";
     if (type_opt == "all" || type_opt == "std")
@@ -375,23 +381,19 @@ int main(int argc, char *argv[])
 
     Times t;
     t.start();
-    auto *edge_times = new time_info;
-    auto *node_times = new time_info;
+    time_info edge_times, node_times, adj_times;
+
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        time_info *this_thread_time = insert_edge_thread(i);
-        edge_times->insert_time += this_thread_time->insert_time;
-        edge_times->num_inserted += this_thread_time->num_inserted;
-        edge_times->read_time += this_thread_time->read_time;
+        insert_edge_thread(i);
     }
 
 #pragma omp parallel for num_threads(NUM_THREADS)
-    for(int i=0; i<NUM_THREADS; i++)
+    for (int i = 0; i < NUM_THREADS; i++)
     {
-        time_info *this_time = create_revedge_thread(i);
+        create_revedge_thread(i);
     }
-
 
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
@@ -403,14 +405,7 @@ int main(int argc, char *argv[])
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        time_info *this_thread_time = insert_node(i);
-        node_times->insert_time += this_thread_time->insert_time;
-        node_times->num_inserted += this_thread_time->num_inserted;
-        node_times->read_time += this_thread_time->read_time;
-    }
-    for (int i=0; i< NUM_THREADS; i++)
-    {
-        time_info *this_thread_time = insert_node(i);
+        insert_node(i);
     }
 
     if (type_opt == "all" || type_opt == "std")

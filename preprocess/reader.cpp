@@ -58,7 +58,7 @@ std::vector<node> parse_node_entries(std::string filename)
 {
     std::vector<node> nodes;
     std::ifstream newfile(filename);
-
+    std::cout << filename << std::endl;
     if (newfile.is_open())
     {
         std::string tp;

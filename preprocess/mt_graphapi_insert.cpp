@@ -23,7 +23,7 @@
 std::vector<edge> failed_inserts;
 std::mutex fail_lock;
 
-void print_time_csvline(InsertOpts params, time_info *t)
+void print_time_csvline(InsertOpts params, time_info &t)
 {
     std::ofstream log_file;
     std::string logfile_name =
@@ -43,23 +43,22 @@ void print_time_csvline(InsertOpts params, time_info *t)
     log_file << params.get_db_path() << "/" << params.get_db_name() << ","
              << params.get_type_str() << "," << params.is_read_optimize() << ","
              << params.get_num_nodes() << "," << params.get_num_edges() << ","
-             << t->insert_time << "," << t->rback_time << ","
-             << t->num_rollbacks << "," << t->num_failures << ","
-             << t->num_inserted << "," << params.get_num_threads() << "\n";
+             << t.insert_time << "," << t.rback_time << "," << t.num_rollbacks
+             << "," << t.num_failures << "," << t.num_inserted << ","
+             << params.get_num_threads() << "\n";
     log_file.close();
 }
 
-time_info *insert_edge_thread(int _tid,
-                              std::string filename,
-                              int num_threads,
-                              int num_edges,
-                              GraphBase *graph)
+void insert_edge_thread(int _tid,
+                        std::string filename,
+                        int num_threads,
+                        int num_edges,
+                        GraphBase *graph,
+                        time_info &info)
 {
     int tid = _tid;
     int num_per_chunk = (num_edges / num_threads);
     int beg = tid * num_per_chunk;
-
-    auto *info = new time_info();
 
     Times outer, inner;
     outer.start();
@@ -72,12 +71,12 @@ time_info *insert_edge_thread(int _tid,
         int ret = graph->add_edge(to_insert, false);
         if (ret == 0)
         {
-            info->num_inserted++;
+            info.num_inserted++;
         }
         else if (ret == WT_ROLLBACK)
         {
             inner.start();
-            info->num_rollbacks++;
+            info.num_rollbacks++;
             bool succeeded = false;
             int tries = 3;
             do
@@ -85,39 +84,37 @@ time_info *insert_edge_thread(int _tid,
                 ret = graph->add_edge(to_insert, false);
                 if (ret == 0)
                 {
-                    info->num_inserted++;
+                    info.num_inserted++;
                     succeeded = true;
                 }
                 else if (ret == WT_ROLLBACK)
                 {
                     tries--;
-                    info->num_rollbacks++;
+                    info.num_rollbacks++;
                 }
             } while (!succeeded && tries > 0);
 
             if (!succeeded && tries == 0)
             {
-                info->num_failures++;
+                info.num_failures++;
                 fail_lock.lock();
                 failed_inserts.push_back(to_insert);
                 fail_lock.unlock();
             }
             inner.stop();
-            info->rback_time += inner.t_micros();
+            info.rback_time += inner.t_micros();
         }
     }
     outer.stop();
-    info->insert_time = outer.t_micros();
+    info.insert_time = outer.t_micros();
 
-    std::cout << "Time spent in retrying rollbacks: " << info->rback_time
+    std::cout << "Time spent in retrying rollbacks: " << info.rback_time
               << "us";
-    return info;
 }
 
 int main(int argc, char *argv[])
 {
-
-    auto *edge_insert_times = new time_info();
+    time_info edge_insert_times;
 
     InsertOpts test_params(argc, argv);
     if (!test_params.parse_args())
@@ -151,23 +148,23 @@ int main(int argc, char *argv[])
     for (int i = 0; i < NUM_THREADS; i++)
     {
         GraphBase *graph = graphEngine.create_graph_handle();
-        time_info *this_thread_time =
-            insert_edge_thread(i,
-                               test_params.get_dataset(),
-                               test_params.get_num_threads(),
-                               test_params.get_num_edges(),
-                               graph);
+        time_info this_thread_time;
+        insert_edge_thread(i,
+                           test_params.get_dataset(),
+                           test_params.get_num_threads(),
+                           test_params.get_num_edges(),
+                           graph,
+                           this_thread_time);
 #pragma omp critical
         {
-            edge_insert_times->insert_time += this_thread_time->insert_time;
-            edge_insert_times->num_failures += this_thread_time->num_failures;
-            edge_insert_times->num_rollbacks += this_thread_time->num_rollbacks;
-            edge_insert_times->num_inserted += this_thread_time->num_inserted;
-            edge_insert_times->rback_time += this_thread_time->rback_time;
+            edge_insert_times.insert_time += this_thread_time.insert_time;
+            edge_insert_times.num_failures += this_thread_time.num_failures;
+            edge_insert_times.num_rollbacks += this_thread_time.num_rollbacks;
+            edge_insert_times.num_inserted += this_thread_time.num_inserted;
+            edge_insert_times.rback_time += this_thread_time.rback_time;
         }
     }
     timer.stop();
-
 
     std::cout << "Time to insert in threads: " << timer.t_secs() << "s" << endl;
 
@@ -185,23 +182,22 @@ int main(int argc, char *argv[])
     std::cout << "Number (nodes, edges) in graph : "
               << test_params.get_num_nodes() << ", "
               << test_params.get_num_edges() << std::endl;
-    std::cout << "Number of edges inserted: " << edge_insert_times->num_inserted
+    std::cout << "Number of edges inserted: " << edge_insert_times.num_inserted
               << std::endl;
-    std::cout << "Number of Rollbacks: " << edge_insert_times->num_rollbacks
+    std::cout << "Number of Rollbacks: " << edge_insert_times.num_rollbacks
               << endl;
-    std::cout << "Number of failures: " << edge_insert_times->num_failures
+    std::cout << "Number of failures: " << edge_insert_times.num_failures
               << endl;
     std::cout << "Time spent in retrying rollbacks: "
 
-              << edge_insert_times->rback_time << " us" << endl;
-    std::cout << "Total time taken : " << edge_insert_times->insert_time << "us"
+              << edge_insert_times.rback_time << " us" << endl;
+    std::cout << "Total time taken : " << edge_insert_times.insert_time << "us"
 
               << endl;
 
     // Adjust for threads
-    edge_insert_times->rback_time = edge_insert_times->rback_time / NUM_THREADS;
-    edge_insert_times->insert_time =
-        edge_insert_times->insert_time / NUM_THREADS;
+    edge_insert_times.rback_time = edge_insert_times.rback_time / NUM_THREADS;
+    edge_insert_times.insert_time = edge_insert_times.insert_time / NUM_THREADS;
 
     print_time_csvline(test_params, edge_insert_times);
 

@@ -8,18 +8,25 @@
 
 using namespace std;
 
-typedef struct time_info
+class time_info
 {
-
+   public:
     long double insert_time = 0;
     long double read_time = 0;
     long double rback_time = 0;
     size_t num_inserted = 0;
     long num_rollbacks = 0;
     long num_failures = 0;
-
-} time_info;
-
+};
+static auto dump_time_info = [](time_info &tinfo)
+{
+    cout << "Insert time: " << tinfo.insert_time << endl;
+    cout << "Read time: " << tinfo.read_time << endl;
+    cout << "Rollback time: " << tinfo.rback_time << endl;
+    cout << "Num inserted: " << tinfo.num_inserted << endl;
+    cout << "Num rollbacks: " << tinfo.num_rollbacks << endl;
+    cout << "Num failures: " << tinfo.num_failures << endl;
+};
 
 class InsertOpts
 {
@@ -45,7 +52,6 @@ class InsertOpts
     bool directed = true;
     bool read_optimize = false;
     int num_threads = 1;
-
 
     void add_help_message(char opt,
                           const std::string &opt_arg,
@@ -146,7 +152,6 @@ class InsertOpts
         return ret_val;
     }
 
-
     static GraphType handle_graph_type(char *opt_arg)
 
     {
@@ -178,7 +183,6 @@ class InsertOpts
 
     void print_help()
     {
-
         for (const std::string &h : help_strings_) std::cout << h << std::endl;
         std::exit(0);
     }

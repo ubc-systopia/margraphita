@@ -36,7 +36,6 @@ pr_map *ptr = nullptr;  // pointer to mmap region
 void init_pr_map(std::vector<node> &nodes)
 {
     int size = nodes.size();
-    // cout << size;
     make_pr_mmap(size, &ptr);
     // since the access pattern is random and because the node id's
     // non-continuous we cannot do any clever madvise tricks.
@@ -133,6 +132,7 @@ int main(int argc, char *argv[])
     opts.type = pr_cli.get_graph_type();
 
     const int THREAD_NUM = 1;
+    // set_group_id();  // set the group id to GRAPHS_GROUP_ID
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
 

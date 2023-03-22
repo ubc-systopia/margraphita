@@ -1,6 +1,7 @@
 #ifndef _BENCHMARK_DEFS
 #define _BENCHMARK_DEFS
 
+#include <errno.h>
 #include <sys/mman.h>
 
 #include <cassert>
@@ -77,6 +78,7 @@ void make_pr_mmap(int N, T **ptr)
         perror("mmap failed");
         exit(1);
     }
+    assert(ptr != NULL);
     int ret =
         madvise(*ptr,
                 sizeof(pr_map) * N,
@@ -101,4 +103,20 @@ std::string generate_timestamp()
     s << std::hex << epoch;
     return s.str();
 }
+
+// void set_group_id()
+// {
+//     int gid = atoi(std::getenv("GRAPHS_GROUP_ID"));
+//     if (gid == 0)
+//     {
+//         fprintf(stderr, "GRAPHS_GROUP_ID not set\n");
+//         exit(1);
+//     }
+//     if (setgid(gid) != 0)
+//     {
+//         perror("setgid failed");
+//         exit(1);
+//     }
+// }
+
 #endif

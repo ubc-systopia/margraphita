@@ -37,6 +37,9 @@ target_link_libraries(tc_iter PUBLIC ${NAME_LIB} graph_utils)
 add_executable(pr_iter_getout pr_iter_getout.cpp)
 target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 
+add_executable(pack_test pack_test.cpp)
+target_link_libraries(pack_test PUBLIC ${NAME_LIB} graph_utils)
+
 # ###################################################################################
 
 # add_executable(pr_iter_parallel pr_iter_parallel.cpp)

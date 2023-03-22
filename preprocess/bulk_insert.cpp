@@ -1,5 +1,3 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "openmp-use-default-none"
 #include "bulk_insert.h"
 
 #include <sys/stat.h>
@@ -34,6 +32,7 @@ const static int BUFFER_LENGTH = 20;
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
 double num_edges;
 double num_nodes;
+int num_per_chunk;
 std::string dataset;
 int read_optimized = 0;
 int is_directed = 1;
@@ -46,8 +45,8 @@ std::mutex lock;
 void print_time_csvline(const std::string &db_name,
                         const std::string &db_path,
 
-                        time_info *edget,
-                        time_info *nodet,
+                        time_info &edget,
+                        time_info &nodet,
                         bool is_readopt,
                         const std::string &logfile_name,
                         const std::string &type)
@@ -66,10 +65,10 @@ void print_time_csvline(const std::string &db_name,
     }
 
     log_file << db_name << "," << db_path << "/" << db_name << "," << type
-             << "," << is_readopt << "," << nodet->num_inserted << ","
-             << edget->num_inserted << "," << edget->read_time << ","
-             << edget->insert_time << "," << nodet->read_time << ","
-             << nodet->insert_time << "\n";
+             << "," << is_readopt << "," << nodet.num_inserted << ","
+             << edget.num_inserted << "," << edget.read_time << ","
+             << edget.insert_time << "," << nodet.read_time << ","
+             << nodet.insert_time << "\n";
     log_file.close();
 }
 
@@ -85,19 +84,15 @@ void insert_stats_to_session(WT_SESSION *session, size_t edgeNo, size_t nodeNo)
     sprintf(buffer, "%zu", nodeNo);
     cursor->set_key(cursor, node_count.c_str());
     cursor->set_value(cursor, buffer);
-    cursor->insert(cursor);
-    sprintf(buffer, "%zu", edgeNo);
+    int ret = cursor->insert(cursor);
+    assert(ret == 0);
 
     memset(buffer, 0, BUFFER_LENGTH);
-    sprintf(buffer, "%zu", nodeNo);
-    cursor->set_key(cursor, node_count.c_str());
-    cursor->set_value(cursor, buffer);
-    cursor->insert(cursor);
-
     sprintf(buffer, "%zu", edgeNo);
     cursor->set_key(cursor, edge_count.c_str());
-    cursor->set_value(cursor, std::to_string(edgeNo).c_str());
-    cursor->insert(cursor);
+    cursor->set_value(cursor, buffer);
+    ret = cursor->insert(cursor);
+    assert(ret == 0);
 
     cursor->close(cursor);
 }
@@ -115,14 +110,17 @@ void insert_stats(size_t edgeNo, size_t nodeNo, const std::string &type)
     session->close(session, NULL);
 }
 
-time_info *insert_edge_thread(int _tid)
+time_info insert_edge_thread(int _tid)
 {
     int tid = _tid;
     std::string filename = dataset + "_edges";
     char c = (char)(97 + tid);
     filename.push_back('a');
     filename.push_back(c);
-    auto *info = new time_info();
+    time_info info;
+
+    int32_t edge_id = (tid * num_per_chunk);
+
     Times t;
     t.start();
     std::vector<edge> edjlist = reader::parse_edge_entries(filename);
@@ -134,8 +132,10 @@ time_info *insert_edge_thread(int _tid)
         out << x.src_id << "\t" << x.dst_id << std::endl;
     }
     out.close();
-    info->read_time = t.t_micros();
-    info->num_inserted = edjlist.size();
+    info.read_time = t.t_micros();
+    info.num_inserted = edjlist.size();
+    std::cout << "Thread " << tid << " read " << edjlist.size() << " edges in "
+              << t.t_micros() << " micros" << std::endl;
 
     WT_CURSOR *cursor;
     WT_SESSION *session;
@@ -149,6 +149,7 @@ time_info *insert_edge_thread(int _tid)
 
         for (edge e : edjlist)
         {
+            e.id = edge_id++;
             CommonUtil::set_key(cursor, e.src_id, e.dst_id);
             cursor->set_value(cursor, e.edge_weight);
             if ((ret = cursor->insert(cursor)) != 0)
@@ -198,11 +199,11 @@ time_info *insert_edge_thread(int _tid)
     }
 
     t.stop();
-    info->insert_time = t.t_micros();
+    info.insert_time = t.t_micros();
     return info;
 }
 
-time_info *insert_node(int _tid)
+time_info insert_node(int _tid)
 {
     int tid = _tid;  //*(int *)arg;
     std::string filename = dataset + "_nodes";
@@ -210,21 +211,16 @@ time_info *insert_node(int _tid)
     filename.push_back('a');
     filename.push_back(c);
 
-    auto *info = new time_info();
+    time_info info;
     Times t;
     t.start();
     std::vector<node> nodes = reader::parse_node_entries(filename);
-    // // write nodes vector to a file
-    // std::ofstream out((filename + "_read").c_str());
-    // for (auto x : nodes)
-    // {
-    //     out << x.id << std::endl;
-    // }
-    // out.close();
-
     t.stop();
-    info->read_time = t.t_micros();
-    info->num_inserted = nodes.size();
+    info.read_time = t.t_micros();
+    info.num_inserted = nodes.size();
+
+    std::cout << "Thread " << tid << " read " << nodes.size() << " nodes in "
+              << t.t_micros() << " micros" << std::endl;
 
     WT_CURSOR *std_cur, *ekey_cur, *adj_cur, *adj_incur, *adj_outcur;
     WT_SESSION *std_sess, *ekey_sess, *adj_sess;
@@ -348,7 +344,7 @@ time_info *insert_node(int _tid)
         }
     }
     t.stop();
-    info->insert_time = t.t_micros();
+    info.insert_time = t.t_micros();
     if (type_opt == "all" || type_opt == "std")
     {
         std_cur->close(std_cur);
@@ -440,19 +436,24 @@ int main(int argc, char *argv[])
             exit(1);
         }
     }
-
+    num_per_chunk = (int)(params.get_num_edges() / NUM_THREADS);
+    // We are using edge IDs now so we might need to assign a unique range to
+    // each thread
     Times t;
     t.start();
-    auto *edge_times = new time_info;
-    auto *node_times = new time_info;
+    time_info edge_times, node_times;
+
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        time_info *this_thread_time = insert_edge_thread(i);
-        edge_times->insert_time += this_thread_time->insert_time;
-        edge_times->num_inserted += this_thread_time->num_inserted;
-        edge_times->read_time += this_thread_time->read_time;
+        time_info this_thread_time = insert_edge_thread(i);
+        edge_times.insert_time += this_thread_time.insert_time;
+        edge_times.num_inserted += this_thread_time.num_inserted;
+        edge_times.read_time += this_thread_time.read_time;
     }
+    std::cout << "Total time to insert edges was " << edge_times.insert_time
+              << "\nTotal number of edges inserted was "
+              << edge_times.num_inserted << std::endl;
     // write nodes vector to a file
     std::ofstream out((dataset + "inadj").c_str());
     for (const auto &x : in_adjlist)
@@ -478,42 +479,42 @@ int main(int argc, char *argv[])
     out.close();
 
     t.stop();
-    std::cout << " Total time to insert edges was " << t.t_micros()
-              << std::endl;
+    std::cout << " Total time to insert edges (outside the omp loop) was "
+              << t.t_micros() << std::endl;
 
     // Now insert nodes;
     t.start();
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        time_info *this_thread_time = insert_node(i);
-        node_times->insert_time += this_thread_time->insert_time;
-        node_times->num_inserted += this_thread_time->num_inserted;
-        node_times->read_time += this_thread_time->read_time;
+        time_info this_thread_time = insert_node(i);
+        node_times.insert_time += this_thread_time.insert_time;
+        node_times.num_inserted += this_thread_time.num_inserted;
+        std::cout << "num inserted = " << this_thread_time.num_inserted
+                  << std::endl;
+        node_times.read_time += this_thread_time.read_time;
     }
-    insert_stats(edge_times->num_inserted, node_times->num_inserted, type_opt);
+    insert_stats(edge_times.num_inserted, node_times.num_inserted, type_opt);
 
     t.stop();
     std::cout << " Total time to insert nodes was " << t.t_micros()
               << std::endl;
 
     // Adjust for threads
-    node_times->insert_time = node_times->insert_time / NUM_THREADS;
-    node_times->read_time = node_times->read_time / NUM_THREADS;
-    edge_times->insert_time = edge_times->insert_time / NUM_THREADS;
-    edge_times->read_time = edge_times->read_time / NUM_THREADS;
+    node_times.insert_time = node_times.insert_time / NUM_THREADS;
+    node_times.read_time = node_times.read_time / NUM_THREADS;
+    edge_times.insert_time = edge_times.insert_time / NUM_THREADS;
+    edge_times.read_time = edge_times.read_time / NUM_THREADS;
 
-    std::cout << "total inserted edges = " << edge_times->num_inserted
-              << " num_edges = " << num_edges << std::endl;
-    std::cout << "time to insert edges " << edge_times->insert_time
+    std::cout << "total inserted edges = " << edge_times.num_inserted
               << std::endl;
-    std::cout << "time to read edges " << edge_times->read_time << std::endl;
+    std::cout << "time to insert edges " << edge_times.insert_time << std::endl;
+    std::cout << "time to read edges " << edge_times.read_time << std::endl;
 
-    std::cout << "total inserted nodes  = " << node_times->num_inserted
-              << " num_nodes = " << num_nodes << std::endl;
-    std::cout << "time to insert_nodes " << node_times->insert_time
+    std::cout << "total inserted nodes  = " << node_times.num_inserted
               << std::endl;
-    std::cout << "time to read nodes " << node_times->read_time << std::endl;
+    std::cout << "time to insert_nodes " << node_times.insert_time << std::endl;
+    std::cout << "time to read nodes " << node_times.read_time << std::endl;
 
     print_time_csvline(params.get_db_name(),
                        params.get_db_path(),

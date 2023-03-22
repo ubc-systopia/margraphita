@@ -8,6 +8,7 @@ from datetime import datetime
 from preprocess import Preprocess
 from paths import ConfigReader
 import pprint
+import grp
 
 
 def api_insert(config: dict[str, any]):
@@ -18,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Insert kron graphs into the database")
     parser.add_argument("--log_dir", type=str, help="log directory")
-    parser.add_argument("--preprocess", action='store_true', default=True,
+    parser.add_argument("--preprocess", action='store_true', default=False,
                         help="preprocess graphs")
     parser.add_argument("--bulk", action='store_true',
                         default=False, help="insert graphs")
@@ -50,6 +51,11 @@ def main():
     print("Index: " + str(args.index))
     print("Use API: " + str(args.use_api))
 
+    # Set the group ID to 'graphs'
+    group_id = grp.getgrnam("graphs").gr_gid
+    os.setgid(group_id)
+    os.environ['GRAPHS_GROUP_ID'] = str(group_id)
+
     for scale in range(10, 11):
         n_edges = 8*pow(2, scale)
         n_nodes = pow(2, scale)
@@ -71,6 +77,9 @@ def main():
         print(config_data)
 
         preprocess_obj = Preprocess(config_data)
+        print("is bulk: " + str(args.bulk)
+              + " \nindex: " + str(args.index)
+                + " \npreprocess: " + str(args.preprocess))
         if (args.preprocess):
             preprocess_obj.preprocess()
         if (args.bulk):
