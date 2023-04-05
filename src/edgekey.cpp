@@ -186,7 +186,6 @@ int EdgeKey::add_node(node to_insert)
 
 int EdgeKey::add_node_txn(node to_insert)
 {
-    std::cout << MAKE_EKEY(to_insert.id) << " " << OutOfBand_ID << std::endl;
     CommonUtil::set_key(edge_cursor, MAKE_EKEY(to_insert.id), OutOfBand_ID);
     if (opts.read_optimize)
     {

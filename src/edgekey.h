@@ -39,7 +39,7 @@ class EkeyInCursor : public InCursor
 
             node_id_t to_search = 0;
 
-            if (keys.start != 0)
+            if (keys.start != -1)
             {
                 to_search = keys.start;
                 next_expected = keys.start;
@@ -59,7 +59,7 @@ class EkeyInCursor : public InCursor
             }
         }
 
-        if (keys.end != -1 && next_expected > keys.end)
+        if (keys.end != -1 && next_expected > MAKE_EKEY(keys.end))
         {
             goto no_next;
         }
@@ -133,9 +133,9 @@ class EkeyInCursor : public InCursor
             goto no_next;
         }
 
-        next_expected = key + 1;
+        next_expected = MAKE_EKEY(key) + 1;
 
-        CommonUtil::set_key(cursor, key);
+        CommonUtil::set_key(cursor, MAKE_EKEY(key));
 
         found->degree = 0;
         found->edgelist.clear();
@@ -159,15 +159,15 @@ class EkeyInCursor : public InCursor
         do
         {
             CommonUtil::read_from_edge_idx(cursor, &curr_edge);
-            if (curr_edge.dst_id != key)
+            if (OG_KEY(curr_edge.dst_id) != key)
             {
-                if (keys.end != -1 && next_expected > keys.end)
+                if (keys.end != -1 && OG_KEY(next_expected) > keys.end)
                 {
                     has_next = false;
                 }
                 return;
             }
-            found->edgelist.push_back(curr_edge.src_id);
+            found->edgelist.push_back(OG_KEY(curr_edge.src_id));
             found->degree++;
         } while (cursor->next(cursor) == 0);
 
@@ -289,7 +289,7 @@ class EkeyOutCursor : public OutCursor
         }
         found->degree = 0;
         found->edgelist.clear();
-        found->node_id = next_expected;
+        found->node_id = OG_KEY(next_expected);
         next_expected += 1;
     }
 

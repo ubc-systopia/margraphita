@@ -37,7 +37,6 @@ void test_get_node(EdgeKey graph)
 {
     INFO()
     node found = graph.get_node(SampleGraph::node1.id);
-    CommonUtil::dump_node(found);
     assert(found.id == 1);
     // now get a node that does not exist
     found = graph.get_node(-1);
