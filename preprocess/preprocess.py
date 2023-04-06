@@ -17,7 +17,7 @@ class Preprocess:
         self.log.write(self.log_entry)
 
     def build_bulk_cmd(self, graph_type: str, is_ro: bool):
-        if config['low_mem']:
+        if self.config_data['low_mem']:
             bulk_binary = "bulk_insert_low_mem"
         else:
             bulk_binary = "bulk_insert"

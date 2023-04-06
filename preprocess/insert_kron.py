@@ -60,26 +60,26 @@ def main():
     os.environ['GRAPHS_GROUP_ID'] = str(group_id)
 
     for scale in range(10, 11):
+        kron_graph_config = config_data
         n_edges = 8*pow(2, scale)
         n_nodes = pow(2, scale)
         dataset_name = "s" + str(scale) + "_e8"
         graph_directory = os.path.join(
-            config_data['KRON_GRAPHS_PATH'], dataset_name)
+            kron_graph_config['KRON_GRAPHS_PATH'], dataset_name)
         graph = os.path.join(
-            config_data['KRON_GRAPHS_PATH'], dataset_name, f"graph_{dataset_name}")
+            kron_graph_config['KRON_GRAPHS_PATH'], dataset_name, f"graph_{dataset_name}")
 
-        config_data.update(vars(args))  # add args to config
-        config_data['dataset_name'] = dataset_name
-        config_data['graph_dir'] = graph_directory
-        config_data['output_dir'] = os.path.join(
-            config_data['DB_DIR'], dataset_name)
-        config_data['graph_path'] = graph
-        config_data['num_nodes'] = n_nodes
-        config_data['num_edges'] = n_edges
-        config_data['scale'] = scale
-        print(config_data)
+        kron_graph_config.update(vars(args))  # add args to config
+        kron_graph_config['dataset_name'] = dataset_name
+        kron_graph_config['graph_dir'] = graph_directory
+        kron_graph_config['output_dir'] = os.path.join(
+            kron_graph_config['DB_DIR'], dataset_name)
+        kron_graph_config['graph_path'] = graph
+        kron_graph_config['num_nodes'] = n_nodes
+        kron_graph_config['num_edges'] = n_edges
+        kron_graph_config['scale'] = scale
 
-        preprocess_obj = Preprocess(config_data)
+        preprocess_obj = Preprocess(kron_graph_config)
         print("is bulk: " + str(args.bulk)
               + " \nindex: " + str(args.index)
                 + " \npreprocess: " + str(args.preprocess))
@@ -96,16 +96,16 @@ def main():
 
     #To insert graphs that are not Kronecker graphs
     # This can be read from a DB, but for now we just read from a file
-    config_data = GraphDatasetReader("graph_datasets.json").read_config()
-    for dataset in config_data:
-        config_data['graph_dir'] = os.path.dirname(dataset['graph_dir'])
+    dataset_json = GraphDatasetReader("graph_datasets.json").read_config()
+    for dataset in dataset_json:
+        dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
+        dataset.update(vars(args))  # add args to config
         graph = dataset['graph_path']
-        config_data['output_dir'] = os.path.join(
-            args['DB_DIR'], dataset_name)
-        config_data['scale'] = 0
-        print(config_data)
+        dataset['output_dir'] = os.path.join(
+            config_data['DB_DIR'], dataset['dataset_name'])
+        dataset['scale'] = 0
 
-        preprocess_obj = Preprocess(config_data)
+        preprocess_obj = Preprocess(dataset)
         print("is bulk: " + str(args.bulk)
               + " \nindex: " + str(args.index)
                 + " \npreprocess: " + str(args.preprocess))
@@ -118,7 +118,7 @@ def main():
         else:
             api_insert(config_data)
         preprocess_obj.log.write(
-            "Finished inserting " + dataset_name + "\n-------------------\n")
+            "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
 
       
 
