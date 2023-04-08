@@ -187,7 +187,8 @@ time_info insert_edge_thread(int _tid)
 
         for (edge e : edjlist)
         {
-            CommonUtil::set_key(cursor, e.src_id, e.dst_id);
+            CommonUtil::set_key(
+                cursor, MAKE_EKEY(e.src_id), MAKE_EKEY(e.dst_id));
             cursor->set_value(cursor, 0, OutOfBand_Val);
             if ((ret = cursor->insert(cursor)) != 0)
             {
@@ -276,7 +277,8 @@ time_info insert_node(int _tid)
         else if (type_opt == "ekey")
         {
             int ret;
-            CommonUtil::set_key(ekey_cur, to_insert.id, OutOfBand_ID);
+            CommonUtil::set_key(
+                ekey_cur, MAKE_EKEY(to_insert.id), OutOfBand_ID);
             if (read_optimized)
             {
                 ekey_cur->set_value(
