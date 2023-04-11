@@ -57,9 +57,13 @@ const std::string edge_count = "nEdges";
 typedef int32_t node_id_t;
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
+
+/// @brief EdgeKey specific definitions
 const node_id_t OutOfBand_ID =
     0;  // Used to be -1. Changed to 0 to avoid issues with unsigned types.
 const degree_t OutOfBand_Val = UINT32_MAX;
+#define MAKE_EKEY(x) (x + 1)
+#define OG_KEY(x) (x - 1)
 
 typedef enum GraphType
 {

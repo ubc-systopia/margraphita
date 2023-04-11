@@ -129,6 +129,7 @@ void test_add_edge(StandardGraph graph, bool is_directed, bool is_weighted)
                               // check if the nodes get created
     int test_id1 = 5, test_id2 = 6;
     graph.add_edge(to_insert, false);
+
     edge found = graph.get_edge(test_id1, test_id2);
     CommonUtil::dump_edge(found);
     if (is_weighted)

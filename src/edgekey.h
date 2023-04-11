@@ -12,8 +12,6 @@
 #include "graph_exception.h"
 
 using namespace std;
-#define MAKE_EKEY(x) (x + 1)
-#define OG_KEY(x) (x - 1)
 
 class EkeyInCursor : public InCursor
 {
@@ -39,7 +37,7 @@ class EkeyInCursor : public InCursor
 
             node_id_t to_search = 0;
 
-            if (keys.start != -1)
+            if (keys.start != 0)
             {
                 to_search = keys.start;
                 next_expected = keys.start;
@@ -211,7 +209,7 @@ class EkeyOutCursor : public OutCursor
         {
             is_first = false;
 
-            if (keys.start != -1)
+            if (keys.start != 0)
             {
                 next_expected = MAKE_EKEY(keys.start);
                 int status;
@@ -410,12 +408,13 @@ class EkeyNodeCursor : public NodeCursor
         {
         first_time_skip_next:
 
-            CommonUtil::get_ekey_dst_src_val(cursor,
-                              &curr_edge.dst_id,
-                              &curr_edge.src_id,
-                              &found->in_degree,
-                              &found->out_degree);  // getting all of dst, src,
-                                                    // in/out degrees at once
+            CommonUtil::get_ekey_dst_src_val(
+                cursor,
+                &curr_edge.dst_id,
+                &curr_edge.src_id,
+                &found->in_degree,
+                &found->out_degree);  // getting all of dst, src,
+                                      // in/out degrees at once
 
             curr_edge.src_id = OG_KEY(curr_edge.src_id);
             curr_edge.dst_id = OG_KEY(curr_edge.dst_id);
