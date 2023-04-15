@@ -67,7 +67,6 @@ void EdgeKey::init_cursors()
                              string(wiredtiger_strerror(ret)));
     }
     string projection = "(" + SRC + "," + DST + ")";
-    ret = _get_index_cursor(EDGE_TABLE, SRC_INDEX, projection, &src_idx_cursor);
     ret = _get_index_cursor(EDGE_TABLE, DST_INDEX, projection, &dst_idx_cursor);
     projection =
         "(" + DST + "," + SRC + "," + ATTR_FIRST + "," + ATTR_SECOND + ")";
@@ -239,127 +238,143 @@ int EdgeKey::delete_node(node_id_t node_id)  // TODO
 
     session->begin_transaction(session, "isolation=snapshot");
 
-    CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
-    ret = edge_cursor->remove(edge_cursor);
-    switch (ret)
-    {
-        case 0:
-            num_nodes_to_add -= 1;
-            break;
-        case WT_ROLLBACK:
-            session->rollback_transaction(session, nullptr);
-            return WT_ROLLBACK;
-            // goto start_delete_node;
-        case WT_NOTFOUND:
-            session->rollback_transaction(session, nullptr);
-            return WT_NOTFOUND;
-            // return;
-        default:
-            session->rollback_transaction(session, nullptr);
-            throw GraphException(
-                "Failed to remove node with id " + std::to_string(node_id) +
-                " from the edge table" + wiredtiger_strerror(ret));
-    }
-    edge_cursor->reset(edge_cursor);
+    ret = delete_node_and_related_edges(node_id, &num_edges_to_add);
 
-    ret = delete_related_edges(
-        src_idx_cursor, edge_cursor, node_id, &num_edges_to_add);
-
-    if (ret == 1)
-    {
-        return WT_ROLLBACK;
-    }
-
-    ret = delete_related_edges(
-        dst_idx_cursor, edge_cursor, node_id, &num_edges_to_add);
-
-    if (ret == 1)
-    {
-        return WT_ROLLBACK;
-        // goto start_delete_node;
-    }
     session->commit_transaction(session, nullptr);
+    if (ret != 0)
+    {
+        return ret;
+    }
     add_to_nedges(num_edges_to_add);
-    add_to_nnodes(num_nodes_to_add);
+    add_to_nnodes(-1);
     return 0;
 }
 
-// Caller should continue on return value = 0 and retry on return value = 1
-int EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
-                                  WT_CURSOR *e_cur,
-                                  node_id_t node_id,
-                                  int *num_edges_to_add)  // TODO
+int EdgeKey::delete_node_and_related_edges(node_id_t node_id,
+                                           int *num_edges_to_add)  // TODO
 {
     int ret = 0;
     node_id_t src, dst;
 
-    CommonUtil::set_key(idx_cur, MAKE_EKEY(node_id));
-    if (idx_cur->search(idx_cur) != 0)
+    CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+    if (edge_cursor->search(edge_cursor) != 0)
     {
         return 0;
     }
-
-    do
+    // We have now successfully found the node in the edge table
+    // Now we duplicate the cursor and iterate over the edges till we hit the
+    // next node (or the end of the table) such that the found node id >
+    // provided node id.
+    WT_CURSOR *del_cursor;
+    CommonUtil::dup_cursor(session, edge_cursor, &del_cursor);
+    while (del_cursor->next(del_cursor) == 0)
     {
-        CommonUtil::get_val_idx(idx_cur, &src, &dst);
-        CommonUtil::set_key(e_cur, src, dst);
-
-        ret = e_cur->remove(e_cur);
-        switch (ret)
+        CommonUtil::get_key(del_cursor, &src, &dst);
+        if (src != MAKE_EKEY(node_id))  // We have reached the end of the out
+                                        // edges for the node
         {
-            case 0:
-                *num_edges_to_add -= 1;
-                break;
-            case WT_ROLLBACK:
-                session->rollback_transaction(session, nullptr);
-                return 1;
-                break;
-            case WT_NOTFOUND:
-            // WT_NOTFOUND should not occur
-            default:
-                session->rollback_transaction(session, nullptr);
-                throw GraphException("Failed to remove edge between " +
-                                     to_string(src) + " and " + to_string(dst) +
-                                     wiredtiger_strerror(ret));
+            break;
         }
+        // Delete the edge FROM the deleted node
+        ret = del_cursor->remove(del_cursor);
+        if (ret != 0)
+        {
+            session->rollback_transaction(session, nullptr);
+            throw GraphException("Failed to remove edge between " +
+                                 to_string(src) + " and " + to_string(dst) +
+                                 wiredtiger_strerror(ret));
+        }
+        else
+        {  // We have successfully deleted the edge
+            *num_edges_to_add -= 1;
+        }
+
         // if readoptimize: Get the node to decrement in/out degree
         if (opts.read_optimize)
         {
-            node temp;
-
-            if (src != MAKE_EKEY(node_id))
+            node temp = get_node(OG_KEY(dst));
+            ret = update_node_degree(
+                temp.id, temp.in_degree - 1, temp.out_degree);
+            if (ret != 0)
             {
-                temp = get_node(OG_KEY(src));
-                temp.out_degree--;
+                session->rollback_transaction(session, nullptr);
+                throw GraphException("Could not update the node with ID" +
+                                     std::to_string(temp.id) +
+                                     wiredtiger_strerror(ret));
             }
-            else
-            {
-                temp = get_node(OG_KEY(dst));
-                temp.in_degree--;
-            }
+        }
+    }
+    del_cursor->close(del_cursor);
 
-            ret = update_node_degree(temp.id, temp.in_degree, temp.out_degree);
-            switch (ret)
+    // Now decrement the in degrees of nodes that had an edge from the deleted
+    // node.
+    if (opts.read_optimize)
+    {
+        dst_src_idx_cursor->reset(dst_src_idx_cursor);
+        CommonUtil::set_key(
+            dst_src_idx_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+        int exact_match;
+        ret = dst_src_idx_cursor->search_near(dst_src_idx_cursor, &exact_match);
+        if (exact_match < 0 && ret != WT_NOTFOUND)
+        {
+            // There is no outgoing edge from the deleted node
+            goto done;
+        }
+        else if (exact_match >
+                 0) /* We cannot have an exact match on the dst,src
+                     index. All the nodes are at the beginning of the
+                     index. (see the dump of the index if in doubt)*/
+        {
+            node_id_t src, dst;
+            do
             {
-                case 0:
-                    break;
-                case WT_ROLLBACK:
-                    session->rollback_transaction(session, nullptr);
-                    return 1;
-                case WT_NOTFOUND:
-                    // WT_NOTFOUND should not occur
-                default:
+                CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+                if (dst != MAKE_EKEY(node_id)) break;
+                node temp = get_node(OG_KEY(src));
+                /*  we are decrementing in-deg
+                for the node that had
+                an incoming edge from the deleted node*/
+                ret = update_node_degree(
+                    temp.id, temp.in_degree, temp.out_degree - 1);
+                if (ret != 0)
+                {
                     session->rollback_transaction(session, nullptr);
                     throw GraphException("Could not update the node with ID" +
                                          std::to_string(temp.id) +
                                          wiredtiger_strerror(ret));
-            }
+                }
+                // Now delete the edge TO the deleted node
+                CommonUtil::set_key(edge_cursor, src, dst);
+                ret = edge_cursor->remove(edge_cursor);
+                if (ret != 0)
+                {
+                    session->rollback_transaction(session, nullptr);
+                    throw GraphException(
+                        "Failed to remove edge between " + to_string(src) +
+                        " and " + to_string(dst) + wiredtiger_strerror(ret));
+                }
+                else
+                {
+                    *num_edges_to_add -= 1;
+                }
+            } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0 &&
+                     dst == MAKE_EKEY(node_id));
         }
+    done:
+        dst_idx_cursor->reset(dst_idx_cursor);
+    }
 
-        CommonUtil::set_key(idx_cur, MAKE_EKEY(node_id));
-    } while (idx_cur->search(idx_cur) == 0);
-    idx_cur->reset(idx_cur);
-
+    // remove the original node in the edge table
+    CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+    ret = edge_cursor->remove(edge_cursor);
+    if (ret != 0)
+    {
+        session->rollback_transaction(session, nullptr);
+        throw GraphException("Failed to remove node with ID " +
+                             std::to_string(node_id) +
+                             wiredtiger_strerror(ret));
+    }
+    edge_cursor->reset(edge_cursor);
     return 0;
 }
 
@@ -806,46 +821,49 @@ std::vector<node> EdgeKey::get_nodes()
  */
 degree_t EdgeKey::get_out_degree(node_id_t node_id)
 {
-    if (opts.read_optimize)
+    degree_t out_deg = 0;
+    CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+    int ret = edge_cursor->search(edge_cursor);
+    if (ret == 0)  // The node exists
     {
-        CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
-        node found = {0};
-        if (edge_cursor->search(edge_cursor) == 0)
+        if (opts.read_optimize)
         {
-            found.id = node_id;
-            CommonUtil::record_to_node_ekey(edge_cursor, &found);
-        }
-        edge_cursor->reset(edge_cursor);
-        return found.out_degree;
-    }
-    else
-    {
-        degree_t out_deg = 0;
-        int ret = 0;
-        CommonUtil::set_key(src_idx_cursor, MAKE_EKEY(node_id));
-        if (src_idx_cursor->search(src_idx_cursor) == 0)
-        {
-            while (ret == 0)
+            node found = {0};
+            if (ret == 0)
             {
-                node_id_t src, dst;
-                CommonUtil::get_val_idx(src_idx_cursor, &src, &dst);
+                found.id = node_id;
+                CommonUtil::record_to_node_ekey(edge_cursor, &found);
+            }
+            edge_cursor->reset(edge_cursor);
+            out_deg = found.out_degree;
+        }
+        else
+        {
+            node_id_t src, dst;
+            do
+            {
+                edge_cursor->next(edge_cursor);  // skip to the out_edges
+                CommonUtil::get_key(edge_cursor, &src, &dst);
                 if (src == MAKE_EKEY(node_id))
                 {
-                    if (dst != OutOfBand_ID)
-                    {
-                        out_deg++;
-                    }
+                    out_deg++;
                 }
                 else
                 {
                     break;
                 }
-                ret = src_idx_cursor->next(src_idx_cursor);
-            }
+            } while (src == MAKE_EKEY(node_id) && dst != OutOfBand_ID);
+            edge_cursor->reset(edge_cursor);
         }
-        src_idx_cursor->reset(src_idx_cursor);
-        return out_deg;
     }
+    else
+    {
+        edge_cursor->reset(edge_cursor);
+        throw GraphException("Node with ID " + std::to_string(node_id) +
+                             " does not exist");
+    }
+
+    return out_deg;
 }
 
 /**
@@ -1241,7 +1259,6 @@ void EdgeKey::create_indices(WT_SESSION *sess)
 [[maybe_unused]] void EdgeKey::drop_indices()
 {
     CommonUtil::close_cursor(edge_cursor);
-    CommonUtil::close_cursor(src_idx_cursor);
     CommonUtil::close_cursor(dst_idx_cursor);
 
     // drop SRC index
@@ -1271,33 +1288,6 @@ WT_CURSOR *EdgeKey::get_metadata_cursor()
         }
     }
     return metadata_cursor;
-}
-WT_CURSOR *EdgeKey::get_src_idx_cursor()
-{
-    if (src_idx_cursor == nullptr)
-    {
-        string projection = "(" + SRC + "," + DST + ")";
-        if (_get_index_cursor(
-                EDGE_TABLE, SRC_INDEX, projection, &src_idx_cursor) != 0)
-        {
-            throw GraphException("Could not get a cursor to the SRC_INDEX ");
-        }
-    }
-
-    return src_idx_cursor;
-}
-
-WT_CURSOR *EdgeKey::get_new_src_idx_cursor()
-{
-    WT_CURSOR *new_src_idx_cursor = nullptr;
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(
-            EDGE_TABLE, SRC_INDEX, projection, &new_src_idx_cursor) != 0)
-    {
-        throw GraphException("Could not get a cursor to the SRC_INDEX ");
-    }
-
-    return new_src_idx_cursor;
 }
 
 WT_CURSOR *EdgeKey::get_dst_idx_cursor()
@@ -1363,7 +1353,7 @@ WT_CURSOR *EdgeKey::get_new_dst_src_idx_cursor()
 OutCursor *EdgeKey::get_outnbd_iter()
 {
     uint64_t num_nodes = this->get_num_nodes();
-    OutCursor *toReturn = new EkeyOutCursor(get_new_src_idx_cursor(), session);
+    OutCursor *toReturn = new EkeyOutCursor(get_new_edge_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
 
     toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
@@ -1463,6 +1453,5 @@ void EdgeKey::close_all_cursors()
 {
     edge_cursor->close(edge_cursor);
     metadata_cursor->close(metadata_cursor);
-    src_idx_cursor->close(src_idx_cursor);
     dst_idx_cursor->close(dst_idx_cursor);
 }

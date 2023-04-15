@@ -21,6 +21,9 @@
 
 #define SRC_LOC std::source_location::current()
 
+#define MAKE_EKEY(x) (x + 1)
+#define OG_KEY(x) (x - 1)
+
 // These are the string constants
 const std::string METADATA = "metadata";
 const std::string DB_NAME = "db_name";
@@ -179,6 +182,9 @@ class CommonUtil
                                const std::string &logdir,
                                const std::string &config,
                                WT_CONNECTION **conn);
+    static int dup_cursor(WT_SESSION *session,
+                          WT_CURSOR *to_dup,
+                          WT_CURSOR **cursor);
     static void set_key(WT_CURSOR *cursor, node_id_t key);
     static void set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
     static void set_key(WT_CURSOR *cursor,

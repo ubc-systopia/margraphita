@@ -180,6 +180,17 @@ int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
     return 0;
 }
 
+[[maybe_unused]] int CommonUtil::dup_cursor(WT_SESSION *session,
+                                            WT_CURSOR *to_dup,
+                                            WT_CURSOR **cursor)
+{
+    if (session->open_cursor(session, nullptr, to_dup, nullptr, cursor) != 0)
+    {
+        fprintf(stderr, "Failed to duplicte the cursor on URI %s", to_dup->uri);
+    }
+    return 0;
+}
+
 void CommonUtil::check_return(int retval, const std::string &mesg)
 {
     if (retval > 0)
@@ -199,7 +210,7 @@ void CommonUtil::dump_edge(edge to_print)
 {
     std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
     std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
-    std::cout << "Weight is:\t" << to_print.edge_weight <<"\n\n";
+    std::cout << "Weight is:\t" << to_print.edge_weight << "\n\n";
 }
 
 [[maybe_unused]] void CommonUtil::dump_edge_index(edge_index to_print)
@@ -217,7 +228,8 @@ void CommonUtil::dump_adjlist(const adjlist &to_print)
     {
         std::cout << n << " ";
     }
-    std::cout << "}" << "\n\n";
+    std::cout << "}"
+              << "\n\n";
 }
 
 /**
