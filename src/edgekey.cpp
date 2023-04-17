@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include "common.h"
+#include "util.h"
 
 using namespace std;
 [[maybe_unused]] const std::string GRAPH_PREFIX = "edgekey";
@@ -51,6 +52,42 @@ void EdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     sess->close(sess, nullptr);
 }
 
+/**
+ * @brief Creates the indices on the SRC and the DST column of the edge
+ * table. These are not (and should not be) used for inserting data into the
+ * edge table if write_optimize is on. Once the data has been inserted, the
+ * create_indices function must be called separately.
+ *
+ * This function requires exclusive access to the table on which it
+ * operates. If there are any open cursors, or if the table has any other
+ * operation ongoing, WT throws a Resource Busy error.
+ *
+ */
+void EdgeKey::create_indices(WT_SESSION *sess)
+{
+    string idx_name, idx_conf;
+    // Index on the DST column of the edge table
+    //    idx_name = "index:" + EDGE_TABLE + ":" + DST_INDEX;
+    //    idx_conf = "columns=(" + DST + ")";
+    //    if (sess->create(
+    //            sess, idx_name.c_str(), idx_conf.c_str()) != 0)
+    //    {
+    //        throw GraphException(
+    //            "Failed to create an index on the DST column of the edge "
+    //            "table");
+    //    }
+
+    // Index on (DST,SRC) columns of the edge table
+    // Used for adjacency neighbourhood iterators
+    idx_name = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
+    idx_conf = "columns=(" + DST + "," + SRC + ")";
+    if (sess->create(sess, idx_name.c_str(), idx_conf.c_str()) != 0)
+    {
+        throw GraphException(
+            "Failed to create DST_SRC_INDEX on the edge table");
+    }
+}
+
 void EdgeKey::init_cursors()
 {
     int ret =
@@ -60,6 +97,8 @@ void EdgeKey::init_cursors()
         throw GraphException("Could not get a cursor to the metadata table:" +
                              string(wiredtiger_strerror(ret)));
     }
+
+    // edge_cursor
     ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, true);
     if (ret != 0)
     {
@@ -230,21 +269,16 @@ bool EdgeKey::has_edge(node_id_t src_id, node_id_t dst_id)
     return (ret == 0);
 }
 
-int EdgeKey::delete_node(node_id_t node_id)  // TODO
+int EdgeKey::delete_node(node_id_t node_id)
 {
-    int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
-    int ret = 0;
-
     session->begin_transaction(session, "isolation=snapshot");
 
-    ret = delete_node_and_related_edges(node_id, &num_edges_to_add);
+    int ret = delete_node_and_related_edges(node_id, &num_edges_to_add);
 
     session->commit_transaction(session, nullptr);
-    if (ret != 0)
-    {
-        return ret;
-    }
+    if (ret != 0) return ret;
+
     add_to_nedges(num_edges_to_add);
     add_to_nnodes(-1);
     return 0;
@@ -253,7 +287,7 @@ int EdgeKey::delete_node(node_id_t node_id)  // TODO
 int EdgeKey::delete_node_and_related_edges(node_id_t node_id,
                                            int *num_edges_to_add)  // TODO
 {
-    int ret = 0;
+    int ret;
     node_id_t src, dst;
 
     CommonUtil::set_key(edge_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
@@ -325,12 +359,12 @@ int EdgeKey::delete_node_and_related_edges(node_id_t node_id,
                      index. All the nodes are at the beginning of the
                      index. (see the dump of the index if in doubt)*/
         {
-            node_id_t src, dst;
+            node_id_t src_, dst_;
             do
             {
-                CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
-                if (dst != MAKE_EKEY(node_id)) break;
-                node temp = get_node(OG_KEY(src));
+                CommonUtil::get_key(dst_src_idx_cursor, &dst_, &src_);
+                if (dst_ != MAKE_EKEY(node_id)) break;
+                node temp = get_node(OG_KEY(src_));
                 /*  we are decrementing in-deg
                 for the node that had
                 an incoming edge from the deleted node*/
@@ -344,24 +378,24 @@ int EdgeKey::delete_node_and_related_edges(node_id_t node_id,
                                          wiredtiger_strerror(ret));
                 }
                 // Now delete the edge TO the deleted node
-                CommonUtil::set_key(edge_cursor, src, dst);
+                CommonUtil::set_key(edge_cursor, src_, dst_);
                 ret = edge_cursor->remove(edge_cursor);
                 if (ret != 0)
                 {
                     session->rollback_transaction(session, nullptr);
                     throw GraphException(
-                        "Failed to remove edge between " + to_string(src) +
-                        " and " + to_string(dst) + wiredtiger_strerror(ret));
+                        "Failed to remove edge between " + to_string(src_) +
+                        " and " + to_string(dst_) + wiredtiger_strerror(ret));
                 }
                 else
                 {
                     *num_edges_to_add -= 1;
                 }
             } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0 &&
-                     dst == MAKE_EKEY(node_id));
+                     dst_ == MAKE_EKEY(node_id));
         }
     done:
-        dst_idx_cursor->reset(dst_idx_cursor);
+        dst_src_idx_cursor->reset(dst_src_idx_cursor);
     }
 
     // remove the original node in the edge table
@@ -413,6 +447,44 @@ int EdgeKey::error_check_add_edge(int ret)
     }
 }
 
+int EdgeKey::add_edge_only(edge to_insert)
+{
+    CommonUtil::set_key(
+        edge_cursor, MAKE_EKEY(to_insert.src_id), MAKE_EKEY(to_insert.dst_id));
+
+    if (opts.is_weighted)
+    {
+        edge_cursor->set_value(
+            edge_cursor, to_insert.edge_weight, OutOfBand_Val);
+    }
+    else
+    {
+        edge_cursor->set_value(edge_cursor, 0, OutOfBand_Val);
+    }
+
+    int ret = edge_cursor->insert(edge_cursor);
+    switch (ret)
+    {
+        case 0:
+            break;
+        case WT_ROLLBACK:
+            session->rollback_transaction(session, nullptr);
+            return WT_ROLLBACK;
+            // goto start_add_edge;
+        case WT_DUPLICATE_KEY:
+            session->rollback_transaction(session, nullptr);
+            return WT_DUPLICATE_KEY;
+            // return;
+        default:
+            session->rollback_transaction(session, nullptr);
+            throw GraphException("Failed to insert edge between " +
+                                 std::to_string(to_insert.src_id) + " and " +
+                                 std::to_string(to_insert.dst_id) +
+                                 wiredtiger_strerror(ret));
+    }
+    return 0;
+}
+
 /**
  * @brief This function adds the edge passed as param
  *
@@ -423,11 +495,8 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
 {
     int num_nodes_to_add = 0;
     int num_edges_to_add = 0;
-    int ret = 0;
+    int ret;
     // start_add_edge:
-    num_nodes_to_add = 0;
-    num_edges_to_add = 0;
-    ret = 0;
     session->begin_transaction(session, "isolation=snapshot");
 
     // Ensure src and dst nodes exist
@@ -463,80 +532,35 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
         }
     }
 
-    CommonUtil::set_key(
-        edge_cursor, MAKE_EKEY(to_insert.src_id), MAKE_EKEY(to_insert.dst_id));
-
-    if (opts.is_weighted)
+    // insert edge
+    if (add_edge_only(to_insert) == 0)
     {
-        edge_cursor->set_value(
-            edge_cursor, to_insert.edge_weight, OutOfBand_Val);
+        num_edges_to_add += 1;
     }
     else
     {
-        edge_cursor->set_value(edge_cursor, 0, OutOfBand_Val);
-    }
-
-    ret = edge_cursor->insert(edge_cursor);
-
-    switch (ret)
-    {
-        case 0:
-            num_edges_to_add += 1;
-            break;
-        case WT_ROLLBACK:
-            session->rollback_transaction(session, nullptr);
-            return WT_ROLLBACK;
-            // goto start_add_edge;
-        case WT_DUPLICATE_KEY:
-            session->rollback_transaction(session, nullptr);
-            return WT_DUPLICATE_KEY;
-            // return;
-        default:
-            session->rollback_transaction(session, nullptr);
-            throw GraphException("Failed to insert edge between " +
-                                 std::to_string(to_insert.src_id) + " and " +
-                                 std::to_string(to_insert.dst_id) +
-                                 wiredtiger_strerror(ret));
+        throw GraphException("Failed to insert edge between " +
+                             std::to_string(to_insert.src_id) + " and " +
+                             std::to_string(to_insert.dst_id) +
+                             ". Session rolled back.");
     }
 
     // insert reverse edge if undirected
     if (!opts.is_directed)
     {
-        CommonUtil::set_key(edge_cursor,
-                            MAKE_EKEY(to_insert.dst_id),
-                            MAKE_EKEY(to_insert.src_id));
-
-        if (opts.is_weighted)
+        edge reverse_edge = {.src_id = to_insert.dst_id,
+                             .dst_id = to_insert.src_id,
+                             .edge_weight = to_insert.edge_weight};
+        if (add_edge_only(reverse_edge) == 0)
         {
-            edge_cursor->set_value(
-                edge_cursor, to_insert.edge_weight, OutOfBand_Val);
+            num_edges_to_add += 1;
         }
         else
         {
-            edge_cursor->set_value(edge_cursor, 0, OutOfBand_Val);
-        }
-
-        ret = edge_cursor->insert(edge_cursor);
-        switch (ret)
-        {
-            case 0:
-                num_edges_to_add += 1;
-                break;
-            case WT_ROLLBACK:
-                session->rollback_transaction(session, nullptr);
-                return WT_ROLLBACK;
-            // goto start_add_edge;
-            case WT_DUPLICATE_KEY:
-                session->rollback_transaction(session, nullptr);
-                return WT_DUPLICATE_KEY;
-            // return;
-            default:
-                session->rollback_transaction(session, nullptr);
-                throw GraphException(
-                    "Failed to insert the reverse edge between " +
-                    std::to_string(to_insert.src_id) + " and " +
-                    std::to_string(to_insert.dst_id) +
-                    wiredtiger_strerror(ret));
+            throw GraphException("Failed to insert edge between " +
+                                 std::to_string(to_insert.dst_id) + " and " +
+                                 std::to_string(to_insert.src_id) +
+                                 ". Session rolled back.");
         }
     }
 
@@ -545,7 +569,7 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
         // Update the in/out degrees if opts.read_optimize
         if (opts.read_optimize)
         {
-            node src = {0};
+            node src;
 
             src = get_node(to_insert.src_id);
             src.out_degree++;
@@ -572,7 +596,7 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
                                          wiredtiger_strerror(ret));
             }
 
-            node dst = {0};
+            node dst;
 
             dst = get_node(to_insert.dst_id);
             dst.in_degree++;
@@ -615,11 +639,10 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
  */
 int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
 {
-    int num_edges_to_add = 0;
-    int ret = 0;
+    int num_edges_to_add;
+    int ret;
     // start_delete_edge:
     num_edges_to_add = 0;
-    ret = 0;
     session->begin_transaction(session, "isolation=snapshot");
 
     CommonUtil::set_key(edge_cursor, MAKE_EKEY(src_id), MAKE_EKEY(dst_id));
@@ -829,11 +852,8 @@ degree_t EdgeKey::get_out_degree(node_id_t node_id)
         if (opts.read_optimize)
         {
             node found = {0};
-            if (ret == 0)
-            {
-                found.id = node_id;
-                CommonUtil::record_to_node_ekey(edge_cursor, &found);
-            }
+            found.id = node_id;
+            CommonUtil::record_to_node_ekey(edge_cursor, &found);
             edge_cursor->reset(edge_cursor);
             out_deg = found.out_degree;
         }
@@ -1202,51 +1222,6 @@ std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
 }
 
 /**
- * @brief Creates the indices on the SRC and the DST column of the edge
- * table. These are not (and should not be) used for inserting data into the
- * edge table if write_optimize is on. Once the data has been inserted, the
- * create_indices function must be called separately.
- *
- * This function requires exclusive access to the table on which it
- * operates. If there are any open cursors, or if the table has any other
- * operation ongoing, WT throws a Resource Busy error.
- *
- */
-void EdgeKey::create_indices(WT_SESSION *sess)
-{
-    // Index on SRC column of edge table
-    string edge_table_idx, edge_table_idx_conf;
-    edge_table_idx = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
-    edge_table_idx_conf = "columns=(" + SRC + ")";
-    if (sess->create(
-            sess, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
-    {
-        throw GraphException("Failed to create SRC_INDEX on the edge table");
-    }
-
-    // Index on the DST column of the edge table
-    edge_table_idx = "index:" + EDGE_TABLE + ":" + DST_INDEX;
-    edge_table_idx_conf = "columns=(" + DST + ")";
-    if (sess->create(
-            sess, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
-    {
-        throw GraphException(
-            "Failed to create an index on the DST column of the edge "
-            "table");
-    }
-
-    // Index on (DST,SRC) columns of the edge table
-    // Used for adjacency neighbourhood iterators
-    edge_table_idx = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
-    edge_table_idx_conf = "columns=(" + DST + "," + SRC + ")";
-    if (sess->create(
-            sess, edge_table_idx.c_str(), edge_table_idx_conf.c_str()) != 0)
-    {
-        throw GraphException(
-            "Failed to create DST_SRC_INDEX on the edge table");
-    }
-}
-/**
  * @brief Drops the indices not required for adding edges.
  * Used for optimized bulk loading: User should call drop_indices() before
  * bulk loading nodes/edges. Once nodes/edges are added, user must
@@ -1276,7 +1251,7 @@ void EdgeKey::create_indices(WT_SESSION *sess)
 Get cursors
 */
 
-WT_CURSOR *EdgeKey::get_metadata_cursor()
+[[maybe_unused]] WT_CURSOR *EdgeKey::get_metadata_cursor()
 {
     if (metadata_cursor == nullptr)
     {
@@ -1290,7 +1265,7 @@ WT_CURSOR *EdgeKey::get_metadata_cursor()
     return metadata_cursor;
 }
 
-WT_CURSOR *EdgeKey::get_dst_idx_cursor()
+[[maybe_unused]] WT_CURSOR *EdgeKey::get_dst_idx_cursor()
 {
     if (dst_idx_cursor == nullptr)
     {
@@ -1381,11 +1356,17 @@ EdgeCursor *EdgeKey::get_edge_iter()
     return new EkeyEdgeCursor(get_new_edge_cursor(), session, opts.is_weighted);
 }
 
-WT_CURSOR *EdgeKey::get_node_cursor() { return get_dst_src_idx_cursor(); }
+[[maybe_unused]] WT_CURSOR *EdgeKey::get_node_cursor()
+{
+    return get_dst_src_idx_cursor();
+}
 
-WT_CURSOR *EdgeKey::get_new_node_cursor() { return get_new_dst_idx_cursor(); }
+[[maybe_unused]] WT_CURSOR *EdgeKey::get_new_node_cursor()
+{
+    return get_new_dst_idx_cursor();
+}
 
-node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
+[[maybe_unused]] node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
 {
     CommonUtil::set_key(dst_cur, OutOfBand_ID);
     WT_CURSOR *e_cur = get_edge_cursor();
@@ -1431,7 +1412,7 @@ WT_CURSOR *EdgeKey::get_new_edge_cursor()
     return new_edge_cursor;
 }
 
-edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
+[[maybe_unused]] edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
 {
     edge found = {-1};
     while (e_cur->next(e_cur) == 0)
@@ -1449,7 +1430,7 @@ edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
     return found;
 }
 
-void EdgeKey::close_all_cursors()
+[[maybe_unused]] void EdgeKey::close_all_cursors()
 {
     edge_cursor->close(edge_cursor);
     metadata_cursor->close(metadata_cursor);
