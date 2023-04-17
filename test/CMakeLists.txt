@@ -32,7 +32,12 @@ ADD_EXECUTABLE(test_concurrency "${PATH_TEST}/test_concurrency.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_concurrency PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_concurrency PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
-#Test Cursor (this is a generic testing thing for WT examples to fit our usecase)
+# Test Cursor (this is a generic testing thing for WT examples to fit our usecase)
 ADD_EXECUTABLE(cursor_test "${PATH_TEST}/cursor_test.cpp")
 TARGET_INCLUDE_DIRECTORIES(cursor_test PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(cursor_test PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+# test packing
+ADD_EXECUTABLE(test_packing "${PATH_TEST}/test_packing.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_packing PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_packing PUBLIC ${NAME_LIB} ${wt_shared_lib})
