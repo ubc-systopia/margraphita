@@ -574,7 +574,7 @@ class EdgeKey : public GraphBase
     [[maybe_unused]] WT_CURSOR *get_node_cursor();
     WT_CURSOR *get_edge_cursor();
 
-//    WT_CURSOR *get_new_src_idx_cursor();
+    //    WT_CURSOR *get_new_src_idx_cursor();
     WT_CURSOR *get_new_dst_idx_cursor();
     WT_CURSOR *get_new_node_cursor();
     WT_CURSOR *get_new_edge_cursor();
@@ -586,7 +586,7 @@ class EdgeKey : public GraphBase
    private:
     // Cursors
     WT_CURSOR *edge_cursor = nullptr;
-    // WT_CURSOR *dst_idx_cursor = nullptr;
+    WT_CURSOR *dst_idx_cursor = nullptr;
     WT_CURSOR *dst_src_idx_cursor = nullptr;
     WT_CURSOR *random_cursor = nullptr;
 
