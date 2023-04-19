@@ -5,6 +5,7 @@ project(graphapi VERSION 1.0
 
 include(FetchContent)
 message("CXX compiler version ${CMAKE_CXX_COMPILER_VERSION}")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   MESSAGE("Building on MacOSX")

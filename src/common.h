@@ -559,6 +559,13 @@ class OutCursor : public table_iterator
         CommonUtil::set_key(cursor, keys.start);
     }
 
+    // I hate this, but I can't think of an elegant way
+    void set_key_range(key_range _keys, bool is_Ekey)
+    {
+        keys = _keys;
+        CommonUtil::set_key(cursor, keys.start, OutOfBand_ID);
+    }
+
     void set_num_nodes(int num) { num_nodes = num; }
 
     virtual void next(adjlist *found) = 0;
@@ -582,6 +589,13 @@ class InCursor : public table_iterator
     {
         keys = _keys;
         CommonUtil::set_key(cursor, keys.start);
+    }
+
+    // I hate this, but I can't think of an elegant way
+    void set_key_range(key_range _keys, bool is_Ekey)
+    {
+        keys = _keys;
+        CommonUtil::set_key(cursor, keys.start, OutOfBand_ID);
     }
 
     void set_num_nodes(int num) { num_nodes = num; }

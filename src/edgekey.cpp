@@ -66,16 +66,6 @@ void EdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 void EdgeKey::create_indices(WT_SESSION *sess)
 {
     string idx_name, idx_conf;
-    // Index on the DST column of the edge table
-    idx_name = "index:" + EDGE_TABLE + ":" + DST_INDEX;
-    idx_conf = "columns=(" + DST + ")";
-    if (sess->create(sess, idx_name.c_str(), idx_conf.c_str()) != 0)
-    {
-        throw GraphException(
-            "Failed to create an index on the DST column of the edge "
-            "table");
-    }
-
     // Index on (DST,SRC) columns of the edge table
     // Used for adjacency neighbourhood iterators
     idx_name = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
@@ -104,13 +94,18 @@ void EdgeKey::init_cursors()
         throw GraphException("Could not get an edge cursor: " +
                              string(wiredtiger_strerror(ret)));
     }
-    string projection = "(" + SRC + "," + DST + ")";
-    ret = _get_index_cursor(EDGE_TABLE, DST_INDEX, projection, &dst_idx_cursor);
-    projection =
-        "(" + DST + "," + SRC + "," + ATTR_FIRST + "," + ATTR_SECOND + ")";
+    // dst_src_cursor
+
+    std::string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
     ret = _get_index_cursor(
         EDGE_TABLE, DST_SRC_INDEX, projection, &dst_src_idx_cursor);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a cursor to the dst_src index" +
+                             string(wiredtiger_strerror(ret)));
+    }
 }
+
 /**
  * @brief get the node identified by node_id
  *
@@ -791,46 +786,35 @@ edge EdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
 /**
  * @brief Get all nodes in the table
  *
- * @return std::vector<node> the list containing all nodes.
+ * @return std::vector<node> the list containing all nodes. If the graph is not
+ * read_optimized, the nodes will have no in/out degree set
  */
 std::vector<node> EdgeKey::get_nodes()
 {
     std::vector<node> nodes;
 
-    CommonUtil::set_key(dst_idx_cursor, OutOfBand_ID);
-    if (dst_idx_cursor->search(dst_idx_cursor) == 0)
+    int search_exact;
+    CommonUtil::set_key(dst_src_idx_cursor, OutOfBand_ID, OutOfBand_ID);
+    dst_src_idx_cursor->search_near(dst_src_idx_cursor, &search_exact);
+    if (search_exact <= 0)
     {
-        node_id_t node_id, temp;
-        CommonUtil::get_val_idx(dst_idx_cursor, &node_id, &temp);
-        assert(temp == OutOfBand_ID);  // this should be true
-        CommonUtil::set_key(edge_cursor, node_id, OutOfBand_ID);
-        if (edge_cursor->search(edge_cursor) == 0)
-        {
-            node found{.id = OG_KEY(node_id)};
-            CommonUtil::record_to_node_ekey(edge_cursor, &found);
-            nodes.push_back(found);
-        }
-
-        while (dst_idx_cursor->next(dst_idx_cursor) == 0)
-        {
-            CommonUtil::get_val_idx(dst_idx_cursor, &node_id, &temp);
-            if (temp == OutOfBand_ID)
-            {
-                CommonUtil::set_key(edge_cursor, node_id, OutOfBand_ID);
-                if (edge_cursor->search(edge_cursor) == 0)
-                {
-                    node found{.id = OG_KEY(node_id)};
-                    CommonUtil::record_to_node_ekey(edge_cursor, &found);
-                    nodes.push_back(found);
-                }
-            }
-            else
-            {
-                break;
-            }
-        }
+        throw GraphException(
+            "get_nodes failed to position cursor at beginning");
+        // this literally cannot  happen.
     }
-    dst_idx_cursor->reset(dst_idx_cursor);
+    // the cursor is positioned at the first node in the table.
+    node_id_t src, dst;
+    do
+    {
+        node n;
+        CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+        if (dst != OutOfBand_ID) break;
+        n.id = OG_KEY(src);
+        dst_src_idx_cursor->get_value(
+            dst_src_idx_cursor, &n.in_degree, &n.out_degree);
+        nodes.push_back(n);
+    } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0);
+
     edge_cursor->reset(edge_cursor);
     return nodes;
 }
@@ -904,30 +888,39 @@ degree_t EdgeKey::get_in_degree(node_id_t node_id)
     }
     else
     {
-        int ret = 0;
         degree_t in_degree = 0;
-        CommonUtil::set_key(dst_idx_cursor, MAKE_EKEY(node_id));
-        if (dst_idx_cursor->search(dst_idx_cursor) == 0)
+        CommonUtil::set_key(
+            dst_src_idx_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+        int search_exact;
+        node_id_t src, dst;
+        dst_src_idx_cursor->search_near(dst_src_idx_cursor, &search_exact);
+        if (search_exact <= 0)
         {
-            while (ret == 0)
-            {
-                node_id_t src, dst;
-                CommonUtil::get_val_idx(dst_idx_cursor, &src, &dst);
-                if (src == MAKE_EKEY(node_id))
-                {
-                    if (dst != OutOfBand_ID)
-                    {
-                        in_degree++;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-                ret = dst_idx_cursor->next(dst_idx_cursor);
-            }
+            dst_src_idx_cursor->next(dst_src_idx_cursor);
+            CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+            assert(OG_KEY(dst) == node_id);
+            assert(src > OutOfBand_ID);
+            // the cursor points to edges so the src value
+            // here is definitely > out of band value
         }
-        dst_idx_cursor->reset(dst_idx_cursor);
+
+        do
+        {
+            CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+            if (dst == MAKE_EKEY(node_id))
+            {
+                if (src != OutOfBand_ID)
+                {
+                    in_degree++;
+                }
+            }
+            else
+            {
+                break;
+            }
+        } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0);
+
+        dst_src_idx_cursor->reset(dst_src_idx_cursor);
         return in_degree;
     }
 }
@@ -1105,45 +1098,51 @@ std::vector<node_id_t> EdgeKey::get_out_nodes_id(node_id_t node_id)
 std::vector<edge> EdgeKey::get_in_edges(node_id_t node_id)
 {
     std::vector<edge> in_edges;
+    edge found;
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
-    CommonUtil::set_key(dst_idx_cursor, MAKE_EKEY(node_id));
-    int search_ret = dst_idx_cursor->search(dst_idx_cursor);
-    if (search_ret == 0)
+    CommonUtil::set_key(dst_src_idx_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+    int search_exact;
+    node_id_t src, dst;
+    dst_src_idx_cursor->search_near(dst_src_idx_cursor, &search_exact);
+    if (search_exact <= 0)
     {
-        node_id_t src_id, dst_id;
-        CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
-        //        std::cout << "(src, dst) : " << src_id << " , " << dst_id
-        //        <<std::endl;
+        dst_src_idx_cursor->next(dst_src_idx_cursor);
+        CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+        assert(OG_KEY(dst) == node_id);
+        assert(src > OutOfBand_ID);
+        // the cursor points to edges so the src value
+        // here is definitely > out of band value
+    }
 
-        do
+    do
+    {
+        CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+        if (dst == MAKE_EKEY(node_id))
         {
-            edge found;
-            found.src_id = OG_KEY(src_id);
-            found.dst_id = OG_KEY(dst_id);
-            found.edge_weight = 0;
-            if (opts.is_weighted)
+            if (src != OutOfBand_ID)
             {
-                CommonUtil::set_key(edge_cursor, src_id, dst_id);
-                if (edge_cursor->search(edge_cursor) == 0)
+                found.dst_id = OG_KEY(dst);
+                found.src_id = OG_KEY(src);
+                if (opts.is_weighted)
                 {
-                    CommonUtil::record_to_edge_ekey(edge_cursor, &found);
-                    in_edges.push_back(found);
+                    int32_t tmp;
+                    dst_src_idx_cursor->get_value(
+                        dst_src_idx_cursor, &found.edge_weight, &tmp);
                 }
-            }
-            else
-            {
                 in_edges.push_back(found);
             }
+        }
+        else
+        {
+            break;
+        }
+    } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0);
 
-            dst_idx_cursor->next(dst_idx_cursor);
-            CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
-        } while (dst_id == MAKE_EKEY(node_id));
-    }
-    edge_cursor->reset(edge_cursor);
-    dst_idx_cursor->reset(dst_idx_cursor);
+    dst_src_idx_cursor->reset(dst_src_idx_cursor);
+
     return in_edges;
 }
 
@@ -1161,28 +1160,31 @@ std::vector<node> EdgeKey::get_in_nodes(node_id_t node_id)
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
-    CommonUtil::set_key(dst_idx_cursor, MAKE_EKEY(node_id));
-    int search_ret = dst_idx_cursor->search(dst_idx_cursor);
-    if (search_ret == 0)
-    {
-        node_id_t src_id, dst_id;
-        CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
-        do
-        {
-            in_nodes.push_back(get_node(OG_KEY(src_id)));
-            if (dst_idx_cursor->next(dst_idx_cursor) == 0)
-            {
-                CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
-            }
-            else
-            {
-                break;
-            }
 
-        } while (dst_id == MAKE_EKEY(node_id));
+    CommonUtil::set_key(dst_src_idx_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+    int search_exact;
+    node_id_t src, dst;
+    dst_src_idx_cursor->search_near(dst_src_idx_cursor, &search_exact);
+    if (search_exact <= 0)
+    {
+        dst_src_idx_cursor->next(dst_src_idx_cursor);
+        CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+        assert(OG_KEY(dst) == node_id);
+        assert(src > OutOfBand_ID);
+        // the cursor points to edges so the src value
+        // here is definitely > out of band value
     }
-    edge_cursor->reset(edge_cursor);
-    dst_idx_cursor->reset(dst_idx_cursor);
+
+    do
+    {
+        CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+        if (dst == MAKE_EKEY(node_id))
+            in_nodes.push_back(get_node(OG_KEY(src)));
+        else
+            break;
+    } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0);
+
+    dst_src_idx_cursor->reset(dst_src_idx_cursor);
     return in_nodes;
 }
 
@@ -1201,22 +1203,31 @@ std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
-    CommonUtil::set_key(dst_idx_cursor, MAKE_EKEY(node_id));
-    if (dst_idx_cursor->search(dst_idx_cursor) == 0)
+
+    CommonUtil::set_key(dst_src_idx_cursor, MAKE_EKEY(node_id), OutOfBand_ID);
+    int search_exact;
+    node_id_t src, dst;
+    dst_src_idx_cursor->search_near(dst_src_idx_cursor, &search_exact);
+    if (search_exact <= 0)
     {
-        node_id_t src_id, dst_id;
-        CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
-        while (dst_id == MAKE_EKEY(node_id))
-        {
-            in_nodes_id.push_back(OG_KEY(src_id));
-            if (dst_idx_cursor->next(dst_idx_cursor) != 0)
-            {
-                break;
-            }
-            CommonUtil::get_val_idx(dst_idx_cursor, &src_id, &dst_id);
-        }
+        dst_src_idx_cursor->next(dst_src_idx_cursor);
+        CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+        assert(OG_KEY(dst) == node_id);
+        assert(src > OutOfBand_ID);
+        // the cursor points to edges so the src value
+        // here is definitely > out of band value
     }
-    dst_idx_cursor->reset(dst_idx_cursor);
+
+    do
+    {
+        CommonUtil::get_key(dst_src_idx_cursor, &dst, &src);
+        if (dst == MAKE_EKEY(node_id))
+            in_nodes_id.push_back(OG_KEY(src));
+        else
+            break;
+    } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0);
+
+    dst_src_idx_cursor->reset(dst_src_idx_cursor);
     return in_nodes_id;
 }
 
@@ -1233,7 +1244,6 @@ std::vector<node_id_t> EdgeKey::get_in_nodes_id(node_id_t node_id)
 [[maybe_unused]] void EdgeKey::drop_indices()
 {
     CommonUtil::close_cursor(edge_cursor);
-    CommonUtil::close_cursor(dst_idx_cursor);
 
     // drop SRC index
     string uri = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
@@ -1264,40 +1274,11 @@ Get cursors
     return metadata_cursor;
 }
 
-[[maybe_unused]] WT_CURSOR *EdgeKey::get_dst_idx_cursor()
-{
-    if (dst_idx_cursor == nullptr)
-    {
-        string projection = "(" + SRC + "," + DST + ")";
-        if (_get_index_cursor(
-                EDGE_TABLE, DST_INDEX, projection, &dst_idx_cursor) != 0)
-        {
-            throw GraphException("Could not get a cursor to DST_INDEX");
-        }
-    }
-
-    return dst_idx_cursor;
-}
-
-WT_CURSOR *EdgeKey::get_new_dst_idx_cursor()
-{
-    WT_CURSOR *new_dst_idx_cursor = nullptr;
-    string projection = "(" + SRC + "," + DST + ")";
-    if (_get_index_cursor(
-            EDGE_TABLE, DST_INDEX, projection, &new_dst_idx_cursor) != 0)
-    {
-        throw GraphException("Could not get a cursor to the DST_INDEX ");
-    }
-
-    return new_dst_idx_cursor;
-}
-
 WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
 {
     if (dst_src_idx_cursor == nullptr)
     {
-        string projection =
-            "(" + DST + "," + SRC + "," + ATTR_FIRST + "," + ATTR_SECOND + ")";
+        string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
         if (_get_index_cursor(
                 EDGE_TABLE, DST_SRC_INDEX, projection, &dst_src_idx_cursor) !=
             0)
@@ -1312,8 +1293,7 @@ WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
 WT_CURSOR *EdgeKey::get_new_dst_src_idx_cursor()
 {
     WT_CURSOR *new_dst_src_idx_cursor = nullptr;
-    string projection =
-        "(" + DST + "," + SRC + "," + ATTR_FIRST + "," + ATTR_SECOND + ")";
+    string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
     if (_get_index_cursor(
             EDGE_TABLE, DST_SRC_INDEX, projection, &new_dst_src_idx_cursor) !=
         0)
@@ -1330,17 +1310,22 @@ OutCursor *EdgeKey::get_outnbd_iter()
     OutCursor *toReturn = new EkeyOutCursor(get_new_edge_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
 
-    toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
+    toReturn->set_key_range(
+        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)}, true);
+    //toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
     return toReturn;
 }
 
 InCursor *EdgeKey::get_innbd_iter()
 {
     uint64_t num_nodes = this->get_num_nodes();
-    InCursor *toReturn = new EkeyInCursor(get_new_dst_idx_cursor(), session);
+    InCursor *toReturn =
+        new EkeyInCursor(get_new_dst_src_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
 
-    toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
+    toReturn->set_key_range(
+        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)}, true);
+    //toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
 
     return toReturn;
 }
@@ -1362,7 +1347,7 @@ EdgeCursor *EdgeKey::get_edge_iter()
 
 [[maybe_unused]] WT_CURSOR *EdgeKey::get_new_node_cursor()
 {
-    return get_new_dst_idx_cursor();
+    return get_new_dst_src_idx_cursor();
 }
 
 [[maybe_unused]] node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
@@ -1433,5 +1418,4 @@ WT_CURSOR *EdgeKey::get_new_edge_cursor()
 {
     edge_cursor->close(edge_cursor);
     metadata_cursor->close(metadata_cursor);
-    dst_idx_cursor->close(dst_idx_cursor);
 }

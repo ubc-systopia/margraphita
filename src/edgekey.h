@@ -18,10 +18,11 @@ class EkeyInCursor : public InCursor
     node_id_t next_expected = 1;
     bool data_remaining = true;
 
+    // This accepts a dst_src_cursor
    public:
     EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
-    void next(adjlist *found)
+    void next(adjlist *found) override
     {
         node_id_t src;
         node_id_t dst;
@@ -43,7 +44,7 @@ class EkeyInCursor : public InCursor
                 next_expected = keys.start;
             }
 
-            CommonUtil::set_key(cursor, MAKE_EKEY(to_search));
+            CommonUtil::set_key(cursor, MAKE_EKEY(to_search), OutOfBand_ID);
 
             int status;
             cursor->search_near(cursor, &status);
@@ -62,7 +63,8 @@ class EkeyInCursor : public InCursor
             goto no_next;
         }
 
-        CommonUtil::get_val_idx(cursor, &src, &dst);
+        // dst_src_cursor. pay attention to the (dst,src) order here
+        CommonUtil::get_key(cursor, &dst, &src);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -78,7 +80,8 @@ class EkeyInCursor : public InCursor
 
         do
         {
-            CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
+            // dst_src_cursor. pay attention to the (dst,src) order here
+            CommonUtil::get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
             if (dst == curr_edge.dst_id)
             {
                 found->degree++;
@@ -111,7 +114,7 @@ class EkeyInCursor : public InCursor
         next_expected += 1;
     }
 
-    void next(adjlist *found, node_id_t key)
+    void next(adjlist *found, node_id_t key) override
     {
         edge curr_edge;
         // Must reset OutCursor if already no_next
@@ -133,7 +136,7 @@ class EkeyInCursor : public InCursor
 
         next_expected = MAKE_EKEY(key) + 1;
 
-        CommonUtil::set_key(cursor, MAKE_EKEY(key));
+        CommonUtil::set_key(cursor, MAKE_EKEY(key), OutOfBand_ID);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -156,7 +159,7 @@ class EkeyInCursor : public InCursor
 
         do
         {
-            CommonUtil::read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil::get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
             if (OG_KEY(curr_edge.dst_id) != key)
             {
                 if (keys.end != -1 && OG_KEY(next_expected) > keys.end)
@@ -239,12 +242,12 @@ class EkeyOutCursor : public OutCursor
             goto no_next;
         }
 
-        CommonUtil::get_val_idx(cursor, &src, &dst);
+        CommonUtil::get_key(cursor, &src, &dst);
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = OG_KEY(src);
-
-        CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
+        int32_t tmp;  // this is needed in the get_Val but is discarded
+        cursor->get_value(cursor, &curr_edge.edge_weight, &tmp);
 
         if (src != next_expected)
         {
@@ -256,7 +259,8 @@ class EkeyOutCursor : public OutCursor
 
         do
         {
-            CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil ::get_key(cursor, &curr_edge.src_id, &curr_edge.dst_id);
+            cursor->get_value(cursor, &curr_edge.edge_weight, &tmp);
             if (src == curr_edge.src_id)
             {
                 if (curr_edge.dst_id != 0)
@@ -313,7 +317,7 @@ class EkeyOutCursor : public OutCursor
 
         next_expected = MAKE_EKEY(key) + 1;
 
-        CommonUtil::set_key(cursor, MAKE_EKEY(key));
+        CommonUtil::set_key(cursor, MAKE_EKEY(key), OutOfBand_ID);
 
         found->degree = 0;
         found->edgelist.clear();
@@ -336,7 +340,7 @@ class EkeyOutCursor : public OutCursor
 
         do
         {
-            CommonUtil::read_from_edge_idx(cursor, &curr_edge);
+            CommonUtil::get_key(cursor, &curr_edge.src_id, &curr_edge.dst_id);
             if (OG_KEY(curr_edge.src_id) != key)
             {
                 if (keys.end != -1 && OG_KEY(next_expected) > keys.end)
@@ -408,18 +412,12 @@ class EkeyNodeCursor : public NodeCursor
         {
         first_time_skip_next:
 
-            CommonUtil::get_ekey_dst_src_val(
-                cursor,
-                &curr_edge.dst_id,
-                &curr_edge.src_id,
-                &found->in_degree,
-                &found->out_degree);  // getting all of dst, src,
-                                      // in/out degrees at once
+            CommonUtil::get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
 
             curr_edge.src_id = OG_KEY(curr_edge.src_id);
             curr_edge.dst_id = OG_KEY(curr_edge.dst_id);
             found->id = curr_edge.src_id;
-
+            cursor->get_value(cursor, &found->in_degree, &found->out_degree);
             if (keys.end != -1 && curr_edge.src_id > keys.end)
             {
                 goto no_next;
@@ -586,7 +584,7 @@ class EdgeKey : public GraphBase
    private:
     // Cursors
     WT_CURSOR *edge_cursor = nullptr;
-    WT_CURSOR *dst_idx_cursor = nullptr;
+    // WT_CURSOR *dst_idx_cursor = nullptr;
     WT_CURSOR *dst_src_idx_cursor = nullptr;
     WT_CURSOR *random_cursor = nullptr;
 
