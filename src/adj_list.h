@@ -283,11 +283,9 @@ class AdjNodeCursor : public NodeCursor
         {
             goto no_next;
         }
-
         if (is_first)
         {
             is_first = false;
-
             if (keys.start != -1)
             {
                 int status;
@@ -304,7 +302,7 @@ class AdjNodeCursor : public NodeCursor
         {
         first_time_skip_next:
             CommonUtil::get_key(cursor, &found->id);
-            if (keys.end != -1 && found->id > keys.end)
+            if (keys.end != -1 && !(found->id < keys.end))
             {
                 goto no_next;
             }

@@ -1,8 +1,8 @@
 {
-    "GRAPH_PROJECT_DIR": "/home/puneet/scratch/margraphita",
-    "KRON_GEN_PATH": "/home/puneet/scratch/PaRMAT/Release/PaRMAT",
-    "KRON_GRAPHS_PATH": "/drives/hdd_main",
-    "DB_DIR": "/graphs",
-    "LOG_DIR": "/drives/hdd_main/logs",
+    "GRAPH_PROJECT_DIR": "/home/jackgong/margraphita",
+    "KRON_GEN_PATH": "/home/jackgong/PaRMAT/Release/PaRMAT",
+    "KRON_GRAPHS_PATH": "/home/jackgong",
+    "DB_DIR": "/home/jackgong/margraphita/db",
+    "LOG_DIR": "/home/jackgong/margraphita/logs",
     "num_threads": 16
 }

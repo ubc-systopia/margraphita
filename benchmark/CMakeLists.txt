@@ -3,6 +3,19 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_benchmarks.py DESTINATION ${CMAKE_CURR
 
 INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${PATH_SRC})
 
+# Microbenchmark For Insertion
+ADD_EXECUTABLE(insertion_mb insertion_microbenchmark.cpp)
+TARGET_LINK_LIBRARIES(insertion_mb PUBLIC ${NAME_LIB} ${wt_shared_lib} graph_utils)
+
+# Microbenchmark For Hashing
+ADD_EXECUTABLE(hashing_mb hashing_microbenchmark.cpp)
+TARGET_LINK_LIBRARIES(hashing_mb PUBLIC ${NAME_LIB} ${wt_shared_lib} graph_utils)
+
+# Insertion/deletion benchmarks
+ADD_EXECUTABLE(insert_delete insertion_deletion.cpp)
+TARGET_LINK_LIBRARIES(insert_delete PUBLIC ${NAME_LIB} ${wt_shared_lib} graph_utils)
+
+
 # ###################################################################################
 add_executable(pagerank pagerank.cpp)
 target_link_libraries(pagerank PUBLIC ${NAME_LIB} graph_utils)
@@ -22,8 +35,11 @@ add_executable(bfs bfs.cpp)
 target_link_libraries(bfs PUBLIC ${NAME_LIB} graph_utils)
 
 ###################################################################################
-#add_executable(bfs_ec bfs_parallel_ec.cpp)
-#target_link_libraries(bfs_ec PUBLIC ${NAME_LIB} graph_utils)
+add_executable(bfs_parallel_ec bfs_parallel_ec.cpp)
+target_link_libraries(bfs_parallel_ec PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(bfs_parallel bfs_parallel.cpp)
+target_link_libraries(bfs_parallel PUBLIC ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 add_executable(tc tc.cpp)

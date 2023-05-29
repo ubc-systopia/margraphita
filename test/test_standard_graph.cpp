@@ -467,7 +467,7 @@ void test_NodeCursor_Range(StandardGraph graph)
     node found;
     int nodeIdList[] = {3, 4, 5, 6};
     int i = 0;
-    node_cursor->set_key_range(key_range(3, 6));
+    node_cursor->set_key_range({node{3}, node{6}});
     node_cursor->next(&found);
     while (found.id != -1)
     {
@@ -501,7 +501,8 @@ void test_EdgeCursor_Range(StandardGraph graph)
 {
     INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
-    edge_cursor->set_key(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    edge_cursor->set_key_range(
+        {edge{.src_id = 1, .dst_id = 4}, edge{.src_id = 8, .dst_id = 1}});
     edge found;
     int srcIdList[] = {1, 5, 7};
     int dstIdList[] = {7, 6, 8};

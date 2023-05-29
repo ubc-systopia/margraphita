@@ -10,7 +10,6 @@ using namespace std;
 
 typedef struct time_info
 {
-
     long double insert_time = 0;
     long double read_time = 0;
     long double rback_time = 0;
@@ -19,7 +18,6 @@ typedef struct time_info
     long num_failures = 0;
 
 } time_info;
-
 
 class InsertOpts
 {
@@ -39,13 +37,12 @@ class InsertOpts
     std::string logdir;
     std::string db_path;  // This contains the path to the db dir.
     std::string dataset;
-    double num_edges{};
-    double num_nodes{};
+    uint64_t num_edges{};
+    uint32_t num_nodes{};
 
     bool directed = true;
     bool read_optimize = false;
     int num_threads = 1;
-
 
     void add_help_message(char opt,
                           const std::string &opt_arg,
@@ -114,10 +111,10 @@ class InsertOpts
                     logdir.pop_back();  // delete trailing '/'
                 break;
             case 'e':
-                num_edges = strtod(optarg, NULL);
+                num_edges = strtoll(optarg, NULL, 10);
                 break;
             case 'n':
-                num_nodes = strtod(optarg, NULL);
+                num_nodes = strtoll(optarg, NULL, 10);
                 break;
             case 'f':
                 dataset = optarg;
@@ -146,7 +143,6 @@ class InsertOpts
         return ret_val;
     }
 
-
     static GraphType handle_graph_type(char *opt_arg)
 
     {
@@ -163,6 +159,10 @@ class InsertOpts
         {
             type = GraphType::EKey;
         }
+        else if (strcmp(opt_arg, "elist") == 0)
+        {
+            type = GraphType::EList;
+        }
         else if (strcmp(opt_arg, "") == 0)
         {
             throw GraphException(
@@ -178,7 +178,6 @@ class InsertOpts
 
     void print_help()
     {
-
         for (const std::string &h : help_strings_) std::cout << h << std::endl;
         std::exit(0);
     }
@@ -187,8 +186,8 @@ class InsertOpts
     [[nodiscard]] std::string get_db_path() const { return db_path; }
     [[nodiscard]] std::string get_logdir() const { return logdir; }
     [[nodiscard]] std::string get_dataset() const { return dataset; }
-    [[nodiscard]] double get_num_nodes() const { return num_nodes; }
-    [[nodiscard]] double get_num_edges() const { return num_edges; }
+    [[nodiscard]] uint32_t get_num_nodes() const { return num_nodes; }
+    [[nodiscard]] uint64_t get_num_edges() const { return num_edges; }
     [[nodiscard]] bool is_read_optimize() const { return read_optimize; }
     [[nodiscard]] bool is_directed() const { return directed; }
     [[nodiscard]] int get_num_threads() const { return num_threads; }
@@ -208,6 +207,10 @@ class InsertOpts
         else if (graph_type == GraphType::Adj)
         {
             return "adj";
+        }
+        else if (graph_type == GraphType::EList)
+        {
+            return "elist";
         }
         else
         {

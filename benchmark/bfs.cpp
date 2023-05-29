@@ -133,8 +133,8 @@ int main(int argc, char *argv[])
         timer.stop();
         double time_from_outside = timer.t_micros();
         std::cout << "BFS  completed in : " << time_from_outside << std::endl;
-        print_csv_info(
-            opts.db_name, start_vertex, bfs_run, time_from_outside, bfs_log);
+        // print_csv_info(
+        // opts.db_name, start_vertex, bfs_run, time_from_outside, bfs_log);
     }
     graph->close();
     graphEngine.close_graph();

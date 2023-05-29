@@ -37,7 +37,6 @@ void test_get_node(EdgeKey graph)
 {
     INFO()
     node found = graph.get_node(SampleGraph::node1.id);
-    CommonUtil::dump_node(found);
     assert(found.id == 1);
     // now get a node that does not exist
     found = graph.get_node(-1);
@@ -350,10 +349,6 @@ void test_InCursor(EdgeKey graph)
     }
     in_cursor->reset();
     // testing next() with a key
-    int nodeID = 0;
-    in_cursor->next(&found, nodeID);
-    fprintf(stderr, "\n ---- \ndumping node 0:\n");
-    CommonUtil::dump_adjlist(found);
 }
 
 void test_OutCursor(EdgeKey graph)
@@ -369,11 +364,6 @@ void test_OutCursor(EdgeKey graph)
         out_cursor->next(&found);
     }
     out_cursor->reset();
-    // testing next() with a key
-    fprintf(stderr, "\n ---- \ndumping node 1:\n");
-    int nodeID = 1;
-    out_cursor->next(&found, nodeID);
-    CommonUtil::dump_adjlist(found);
 }
 
 void test_NodeCursor(EdgeKey graph)
@@ -400,7 +390,7 @@ void test_NodeCursor_Range(EdgeKey graph)
     node found;
     int nodeIdList[] = {3, 4, 5, 6};
     int i = 0;
-    node_cursor->set_key_range(key_range{3, 6});
+    node_cursor->set_key_range({node{3}, node{6}});
     node_cursor->next(&found);
     while (found.id != -1)
     {
@@ -434,7 +424,7 @@ void test_EdgeCursor_Range(EdgeKey graph)
 {
     INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
-    edge_cursor->set_key(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    edge_cursor->set_key_range({edge{0, 1, 4, 0}, edge{0, 8, 1, 0}});
     edge found;
     int srcIdList[] = {1, 5, 7};
     int dstIdList[] = {7, 6, 8};

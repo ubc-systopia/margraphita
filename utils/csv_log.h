@@ -7,7 +7,7 @@
 
 void print_csv_info(std::string name,
                     int starting_node,
-                    bfs_info *info,
+                    bfs_info &info,
                     double time_from_outside,
                     std::string csv_logdir)
 {
@@ -25,8 +25,8 @@ void print_csv_info(std::string name,
         FILE.open(_name, ios::out | ios::app);
     }
 
-    FILE << name << ",bfs," << starting_node << "," << info->num_visited << ","
-         << info->sum_out_deg << "," << info->time_taken << ","
+    FILE << name << ",bfs," << starting_node << "," << info.num_visited << ","
+         << info.sum_out_deg << "," << info.time_taken << ","
          << time_from_outside << "\n";
 
     FILE.close();

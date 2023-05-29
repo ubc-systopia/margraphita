@@ -37,7 +37,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
     pvector<ScoreT> dst(num_nodes, 1 / num_nodes);
     pvector<node_id_t> deg(num_nodes, 0);
 
-#pragma omp parallel for
+#pragma omp parallel for num_threads(thread_num)
     for (int i = 0; i < thread_num; i++)
     {
         GraphBase* graph = graph_engine.create_graph_handle();
@@ -58,7 +58,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
     for (int iter = 0; iter < max_iters; iter++)
     {
         double error = 0;
-#pragma omp parallel for reduction(+ : error)
+#pragma omp parallel for reduction(+ : error) num_threads(thread_num)
         for (int i = 0; i < thread_num; i++)
         {
             GraphBase* graph = graph_engine.create_graph_handle();
@@ -123,7 +123,6 @@ int main(int argc, char* argv[])
     t.start();
     GraphEngine graphEngine(engine_opts);
     graphEngine.calculate_thread_offsets();
-    graphEngine.calculate_thread_offsets_edge_partition();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 

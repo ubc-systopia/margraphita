@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     opts.stat_log = iter_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
     opts.type = iter_cli.get_graph_type();
-    const int THREAD_NUM = 1;
+    const int THREAD_NUM = 16;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
 
