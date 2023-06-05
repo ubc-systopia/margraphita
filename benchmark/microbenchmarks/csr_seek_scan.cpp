@@ -206,7 +206,6 @@ void profile_csr(int num_vertices,
     char outfile_name[256];
 
     sprintf(outfile_name, "%s_csr_ubench.txt", graphfile.stem().c_str());
-    std::cout << outfile_name << std::endl;
     std::ofstream csr_seek_scan_outfile(outfile_name);
 
     csr_seek_scan_outfile
