@@ -210,13 +210,13 @@ void profile_csr(int num_vertices,
     std::ofstream csr_seek_scan_outfile(outfile_name);
 
     csr_seek_scan_outfile
-        << "\nvertex id, degree, seek time(ns),scan time per edge(ns)"
+        << "\nvertex_id, degree, seek time(ns),scan time per edge(ns)"
         << std::endl;
     for (int sample : random_vertices)
     {
         std::vector<long double> time = csr.seek_and_scan(sample);
-        csr_seek_scan_outfile << sample << "\t" << time[0] << "\t" << time[1]
-                              << "\t" << time[2] / time[0] << std::endl;
+        csr_seek_scan_outfile << sample << "," << time[0] << "," << time[1]
+                              << "," << time[2] / time[0] << std::endl;
     }
     csr_seek_scan_outfile.close();
 }

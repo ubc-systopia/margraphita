@@ -1,9 +1,12 @@
 #include <times.h>
+
 #include <deque>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <utility>
 #include <vector>
+
 #include "adj_list.h"
 #include "common.h"
 #include "graph_engine.h"
@@ -15,37 +18,19 @@ class GraphEngineTest : public GraphEngine
     WT_CONNECTION *public_get_connection() { return get_connection(); }
 };
 
-bool has_node(int vertex, AdjList &graph) { return graph.has_node(vertex); }
-
-degree_t get_vertex_degree(int vertex, AdjList &graph)
+struct time_result
 {
-    return graph.get_out_degree(vertex);
-}
+    long double time_seek;
+    long double time_scan;
+    degree_t degree;
+};
 
-node get_random_node(AdjList &graph) { return graph.get_random_node(); }
-
-void print_nodes(AdjList &graph)
+struct time_result seek_and_scan(node_id_t vertex,
+                                 AdjList &graph,
+                                 WT_SESSION *session)
 {
-    std::vector<node> nodes = graph.get_nodes();
-    for (node n : nodes)
-    {
-        std::cout << n.id << "\t" << n.out_degree << std::endl;
-    }
-}
-
-std::vector<long double> seek_and_scan(int vertex,
-                                       AdjList &graph,
-                                       WT_SESSION *session)
-{
-    std::vector<long double> results;
+    struct time_result results;
     WT_CURSOR *adj_cursor = graph.get_out_adjlist_cursor();
-
-    // warm the WT_Cache
-    while (adj_cursor->next(adj_cursor) == 0)
-    {
-        int key;
-        CommonUtil::get_key(adj_cursor, &key);
-    }
 
     // seek
     Times timer;
@@ -58,7 +43,7 @@ std::vector<long double> seek_and_scan(int vertex,
         exit(1);
     }
     timer.stop();
-    results.push_back(timer.t_nanos());
+    results.time_seek = timer.t_nanos();
 
     // scan
     adjlist adj_list;
@@ -66,50 +51,63 @@ std::vector<long double> seek_and_scan(int vertex,
     CommonUtil::record_to_adjlist(session, adj_cursor, &adj_list);
     for ([[maybe_unused]] int node : adj_list.edgelist)
     {
-        // do nothing
+        // doo nothing
     }
     timer.stop();
-    results.push_back(timer.t_nanos());
+    results.time_scan = timer.t_nanos();
+    results.degree = adj_list.edgelist.size();
+
     return results;
 }
 
-void test_get_nodes(AdjList graph)
+void profile_wt_adjlist(const filesystem::path &graphfile,
+                        WT_SESSION *session,
+                        int samples,
+                        AdjList &graph)
 {
-    std::cout << "Testing get_nodes" << std::endl;
-    WT_CURSOR *node_cursor = graph.get_node_cursor();
-    node found;
-    uint32_t a = __builtin_bswap32(0);
-    WT_ITEM k1 = {.data = &a, .size = sizeof(a)};
-    node_cursor->set_key(node_cursor, k1);
-    int ret = node_cursor->search(node_cursor);
-    assert(ret == 0);
-    found.in_degree = 0;
-    found.out_degree = 0;
-    node_cursor->get_value(node_cursor, &found.in_degree, &found.out_degree);
+    std::vector<node_id_t> random_ids;
+    WT_CURSOR *random_out_adj_cursor = graph.get_new_random_outadj_cursor();
+    int num = 0;
+    while (num < samples)
+    {
+        random_out_adj_cursor->next(random_out_adj_cursor);
+        node rando;
+        CommonUtil::get_key(random_out_adj_cursor, &rando.id);
+        random_ids.push_back(rando.id);
+        num++;
+    }
+    assert(random_ids.size() == 1000);
+    random_out_adj_cursor->close(random_out_adj_cursor);
+    // create file for adjlist seek and scan times
+    char outfile_name[256];
+    sprintf(outfile_name, "%s_adjlist_ubench.txt", graphfile.stem().c_str());
+    std::cout << outfile_name << std::endl;
+    std::ofstream adjlist_seek_scan_outfile(outfile_name);
 
-    WT_ITEM k2 = {0};
-    ret = node_cursor->get_key(node_cursor, &k2);
-    assert(ret == 0);
-    uint32_t b = *(uint32_t *)k2.data;
-    found.id = __builtin_bswap32(b);
-
-    CommonUtil::dump_node(found);
+    adjlist_seek_scan_outfile
+        << "vertex_id, degree, seek_time_ns, scan_time_per_edge_ns"
+        << std::endl;
+    for (node_id_t sample : random_ids)
+    {
+        struct time_result time = seek_and_scan(sample, graph, session);
+        adjlist_seek_scan_outfile
+            << sample << "," << time.degree << "," << time.time_seek << ","
+            << (time.time_scan / time.degree) << std::endl;
+    }
+    adjlist_seek_scan_outfile.close();
 }
 
 int main(int argc, char *argv[])
 {
-    if (argc != 6)
+    if (argc != 4)
     {
-        std::cout << "Usage: ./ubenchmark <num_vertices> <num_edges> "
-                     "<graphfile> <wt_db_dir> <wt_db_name>"
+        std::cout << "Usage: ./ubenchmark <graphfile> <wt_db_dir> <wt_db_name>"
                   << std::endl;
         return 0;
     }
-    int num_vertices = atoi(argv[1]);
-    int num_edges = atoi(argv[2]);
-    std::filesystem::path graphfile(argv[3]);
-    string wt_db_dir(argv[4]);
-    std::string wt_db_name = argv[5];
+    std::filesystem::path graphfile(argv[1]);
+    string wt_db_dir(argv[2]);
+    std::string wt_db_name = argv[3];
     [[maybe_unused]] int num_random_samples = 1000;
 
     const int THREAD_NUM = 1;
@@ -137,10 +135,13 @@ int main(int argc, char *argv[])
                                                .opts = opts};
     GraphEngineTest myEngine(engine_opts);
     WT_CONNECTION *conn = myEngine.public_get_connection();
+    WT_SESSION *session;
+    if (CommonUtil::open_session(conn, &session) != 0)
+    {
+        throw GraphException("Cannot open session");
+    }
     AdjList graph(opts, conn);
     graph.init_cursors();
-    test_get_nodes(graph);
 
-    // profile_wt_adjlist(
-    //     num_vertices, num_edges, graphfile, num_random_samples, graph);
+    profile_wt_adjlist(graphfile, session, num_random_samples, graph);
 }
