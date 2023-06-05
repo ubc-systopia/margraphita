@@ -3,11 +3,6 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_benchmarks.py DESTINATION ${CMAKE_CURR
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_ubenchmark.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${PATH_SRC})
-
-# ###################################################################################
-add_executable(ubenchmark microbenchmarks.cpp)
-target_link_libraries(ubenchmark PUBLIC ${NAME_LIB} graph_utils)
-
 # ###################################################################################
 add_executable(pagerank pagerank.cpp)
 target_link_libraries(pagerank PUBLIC ${NAME_LIB} graph_utils)
@@ -78,3 +73,5 @@ target_link_libraries(iteration_ec PUBLIC ${NAME_LIB} graph_utils)
 
 # add_executable(bfs_parallel bfs_parallel.cpp)
 # target_link_libraries(bfs_parallel PUBLIC ${NAME_LIB} graph_utils)
+
+add_subdirectory(microbenchmarks)
