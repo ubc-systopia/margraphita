@@ -16,6 +16,10 @@ class Preprocess:
                              'graph_path'] + "\nDate: " + self.date + "\n"
         self.log.write(self.log_entry)
 
+    def demarcate_log(self, message: str):
+        self.log.write("\n##############################\n# " +
+                       message + "\n#############################\n")
+
     def build_bulk_cmd(self, graph_type: str, is_ro: bool):
         if self.config_data['low_mem']:
             bulk_binary = "bulk_insert_low_mem"
@@ -47,6 +51,7 @@ class Preprocess:
     def bulk_insert(self):
         for graph_type in ['std', 'ekey', 'adj']:
             for is_ro in [True, False]:
+                self.demarcate_log("Bulk Inserting " + graph_type + " graph")
                 # directed, read_optimized, init DB
                 init_cmd = self.build_init_cmd(graph_type, is_ro)
                 self.log.write(
@@ -67,6 +72,7 @@ class Preprocess:
                 self.log.write(f"Time: {stop - start}\n")
 
     def create_index(self):
+        self.demarcate_log("Creating indices")
         for graph_type in ["std", "ekey"]:
             for is_ro in [True, False]:
                 index_cmd = self.build_index_cmd(graph_type, is_ro)
@@ -77,6 +83,8 @@ class Preprocess:
         ##############################
         # assert num_edges matches the number of edges in the graph
         ##############################
+        self.demarcate_log(
+            "Asserting num_edges matches the number of edges in the graph")
         found_edges = int(check_output(
             ["wc", "-l", self.config_data['graph_path']]).split()[0])
         assert found_edges == self.config_data['num_edges']
@@ -84,29 +92,41 @@ class Preprocess:
         ##############################
         # compute num_nodes from the graph
         ##############################
-        # sed the graph to replace tabs with newlines and compute number of nodes
+        self.demarcate_log(
+            "sed the graph to replace tabs with newlines and compute number of nodes")
         sed_cmd = f"sed 's/\\t/\\n/' {self.config_data['graph_path']} > {self.config_data['graph_path']}.tmp"
         print(sed_cmd)
         self.log.write(f"Running sed command: {sed_cmd}\n")
         os.system(sed_cmd)
 
-        sort_cmd = f"sort -n -u {self.config_data['graph_path']}.tmp > {self.config_data['graph_path']}_nodes"
+        sort_cmd = f"sort -g -u --parallel=10 -S 10G {self.config_data['graph_path']}.tmp > {self.config_data['graph_path']}_nodes"
         self.log.write(f"Running sort command: {sort_cmd}\n")
         os.system(sort_cmd)
         found_nodes = int(check_output(
             ["wc", "-l", f"{self.config_data['graph_path']}_nodes"]).split()[0])
         self.config_data['num_nodes'] = found_nodes
 
+        ##############################
+        # sort the graph
+        ##############################
+        self.demarcate_log("Sorting the graph")
+        sort_cmd = f"sort -g -k 1,1 -k 2,2 --parallel=10 -S 10G {self.config_data['graph_path']} > {self.config_data['graph_path']}_sorted"
+        # use the sorted graph from now on
+        self.config_data['graph_path'] += "_sorted"
+        self.log.write(f"Running sort command: {sort_cmd}\n")
+        os.system(sort_cmd)
+
         ##################################
         # reverse the graph
         ##################################
+        self.demarcate_log("Reversing the graph")
         reverse_cmd = f"awk '{{print $2\"\\t\"$1}}' {self.config_data['graph_path']} > {self.config_data['graph_path']}_reverse"
         print(reverse_cmd)
         self.log.write(
             f"Generating the reverse graph (dst, src): {reverse_cmd}\n")
         os.system(reverse_cmd)
 
-        sort_cmd = f"sort -n -k 1,1 -k 2,2 {self.config_data['graph_path']}_reverse > {self.config_data['graph_path']}_reverse_sorted"
+        sort_cmd = f"sort -g -k 1,1 -k 2,2 --parallel=10 -S 10G {self.config_data['graph_path']}_reverse > {self.config_data['graph_path']}_reverse_sorted"
         self.log.write(f"Running sort command: {sort_cmd}\n")
         os.system(sort_cmd)
 
@@ -121,6 +141,8 @@ class Preprocess:
         ##################################
         # Construct the id map and construct the new graph based on these ID mappings
         ##################################
+        self.demarcate_log(
+            "Constructing the id map and constructing the new graph based on these ID mappings")
         remap_cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/dense_vertexranges -n {found_nodes} -e {found_edges} -f {self.config_data['graph_path']} "
         self.log.write(f"Running remap command: {remap_cmd}\n")
         os.system(remap_cmd)

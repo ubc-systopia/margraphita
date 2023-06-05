@@ -25,7 +25,7 @@ def main():
     parser.add_argument("--bulk", action='store_true',
                         default=False, help="insert graphs")
     parser.add_argument("--index", action='store_true',
-                        default=True, help="create index")
+                        default=False, help="create index")
     parser.add_argument("--use_api", action='store_true', default=False,
                         help="use transactional GraphAPI")
     parser.add_argument("--low_mem", action='store_true', default=False,
@@ -54,11 +54,6 @@ def main():
     print("Index: " + str(args.index))
     print("Use API: " + str(args.use_api))
 
-    # Set the group ID to 'graphs'
-    group_id = grp.getgrnam("graphs").gr_gid
-    os.setgid(group_id)
-    os.environ['GRAPHS_GROUP_ID'] = str(group_id)
-
     for scale in range(10, 11):
         kron_graph_config = config_data
         n_edges = 8*pow(2, scale)
@@ -85,6 +80,9 @@ def main():
                 + " \npreprocess: " + str(args.preprocess))
         if (args.preprocess):
             preprocess_obj.preprocess()
+        else:
+            preprocess_obj.config_data['graph_path'] += "_sorted"
+            #preprocess step is skipped, so we need to add _sorted to the graph path
         if (args.bulk):
             preprocess_obj.bulk_insert()
         if (args.index):
@@ -94,10 +92,11 @@ def main():
         preprocess_obj.log.write(
             "Finished inserting " + dataset_name + "\n-------------------\n")
 
-    #To insert graphs that are not Kronecker graphs
+    # To insert graphs that are not Kronecker graphs
     # This can be read from a DB, but for now we just read from a file
     dataset_json = GraphDatasetReader("graph_datasets.json").read_config()
     for dataset in dataset_json:
+        dataset.update(config_data)  # add config to dataset
         dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
         dataset.update(vars(args))  # add args to config
         graph = dataset['graph_path']
@@ -119,8 +118,6 @@ def main():
             api_insert(config_data)
         preprocess_obj.log.write(
             "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
-
-      
 
 
 if __name__ == "__main__":
