@@ -14,7 +14,10 @@
 class GraphEngineTest : public GraphEngine
 {
    public:
-    explicit GraphEngineTest(graph_engine_opts engine_opts) : GraphEngine(std::move(engine_opts)) {}
+    explicit GraphEngineTest(graph_engine_opts engine_opts)
+        : GraphEngine(std::move(engine_opts))
+    {
+    }
     WT_CONNECTION *public_get_connection() { return get_connection(); }
 };
 
@@ -73,6 +76,8 @@ void profile_wt_adjlist(const filesystem::path &graphfile,
         random_out_adj_cursor->next(random_out_adj_cursor);
         node rando;
         CommonUtil::get_key(random_out_adj_cursor, &rando.id);
+        if (graph.get_out_degree(rando.id) == 0)
+            continue;  // skip vertices with no edges
         random_ids.push_back(rando.id);
         num++;
     }

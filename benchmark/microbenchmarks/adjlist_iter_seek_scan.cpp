@@ -84,6 +84,7 @@ void profile_wt_adjlist(const filesystem::path &graphfile,
         random_out_adj_cursor->next(random_out_adj_cursor);
         node rando;
         CommonUtil::get_key(random_out_adj_cursor, &rando.id);
+        if (graph.get_out_degree(rando.id) == 0) continue;
         random_ids.push_back(rando.id);
         num++;
     }

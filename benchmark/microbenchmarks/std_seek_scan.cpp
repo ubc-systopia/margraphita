@@ -32,7 +32,9 @@ struct time_result seek_and_scan(node_id_t vertex,
                                  StandardGraph &graph,
                                  WT_SESSION *session)
 {
-    struct time_result results {};
+    struct time_result results
+    {
+    };
     WT_CURSOR *edge_cursor = graph.get_edge_cursor();
     edge found;
     // seek
@@ -86,6 +88,7 @@ void profile_wt_std(const filesystem::path &graphfile,
         random_cursor->next(random_cursor);
         node rando;
         CommonUtil::get_key(random_cursor, &rando.id);
+        if (graph.get_out_degree(rando.id) == 0) continue;
         random_ids.push_back(rando.id);
         num++;
     }

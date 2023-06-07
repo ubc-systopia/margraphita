@@ -32,7 +32,9 @@ struct time_result seek_and_scan(node_id_t vertex,
                                  EdgeKey &graph,
                                  WT_SESSION *session)
 {
-    struct time_result results {};
+    struct time_result results
+    {
+    };
     WT_CURSOR *edge_cursor = graph.get_edge_cursor();
 
     // seek
@@ -92,6 +94,10 @@ void profile_wt_ekey(const filesystem::path &graphfile,
         }
         if (dst == OutOfBand_ID)
         {
+            if (graph.get_out_degree(OG_KEY(src)) == 0)
+            {
+                continue;
+            }
             random_ids.push_back(OG_KEY(src));
             num++;
         }
