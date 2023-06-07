@@ -21,4 +21,19 @@ for i in range(20, 27):
     cmd = f"./adjlist_seek_scan {graph_dir}/s{i}_e8/graph_s{i}_e8 {db_dir}/s{i}_e8 adj_rd_s{i}_e8"
     print(f"{cmd}")
     os.system(cmd)
+    # run adjlist_iter benchmark
+    print(f"\nBenchmarking AdjList for the s{i} graph with {vertices} vertices and {edges} edges:")
+    cmd = f"./adjlist_iter_seek_scan {graph_dir}/s{i}_e8/graph_s{i}_e8 {db_dir}/s{i}_e8 adj_rd_s{i}_e8"
+    print(f"{cmd}")
+    os.system(cmd)
+    # run the std benchmark
+    print(f"\nBenchmarking AdjList for the s{i} graph with {vertices} vertices and {edges} edges:")
+    cmd = f"./std_seek_scan {graph_dir}/s{i}_e8/graph_s{i}_e8 {db_dir}/s{i}_e8 std_rd_s{i}_e8"
+    print(f"{cmd}")
+    os.system(cmd)
+    # run the ekey benchmark
+    print(f"\nBenchmarking AdjList for the s{i} graph with {vertices} vertices and {edges} edges:")
+    cmd = f"./ekey_seek_scan {graph_dir}/s{i}_e8/graph_s{i}_e8 {db_dir}/s{i}_e8 ekey_rd_s{i}_e8"
+    print(f"{cmd}")
+    os.system(cmd)
     print('-' * 100)

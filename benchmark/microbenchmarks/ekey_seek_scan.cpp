@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
-#include "adj_list.h"
 #include "common.h"
+#include "edgekey.h"
 #include "graph_engine.h"
 
 class GraphEngineTest : public GraphEngine
@@ -28,33 +28,37 @@ struct time_result
     degree_t degree;
 };
 
-struct time_result test_out_cursor(node_id_t vertex,
-                                   WT_SESSION *session,
-                                   AdjList &graph)
+struct time_result seek_and_scan(node_id_t vertex,
+                                 EdgeKey &graph,
+                                 WT_SESSION *session)
 {
-    edge found;
-    int degree = 0;
+    struct time_result results {};
     WT_CURSOR *edge_cursor = graph.get_edge_cursor();
-    struct time_result results = {};
+
+    // seek
     Times timer;
     timer.start();
-    CommonUtil::set_key(edge_cursor, vertex, 0);
-    int status;
-    edge_cursor->search_near(edge_cursor, &status);
-    if (status < 0)
+    CommonUtil::set_key(edge_cursor, MAKE_EKEY(vertex), OutOfBand_ID);
+    int ret = edge_cursor->search(edge_cursor);
+    if (ret != 0)
     {
-        edge_cursor->next(edge_cursor);  // advance to the first position
+        std::cout << "Vertex " << vertex << " not found" << std::endl;
+        exit(1);
     }
     timer.stop();
     results.time_seek = timer.t_nanos();
 
+    // scan
+    node_id_t src, dst;
     timer.start();
-    do
+    while (true)
     {
-        CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
-        //        std::cout << "edge: " << found.src_id << "\t" << found.dst_id
-        //                  << std::endl;
-        if (found.src_id == vertex)
+        if (edge_cursor->next(edge_cursor) != 0)
+        {
+            break;
+        }
+        CommonUtil::get_key(edge_cursor, &src, &dst);
+        if (src == MAKE_EKEY(vertex))
         {
             ++results.degree;
         }
@@ -62,55 +66,57 @@ struct time_result test_out_cursor(node_id_t vertex,
         {
             break;
         }
-        edge_cursor->next(edge_cursor);
-    } while (found.src_id == vertex);
-
+    }
     timer.stop();
-    assert(results.degree == graph.get_out_degree(vertex));
     results.time_scan = timer.t_nanos();
+
     return results;
 }
 
-void profile_wt_adjlist(const filesystem::path &graphfile,
-                        WT_SESSION *session,
-                        int samples,
-                        AdjList &graph)
+void profile_wt_ekey(const filesystem::path &graphfile,
+                     WT_SESSION *session,
+                     int samples,
+                     EdgeKey &graph)
 {
     std::vector<node_id_t> random_ids;
-    WT_CURSOR *random_out_adj_cursor = graph.get_new_random_outadj_cursor();
+    WT_CURSOR *random_cursor = graph.get_new_random_node_cursor();
+    int ret = 0;
     int num = 0;
-    while (num < samples)
+    while (((ret = random_cursor->next(random_cursor)) == 0) && num < samples)
     {
-        random_out_adj_cursor->next(random_out_adj_cursor);
-        node rando;
-        CommonUtil::get_key(random_out_adj_cursor, &rando.id);
-        random_ids.push_back(rando.id);
-        num++;
+        node_id_t src, dst;
+        ret = CommonUtil::get_key(random_cursor, &src, &dst);
+        if (ret != 0)
+        {
+            break;
+        }
+        if (dst == OutOfBand_ID)
+        {
+            random_ids.push_back(OG_KEY(src));
+            num++;
+        }
     }
-    assert(random_ids.size() == 1000);
-    random_out_adj_cursor->close(random_out_adj_cursor);
+    std::cout << "Random samples: " << random_ids.size() << std::endl;
+    random_cursor->close(random_cursor);
 
-    // create file for iterator based seek and scan
-    char outfile_iter_name[256];
-    sprintf(outfile_iter_name,
-            "%s_adjlist_iter_ubench.txt",
-            graphfile.stem().c_str());
-    std::ofstream adjlist_iter_seek_scan_outfile(outfile_iter_name);
+    // create file for adjlist seek and scan times
+    char outfile_name[256];
+    sprintf(outfile_name, "%s_ekey_ubench.txt", graphfile.stem().c_str());
+    std::cout << outfile_name << std::endl;
+    std::ofstream ekey_seek_scan_outfile(outfile_name);
 
-    adjlist_iter_seek_scan_outfile
+    ekey_seek_scan_outfile
         << "vertex_id, degree, seek_time_ns, scan_time_per_edge_ns"
         << std::endl;
-
-    for (auto sample : random_ids)
+    for (node_id_t sample : random_ids)
     {
-        struct time_result time_cursor =
-            test_out_cursor(sample, session, graph);
-        adjlist_iter_seek_scan_outfile
-            << sample << "," << time_cursor.degree << ","
-            << time_cursor.time_seek << ","
-            << (time_cursor.time_scan / time_cursor.degree) << std::endl;
-        assert(time_cursor.degree == graph.get_out_degree(sample));
+        struct time_result time = seek_and_scan(sample, graph, session);
+        ekey_seek_scan_outfile << sample << "," << time.degree << ","
+                               << time.time_seek << ","
+                               << (time.time_scan / time.degree) << std::endl;
+        assert(time.degree == graph.get_out_degree(sample));
     }
+    ekey_seek_scan_outfile.close();
 }
 
 int main(int argc, char *argv[])
@@ -133,7 +139,7 @@ int main(int argc, char *argv[])
     opts.is_directed = true;
     opts.read_optimize = true;
     opts.is_weighted = true;
-    opts.type = GraphType::Adj;
+    opts.type = GraphType::EKey;
     opts.db_dir = wt_db_dir;
     opts.db_name = wt_db_name;
     opts.conn_config = "cache_size=10GB";
@@ -156,8 +162,6 @@ int main(int argc, char *argv[])
     {
         throw GraphException("Cannot open session");
     }
-    AdjList graph(opts, conn);
-    graph.init_cursors();
-
-    profile_wt_adjlist(graphfile, session, num_random_samples, graph);
+    EdgeKey graph(opts, conn);
+    profile_wt_ekey(graphfile, session, num_random_samples, graph);
 }
