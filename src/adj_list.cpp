@@ -1119,7 +1119,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
     CommonUtil::record_to_adjlist(
         session, cursor, &found);  //<-- This works just fine.
     found.edgelist.emplace_back(
-        to_insert);  // this needs to be converted first.
+        to_insert);                // this needs to be converted first.
     found.degree += 1;
     ret = error_check_insert_txn(
         CommonUtil::adjlist_to_record(session, cursor, found), false);
@@ -1421,6 +1421,18 @@ WT_CURSOR *AdjList::get_new_out_adjlist_cursor()
         throw GraphException("Could not get a test out_adjlist cursor");
     }
     return new_out_adjlist_cursor;
+}
+
+WT_CURSOR *AdjList::get_new_random_outadj_cursor()
+{
+    WT_CURSOR *rand_out_adjlist_cursor = nullptr;
+    int ret = _get_table_cursor(
+        OUT_ADJLIST, &rand_out_adjlist_cursor, session, true, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a test node cursor");
+    }
+    return rand_out_adjlist_cursor;
 }
 
 [[maybe_unused]] node AdjList::get_next_node(WT_CURSOR *n_cur)

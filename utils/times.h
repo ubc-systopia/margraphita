@@ -27,6 +27,14 @@ class Times
             .count();
     }
 
+    [[maybe_unused]] [[nodiscard]] long double t_nanos() const
+    {
+        return std::chrono::duration_cast<
+                   std::chrono::duration<double, std::nano>>(end_time -
+                                                             start_time)
+            .count();
+    }
+
     [[nodiscard]] long double t_micros() const
     {
         return std::chrono::duration_cast<

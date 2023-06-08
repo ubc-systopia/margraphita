@@ -74,9 +74,11 @@ void test_get_node(AdjList graph)
 void test_get_nodes(AdjList graph)
 {
     INFO();
+    int n = 10;
     for (node x : graph.get_nodes())
     {
         CommonUtil::dump_node(x);
+        if (--n == 0) break;
     }
 }
 

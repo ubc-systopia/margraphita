@@ -527,6 +527,7 @@ class StandardGraph : public GraphBase
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
     WT_CURSOR *get_src_dst_idx_cursor();
+    WT_CURSOR *get_random_node_cursor();
 
     WT_CURSOR *get_new_node_cursor();
     WT_CURSOR *get_new_edge_cursor();

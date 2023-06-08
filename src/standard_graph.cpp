@@ -1193,6 +1193,19 @@ WT_CURSOR *StandardGraph::get_new_node_cursor()
     return new_node_cursor;
 }
 
+WT_CURSOR *StandardGraph::get_random_node_cursor()
+{
+    WT_CURSOR *new_node_cursor = nullptr;
+    int ret =
+        _get_table_cursor(NODE_TABLE, &new_node_cursor, session, true, false);
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a node cursor");
+    }
+
+    return new_node_cursor;
+}
+
 WT_CURSOR *StandardGraph::get_edge_cursor()
 {
     if (edge_cursor == nullptr)

@@ -41,7 +41,7 @@ const std::string SRC = "src";
 const std::string DST = "dst";
 const std::string ID = "id";
 const std::string ATTR_FIRST =
-    "attr_fst";  // Used in EdgeKey as the first attribute.
+    "attr_fst";   // Used in EdgeKey as the first attribute.
 const std::string ATTR_SECOND =
     "attr_scnd";  // Used in EdgeKey as the second attribute.
 const std::string WEIGHT = "weight";
@@ -283,7 +283,7 @@ inline void CommonUtil::set_key(WT_CURSOR *cursor,
 
 inline int CommonUtil::get_key(WT_CURSOR *cursor, node_id_t *key)
 {
-    WT_ITEM k;
+    WT_ITEM k = {0};
     int ret = cursor->get_key(cursor, &k);
     uint32_t a = *(uint32_t *)k.data;
     *key = __builtin_bswap32(a);

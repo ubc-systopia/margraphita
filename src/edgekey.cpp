@@ -65,11 +65,11 @@ void EdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
  */
 void EdgeKey::create_indices(WT_SESSION *sess)
 {
-    string idx_name, idx_conf;
+    std::string idx_name, idx_conf;
     // Index on (DST,SRC) columns of the edge table
     // Used for adjacency neighbourhood iterators
-    idx_name = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
-    idx_conf = "columns=(" + DST + "," + SRC + ")";
+    idx_name = fmt::format("index:{}:{}", EDGE_TABLE, DST_SRC_INDEX);
+    idx_conf = fmt::format("columns=({},{})", DST, SRC);
     if (sess->create(sess, idx_name.c_str(), idx_conf.c_str()) != 0)
     {
         throw GraphException(
@@ -1274,6 +1274,19 @@ Get cursors
     return metadata_cursor;
 }
 
+WT_CURSOR *EdgeKey::get_new_random_node_cursor()
+{
+    WT_CURSOR *random_node_cursor;
+
+    if (_get_table_cursor(
+            EDGE_TABLE, &random_node_cursor, session, true, true) != 0)
+    {
+        throw GraphException("Could not get a random cursor to the Edge table");
+    }
+
+    return random_node_cursor;
+}
+
 WT_CURSOR *EdgeKey::get_dst_src_idx_cursor()
 {
     if (dst_src_idx_cursor == nullptr)
@@ -1312,7 +1325,7 @@ OutCursor *EdgeKey::get_outnbd_iter()
 
     toReturn->set_key_range(
         {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)}, true);
-    //toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
+    // toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
     return toReturn;
 }
 
@@ -1325,7 +1338,7 @@ InCursor *EdgeKey::get_innbd_iter()
 
     toReturn->set_key_range(
         {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)}, true);
-    //toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
+    // toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
 
     return toReturn;
 }

@@ -16,13 +16,15 @@
 class GraphBase
 {
    public:
+    GraphBase() = default;
     GraphBase(graph_opts opt_params, WT_CONNECTION *conn);  // ✅
     static void insert_metadata(const std::string key,
                                 const char *value,
                                 WT_CURSOR *metadata_cursor);  // ✅ check if pvt
-    std::string get_metadata(std::string key, WT_CURSOR *metadata_cursor);  // ✅
-    virtual node get_node(node_id_t node_id) = 0;  // ✅
-    virtual node get_random_node() = 0;            // ✅
+    std::string get_metadata(std::string key,
+                             WT_CURSOR *metadata_cursor);     // ✅
+    virtual node get_node(node_id_t node_id) = 0;             // ✅
+    virtual node get_random_node() = 0;                       // ✅
     static void create_metadata_table(
         graph_opts &opts,
         WT_CONNECTION *conn);  // Used during first-time init of DB

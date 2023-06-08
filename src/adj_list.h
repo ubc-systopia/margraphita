@@ -393,6 +393,7 @@ class AdjEdgeCursor : public EdgeCursor
 class AdjList : public GraphBase
 {
    public:
+    AdjList() = default;
     AdjList(graph_opts &opt_params,
             WT_CONNECTION *connection);  // TODO: merge the 2 constructors
     static void create_wt_tables(
@@ -445,6 +446,7 @@ class AdjList : public GraphBase
     WT_CURSOR *get_new_edge_cursor();
     WT_CURSOR *get_new_in_adjlist_cursor();
     WT_CURSOR *get_new_out_adjlist_cursor();
+    WT_CURSOR *get_new_random_outadj_cursor();
 
    private:
     // structure of the graph

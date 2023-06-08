@@ -130,8 +130,6 @@ void GraphEngine::check_opts_valid()
             std::cout << G.what() << std::endl;
         }
     }
-    std::cout << "db_dir = " << opts.db_dir << std::endl;
-    std::cout << "db_name = " << opts.db_name << std::endl;
 }
 
 void GraphEngine::create_new_graph()

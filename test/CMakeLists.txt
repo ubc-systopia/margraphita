@@ -41,3 +41,8 @@ TARGET_LINK_LIBRARIES(cursor_test PUBLIC ${NAME_LIB} ${wt_shared_lib})
 ADD_EXECUTABLE(test_packing "${PATH_TEST}/test_packing.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_packing PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_packing PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+# test string
+ADD_EXECUTABLE(test_string_fmt "${PATH_TEST}/test_string_fmt.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_string_fmt PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_string_fmt PUBLIC ${NAME_LIB} ${wt_shared_lib} fmt::fmt)
