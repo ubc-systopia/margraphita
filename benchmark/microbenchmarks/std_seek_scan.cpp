@@ -103,8 +103,7 @@ void profile_wt_std(const filesystem::path &graphfile,
     std::ofstream std_seek_scan_outfile(outfile_name);
 
     std_seek_scan_outfile
-        << "vertex_id, degree, seek_time_ns, scan_time_per_edge_ns"
-        << std::endl;
+        << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns" << std::endl;
     for (node_id_t sample : random_ids)
     {
         struct time_result time = seek_and_scan(sample, graph, session);

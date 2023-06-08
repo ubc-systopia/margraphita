@@ -99,8 +99,7 @@ void profile_wt_adjlist(const filesystem::path &graphfile,
     std::ofstream adjlist_iter_seek_scan_outfile(outfile_iter_name);
 
     adjlist_iter_seek_scan_outfile
-        << "vertex_id, degree, seek_time_ns, scan_time_per_edge_ns"
-        << std::endl;
+        << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns" << std::endl;
 
     for (auto sample : random_ids)
     {
