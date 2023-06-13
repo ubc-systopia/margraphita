@@ -1,5 +1,9 @@
 #include <times.h>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/vector.hpp>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -77,19 +81,15 @@ void profile_wt_adjlist(const filesystem::path &graphfile,
                         AdjList &graph)
 {
     std::vector<node_id_t> random_ids;
-    WT_CURSOR *random_out_adj_cursor = graph.get_new_random_outadj_cursor();
-    int num = 0;
-    while (num < samples)
-    {
-        random_out_adj_cursor->next(random_out_adj_cursor);
-        node rando;
-        CommonUtil::get_key(random_out_adj_cursor, &rando.id);
-        if (graph.get_out_degree(rando.id) == 0) continue;
-        random_ids.push_back(rando.id);
-        num++;
-    }
+
+    // read boost serialized vector into random_ids
+    char random_file_name[256];
+    sprintf(random_file_name, "%s_random_ids.bin", graphfile.stem().c_str());
+    std::ifstream random_in(random_file_name, std::ios::binary);
+    boost::archive::binary_iarchive random_in_archive(random_in);
+    random_in_archive >> random_ids;
+    random_in.close();
     assert(random_ids.size() == 1000);
-    random_out_adj_cursor->close(random_out_adj_cursor);
 
     // create file for iterator based seek and scan
     char outfile_iter_name[256];

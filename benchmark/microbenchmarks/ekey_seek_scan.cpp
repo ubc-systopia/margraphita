@@ -1,5 +1,9 @@
 #include <times.h>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/vector.hpp>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -81,29 +85,14 @@ void profile_wt_ekey(const filesystem::path &graphfile,
                      EdgeKey &graph)
 {
     std::vector<node_id_t> random_ids;
-    WT_CURSOR *random_cursor = graph.get_new_random_node_cursor();
-    int ret = 0;
-    int num = 0;
-    while (((ret = random_cursor->next(random_cursor)) == 0) && num < samples)
-    {
-        node_id_t src, dst;
-        ret = CommonUtil::get_key(random_cursor, &src, &dst);
-        if (ret != 0)
-        {
-            break;
-        }
-        if (dst == OutOfBand_ID)
-        {
-            if (graph.get_out_degree(OG_KEY(src)) == 0)
-            {
-                continue;
-            }
-            random_ids.push_back(OG_KEY(src));
-            num++;
-        }
-    }
-    std::cout << "Random samples: " << random_ids.size() << std::endl;
-    random_cursor->close(random_cursor);
+    // read boost serialized vector into random_ids
+    char random_file_name[256];
+    sprintf(random_file_name, "%s_random_ids.bin", graphfile.stem().c_str());
+    std::ifstream random_in(random_file_name, std::ios::binary);
+    boost::archive::binary_iarchive random_in_archive(random_in);
+    random_in_archive >> random_ids;
+    random_in.close();
+    assert(random_ids.size() == 1000);
 
     // create file for adjlist seek and scan times
     char outfile_name[256];

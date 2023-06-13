@@ -1,5 +1,9 @@
 #include <times.h>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/vector.hpp>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -83,6 +87,16 @@ void profile_wt_adjlist(const filesystem::path &graphfile,
     }
     assert(random_ids.size() == 1000);
     random_out_adj_cursor->close(random_out_adj_cursor);
+
+    char random_id_file_name[256];
+    sprintf(random_id_file_name, "%s_random_ids.bin", graphfile.stem().c_str());
+    // write random ids to file
+    std::ofstream random_id_file =
+        std::ofstream(random_id_file_name, std::ios::out | std::ios::binary);
+    boost::archive::binary_oarchive oa(random_id_file);
+    oa << random_ids;
+    random_id_file.close();
+
     // create file for adjlist seek and scan times
     char outfile_name[256];
     sprintf(outfile_name, "%s_adjlist_ubench.txt", graphfile.stem().c_str());
