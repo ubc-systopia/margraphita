@@ -60,8 +60,9 @@ void print_time_csvline(const std::string &db_name,
     stat(logfile_name.c_str(), &st);
     if (st.st_size == 0)
     {
-        log_file << "db_name, db_path, type, is_readopt, num_nodes, num_edges, "
-                    "t_e_read, t_e_insert, t_n_read, t_n_insert\n";
+        log_file
+            << "db_name, db_path, type, is_readopt, num_nodes, num_edges, "
+               "t_e_read(ms), t_e_insert(ms), t_n_read(ms), t_n_insert(ms)\n";
     }
 
     log_file << db_name << "," << db_path << "/" << db_name << "," << type
@@ -132,10 +133,10 @@ time_info insert_edge_thread(int _tid)
     //     out << x.src_id << "\t" << x.dst_id << std::endl;
     // }
     // out.close();
-    info.read_time = t.t_micros();
+    info.read_time = t.t_millis();
     info.num_inserted = edjlist.size();
     std::cout << "Thread " << tid << " read " << edjlist.size() << " edges in"
-              << t.t_micros() << " micros" << std::endl;
+              << t.t_millis() << " millis" << std::endl;
 
     WT_CURSOR *cursor;
     WT_SESSION *session;
@@ -145,7 +146,13 @@ time_info insert_edge_thread(int _tid)
     {
         int ret;
         conn_std->open_session(conn_std, NULL, NULL, &session);
-        session->open_cursor(session, "table:edge", NULL, "bulk=true", &cursor);
+        ret = session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
+        if (ret != 0)
+        {
+            std::cout << "Failed to open cursor: " << wiredtiger_strerror(ret)
+                      << std::endl;
+            exit(0);
+        }
 
         for (edge e : edjlist)
         {
@@ -165,7 +172,7 @@ time_info insert_edge_thread(int _tid)
     {
         int ret;
         conn_adj->open_session(conn_adj, NULL, NULL, &session);
-        session->open_cursor(session, "table:edge", NULL, "bulk=true", &cursor);
+        session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
 
         for (edge e : edjlist)
         {
@@ -183,7 +190,7 @@ time_info insert_edge_thread(int _tid)
     {
         int ret;
         conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
-        session->open_cursor(session, "table:edge", NULL, "bulk=true", &cursor);
+        session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
 
         for (edge e : edjlist)
         {
@@ -200,7 +207,7 @@ time_info insert_edge_thread(int _tid)
     }
 
     t.stop();
-    info.insert_time = t.t_micros();
+    info.insert_time = t.t_millis();
     return info;
 }
 
@@ -217,11 +224,11 @@ time_info insert_node(int _tid)
     t.start();
     std::vector<node> nodes = reader::parse_node_entries(filename);
     t.stop();
-    info.read_time = t.t_micros();
+    info.read_time = t.t_millis();
     info.num_inserted = nodes.size();
 
     std::cout << "Thread " << tid << " read " << nodes.size() << " nodes in "
-              << t.t_micros() << " micros" << std::endl;
+              << t.t_millis() << " millis" << std::endl;
 
     WT_CURSOR *std_cur, *ekey_cur, *adj_cur, *adj_incur, *adj_outcur;
     WT_SESSION *std_sess, *ekey_sess, *adj_sess;
@@ -229,26 +236,23 @@ time_info insert_node(int _tid)
     if (type_opt == "all" || type_opt == "std")
     {
         conn_std->open_session(conn_std, NULL, NULL, &std_sess);
-        std_sess->open_cursor(
-            std_sess, "table:node", NULL, "bulk=true", &std_cur);
+        std_sess->open_cursor(std_sess, "table:node", NULL, NULL, &std_cur);
     }
 
     if (type_opt == "all" || type_opt == "ekey")
     {
         conn_ekey->open_session(conn_ekey, NULL, NULL, &ekey_sess);
-        ekey_sess->open_cursor(
-            ekey_sess, "table:edge", NULL, "bulk=true", &ekey_cur);
+        ekey_sess->open_cursor(ekey_sess, "table:edge", NULL, NULL, &ekey_cur);
     }
 
     if (type_opt == "all" || type_opt == "adj")
     {
         conn_adj->open_session(conn_adj, NULL, NULL, &adj_sess);
+        adj_sess->open_cursor(adj_sess, "table:node", NULL, NULL, &adj_cur);
         adj_sess->open_cursor(
-            adj_sess, "table:node", NULL, "bulk=true", &adj_cur);
+            adj_sess, "table:adjlistin", NULL, NULL, &adj_incur);
         adj_sess->open_cursor(
-            adj_sess, "table:adjlistin", NULL, "bulk=true", &adj_incur);
-        adj_sess->open_cursor(
-            adj_sess, "table:adjlistout", NULL, "bulk=true", &adj_outcur);
+            adj_sess, "table:adjlistout", NULL, NULL, &adj_outcur);
     }
     t.start();
     for (node to_insert : nodes)
@@ -349,7 +353,7 @@ time_info insert_node(int _tid)
         }
     }
     t.stop();
-    info.insert_time = t.t_micros();
+    info.insert_time = t.t_millis();
     if (type_opt == "all" || type_opt == "std")
     {
         std_cur->close(std_cur);
@@ -396,6 +400,8 @@ int main(int argc, char *argv[])
         "statistics=(all),statistics_log=(wait=0,on_close=true";
     conn_config += "," + stat_config;
 #endif
+
+    std::cout << dataset << std::endl;
     // open std connection
     type_opt = params.get_type_str();
     if (type_opt == "all" || type_opt == "std")
@@ -485,7 +491,7 @@ int main(int argc, char *argv[])
 
     t.stop();
     std::cout << " Total time to insert edges (outside the omp loop) was "
-              << t.t_micros() << std::endl;
+              << t.t_millis() << std::endl;
 
     // Now insert nodes;
     t.start();
@@ -502,7 +508,7 @@ int main(int argc, char *argv[])
     insert_stats(edge_times.num_inserted, node_times.num_inserted, type_opt);
 
     t.stop();
-    std::cout << " Total time to insert nodes was " << t.t_micros()
+    std::cout << " Total time to insert nodes was " << t.t_millis()
               << std::endl;
 
     // Adjust for threads
