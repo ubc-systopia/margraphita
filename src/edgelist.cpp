@@ -1,10 +1,6 @@
 #include "edgelist.h"
-
 #include <wiredtiger.h>
-
-#include <cstring>
 #include <string>
-
 #include "common.h"
 
 using namespace std;
@@ -230,7 +226,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
             {
                 src = {.id = to_insert.src_id, .in_degree = 1, .out_degree = 1};
             }
-            ret = error_check(add_node_txn(src), SRC_LOC);
+            ret = error_check(add_node_txn(src), __FILE__, __LINE__);
             if (ret != 0)
             {
                 return ret;  // ret == 1 means rollback, ret == -1 means
@@ -250,7 +246,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
             {
                 dst = {.id = to_insert.dst_id, .in_degree = 1, .out_degree = 1};
             }
-            ret = error_check(add_node_txn(dst), SRC_LOC);
+            ret = error_check(add_node_txn(dst), __FILE__, __LINE__);
             if (ret != 0)
             {
                 return ret;
@@ -280,7 +276,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
                 edge_cursor, to_insert.src_id, to_insert.dst_id, 0);
         }
 
-        ret = error_check(edge_cursor->insert(edge_cursor), SRC_LOC);
+        ret = error_check(edge_cursor->insert(edge_cursor), __FILE__, __LINE__);
         if (!ret)
         {
             num_edges_to_add += 1;
@@ -290,7 +286,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
             CommonUtil::log_msg("Failed to insert edge between " +
                                 std::to_string(to_insert.src_id) + " and " +
                                 std::to_string(to_insert.dst_id) +
-                                wiredtiger_strerror(ret));
+                                wiredtiger_strerror(ret), __FILE__, __LINE__);
             return ret;
         }
 
@@ -311,7 +307,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
                     edge_cursor, to_insert.dst_id, to_insert.src_id, 0);
             }
 
-            ret = error_check(edge_cursor->insert(edge_cursor), SRC_LOC);
+            ret = error_check(edge_cursor->insert(edge_cursor), __FILE__, __LINE__);
             if (!ret)
             {
                 num_edges_to_add += 1;
@@ -321,7 +317,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
                 CommonUtil::log_msg("Failed to insert (reverse) edge between " +
                                     std::to_string(to_insert.dst_id) + " and " +
                                     std::to_string(to_insert.src_id) +
-                                    wiredtiger_strerror(ret));
+                                    wiredtiger_strerror(ret), __FILE__, __LINE__);
                 return ret;
             }
         }
@@ -347,7 +343,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
                                                          found.id,
                                                          found.in_degree,
                                                          found.out_degree),
-                                      SRC_LOC);  //! pass the cursor
+                                      __FILE__, __LINE__);  //! pass the cursor
                                                  //! to this function
 
                     if (ret != 0)
@@ -355,7 +351,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
                         CommonUtil::log_msg(
                             "Failed to update node degree for node " +
                             std::to_string(to_insert.src_id) +
-                            wiredtiger_strerror(ret));
+                            wiredtiger_strerror(ret), __FILE__, __LINE__);
                         return ret;
                     }
                 }
@@ -374,13 +370,13 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
                                                          found.id,
                                                          found.in_degree,
                                                          found.out_degree),
-                                      SRC_LOC);
+                                      __FILE__, __LINE__);
                     if (ret != 0)
                     {
                         CommonUtil::log_msg(
                             "Failed to update node degree for node " +
                             std::to_string(to_insert.dst_id) +
-                            wiredtiger_strerror(ret));
+                            wiredtiger_strerror(ret), __FILE__, __LINE__);
                         return ret;
                     }
                 }
@@ -388,7 +384,7 @@ int UnOrderedEdgeList::add_edge(edge to_insert, bool is_bulk_insert)
         }
     }
 
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nedges(num_edges_to_add);
     add_to_nnodes(num_nodes_to_add);
     return 0;
@@ -628,7 +624,7 @@ bool UnOrderedEdgeList::has_edge(node_id_t src_id, node_id_t dst_id)
     src_dst_index_cursor->reset(src_dst_index_cursor);
     src_dst_index_cursor->set_key(src_dst_index_cursor, src_id, dst_id);
     int ret = src_dst_index_cursor->search(src_dst_index_cursor);
-    return (ret == 0 ? true : false);
+    return ret == 0;
 }
 
 int UnOrderedEdgeList::error_check_insert_txn(int return_val,
@@ -649,13 +645,13 @@ int UnOrderedEdgeList::error_check_insert_txn(int return_val,
                  * cursor has been opened with overwrite=false. A plain
                  * warning is enough. */
                 CommonUtil::log_msg("WT_DUPLICATE_KEY error in insert_txn",
-                                    SRC_LOC);
+                                    __FILE__, __LINE__);
             }
             return WT_DUPLICATE_KEY;
         case WT_NOTFOUND:
             //! Should we roll back the transaction here? This should not
             //! happen.
-            CommonUtil::log_msg("WT_NOTFOUND error in insert_txn", SRC_LOC);
+            CommonUtil::log_msg("WT_NOTFOUND error in insert_txn", __FILE__, __LINE__);
             return WT_NOTFOUND;
         default:
             session->rollback_transaction(session, nullptr);
@@ -664,7 +660,7 @@ int UnOrderedEdgeList::error_check_insert_txn(int return_val,
     }
 }
 
-int UnOrderedEdgeList::error_check_update_txn(int return_val)
+[[maybe_unused]] int UnOrderedEdgeList::error_check_update_txn(int return_val)
 {
     switch (return_val)
     {
@@ -680,7 +676,7 @@ int UnOrderedEdgeList::error_check_update_txn(int return_val)
     }
 }
 
-int UnOrderedEdgeList::error_check_read_txn(int return_val)
+[[maybe_unused]] int UnOrderedEdgeList::error_check_read_txn(int return_val)
 {
     switch (return_val)
     {
@@ -699,7 +695,7 @@ int UnOrderedEdgeList::error_check_read_txn(int return_val)
     }
 }
 
-int UnOrderedEdgeList::error_check_remove_txn(int return_val)
+[[maybe_unused]] int UnOrderedEdgeList::error_check_remove_txn(int return_val)
 {
     switch (return_val)
     {
@@ -750,7 +746,7 @@ void UnOrderedEdgeList::create_indices(WT_SESSION *sess)
     }
 }
 
-void UnOrderedEdgeList::drop_indices()
+[[maybe_unused]] void UnOrderedEdgeList::drop_indices()
 {
     CommonUtil::close_cursor(this->edge_cursor);
     CommonUtil::close_cursor(this->src_dst_index_cursor);
@@ -759,14 +755,14 @@ void UnOrderedEdgeList::drop_indices()
 
     // Drop (src) index on edge table
     string uri = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
-    this->session->drop(this->session, uri.c_str(), NULL);
+    this->session->drop(this->session, uri.c_str(), nullptr);
 
     // Drop (dst) index on the edge table
     uri = "index:" + EDGE_TABLE + ":" + DST_INDEX;
-    this->session->drop(this->session, uri.c_str(), NULL);
+    this->session->drop(this->session, uri.c_str(), nullptr);
 }
 
-int UnOrderedEdgeList::error_check(int ret, std::source_location loc)
+int UnOrderedEdgeList::error_check(int ret, const std::string& line ,int loc)
 {
     switch (ret)
     {
@@ -775,10 +771,10 @@ int UnOrderedEdgeList::error_check(int ret, std::source_location loc)
         case WT_DUPLICATE_KEY:
         case WT_ROLLBACK:
         default:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             CommonUtil::log_msg("Error code( " + to_string(ret) +
                                     ") :" + wiredtiger_strerror(ret),
-                                loc);
+                                line, loc);
     }
     return ret;
 }
@@ -834,6 +830,7 @@ std::vector<node> UnOrderedEdgeList::get_out_nodes(node_id_t node_id)
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
     out_edges = get_out_edges(node_id);
+    nodes.reserve(out_edges.size());
     for (edge out_edge : out_edges)
     {
         nodes.push_back(get_node(out_edge.dst_id));
@@ -849,6 +846,7 @@ std::vector<node_id_t> UnOrderedEdgeList::get_out_nodes_id(node_id_t node_id)
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
     out_edges = get_out_edges(node_id);
+    node_ids.reserve(out_edges.size());
     for (edge out_edge : out_edges)
     {
         node_ids.push_back(out_edge.dst_id);
@@ -907,6 +905,7 @@ std::vector<node> UnOrderedEdgeList::get_in_nodes(node_id_t node_id)
     }
 
     vector<edge> in_edges = get_in_edges(node_id);
+    nodes.reserve(in_edges.size());
     for (edge in_edge : in_edges)
     {
         nodes.push_back(get_node(in_edge.src_id));
@@ -923,6 +922,7 @@ std::vector<node_id_t> UnOrderedEdgeList::get_in_nodes_id(node_id_t node_id)
     }
 
     vector<edge> in_edges = get_in_edges(node_id);
+    nodes.reserve(in_edges.size());
     for (edge in_edge : in_edges)
     {
         nodes.push_back(in_edge.src_id);
@@ -930,7 +930,7 @@ std::vector<node_id_t> UnOrderedEdgeList::get_in_nodes_id(node_id_t node_id)
     return nodes;
 }
 
-WT_CURSOR *UnOrderedEdgeList::get_node_cursor()
+[[maybe_unused]]WT_CURSOR *UnOrderedEdgeList::get_node_cursor()
 {
     if (node_cursor == nullptr)
     {
@@ -1048,7 +1048,7 @@ WT_CURSOR *UnOrderedEdgeList::get_new_dst_idx_cursor()
     return new_dst_index_cursor;
 }
 
-WT_CURSOR *UnOrderedEdgeList::get_src_dst_idx_cursor()
+[[maybe_unused]]WT_CURSOR *UnOrderedEdgeList::get_src_dst_idx_cursor()
 {
     if (src_dst_index_cursor == nullptr)
     {
@@ -1067,7 +1067,7 @@ WT_CURSOR *UnOrderedEdgeList::get_src_dst_idx_cursor()
     return src_dst_index_cursor;
 }
 
-WT_CURSOR *UnOrderedEdgeList::get_new_src_dst_idx_cursor()
+[[maybe_unused]]WT_CURSOR *UnOrderedEdgeList::get_new_src_dst_idx_cursor()
 {
     WT_CURSOR *new_src_dst_index_cursor = nullptr;
     string projection = "(" + ID + "," + SRC + "," + DST + "," + WEIGHT + ")";

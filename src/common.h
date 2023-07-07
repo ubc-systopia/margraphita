@@ -10,7 +10,10 @@
 #include <cstring>
 #include <iostream>
 #include <map>
-#include <source_location>
+//#ifdef LINUX
+//#include <source_location>
+//#define SRC_LOC std::source_location::current()
+//#endif
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -18,8 +21,6 @@
 #include <vector>
 
 #include "graph_exception.h"
-
-#define SRC_LOC std::source_location::current()
 
 #define MAKE_EKEY(x) (x + 1)
 #define OG_KEY(x) (x - 1)
@@ -41,7 +42,7 @@ const std::string SRC = "src";
 const std::string DST = "dst";
 const std::string ID = "id";
 const std::string ATTR_FIRST =
-    "attr_fst";   // Used in EdgeKey as the first attribute.
+    "attr_fst";  // Used in EdgeKey as the first attribute.
 const std::string ATTR_SECOND =
     "attr_scnd";  // Used in EdgeKey as the second attribute.
 const std::string WEIGHT = "weight";
@@ -166,9 +167,11 @@ class CommonUtil
     static std::vector<node_id_t> unpack_int_vector_wti(WT_SESSION *session,
                                                         size_t size,
                                                         char *packed_str);
+
     static void log_msg(
-        const std::string_view message,
-        const std::source_location location = std::source_location::current());
+         std::string_view message,
+        std::string_view file, int location);
+
     // WT Session and Cursor wrangling operations
     [[maybe_unused]] static int open_cursor(WT_SESSION *session,
                                             WT_CURSOR **cursor,
@@ -440,7 +443,7 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
     {
         CommonUtil::log_msg("Error inserting into adjlist table" +
                             std::to_string(ret) + " - " +
-                            wiredtiger_strerror(ret));
+                            wiredtiger_strerror(ret), __FILE__, __LINE__);
     }
     cursor->reset(cursor);
     return 0;

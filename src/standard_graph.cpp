@@ -541,7 +541,7 @@ void StandardGraph::get_nodes(vector<node> &nodes)
     node_cursor->reset(node_cursor);
 }
 
-int StandardGraph::error_check(int ret, std::source_location loc)
+int StandardGraph::error_check(int ret, std::string file, int loc)
 {
     switch (ret)
     {
@@ -553,7 +553,7 @@ int StandardGraph::error_check(int ret, std::source_location loc)
             session->rollback_transaction(session, NULL);
             CommonUtil::log_msg("Error code( " + to_string(ret) +
                                     ") :" + wiredtiger_strerror(ret),
-                                loc);
+                                file, loc);
     }
     return ret;
 }
@@ -586,7 +586,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             {
                 src = {.id = to_insert.src_id, .in_degree = 1, .out_degree = 1};
             }
-            ret = error_check(add_node_txn(src), SRC_LOC);
+            ret = error_check(add_node_txn(src), __FILE__, __LINE__);
             if (ret != 0)
             {
                 return ret;  // ret == 1 means rollback, ret == -1 means
@@ -606,7 +606,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             {
                 dst = {.id = to_insert.dst_id, .in_degree = 1, .out_degree = 1};
             }
-            ret = error_check(add_node_txn(dst), SRC_LOC);
+            ret = error_check(add_node_txn(dst), __FILE__, __LINE__);
             if (ret != 0)
             {
                 return ret;
@@ -632,7 +632,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             edge_cursor->set_value(edge_cursor, 0);
         }
 
-        ret = error_check(edge_cursor->insert(edge_cursor), SRC_LOC);
+        ret = error_check(edge_cursor->insert(edge_cursor), __FILE__, __LINE__);
         if (!ret)
         {
             num_edges_to_add += 1;
@@ -642,7 +642,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             CommonUtil::log_msg("Failed to insert edge between " +
                                 std::to_string(to_insert.src_id) + " and " +
                                 std::to_string(to_insert.dst_id) +
-                                wiredtiger_strerror(ret));
+                                wiredtiger_strerror(ret),__FILE__, __LINE__);
             return ret;
         }
 
@@ -660,7 +660,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                 edge_cursor->set_value(edge_cursor, 0);
             }
 
-            ret = error_check(edge_cursor->insert(edge_cursor), SRC_LOC);
+            ret = error_check(edge_cursor->insert(edge_cursor), __FILE__, __LINE__);
             if (!ret)
             {
                 num_edges_to_add += 1;
@@ -670,7 +670,7 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                 CommonUtil::log_msg("Failed to insert (reverse) edge between " +
                                     std::to_string(to_insert.dst_id) + " and " +
                                     std::to_string(to_insert.src_id) +
-                                    wiredtiger_strerror(ret));
+                                    wiredtiger_strerror(ret), __FILE__, __LINE__);
                 return ret;
             }
         }
@@ -695,16 +695,16 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                     ret = error_check(update_node_degree(node_cursor,
                                                          found.id,
                                                          found.in_degree,
-                                                         found.out_degree),
-                                      SRC_LOC);  //! pass the cursor
-                                                 //! to this function
+                                                         found.out_degree),__FILE__, __LINE__);
+                                      //! pass the cursor
+                                      //! to this function
 
                     if (ret != 0)
                     {
                         CommonUtil::log_msg(
                             "Failed to update node degree for node " +
                             std::to_string(to_insert.src_id) +
-                            wiredtiger_strerror(ret));
+                            wiredtiger_strerror(ret),__FILE__, __LINE__);
                         return ret;
                     }
                 }
@@ -722,14 +722,13 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                     ret = error_check(update_node_degree(node_cursor,
                                                          found.id,
                                                          found.in_degree,
-                                                         found.out_degree),
-                                      SRC_LOC);
+                                                         found.out_degree),__FILE__, __LINE__);
                     if (ret != 0)
                     {
                         CommonUtil::log_msg(
                             "Failed to update node degree for node " +
                             std::to_string(to_insert.dst_id) +
-                            wiredtiger_strerror(ret));
+                            wiredtiger_strerror(ret),__FILE__, __LINE__);
                         return ret;
                     }
                 }

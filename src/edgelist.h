@@ -4,7 +4,6 @@
 #include <wiredtiger.h>
 
 #include <iostream>
-#include <source_location>
 #include <string>
 #include <unordered_map>
 
@@ -95,7 +94,7 @@ class UnOrderedEdgeList : public GraphBase
     int error_check_update_txn(int return_val);
     int error_check_read_txn(int return_val);
     int error_check_remove_txn(int return_val);
-    int error_check(int ret, std::source_location loc);
+    int error_check(int ret, const std::string& line, int loc);
 };
 
 /**

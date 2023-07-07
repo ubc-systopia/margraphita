@@ -4,7 +4,7 @@ message("WT SO IS ${wt_shared_lib}")
 # Create Test executables
 # Test standard_graph
 ADD_EXECUTABLE(test_standard_graph "${PATH_TEST}/test_standard_graph.cpp")
-TARGET_INCLUDE_DIRECTORIES(test_standard_graph PRIVATE ${PATH_SRC})
+TARGET_INCLUDE_DIRECTORIES(test_standard_graph PRIVATE ${PATH_SRC} ${WT_INSTALL_DIR}/include)
 TARGET_LINK_LIBRARIES(test_standard_graph PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
 # Test AdjList
@@ -42,7 +42,7 @@ ADD_EXECUTABLE(test_packing "${PATH_TEST}/test_packing.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_packing PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_packing PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
-# test string
-ADD_EXECUTABLE(test_string_fmt "${PATH_TEST}/test_string_fmt.cpp")
-TARGET_INCLUDE_DIRECTORIES(test_string_fmt PRIVATE ${PATH_SRC})
-TARGET_LINK_LIBRARIES(test_string_fmt PUBLIC ${NAME_LIB} ${wt_shared_lib} fmt::fmt)
+# # test string
+# ADD_EXECUTABLE(test_string_fmt "${PATH_TEST}/test_string_fmt.cpp")
+# TARGET_INCLUDE_DIRECTORIES(test_string_fmt PRIVATE ${PATH_SRC})
+# TARGET_LINK_LIBRARIES(test_string_fmt PUBLIC ${NAME_LIB} ${wt_shared_lib} fmt::fmt)
