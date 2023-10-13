@@ -34,10 +34,18 @@ int main(int argc, char* argv[])
     }
 
     graph_opts opts;
-    get_graph_opts(iter_cli, opts);
-    opts.stat_log = iter_cli.get_logdir() + "/" + opts.db_name;
-
-    const int THREAD_NUM = 1;
+    opts.create_new = iter_cli.is_create_new();
+    opts.is_directed = iter_cli.is_directed();
+    opts.read_optimize = iter_cli.is_read_optimize();
+    opts.is_weighted = iter_cli.is_weighted();
+    opts.optimize_create = iter_cli.is_create_optimized();
+    opts.db_name = iter_cli.get_db_name();  //${type}_rd_${ds}
+    opts.db_dir = iter_cli.get_db_path();
+    std::string iter_log = iter_cli.get_logdir();  //$RESULT/$bmark
+    opts.stat_log = iter_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
+    opts.type = iter_cli.get_graph_type();
+    const int THREAD_NUM = 16;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
 
@@ -93,7 +101,7 @@ int main(int argc, char* argv[])
         info.time_taken = t.t_micros();
         std::cout << "Iteration over all edges completed in : "
                   << info.time_taken << std::endl;
-        print_csv_info(opts.db_name, info, iter_cli.get_logdir());
+        print_csv_info(opts.db_name, info, iter_log);
     }
 
     return 0;

@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "adj_list.h"
-#include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common.h"
 #include "edgekey.h"
@@ -38,7 +37,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
     pvector<ScoreT> dst(num_nodes, 1 / num_nodes);
     pvector<node_id_t> deg(num_nodes, 0);
 
-#pragma omp parallel for
+#pragma omp parallel for num_threads(thread_num)
     for (int i = 0; i < thread_num; i++)
     {
         GraphBase* graph = graph_engine.create_graph_handle();
@@ -59,7 +58,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
     for (int iter = 0; iter < max_iters; iter++)
     {
         double error = 0;
-#pragma omp parallel for reduction(+ : error)
+#pragma omp parallel for reduction(+ : error) num_threads(thread_num)
         for (int i = 0; i < thread_num; i++)
         {
             GraphBase* graph = graph_engine.create_graph_handle();
@@ -104,8 +103,18 @@ int main(int argc, char* argv[])
     }
 
     graph_opts opts;
-    get_graph_opts(pr_cli, opts);
-    opts.stat_log = pr_cli.get_logdir() + "/" + opts.db_name;
+    opts.create_new = pr_cli.is_create_new();
+    opts.is_directed = pr_cli.is_directed();
+    opts.read_optimize = pr_cli.is_read_optimize();
+    opts.is_weighted = pr_cli.is_weighted();
+    opts.optimize_create = pr_cli.is_create_optimized();
+    opts.db_name = pr_cli.get_db_name();  //${type}_rd_${ds}
+    opts.db_dir = pr_cli.get_db_path();
+    std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
+    opts.stat_log = pr_log + "/" + opts.db_name;
+    opts.stat_log = pr_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
+    opts.type = pr_cli.get_graph_type();
 
     const int THREAD_NUM = 8;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
@@ -114,7 +123,6 @@ int main(int argc, char* argv[])
     t.start();
     GraphEngine graphEngine(engine_opts);
     graphEngine.calculate_thread_offsets();
-    graphEngine.calculate_thread_offsets_edge_partition();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 

@@ -13,9 +13,11 @@
 #include <vector>
 
 #include "adj_list.h"
+#include "benchmark_definitions.h"
 #include "bitmap.h"
 #include "command_line.h"
 #include "common.h"
+#include "csv_log.h"
 #include "edgekey.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
@@ -173,19 +175,20 @@ pvector<node_id_t> InitParent(GraphEngine *graph_engine, int thread_num)
 
 pvector<node_id_t> DOBFS(GraphEngine *graph_engine,
                          node_id_t source,
+                         int thread_num = 1,
                          int alpha = 15,
-                         int beta = 18,
-                         int thread_num = 1)
+                         int beta = 18)
 {
     GraphBase *graph_stat = graph_engine->create_graph_handle();
+    node_id_t num_nodes = graph_stat->get_num_nodes();
     pvector<node_id_t> parent = InitParent(graph_engine, thread_num);
     parent[source] = source;
-    SlidingQueue<node_id_t> queue(graph_stat->get_num_nodes());
+    SlidingQueue<node_id_t> queue(num_nodes);
     queue.push_back(source);
     queue.slide_window();
-    Bitmap curr(graph_stat->get_num_nodes());
+    Bitmap curr(num_nodes);
     curr.reset();
-    Bitmap front(graph_stat->get_num_nodes());
+    Bitmap front(num_nodes);
     front.reset();
     int64_t edges_to_check = graph_stat->get_num_edges();
     int64_t scout_count = graph_stat->get_out_degree(source);
@@ -205,7 +208,7 @@ pvector<node_id_t> DOBFS(GraphEngine *graph_engine,
                     BUStep(graph_engine, parent, front, curr, thread_num);
                 front.swap(curr);
             } while ((awake_count >= old_awake_count) ||
-                     (awake_count > graph_stat->get_num_nodes() / beta));
+                     (awake_count > num_nodes / beta));
             BitmapToQueue(graph_engine, front, queue, thread_num);
             scout_count = 1;
         }
@@ -218,7 +221,7 @@ pvector<node_id_t> DOBFS(GraphEngine *graph_engine,
     }
 
 #pragma omp parallel for
-    for (node_id_t n = 0; n < graph_stat->get_num_nodes(); n++)
+    for (node_id_t n = 0; n < num_nodes; n++)
         if (parent[n] < -1) parent[n] = -1;
 
     graph_stat->close();
@@ -235,13 +238,37 @@ int main(int argc, char *argv[])
     }
 
     graph_opts opts;
-    create_graph_opts(bfs_cli, opts);
-    opts.stat_log = bfs_cli.get_logdir() + "/" + opts.db_name;
-
-    const int THREAD_NUM = 1;
+    opts.create_new = bfs_cli.is_create_new();
+    opts.is_directed = bfs_cli.is_directed();
+    opts.read_optimize = bfs_cli.is_read_optimize();
+    opts.is_weighted = bfs_cli.is_weighted();
+    opts.optimize_create = bfs_cli.is_create_optimized();
+    opts.db_name = bfs_cli.get_db_name();  //${type}_rd_${ds}
+    opts.db_dir = bfs_cli.get_db_path();
+    std::string bfs_log = bfs_cli.get_logdir();  //$RESULT/$bmark
+    opts.stat_log = bfs_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // bfs_cli.get_conn_config();
+    opts.type = bfs_cli.get_graph_type();
+    node_id_t start_vertex = bfs_cli.start_vertex();
+    const int THREAD_NUM = 16;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
 
+    bfs_info info(0);
+
+    Times t;
+    t.start();
     GraphEngine graphEngine(engine_opts);
-    DOBFS(&graphEngine, 0);
+    graphEngine.calculate_thread_offsets();
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+
+    t.start();
+    DOBFS(&graphEngine, start_vertex, THREAD_NUM);
+    t.stop();
+    info.time_taken = t.t_micros();
+    std::cout << "BFS finished in " << t.t_micros() << std::endl;
+
+    print_csv_info(opts.db_name, start_vertex, info, start_vertex, bfs_log);
+    return 0;
 }

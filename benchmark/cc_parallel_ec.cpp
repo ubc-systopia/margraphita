@@ -71,7 +71,7 @@ pvector<node_id_t> connected_components(GraphEngine& graph_engine,
             edge found = {0};
 
             EdgeCursor* edge_cursor = graph->get_edge_iter();
-            edge_cursor->set_key(graph_engine.get_edge_range(i));
+            edge_cursor->set_key_range(graph_engine.get_edge_range(i));
             edge_cursor->next(&found);
             while (found.src_id != -1)
             {
@@ -103,9 +103,17 @@ int main(int argc, char* argv[])
     }
 
     graph_opts opts;
-    get_graph_opts(cc_cli, opts);
-    opts.stat_log = cc_cli.get_logdir() + "/" + opts.db_name;
-
+    opts.create_new = cc_cli.is_create_new();
+    opts.is_directed = cc_cli.is_directed();
+    opts.read_optimize = cc_cli.is_read_optimize();
+    opts.is_weighted = cc_cli.is_weighted();
+    opts.optimize_create = cc_cli.is_create_optimized();
+    opts.db_name = cc_cli.get_db_name();  //${type}_rd_${ds}
+    opts.db_dir = cc_cli.get_db_path();
+    std::string cc_log = cc_cli.get_logdir();  //$RESULT/$bmark
+    opts.stat_log = cc_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
+    opts.type = cc_cli.get_graph_type();
     const int THREAD_NUM = 8;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
@@ -140,7 +148,7 @@ int main(int argc, char* argv[])
                   << std::endl;
         std::cout << "Connencted components count = " << info.component_count
                   << std::endl;
-        print_csv_info(opts.db_name, info, cc_cli.get_logdir());
+        print_csv_info(opts.db_name, info, cc_log);
     }
 
     return 0;
