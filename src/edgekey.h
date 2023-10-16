@@ -103,7 +103,7 @@ class EkeyInCursor : public InCursor
         has_next = false;
         return;
     no_data_remaining:
-        if (keys.end != -1 && next_expected > keys.end)
+        if (keys.end != 0 && next_expected > keys.end)
         {
             goto no_next;
         }
@@ -376,9 +376,10 @@ class EkeyNodeCursor : public NodeCursor
     // Takes a composite index cursor on (dst, src)
     EkeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
-    void set_key_range(key_range _keys)
+    void set_key_range(std::pair<node, node> _keys)
     {
-        keys = _keys;
+        keys.start = _keys.first.id;
+        keys.end = _keys.second.id;
         CommonUtil::set_key(cursor, OutOfBand_ID, MAKE_EKEY(keys.start));
     }
 
@@ -410,12 +411,13 @@ class EkeyNodeCursor : public NodeCursor
         {
         first_time_skip_next:
 
-            CommonUtil::get_ekey_dst_src_val(cursor,
-                              &curr_edge.dst_id,
-                              &curr_edge.src_id,
-                              &found->in_degree,
-                              &found->out_degree);  // getting all of dst, src,
-                                                    // in/out degrees at once
+            CommonUtil::get_ekey_dst_src_val(
+                cursor,
+                &curr_edge.dst_id,
+                &curr_edge.src_id,
+                &found->in_degree,
+                &found->out_degree);  // getting all of dst, src,
+                                      // in/out degrees at once
 
             curr_edge.src_id = OG_KEY(curr_edge.src_id);
             curr_edge.dst_id = OG_KEY(curr_edge.dst_id);
@@ -451,13 +453,13 @@ class EkeyEdgeCursor : public EdgeCursor
         : EdgeCursor(cur, sess, get_weight)
     {
     }
-    void set_key(edge_range range)
+
+    void set_key_range(std::pair<edge, edge> range)
     {
-        start_edge = range.start;
-        end_edge = range.end;
-        CommonUtil::set_key(cursor,
-                            MAKE_EKEY(range.start.src_id),
-                            MAKE_EKEY(range.start.dst_id));
+        start_edge = {range.first.src_id, range.first.dst_id};
+        end_edge = {range.second.src_id, range.second.dst_id};
+        CommonUtil::set_key(
+            cursor, MAKE_EKEY(start_edge.src_id), MAKE_EKEY(start_edge.dst_id));
     }
 
     void next(edge *found)
@@ -479,7 +481,6 @@ class EkeyEdgeCursor : public EdgeCursor
                 int status;
                 // error_check(cursor->search_near(cursor, &status));
                 cursor->search_near(cursor, &status);
-                std::cout << "status: " << status << std::endl;
                 if (status >= 0)
                 {
                     goto skip_first_advance;
@@ -518,7 +519,7 @@ class EkeyEdgeCursor : public EdgeCursor
             // If found > end edge
             if (!(found->src_id < end_edge.src_id ||
                   ((found->src_id == end_edge.src_id) &&
-                   (found->dst_id <= end_edge.dst_id))))
+                   (found->dst_id < end_edge.dst_id))))
             {
                 goto no_next;
             }

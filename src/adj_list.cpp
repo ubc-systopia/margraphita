@@ -216,7 +216,7 @@ int AdjList::add_node(node to_insert)
         return ret;
     }
     session->commit_transaction(session, nullptr);
-    add_to_nnodes(1);
+    // add_to_nnodes(1);
     return ret;
 }
 
@@ -241,10 +241,6 @@ int AdjList::add_node_in_txn(node to_insert)
     {
         if (ret == WT_DUPLICATE_KEY)
         {
-            CommonUtil::log_msg(
-                "Duplicate key in add_node_in_txn. Node " +
-                to_string(to_insert.id) +
-                " already exists. : " + wiredtiger_strerror(ret));
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -255,10 +251,6 @@ int AdjList::add_node_in_txn(node to_insert)
     {
         if (ret == WT_DUPLICATE_KEY)
         {
-            CommonUtil::log_msg(
-                "Duplicate key in add_node_in_txn. Node " +
-                to_string(to_insert.id) +
-                " already exists. : " + wiredtiger_strerror(ret));
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -268,10 +260,6 @@ int AdjList::add_node_in_txn(node to_insert)
     {
         if (ret == WT_DUPLICATE_KEY)
         {
-            CommonUtil::log_msg(
-                "Duplicate key in add_adjlist. An adjlist for node " +
-                to_string(to_insert.id) +
-                " already exists. : " + wiredtiger_strerror(ret));
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -307,7 +295,7 @@ void AdjList::add_node(node_id_t to_insert,
     add_adjlist(in_adjlist_cursor, to_insert, inlist);
     add_adjlist(out_adjlist_cursor, to_insert, outlist);
 
-    add_to_nnodes(1);
+    // add_to_nnodes(1);
 }
 
 /**
@@ -514,11 +502,11 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         }
     }
     session->commit_transaction(session, nullptr);
-    add_to_nnodes(num_nodes_added);
-    add_to_nedges(1);
+    // add_to_nnodes(num_nodes_added);
+    //  add_to_nedges(1);
     if (!opts.is_directed)
     {
-        add_to_nedges(1);
+        // add_to_nedges(1);
     }
     return ret;
 }
@@ -579,8 +567,8 @@ int AdjList::delete_node(node_id_t node_id)
         return ret;
     }
     session->commit_transaction(session, nullptr);
-    add_to_nnodes(-1);
-    add_to_nedges(-num_deleted_edges);
+    // add_to_nnodes(-1);
+    // add_to_nedges(-num_deleted_edges);
     return ret;
 }
 
@@ -602,7 +590,7 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
             throw GraphException("Could not find a node with ID " +
                                  std::to_string(node_id));
         }
-        node found{.id = node_id, .in_degree = 0, .out_degree = 0};
+        node found = {.id = node_id, .in_degree = 0, .out_degree = 0};
         CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
         node_cursor->reset(node_cursor);
         return found.in_degree;
@@ -735,7 +723,7 @@ std::vector<edge> AdjList::get_edges()
  */
 edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {-1, -1, -1, -1};
+    edge found = {UINT64_MAX, -1, -1, -1};
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     int ret = edge_cursor->search(edge_cursor);
     if (ret == 0)
@@ -979,10 +967,6 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
     {
-        CommonUtil::log_msg("Failed to delete edge ()" +
-                                std::to_string(src_id) + "," +
-                                std::to_string(dst_id) + "); TX rolled back.",
-                            SRC_LOC);
         return ret;
     }
     // delete (dst_id, src_id) from edge table if undirected
@@ -991,10 +975,6 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
         CommonUtil::set_key(edge_cursor, dst_id, src_id);
         if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
         {
-            CommonUtil::log_msg(
-                "Failed to delete edge ()" + std::to_string(dst_id) + "," +
-                    std::to_string(src_id) + "); TX rolled back.",
-                SRC_LOC);
             return ret;
         }
     }
@@ -1036,10 +1016,10 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
         }
     }
     session->commit_transaction(session, nullptr);
-    add_to_nedges(-1);
+    // add_to_nedges(-1);
     if (!opts.is_directed)
     {
-        add_to_nedges(-1);
+        // add_to_nedges(-1);
     }
     return ret;
 }
@@ -1293,8 +1273,7 @@ OutCursor *AdjList::get_outnbd_iter()
     OutCursor *toReturn =
         new AdjOutCursor(get_new_out_adjlist_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+    toReturn->set_key_range({node{-1}, node{INT32_MAX}});
     return toReturn;
 }
 
@@ -1303,8 +1282,7 @@ InCursor *AdjList::get_innbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new AdjInCursor(get_new_in_adjlist_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+    toReturn->set_key_range({node{-1}, node{INT32_MAX}});
     return toReturn;
 }
 
@@ -1451,7 +1429,7 @@ WT_CURSOR *AdjList::get_new_out_adjlist_cursor()
     }
     else
     {
-        found = {-1, -1, -1, -1};
+        found = {UINT64_MAX, -1, -1, -1};
     }
     return found;
 }
@@ -1651,14 +1629,11 @@ int AdjList::error_check_insert_txn(int return_val, bool ignore_duplicate_key)
                 /*Rolling back the transaction here is not necessary if the
                  * cursor has been opened with overwrite=false. A plain warning
                  * is enough. */
-                CommonUtil::log_msg("WT_DUPLICATE_KEY error in insert_txn",
-                                    SRC_LOC);
             }
             return WT_DUPLICATE_KEY;
         case WT_NOTFOUND:
             //! Should we roll back the transaction here? This should not
             //! happen.
-            CommonUtil::log_msg("WT_NOTFOUND error in insert_txn", SRC_LOC);
             return WT_NOTFOUND;
         default:
             session->rollback_transaction(session, nullptr);

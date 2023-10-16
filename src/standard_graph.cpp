@@ -293,7 +293,7 @@ bool StandardGraph::has_edge(node_id_t src_id, node_id_t dst_id)
 
 edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {-1, -1, -1, -1};
+    edge found = {UINT64_MAX, -1, -1, -1};
     CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
     int ret = src_dst_index_cursor->search(src_dst_index_cursor);
     if (ret == 0)
@@ -981,7 +981,7 @@ std::vector<edge> StandardGraph::get_edges()
     vector<edge> edges;
     while ((ret = edge_cursor->next(edge_cursor) == 0))
     {
-        edge found = {-1, -1, -1, -1};
+        edge found = {UINT64_MAX, -1, -1, -1};
         CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
         if (opts.is_weighted)
         {
@@ -1012,7 +1012,7 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
     CommonUtil::set_key(src_index_cursor, node_id);
     if (src_index_cursor->search(src_index_cursor) == 0)
     {
-        edge found = {-1, -1, -1};
+        edge found = {UINT64_MAX, -1, -1, -1};
         CommonUtil::read_from_edge_idx(src_index_cursor, &found);
         edges.push_back(found);
         while (src_index_cursor->next(src_index_cursor) == 0)
@@ -1096,7 +1096,7 @@ vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
     CommonUtil::set_key(dst_index_cursor, node_id);
     if (dst_index_cursor->search(dst_index_cursor) == 0)
     {
-        edge found = {-1, -1, -1};
+        edge found = {UINT64_MAX, -1, -1, -1};
         CommonUtil::read_from_edge_idx(dst_index_cursor, &found);
         edges.push_back(found);
         while (dst_index_cursor->next(dst_index_cursor) == 0)
@@ -1319,8 +1319,7 @@ OutCursor *StandardGraph::get_outnbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new StdOutCursor(get_new_src_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+    toReturn->set_key_range({node{-1}, node{INT32_MAX}});
     return toReturn;
 }
 
@@ -1329,8 +1328,7 @@ InCursor *StandardGraph::get_innbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new StdInCursor(get_new_dst_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+    toReturn->set_key_range({node{-1}, node{INT32_MAX}});
     return toReturn;
 }
 
@@ -1383,7 +1381,7 @@ edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
     }
     else
     {
-        edge not_found = {-1};
+        edge not_found = {UINT64_MAX, -1, -1, -1};
         return not_found;
     }
 }

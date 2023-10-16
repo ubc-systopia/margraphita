@@ -10,21 +10,25 @@
 
 #include "common.h"
 #include "graph.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
+
+class GraphEngine;
 
 class UnOrderedEdgeList : public GraphBase
 {
    public:
     UnOrderedEdgeList(
         graph_opts &opt_params,
-        WT_CONNECTION *connection);  // TODO: merge the 2 constructors
+        WT_CONNECTION *conn,
+        GraphEngine *graph_engine);  // TODO: merge the 2 constructors
     static void create_wt_tables(
         graph_opts &opts, WT_CONNECTION *conn);  // Need this to init graph db
     int add_node(node to_insert);
     bool has_node(node_id_t node_id) override;
     int delete_node(node_id_t node_id) override { return 0; };
     int add_edge(edge to_insert, bool is_bulk) override;
-    int delete_edge(node_id_t src_id, node_id_t dst_id) override { return 0; }
+    int delete_edge(node_id_t src_id, node_id_t dst_id) override;
     edge get_edge(node_id_t src_id, node_id_t dst_id) override;
     std::vector<node> get_nodes() override;
     std::vector<edge> get_edges() override;
@@ -79,7 +83,9 @@ class UnOrderedEdgeList : public GraphBase
    private:
     // structure of the graph
     int node_attr_size = 0;  // set on checking the list len
-
+    std::pair<uint64_t, uint64_t> insert_range;
+    uint64_t insert_edge_id;
+    GraphEngine *graph_engine;
     WT_CURSOR *node_cursor = NULL;
     WT_CURSOR *random_node_cursor = NULL;
     WT_CURSOR *edge_cursor = NULL;
@@ -90,7 +96,6 @@ class UnOrderedEdgeList : public GraphBase
     // AdjList specific internal methods:
 
     void create_indices();  // here because defined in interface
-
     int error_check_insert_txn(int return_val, bool ignore_duplicate_key);
     int error_check_update_txn(int return_val);
     int error_check_read_txn(int return_val);
@@ -549,6 +554,13 @@ class UOEdgeListEdgeCursor : public EdgeCursor
     {
     }
 
+    void set_key_range(std::pair<edge, edge> _keys)
+    {
+        keys = _keys;
+        cursor->set_key(
+            cursor, keys.first.id, keys.first.src_id, keys.first.dst_id);
+    }
+
     void next(edge *found)
     {
         if (!has_next)
@@ -563,7 +575,7 @@ class UOEdgeListEdgeCursor : public EdgeCursor
         {
             is_first = false;
 
-            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+            if (keys.first.id != UINT64_MAX)
             {
                 int status;
                 // error_check(cursor->search_near(cursor, &status));
@@ -581,31 +593,33 @@ class UOEdgeListEdgeCursor : public EdgeCursor
         first_time_skip_next:
             // error_check(
             //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
-            CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
+            cursor->get_key(cursor, &found->id, &found->src_id, &found->dst_id);
 
             // If end_edge is set
-            if (end_edge.src_id != -1)
+            if (keys.second.id != UINT64_MAX)
             {
-                // If found > end edge
-                if (!(found->src_id < end_edge.src_id ||
-                      ((found->src_id == end_edge.src_id) &&
-                       (found->dst_id <= end_edge.dst_id))))
+                if (!(found->id < keys.second.id))
                 {
                     goto no_next;
                 }
             }
 
-            CommonUtil::record_to_edge(cursor, found);
+            if (get_weight) cursor->get_value(cursor, &found->edge_weight);
         }
         else
         {
         no_next:
+            found->id = UINT64_MAX;
             found->src_id = -1;
             found->dst_id = -1;
             found->edge_weight = -1;
             has_next = false;
         }
     }
+
+   private:
+    std::pair<edge, edge> keys =
+        std::pair<edge, edge>({UINT64_MAX, -1, -1}, {UINT64_MAX, -1, -1});
 };
 
 #endif

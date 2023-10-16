@@ -18,6 +18,10 @@ GraphEngine::GraphEngine(graph_engine_opts engine_opts)
     {
         open_connection();
     }
+    GraphBase *graph_stats = this->create_graph_handle();
+    uint64_t edgeno = graph_stats->get_num_edges();
+    insert_head = edgeno + 1;
+    graph_stats->close();
 }
 
 GraphEngine::~GraphEngine()
@@ -46,7 +50,7 @@ GraphBase *GraphEngine::create_graph_handle()
     }
     else if (opts.type == GraphType::EList)
     {
-        ptr = new UnOrderedEdgeList(opts, conn);
+        ptr = new UnOrderedEdgeList(opts, conn, this);
     }
     else
     {
@@ -83,23 +87,21 @@ void GraphEngine::calculate_thread_offsets()
 {
     // Create snapshot here first?
     GraphBase *graph_stats = this->create_graph_handle();
-    calculate_thread_offsets(num_threads,
-                             graph_stats->get_num_nodes(),
-                             graph_stats->get_num_edges(),
-                             node_ranges,
-                             edge_ranges);
+    calculate_thread_offsets_node(
+        num_threads, graph_stats->get_num_nodes(), node_ranges);
+    calculate_thread_offsets_edge(
+        num_threads, graph_stats->get_num_edges(), edge_ranges);
     graph_stats->close();
 }
 
-void GraphEngine::calculate_thread_offsets_edge_partition()
+std::pair<uint64_t, uint64_t> GraphEngine::request_insert_range()
 {
-    // Create snapshot here first?
-    GraphBase *graph_stats = this->create_graph_handle();
-    calculate_thread_offsets_edge_partition(num_threads,
-                                            graph_stats->get_num_nodes(),
-                                            graph_stats->get_num_edges(),
-                                            edge_ranges);
-    graph_stats->close();
+    omp_set_lock(locks->get_insert_range_lock());
+    uint64_t start = insert_head;
+    uint64_t end = insert_head + 10000;
+    insert_head += 10000;
+    omp_unset_lock(locks->get_insert_range_lock());
+    return pair<uint64_t, uint64_t>(start, end);
 }
 
 void GraphEngine::check_opts_valid()
@@ -193,43 +195,42 @@ WT_CONNECTION *GraphEngine::get_connection() { return conn; }
 
 void GraphEngine::close_graph() { close_connection(); }
 
-key_range GraphEngine::get_key_range(int thread_id)
+std::pair<node, node> GraphEngine::get_key_range(int thread_id)
 {
     return node_ranges[thread_id];
 }
 
-edge_range GraphEngine::get_edge_range(int thread_id)
+std::pair<edge, edge> GraphEngine::get_edge_range(int thread_id)
 {
     return edge_ranges[thread_id];
 }
 
-void GraphEngine::calculate_thread_offsets_edge_partition(
+void GraphEngine::calculate_thread_offsets_edge(
     int thread_max,
-    node_id_t num_nodes,
     node_id_t num_edges,
-    std::vector<edge_range> &edge_offsets)
+    std::vector<std::pair<edge, edge>> &edge_ranges)
 {
-    edge_offsets.clear();
+    edge_ranges.clear();
     node_id_t per_partition = num_edges / thread_max;
 
     GraphBase *graph = this->create_graph_handle();
     EdgeCursor *edge_cursor = graph->get_edge_iter();
 
     edge found;
-    key_pair first = {0, 0}, last = {0, 0};
+    std::pair<edge, edge> temp;
 
     for (int i = 0; i < thread_max; i++)
     {
         edge_cursor->next(&found);
         if (found.src_id != -1)
         {
-            first = {found.src_id, found.dst_id};
+            temp.first = {found.id, found.src_id, found.dst_id};
         }
 
         node_id_t curr_partition = 1;
         if (i == thread_max - 1)
         {
-            last = {num_nodes, -1};
+            temp.second = {UINT64_MAX, -1, -1};
         }
         else
         {
@@ -238,47 +239,37 @@ void GraphEngine::calculate_thread_offsets_edge_partition(
                 curr_partition++;
                 edge_cursor->next(&found);
             }
-            last = {found.src_id, found.dst_id};
+            temp.second = {found.id, found.src_id, found.dst_id};
         }
-        edge_range er(first, last);
-        edge_offsets.push_back(er);
+        edge_ranges.push_back(temp);
     }
 
     graph->close();
 }
 
-void GraphEngine::calculate_thread_offsets(
+void GraphEngine::calculate_thread_offsets_node(
     int thread_max,
     node_id_t num_nodes,
-    node_id_t num_edges,
-    std::vector<key_range> &node_ranges,
-    std::vector<edge_range> &edge_offsets)
+    std::vector<std::pair<node, node>> &node_ranges)
 {
     node_id_t node_offset = 0;
     node_ranges.clear();
-    edge_offsets.clear();
 
     for (int i = 0; i < thread_max; i++)
     {
-        key_range temp;
+        std::pair<node, node> temp;
         if (i == thread_max - 1)
         {
-            temp = {node_offset, num_nodes};
+            temp = {node(node_offset), node(num_nodes)};
         }
         else
         {
-            temp = {node_offset, (node_offset + (num_nodes / thread_max) - 1)};
+            temp = {node(node_offset),
+                    node((node_offset + (num_nodes / thread_max) - 1))};
         }
 
         node_ranges.push_back(temp);
         node_offset += num_nodes / thread_max;
-    }
-
-    for (auto x : node_ranges)
-    {
-        key_pair first = {x.start, 0}, last = {x.end + 1, -1};
-        edge_range er(first, last);
-        edge_offsets.push_back(er);
     }
 }
 

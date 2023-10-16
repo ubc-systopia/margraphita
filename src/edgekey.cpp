@@ -180,7 +180,7 @@ int EdgeKey::add_node(node to_insert)
                                  " into the edge table");
     }
     session->commit_transaction(session, nullptr);
-    add_to_nnodes(1);
+    // add_to_nnodes(1);
     return 0;
 }
 
@@ -279,8 +279,8 @@ int EdgeKey::delete_node(node_id_t node_id)  // TODO
         // goto start_delete_node;
     }
     session->commit_transaction(session, nullptr);
-    add_to_nedges(num_edges_to_add);
-    add_to_nnodes(num_nodes_to_add);
+    // add_to_nedges(num_edges_to_add);
+    // add_to_nnodes(num_nodes_to_add);
     return 0;
 }
 
@@ -343,10 +343,11 @@ int EdgeKey::delete_related_edges(WT_CURSOR *idx_cur,
             {
                 case 0:
                     break;
+                case WT_NOTFOUND:
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, nullptr);
                     return 1;
-                case WT_NOTFOUND:
+
                     // WT_NOTFOUND should not occur
                 default:
                     session->rollback_transaction(session, nullptr);
@@ -544,11 +545,12 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
             {
                 case 0:
                     break;
+                case WT_NOTFOUND:
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, nullptr);
                     return WT_ROLLBACK;
                     // goto start_add_edge;
-                case WT_NOTFOUND:
+
                 // WT_NOTFOUND should not occur
                 default:
                     session->rollback_transaction(session, nullptr);
@@ -571,11 +573,11 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
             {
                 case 0:
                     break;
+                case WT_NOTFOUND:
                 case WT_ROLLBACK:
                     session->rollback_transaction(session, nullptr);
                     return WT_ROLLBACK;
                     // goto start_add_edge;
-                case WT_NOTFOUND:
                     // WT_NOTFOUND should not occur
                 default:
                     session->rollback_transaction(session, nullptr);
@@ -587,8 +589,8 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
     }
 
     session->commit_transaction(session, nullptr);
-    add_to_nedges(num_edges_to_add);
-    add_to_nnodes(num_nodes_to_add);
+    // add_to_nedges(num_edges_to_add);
+    // add_to_nnodes(num_nodes_to_add);
     return 0;
 }
 
@@ -682,12 +684,12 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
         {
             case 0:
                 break;
+            case WT_NOTFOUND:
             case WT_ROLLBACK:
                 session->rollback_transaction(session, nullptr);
                 return WT_ROLLBACK;
                 // goto start_delete_edge;
-            case WT_NOTFOUND:
-            // WT_NOTFOUND should not occur
+
             default:
                 session->rollback_transaction(session, nullptr);
                 throw GraphException("Could not update the node with ID" +
@@ -712,11 +714,12 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
         {
             case 0:
                 break;
+            case WT_NOTFOUND:
             case WT_ROLLBACK:
                 session->rollback_transaction(session, nullptr);
                 return WT_ROLLBACK;
                 // goto start_delete_edge;
-            case WT_NOTFOUND:
+
             // WT_NOTFOUND should not occur
             default:
                 session->rollback_transaction(session, nullptr);
@@ -726,7 +729,7 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
         }
     }
     session->commit_transaction(session, nullptr);
-    add_to_nedges(num_edges_to_add);
+    // add_to_nedges(num_edges_to_add);
     return 0;
 }
 
@@ -739,7 +742,7 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
  */
 edge EdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {-1, -1, -1, -1};
+    edge found = {UINT64_MAX, -1, -1, -1};
     CommonUtil::set_key(edge_cursor, MAKE_EKEY(src_id), MAKE_EKEY(dst_id));
     if (edge_cursor->search(edge_cursor) == 0)
     {
@@ -1365,9 +1368,8 @@ OutCursor *EdgeKey::get_outnbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new EkeyOutCursor(get_new_src_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-
     toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+        {node{0}, node{static_cast<node_id_t>((int64_t)num_nodes)}});
     return toReturn;
 }
 
@@ -1376,9 +1378,8 @@ InCursor *EdgeKey::get_innbd_iter()
     uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new EkeyInCursor(get_new_dst_idx_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-
     toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+        {node{0}, node{static_cast<node_id_t>((int64_t)num_nodes)}});
 
     return toReturn;
 }
@@ -1445,7 +1446,7 @@ WT_CURSOR *EdgeKey::get_new_edge_cursor()
 
 edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
 {
-    edge found = {-1};
+    edge found = {UINT64_MAX, -1, -1, -1};
     while (e_cur->next(e_cur) == 0)
     {
         CommonUtil::get_key(e_cur, &found.src_id, &found.dst_id);

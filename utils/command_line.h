@@ -163,6 +163,10 @@ class CmdLineBase
         {
             type = GraphType::EKey;
         }
+        else if (strcmp(opt_arg, "elist") == 0)
+        {
+            type = GraphType::EList;
+        }
         else if (strcmp(opt_arg, "") == 0)
         {
             throw(

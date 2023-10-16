@@ -10,7 +10,7 @@ using namespace std;
 
 class time_info
 {
-   public:
+public:
     long double insert_time = 0;
     long double read_time = 0;
     long double rback_time = 0;
@@ -46,8 +46,8 @@ class InsertOpts
     std::string logdir;
     std::string db_path;  // This contains the path to the db dir.
     std::string dataset;
-    double num_edges{};
-    double num_nodes{};
+    uint64_t num_edges{};
+    uint32_t num_nodes{};
 
     bool directed = true;
     bool read_optimize = false;
@@ -120,10 +120,10 @@ class InsertOpts
                     logdir.pop_back();  // delete trailing '/'
                 break;
             case 'e':
-                num_edges = strtod(optarg, NULL);
+                num_edges = strtoll(optarg, NULL, 10);
                 break;
             case 'n':
-                num_nodes = strtod(optarg, NULL);
+                num_nodes = strtoll(optarg, NULL, 10);
                 break;
             case 'f':
                 dataset = optarg;
@@ -168,6 +168,10 @@ class InsertOpts
         {
             type = GraphType::EKey;
         }
+        else if (strcmp(opt_arg, "elist") == 0)
+        {
+            type = GraphType::EList;
+        }
         else if (strcmp(opt_arg, "") == 0)
         {
             throw GraphException(
@@ -191,8 +195,8 @@ class InsertOpts
     [[nodiscard]] std::string get_db_path() const { return db_path; }
     [[nodiscard]] std::string get_logdir() const { return logdir; }
     [[nodiscard]] std::string get_dataset() const { return dataset; }
-    [[nodiscard]] double get_num_nodes() const { return num_nodes; }
-    [[nodiscard]] double get_num_edges() const { return num_edges; }
+    [[nodiscard]] uint32_t get_num_nodes() const { return num_nodes; }
+    [[nodiscard]] uint64_t get_num_edges() const { return num_edges; }
     [[nodiscard]] bool is_read_optimize() const { return read_optimize; }
     [[nodiscard]] bool is_directed() const { return directed; }
     [[nodiscard]] int get_num_threads() const { return num_threads; }
@@ -212,6 +216,10 @@ class InsertOpts
         else if (graph_type == GraphType::Adj)
         {
             return "adj";
+        }
+        else if (graph_type == GraphType::EList)
+        {
+            return "elist";
         }
         else
         {

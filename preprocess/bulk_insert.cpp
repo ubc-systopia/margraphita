@@ -29,10 +29,9 @@ std::string pack_int_to_str(degree_t a, degree_t b)
 const static int NUM_THREADS = 16;
 const static int BUFFER_LENGTH = 20;
 
-WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
-double num_edges;
-double num_nodes;
-int num_per_chunk;
+WT_CONNECTION *conn_std, *conn_adj, *conn_ekey, *conn_elist;
+uint64_t num_edges;
+uint32_t num_nodes;
 std::string dataset;
 int read_optimized = 0;
 int is_directed = 1;
@@ -106,12 +105,15 @@ void insert_stats(size_t edgeNo, size_t nodeNo, const std::string &type)
         conn_adj->open_session(conn_adj, NULL, NULL, &session);
     else if (type == "ekey")
         conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
+    else if (type == "elist")
+        conn_elist->open_session(conn_elist, NULL, NULL, &session);
     insert_stats_to_session(session, edgeNo, nodeNo);
     session->close(session, NULL);
 }
 
 time_info insert_edge_thread(int _tid)
-{
+{   
+    int num_per_chunk = 1;
     int tid = _tid;
     std::string filename = dataset + "_edges";
     char c = (char)(97 + tid);
@@ -187,13 +189,31 @@ time_info insert_edge_thread(int _tid)
 
         for (edge e : edjlist)
         {
-            CommonUtil::set_key(
-                cursor, MAKE_EKEY(e.src_id), MAKE_EKEY(e.dst_id));
+            CommonUtil::set_key(cursor, e.src_id + 1, e.dst_id + 1);
             cursor->set_value(cursor, 0, OutOfBand_Val);
             if ((ret = cursor->insert(cursor)) != 0)
             {
                 PRINT_ERROR(e.src_id, e.dst_id, ret, wiredtiger_strerror(ret))
             }
+        }
+        cursor->close(cursor);
+        session->close(session, NULL);
+    }
+    else if (type_opt == "elist")
+    {
+        int ret;
+        conn_elist->open_session(conn_elist, NULL, NULL, &session);
+        session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
+        uint64_t start = (num_edges / NUM_THREADS) * tid;
+        for (edge e : edjlist)
+        {
+            cursor->set_key(cursor, start, e.src_id, e.dst_id);
+            cursor->set_value(cursor, 0);
+            if ((ret = cursor->insert(cursor)) != 0)
+            {
+                PRINT_ERROR(e.src_id, e.dst_id, ret, wiredtiger_strerror(ret))
+            }
+            start++;
         }
         cursor->close(cursor);
         session->close(session, NULL);
@@ -277,8 +297,7 @@ time_info insert_node(int _tid)
         else if (type_opt == "ekey")
         {
             int ret;
-            CommonUtil::set_key(
-                ekey_cur, MAKE_EKEY(to_insert.id), OutOfBand_ID);
+            CommonUtil::set_key(ekey_cur, to_insert.id + 1, 0);
             if (read_optimized)
             {
                 ekey_cur->set_value(
@@ -387,6 +406,7 @@ int main(int argc, char *argv[])
     {
         middle += "d";
     }
+    num_edges = params.get_num_edges();
     dataset = params.get_dataset();
     read_optimized = params.is_read_optimize();
     std::string _db_name;
@@ -441,9 +461,21 @@ int main(int argc, char *argv[])
             exit(1);
         }
     }
-    num_per_chunk = (int)(params.get_num_edges() / NUM_THREADS);
-    // We are using edge IDs now so we might need to assign a unique range to
-    // each thread
+
+    if (type_opt == "all" || type_opt == "elist")
+    {
+        _db_name = params.get_db_path() + "/elist_" + middle + "_" +
+                   params.get_db_name();
+        if (wiredtiger_open(_db_name.c_str(),
+                            NULL,
+                            const_cast<char *>(conn_config.c_str()),
+                            &conn_elist) != 0)
+        {
+            std::cout << "Could not open the DB: " << _db_name;
+            exit(1);
+        }
+    }
+
     Times t;
     t.start();
     time_info edge_times, node_times;
@@ -540,6 +572,10 @@ int main(int argc, char *argv[])
     if (type_opt == "all" || type_opt == "ekey")
     {
         conn_ekey->close(conn_ekey, NULL);
+    }
+    if (type_opt == "all" || type_opt == "elist")
+    {
+        conn_elist->close(conn_elist, NULL);
     }
 
     return (EXIT_SUCCESS);

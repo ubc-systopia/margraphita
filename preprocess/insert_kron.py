@@ -6,8 +6,7 @@ import sys
 import argparse
 from datetime import datetime
 from preprocess import Preprocess
-from paths import ConfigReader
-from paths import GraphDatasetReader
+from paths import ConfigReader, GraphDatasetReader
 import pprint
 import grp
 
@@ -94,33 +93,29 @@ def main():
         preprocess_obj.log.write(
             "Finished inserting " + dataset_name + "\n-------------------\n")
 
-    #To insert graphs that are not Kronecker graphs
-    # This can be read from a DB, but for now we just read from a file
-    dataset_json = GraphDatasetReader("graph_datasets.json").read_config()
-    for dataset in dataset_json:
-        dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
-        dataset.update(vars(args))  # add args to config
-        graph = dataset['graph_path']
-        dataset['output_dir'] = os.path.join(
-            config_data['DB_DIR'], dataset['dataset_name'])
-        dataset['scale'] = 0
+    # dataset_json = GraphDatasetReader("graph_datasets.json").read_config()
+    # for dataset in dataset_json:
+    #     dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
+    #     dataset.update(vars(args))  # add args to config
+    #     graph = dataset['graph_path']
+    #     dataset['output_dir'] = os.path.join(
+    #         config_data['DB_DIR'], dataset['dataset_name'])
+    #     dataset['scale'] = 0
 
-        preprocess_obj = Preprocess(dataset)
-        print("is bulk: " + str(args.bulk)
-              + " \nindex: " + str(args.index)
-                + " \npreprocess: " + str(args.preprocess))
-        if (args.preprocess):
-            preprocess_obj.preprocess()
-        if (args.bulk):
-            preprocess_obj.bulk_insert()
-        if (args.index):
-            preprocess_obj.create_index()
-        else:
-            api_insert(config_data)
-        preprocess_obj.log.write(
-            "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
-
-      
+    #     preprocess_obj = Preprocess(dataset)
+    #     print("is bulk: " + str(args.bulk)
+    #           + " \nindex: " + str(args.index)
+    #             + " \npreprocess: " + str(args.preprocess))
+    #     if (args.preprocess):
+    #         preprocess_obj.preprocess()
+    #     if (args.bulk):
+    #         preprocess_obj.bulk_insert()
+    #     if (args.index):
+    #         preprocess_obj.create_index()
+    #     else:
+    #         api_insert(config_data)
+    #     preprocess_obj.log.write(
+    #         "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
 
 
 if __name__ == "__main__":

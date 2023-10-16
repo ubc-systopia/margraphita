@@ -61,6 +61,7 @@ class GraphDatasetReader:
         self.config_file = config_file
         self.config = None
     
+
     def read_config(self):
         config_data = {}
         with open(self.config_file, 'r') as file_handle:
@@ -77,6 +78,7 @@ class GraphDatasetReader:
                 print(f"Missing keys; Please check the config file.")
                 config_ok = False
             
+
             try:
                 dataset['num_nodes'] = int(dataset['num_nodes'])
                 assert(dataset['num_nodes'] > 0)
@@ -100,5 +102,3 @@ class GraphDatasetReader:
             exit(1)
         else:
             return config_data
-        
-       

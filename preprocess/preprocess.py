@@ -45,8 +45,8 @@ class Preprocess:
         return cmd
 
     def bulk_insert(self):
-        for graph_type in ['std', 'ekey', 'adj']:
-            for is_ro in [True, False]:
+        for graph_type in ['std', 'ekey', 'adj', 'elist']:
+            for is_ro in [True]:
                 # directed, read_optimized, init DB
                 init_cmd = self.build_init_cmd(graph_type, is_ro)
                 self.log.write(
@@ -67,8 +67,8 @@ class Preprocess:
                 self.log.write(f"Time: {stop - start}\n")
 
     def create_index(self):
-        for graph_type in ["std", "ekey"]:
-            for is_ro in [True, False]:
+        for graph_type in ["std", "ekey", "elist"]:
+            for is_ro in [True]:
                 index_cmd = self.build_index_cmd(graph_type, is_ro)
                 self.log.write(f"Creating index: {index_cmd}\n")
                 os.system(index_cmd)

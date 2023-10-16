@@ -88,12 +88,11 @@ typedef struct node
     node_id_t id;  // node ID
     degree_t in_degree = 0;
     degree_t out_degree = 0;
-
 } node;
 
 typedef struct edge
 {
-    int32_t id = 0;
+    uint64_t id = 0;
     node_id_t src_id = 0;
     node_id_t dst_id = 0;
     edgeweight_t edge_weight = 0;
@@ -426,12 +425,6 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
     cursor->set_value(cursor, to_insert.degree, &item);
 
     ret = cursor->update(cursor);
-    if (ret)
-    {
-        CommonUtil::log_msg("Error inserting into adjlist table" +
-                            std::to_string(ret) + " - " +
-                            wiredtiger_strerror(ret));
-    }
     cursor->reset(cursor);
     return 0;
 }
@@ -520,7 +513,7 @@ class table_iterator
     // the user to know which table to provide a cursor for. This is
     // guaranteed to cause bugs.
    public:
-    void set_key(node_id_t key) { CommonUtil::set_key(cursor, key); }
+    // void set_key(node_id_t key) { CommonUtil::set_key(cursor, key); }
     bool has_more() { return has_next; };
     virtual void reset()
     {
@@ -543,9 +536,10 @@ class OutCursor : public table_iterator
         keys = {-1, -1};
     }
 
-    void set_key_range(key_range _keys)
+    void set_key_range(std::pair<node, node> _keys)
     {
-        keys = _keys;
+        keys.start = _keys.first.id;
+        keys.end = _keys.second.id;
         CommonUtil::set_key(cursor, keys.start);
     }
 
@@ -568,9 +562,10 @@ class InCursor : public table_iterator
         keys = {-1, -1};
     }
 
-    void set_key_range(key_range _keys)
+    void set_key_range(std::pair<node, node> _keys)
     {
-        keys = _keys;
+        keys.start = _keys.first.id;
+        keys.end = _keys.second.id;
         CommonUtil::set_key(cursor, keys.start);
     }
 
@@ -598,9 +593,11 @@ class NodeCursor : public table_iterator
      * @param _keys the key range object. Set the end key to INT_MAX if you
      * want to get all the nodes from start node.
      */
-    virtual void set_key_range(key_range _keys)  // overrided by edgekey
+    virtual void set_key_range(
+        std::pair<node, node> _keys)  // overrided by edgekey
     {
-        keys = _keys;
+        keys.start = _keys.first.id;
+        keys.end = _keys.second.id;
         CommonUtil::set_key(cursor, keys.start);
     }
 
@@ -612,7 +609,7 @@ class EdgeCursor : public table_iterator
    protected:
     key_pair start_edge{};
     key_pair end_edge{};
-    bool get_weight = true;
+    bool get_weight = false;
 
    public:
     EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
@@ -630,14 +627,11 @@ class EdgeCursor : public table_iterator
         this->get_weight = get_weight;
     }
 
-    // Overwrites set_key(int key) implementation in table_iterator
-    void set_key(int key) = delete;
-
-    virtual void set_key(edge_range range)
+    virtual void set_key_range(std::pair<edge, edge> range)
     {
-        start_edge = range.start;
-        end_edge = range.end;
-        CommonUtil::set_key(cursor, range.start.src_id, range.start.dst_id);
+        start_edge = {range.first.src_id, range.first.dst_id};
+        end_edge = {range.second.src_id, range.second.dst_id};
+        CommonUtil::set_key(cursor, range.first.src_id, range.first.dst_id);
     }
 
     virtual void next(edge *found) = 0;

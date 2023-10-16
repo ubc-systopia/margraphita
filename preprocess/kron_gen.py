@@ -7,8 +7,8 @@ from paths import ConfigReader
 def main():
     config_data = ConfigReader("config.json").read_config()
     print(config_data)
-    for ef in (8, 16):
-        for scale in range(10, 27):
+    for ef in [8]:
+        for scale in range(10, 16):
             n_edges = ef * pow(2, scale)
             n_nodes = pow(2, scale)
             dataset_name = "s" + str(scale) + f"_e{ef}"

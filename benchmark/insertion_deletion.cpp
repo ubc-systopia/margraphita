@@ -1,188 +1,133 @@
+#include <math.h>
+#include <stdio.h>
+#include <unistd.h>
+
 #include <algorithm>
 #include <cassert>
-#include <functional>
-#include <iterator>
-#include <random>
+#include <deque>
+#include <fstream>
+#include <iostream>
+#include <queue>
+#include <set>
+#include <vector>
 
+#include "adj_list.h"
+#include "benchmark_definitions.h"
+#include "command_line.h"
 #include "common.h"
-#include "graph.h"
+#include "csv_log.h"
+#include "edgekey.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
+#include "platform_atomics.h"
+#include "pvector.h"
 #include "standard_graph.h"
 #include "times.h"
-#define THREAD_NUM 16
-#define HASH_CODE 0x1a7aade5878a2539
 
-WT_CONNECTION *conn;
-WT_CURSOR *cursor;
-WT_SESSION *session;
-const char *home;
-omp_lock_t edge_num_lock;
-uint64_t edge_num;
-uint64_t range[100];
+#define BENCHMARK_SIZE 64000  // multiple of 16
 
-void __setup_non_hash()
+std::vector<std::pair<uint32_t, uint32_t>> to_delete;
+std::vector<std::pair<uint32_t, uint32_t>> to_insert;
+
+void setup(GraphEngine* graphEngine)
 {
-    // Create new directory for WT DB
-    std::string dirname = "./db/common_test";
-    CommonUtil::create_dir(dirname);
-    omp_init_lock(&edge_num_lock);
+    GraphBase* graph = graphEngine->create_graph_handle();
+    uint64_t edge_count = graph->get_num_edges();
+    uint64_t node_count = graph->get_num_nodes();
 
-    wiredtiger_open(dirname.c_str(), NULL, "create", &conn);
-    conn->open_session(conn, NULL, NULL, &session);
-
-    CommonUtil::set_table(session, "edge", {"src", "dst", "val"}, "II", "I");
-}
-
-void insert_non_hash()
-{
-    WT_CURSOR *edge_cur;
-    GraphBase::_get_table_cursor("edge", &edge_cur, session, false, false);
-
-    for (uint32_t i = 0; i < 1e7; i++)
+    EdgeCursor* edge_cursor = graph->get_edge_iter();
+    edge e;
+    edge_cursor->next(&e);
+    while (to_delete.size() < BENCHMARK_SIZE)
     {
-        edge_cur->set_key(edge_cur, i, (int)1e7 - i);
-        edge_cur->set_value(edge_cur, 1);
-        int32_t a = 0, b = 0;
-        edge_cur->insert(edge_cur);
-        if (i % (int)1e7 == 0)
+        if (std::rand() % edge_count < BENCHMARK_SIZE ||
+            edge_count - to_delete.size() < BENCHMARK_SIZE)
         {
-            cout << "inserted another 10%\n";
+            to_delete.push_back(
+                std::pair<uint32_t, uint32_t>(e.src_id, e.dst_id));
+        }
+        edge_cursor->next(&e);
+    }
+
+    while (to_insert.size() < BENCHMARK_SIZE)
+    {
+        std::pair<uint32_t, uint32_t> gen = {std::rand() % node_count,
+                                             std::rand() % node_count};
+        if (!graph->has_edge(gen.first, gen.second))
+        {
+            to_insert.push_back({gen});
         }
     }
-    edge_num = 1e8;
-    session->close(session, NULL);
+    graph->close();
 }
 
-void read_non_hash()
+int main(int argc, char* argv[])
 {
-    conn->open_session(conn, NULL, NULL, &session);
-    WT_CURSOR *edge_cur;
-    GraphBase::_get_table_cursor("edge", &edge_cur, session, false, false);
-    edge_cur->next(edge_cur);
-    for (uint32_t i = 0; i < 1e7; i++)
+    std::cout << "Running Iteration" << std::endl;
+    CmdLineApp iter_cli(argc, argv);
+    if (!iter_cli.parse_args())
     {
-        uint32_t a = 0, b = 0;
-        edge_cur->get_key(edge_cur, &a, &b);
-        edge_cur->next(edge_cur);
+        return -1;
     }
-    session->close(session, NULL);
-}
 
-void __setup_hash()
-{
-    // Create new directory for WT DB
-    std::string dirname = "./db/common_test";
-    CommonUtil::create_dir(dirname);
-    omp_init_lock(&edge_num_lock);
+    graph_opts opts;
 
-    wiredtiger_open(dirname.c_str(), NULL, "create", &conn);
-    conn->open_session(conn, NULL, NULL, &session);
+    opts.create_new = iter_cli.is_create_new();
+    opts.is_directed = iter_cli.is_directed();
+    opts.read_optimize = iter_cli.is_read_optimize();
+    opts.is_weighted = iter_cli.is_weighted();
+    opts.optimize_create = iter_cli.is_create_optimized();
+    opts.db_name = iter_cli.get_db_name();  //${type}_rd_${ds}
+    opts.db_dir = iter_cli.get_db_path();
+    std::string iter_log = iter_cli.get_logdir();  //$RESULT/$bmark
+    opts.stat_log = iter_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
+    opts.type = iter_cli.get_graph_type();
+    const int THREAD_NUM = 4;
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
 
-    CommonUtil::set_table(session, "edge", {"srcdst", "val"}, "u", "I");
-}
+    int num_trials = iter_cli.get_num_trials();
 
-void insert_hash()
-{
-    WT_CURSOR *edge_cur;
-    GraphBase::_get_table_cursor("edge", &edge_cur, session, false, false);
-    for (int i = 0; i < 20 * 1e6; i++)
-    {
-        uint32_t src = i;
-        uint32_t dst = (uint32_t)(20 * 1e6) - i;
-        uint64_t byte = ((src << 31) + dst);
-        WT_ITEM k = {.data = &byte, .size = sizeof(byte)};
-        edge_cur->set_key(edge_cur, &k);
-        edge_cur->set_value(edge_cur, 1);
-        edge_cur->insert(edge_cur);
-        if (i % (int)5e6 == 0)
-        {
-            cout << "inserted another 10%\n";
-        }
-    }
-    edge_num = 1e8;
-    session->close(session, NULL);
-}
-
-void paritition_hash()
-{
-    conn->open_session(conn, NULL, NULL, &session);
-    WT_CURSOR *edge_cur;
-    GraphBase::_get_table_cursor("edge", &edge_cur, session, false, false);
-    edge_cur->next(edge_cur);
-    int t = 0;
-    for (int i = 0; i < 20 * 1e6; i++)
-    {
-        uint64_t key;
-        if (i % (int)1e6 == 0)
-        {
-            edge_cur->get_key(edge_cur, &key);
-            range[t] = key;
-            t++;
-        }
-        if (i % (int)5e6 == 0)
-        {
-            cout << "partitioned another 10%\n";
-        }
-    }
-    edge_num = 1e8;
-    session->close(session, NULL);
-}
-
-void read_hash()
-{
-#pragma omp parallel for num_threads(THREAD_NUM)
-    for (int t = 0; t < THREAD_NUM; t++)
-    {
-        WT_SESSION *session;
-        conn->open_session(conn, NULL, NULL, &session);
-        WT_CURSOR *edge_cur;
-        GraphBase::_get_table_cursor("edge", &edge_cur, session, false, false);
-        edge_cur->set_key(edge_cur, range[t]);
-        for (int i = 0; i < 1e6; i++)
-        {
-            uint64_t a;
-            WT_ITEM k;
-            edge_cur->get_key(edge_cur, &k);
-            // edge_cur->get_key(edge_cur, &a);
-            edge_cur->next(edge_cur);
-        }
-        session->close(session, NULL);
-    }
-}
-
-void __close()
-{
-    conn->close(conn, NULL);
-    // CommonUtil::remove_dir("./db/common_test");
-}
-
-int main()
-{
     Times t;
-    __setup_non_hash();
-
     t.start();
-    insert_non_hash();
+    GraphEngine graphEngine(engine_opts);
+    setup(&graphEngine);
     t.stop();
-    cout << "Insert non_hash: " << t.t_micros() << endl;
-    t.start();
-    read_non_hash();
-    t.stop();
-    cout << "Read non_hash: " << t.t_micros() << endl;
-    __close();
 
-    __setup_hash();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+    iter_info info(0);
     t.start();
-    insert_hash();
-    t.stop();
-    cout << "Insert hash: " << t.t_micros() << endl;
 
-    paritition_hash();
+    int rollback_count = 0;
 
-    t.start();
-    read_hash();
+#pragma omp parallel for num_threads(THREAD_NUM) reduction(+ : rollback_count)
+    for (int i = 0; i < THREAD_NUM; i++)
+    {
+        GraphBase* graph = graphEngine.create_graph_handle();
+        int per_thread = BENCHMARK_SIZE / THREAD_NUM;
+        for (int j = i * per_thread; j < (i + 1) * per_thread; j++)
+        {
+            while (graph->delete_edge(to_delete[j].first,
+                                      to_delete[j].second) == WT_ROLLBACK)
+            {
+                rollback_count++;
+            }
+            while (graph->add_edge(
+                       edge{to_insert[j].first, to_insert[j].second}, false) ==
+                   WT_ROLLBACK)
+            {
+                rollback_count++;
+            }
+        }
+        graph->close();
+    }
     t.stop();
-    cout << "Read hash: " << t.t_micros() << endl;
-    __close();
+    info.time_taken = t.t_micros();
+    std::cout << "Insertion-deletion completed in : " << info.time_taken
+              << std::endl;
+    std::cout << "Rollback count:" << rollback_count << std::endl;
+    print_csv_info(opts.db_name, info, iter_log);
+
     return 0;
 }
