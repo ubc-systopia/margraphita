@@ -1365,21 +1365,15 @@ WT_CURSOR *EdgeKey::get_new_dst_src_idx_cursor()
 
 OutCursor *EdgeKey::get_outnbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new EkeyOutCursor(get_new_src_idx_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range(
-        {node{0}, node{static_cast<node_id_t>((int64_t)num_nodes)}});
+    toReturn->set_key_range({node{0}, node{INT32_MAX - 1}});
     return toReturn;
 }
 
 InCursor *EdgeKey::get_innbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new EkeyInCursor(get_new_dst_idx_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range(
-        {node{0}, node{static_cast<node_id_t>((int64_t)num_nodes)}});
+    toReturn->set_key_range({node{0}, node{INT32_MAX - 1}});
 
     return toReturn;
 }

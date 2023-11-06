@@ -199,7 +199,7 @@ void CommonUtil::dump_edge(edge to_print)
 {
     std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
     std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
-    std::cout << "Weight is:\t" << to_print.edge_weight <<"\n\n";
+    std::cout << "Weight is:\t" << to_print.edge_weight << "\n\n";
 }
 
 [[maybe_unused]] void CommonUtil::dump_edge_index(edge_index to_print)
@@ -217,7 +217,8 @@ void CommonUtil::dump_adjlist(const adjlist &to_print)
     {
         std::cout << n << " ";
     }
-    std::cout << "}" << "\n\n";
+    std::cout << "}"
+              << "\n\n";
 }
 
 /**
@@ -249,8 +250,10 @@ std::vector<node_id_t> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
 
     int vec_size = (int)size / sizeof(node_id_t);
     std::vector<node_id_t> unpacked_vec(vec_size);
-    for (int i = 0; i < vec_size; i++)
-        unpacked_vec[i] = ((node_id_t *)unpacked.data)[i];
+    // for (int i = 0; i < vec_size; i++)
+    //     unpacked_vec[i] = ((node_id_t *)unpacked.data)[i];
+    unpacked_vec.assign((node_id_t *)unpacked.data,
+                        (node_id_t *)unpacked.data + vec_size);
 
     return unpacked_vec;
 }

@@ -35,6 +35,7 @@ class BenchmarkRunner:
 
     def make_iteration_cmd(self, binary_name: str, ds: str, graph_type: str, variant: str):
         cmd = f"{binary_name} -m {graph_type}_rd_{ds} -b ITER -a {self.config_data['DB_DIR']}/{ds} -s {ds} -f {self.config_data['LOG_DIR']}/{variant} -r -d -l {graph_type}"
+        print(cmd)
         return cmd
 
     def make_sssp_cmd(self, binary_name: str, ds: str, graph_type: str):

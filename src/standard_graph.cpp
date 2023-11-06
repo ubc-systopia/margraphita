@@ -1316,18 +1316,14 @@ WT_CURSOR *StandardGraph::get_new_src_dst_idx_cursor()
 
 OutCursor *StandardGraph::get_outnbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new StdOutCursor(get_new_src_idx_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
     toReturn->set_key_range({node{-1}, node{INT32_MAX}});
     return toReturn;
 }
 
 InCursor *StandardGraph::get_innbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new StdInCursor(get_new_dst_idx_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
     toReturn->set_key_range({node{-1}, node{INT32_MAX}});
     return toReturn;
 }

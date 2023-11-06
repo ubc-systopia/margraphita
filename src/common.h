@@ -186,6 +186,10 @@ class CommonUtil
                        int32_t *id,
                        node_id_t *key1,
                        node_id_t *key2);
+    static int get_key(WT_CURSOR *cursor,
+                       uint64_t *id,
+                       node_id_t *key1,
+                       node_id_t *key2);
     static node_id_t extract_flip_endian(WT_ITEM id);
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
     static void check_return(int retval, const std::string &mesg);
@@ -299,6 +303,22 @@ inline int CommonUtil::get_key(WT_CURSOR *cursor,
 {
     WT_ITEM k1, k2;
     int32_t found_id;
+    int ret = cursor->get_key(cursor, &found_id, &k1, &k2);
+    uint32_t a = *(uint32_t *)k1.data;
+    uint32_t b = *(uint32_t *)k2.data;
+    *key1 = __builtin_bswap32(a);
+    *key2 = __builtin_bswap32(b);
+    *id = found_id;
+    return ret;
+}
+
+inline int CommonUtil::get_key(WT_CURSOR *cursor,
+                               uint64_t *id,
+                               node_id_t *key1,
+                               node_id_t *key2)
+{
+    WT_ITEM k1, k2;
+    uint64_t found_id;
     int ret = cursor->get_key(cursor, &found_id, &k1, &k2);
     uint32_t a = *(uint32_t *)k1.data;
     uint32_t b = *(uint32_t *)k2.data;
@@ -540,10 +560,8 @@ class OutCursor : public table_iterator
     {
         keys.start = _keys.first.id;
         keys.end = _keys.second.id;
-        CommonUtil::set_key(cursor, keys.start);
+        CommonUtil::set_key(cursor, keys.start, 0);
     }
-
-    void set_num_nodes(int num) { num_nodes = num; }
 
     virtual void next(adjlist *found) = 0;
     virtual void next(adjlist *found, node_id_t key) = 0;
@@ -568,8 +586,6 @@ class InCursor : public table_iterator
         keys.end = _keys.second.id;
         CommonUtil::set_key(cursor, keys.start);
     }
-
-    void set_num_nodes(int num) { num_nodes = num; }
 
     virtual void next(adjlist *found) = 0;
     virtual void next(adjlist *found, node_id_t key) = 0;

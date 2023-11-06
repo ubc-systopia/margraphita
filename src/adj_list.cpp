@@ -1269,19 +1269,15 @@ int AdjList::delete_related_edges_and_adjlists(node_id_t node_id,
 
 OutCursor *AdjList::get_outnbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn =
         new AdjOutCursor(get_new_out_adjlist_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
     toReturn->set_key_range({node{-1}, node{INT32_MAX}});
     return toReturn;
 }
 
 InCursor *AdjList::get_innbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new AdjInCursor(get_new_in_adjlist_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
     toReturn->set_key_range({node{-1}, node{INT32_MAX}});
     return toReturn;
 }
