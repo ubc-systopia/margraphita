@@ -1,12 +1,12 @@
 #include "edgekey.h"
 
+#include <fmt/core.h>
 #include <wiredtiger.h>
 
 #include <algorithm>
 #include <cassert>
 #include <string>
 #include "common.h"
-
 using namespace std;
 [[maybe_unused]] const std::string GRAPH_PREFIX = "edgekey";
 
