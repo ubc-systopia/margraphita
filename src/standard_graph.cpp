@@ -101,7 +101,7 @@ void StandardGraph::init_cursors()
         throw GraphException("Could not get a cursor to the node table: " +
                              string(wiredtiger_strerror(ret)));
     }
-    ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, false);
+    ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, true);
     if (ret != 0)
     {
         throw GraphException("Could not get an edge cursor: " +
@@ -548,12 +548,20 @@ int StandardGraph::error_check(int ret, std::string file, int loc)
         case 0:
             return 0;
         case WT_DUPLICATE_KEY:
+            return -1;
         case WT_ROLLBACK:
+            session->rollback_transaction(session, NULL);
+            CommonUtil::log_msg("Error code( " + to_string(ret) +
+                                    ") :" + wiredtiger_strerror(ret),
+                                file,
+                                loc);
+            return 1;
         default:
             session->rollback_transaction(session, NULL);
             CommonUtil::log_msg("Error code( " + to_string(ret) +
                                     ") :" + wiredtiger_strerror(ret),
-                                file, loc);
+                                file,
+                                loc);
     }
     return ret;
 }
@@ -577,14 +585,13 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
     {
         if (!src_exists)
         {
-            node src = {0};
-            if (opts.is_directed)
+            node src;
+            src.id = to_insert.src_id;
+            src.out_degree = 1;
+            src.in_degree = 0;
+            if (opts.is_directed == false)
             {
-                src = {.id = to_insert.src_id, .in_degree = 0, .out_degree = 1};
-            }
-            else
-            {
-                src = {.id = to_insert.src_id, .in_degree = 1, .out_degree = 1};
+                src.in_degree = 1;
             }
             ret = error_check(add_node_txn(src), __FILE__, __LINE__);
             if (ret != 0)
@@ -597,21 +604,23 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
         node_cursor->reset(node_cursor);
         if (!dst_exists)
         {
-            node dst = {0};
-            if (opts.is_directed)
+            node dst;
+            dst.id = to_insert.dst_id;
+            dst.out_degree = 0;
+            dst.in_degree = 1;
+            if (opts.is_directed == false)
             {
-                dst = {.id = to_insert.dst_id, .in_degree = 1, .out_degree = 0};
-            }
-            else
-            {
-                dst = {.id = to_insert.dst_id, .in_degree = 1, .out_degree = 1};
+                dst.out_degree = 1;
             }
             ret = error_check(add_node_txn(dst), __FILE__, __LINE__);
             if (ret != 0)
             {
-                return ret;
+                return WT_ROLLBACK;
             }
-            num_nodes_to_add += 1;
+            else if (ret <= 0)  // -1 for WT_DUPLICATE_KEY, 0 for success
+            {
+                num_nodes_to_add += 1;
+            }
         }
         /*At this point the src and dst nodes exists in the context of the
         transaction, but have not yet been .committed to the database. If the
@@ -620,7 +629,8 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
         a WT_ROLLBACK error. We need to handle this case by rolling back the
         transaction and starting over.
         */
-
+        std::cout << "num nodes to be inserted:" << num_nodes_to_add
+                  << std::endl;
         CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
 
         if (opts.is_weighted)
@@ -640,9 +650,11 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
         else
         {
             CommonUtil::log_msg("Failed to insert edge between " +
-                                std::to_string(to_insert.src_id) + " and " +
-                                std::to_string(to_insert.dst_id) +
-                                wiredtiger_strerror(ret),__FILE__, __LINE__);
+                                    std::to_string(to_insert.src_id) + " and " +
+                                    std::to_string(to_insert.dst_id) +
+                                    wiredtiger_strerror(ret),
+                                __FILE__,
+                                __LINE__);
             return ret;
         }
 
@@ -660,7 +672,8 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                 edge_cursor->set_value(edge_cursor, 0);
             }
 
-            ret = error_check(edge_cursor->insert(edge_cursor), __FILE__, __LINE__);
+            ret = error_check(
+                edge_cursor->insert(edge_cursor), __FILE__, __LINE__);
             if (!ret)
             {
                 num_edges_to_add += 1;
@@ -668,9 +681,12 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             else
             {
                 CommonUtil::log_msg("Failed to insert (reverse) edge between " +
-                                    std::to_string(to_insert.dst_id) + " and " +
-                                    std::to_string(to_insert.src_id) +
-                                    wiredtiger_strerror(ret), __FILE__, __LINE__);
+                                        std::to_string(to_insert.dst_id) +
+                                        " and " +
+                                        std::to_string(to_insert.src_id) +
+                                        wiredtiger_strerror(ret),
+                                    __FILE__,
+                                    __LINE__);
                 return ret;
             }
         }
@@ -695,16 +711,20 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                     ret = error_check(update_node_degree(node_cursor,
                                                          found.id,
                                                          found.in_degree,
-                                                         found.out_degree),__FILE__, __LINE__);
-                                      //! pass the cursor
-                                      //! to this function
+                                                         found.out_degree),
+                                      __FILE__,
+                                      __LINE__);
+                    //! pass the cursor
+                    //! to this function
 
                     if (ret != 0)
                     {
                         CommonUtil::log_msg(
                             "Failed to update node degree for node " +
-                            std::to_string(to_insert.src_id) +
-                            wiredtiger_strerror(ret),__FILE__, __LINE__);
+                                std::to_string(to_insert.src_id) +
+                                wiredtiger_strerror(ret),
+                            __FILE__,
+                            __LINE__);
                         return ret;
                     }
                 }
@@ -722,13 +742,17 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
                     ret = error_check(update_node_degree(node_cursor,
                                                          found.id,
                                                          found.in_degree,
-                                                         found.out_degree),__FILE__, __LINE__);
+                                                         found.out_degree),
+                                      __FILE__,
+                                      __LINE__);
                     if (ret != 0)
                     {
                         CommonUtil::log_msg(
                             "Failed to update node degree for node " +
-                            std::to_string(to_insert.dst_id) +
-                            wiredtiger_strerror(ret),__FILE__, __LINE__);
+                                std::to_string(to_insert.dst_id) +
+                                wiredtiger_strerror(ret),
+                            __FILE__,
+                            __LINE__);
                         return ret;
                     }
                 }
