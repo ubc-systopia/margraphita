@@ -70,9 +70,12 @@ class CSR
 #pragma GCC optimize("O0")
     std::vector<long double> seek_and_scan(int vertex)
     {
+        // int _vertex = vertex - 1;
         std::vector<long double> results;
         Times timer;
         timer.start();
+        // [[maybe_unused]] int degree =
+        //     offsets[_vertex + 1] - offsets[_vertex];  // seek time
         [[maybe_unused]] int degree =
             offsets[vertex + 1] - offsets[vertex];  // seek time
         timer.stop();
@@ -81,10 +84,15 @@ class CSR
 
         timer.start();
         [[maybe_unused]] int element;
+        // for (int i = this->offsets[_vertex]; i < this->offsets[_vertex + 1];
+        //      i++)
+        // std::cout << "Vertex " << vertex << " has edges: [";
         for (int i = this->offsets[vertex]; i < this->offsets[vertex + 1]; i++)
         {
             element = this->edges[i];  // do nothing
+            // std::cout << this->edges[i] << " ";
         }
+        // std::cout << "]" << std::endl;
         timer.stop();
         results.push_back(timer.t_nanos());
         return results;
@@ -93,7 +101,10 @@ class CSR
 
     std::vector<int> get_edges(int vertex)
     {
+        // int _vertex = vertex - 1;
         std::vector<int> result;
+        // for (int i = this->offsets[_vertex]; i < this->offsets[_vertex + 1];
+        //      i++)
         for (int i = this->offsets[vertex]; i < this->offsets[vertex + 1]; i++)
         {
             result.push_back(this->edges[i]);
@@ -103,27 +114,31 @@ class CSR
 
     void print_csr()
     {
-        std::cout << "Offsets: ";
-        for (std::size_t i = 0; i < this->offsets.size(); i++)
-        {
-            std::cout << this->offsets[i] << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "Edges: ";
-        for (std::size_t i = 0; i < this->edges.size(); i++)
-        {
-            std::cout << this->edges[i] << " ";
-        }
-        std::cout << std::endl;
+        // std::cout << "Offsets: ";
+        // for (std::size_t i = 0; i < this->offsets.size(); i++)
+        // {
+        //     std::cout << this->offsets[i] << " ";
+        // }
+        // std::cout << std::endl;
+        // std::cout << "Edges: ";
+        // for (std::size_t i = 0; i < this->edges.size(); i++)
+        // {
+        //     std::cout << this->edges[i] << " ";
+        // }
+        // std::cout << std::endl;
 
         for (std::size_t i = 0; i < this->offsets.size() - 1; i++)
         {
-            std::cout << "Vertex " << i << " has edges: ";
-            for (int j = this->offsets[i]; j < this->offsets[i + 1]; j++)
+            std::cout << "Vertex " << i << " has "
+                      << this->offsets[i + 1] - this->offsets[i] << "edges: [ ";
+            if (i >= this->offsets.size() - 10)
             {
-                std::cout << this->edges[j] << " ";
+                for (int j = this->offsets[i]; j < this->offsets[i + 1]; j++)
+                {
+                    std::cout << this->edges[j] << " ";
+                }
             }
-            std::cout << std::endl;
+            std::cout << "]" << std::endl;
         }
     }
 
@@ -177,6 +192,12 @@ class CSR
     }
 };
 
+bool exists_file(const char *name)
+{
+    ifstream f(name);
+    return f.good();
+}
+
 void profile_csr(int num_vertices,
                  int num_edges,
                  std::filesystem::path graphfile,
@@ -195,14 +216,22 @@ void profile_csr(int num_vertices,
     assert(random_vertices.size() == 1000);
 
     char outfile_name[256];
-    char random_id_file_name[256];
     sprintf(outfile_name, "%s_csr_ubench.txt", graphfile.stem().c_str());
-    sprintf(random_id_file_name, "%s_random_ids.txt", graphfile.stem().c_str());
 
     // profile seek and scan results file
-    std::ofstream csr_seek_scan_outfile(outfile_name);
-    csr_seek_scan_outfile
-        << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns" << std::endl;
+    std::fstream csr_seek_scan_outfile;
+    if (!exists_file(outfile_name))
+    {
+        csr_seek_scan_outfile.open(outfile_name, std::ios::out);
+        csr_seek_scan_outfile
+            << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns"
+            << std::endl;
+    }
+    else
+    {
+        csr_seek_scan_outfile.open(outfile_name, std::ios::out | std::ios::app);
+    }
+
     for (int sample : random_vertices)
     {
         std::vector<long double> time = csr.seek_and_scan(sample);
@@ -221,10 +250,24 @@ int main(int argc, char *argv[])
                   << std::endl;
         return 0;
     }
+    cpu_set_t mask;
+    int status;
+
+    CPU_ZERO(&mask);
+    CPU_SET(4, &mask);
+    status = sched_setaffinity(0, sizeof(mask), &mask);
+    if (status != 0)
+    {
+        perror("sched_setaffinity");
+    }
+
     int num_vertices = atoi(argv[1]);
     int num_edges = atoi(argv[2]);
     std::filesystem::path graphfile(argv[3]);
     int num_random_samples = 1000;
+
+    std::cout << "Num vertices: " << num_vertices << std::endl;
+    std::cout << "Num edges: " << num_edges << std::endl;
 
     // check if graph exists
     if (!std::filesystem::exists(graphfile))
@@ -235,7 +278,9 @@ int main(int argc, char *argv[])
 
     CSR csr(num_vertices, num_edges);
     csr.insert_graph(graphfile);
+    // csr.print_csr();
 
     // Profile the CSR
-    profile_csr(num_vertices, num_edges, graphfile, num_random_samples, csr);
+    // profile_csr(num_vertices, num_edges, graphfile, num_random_samples, csr);
+    csr.print_csr();
 }

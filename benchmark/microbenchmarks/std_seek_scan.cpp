@@ -65,17 +65,25 @@ struct time_result seek_and_scan(node_id_t vertex,
         if (found.src_id == vertex)
         {
             ++results.degree;
+            // std::cout << found.dst_id << " ";
         }
         else
         {
             break;
         }
         edge_cursor->next(edge_cursor);
+        // std::cout << std::endl;
     } while (found.src_id == vertex);
 
     timer.stop();
     results.time_scan = timer.t_nanos();
     return results;
+}
+
+bool exists_file(const char *name)
+{
+    ifstream f(name);
+    return f.good();
 }
 
 void profile_wt_std(const filesystem::path &graphfile,
@@ -98,11 +106,20 @@ void profile_wt_std(const filesystem::path &graphfile,
     // create file for adjlist seek and scan times
     char outfile_name[256];
     sprintf(outfile_name, "%s_std_ubench.txt", graphfile.stem().c_str());
-    std::cout << outfile_name << std::endl;
-    std::ofstream std_seek_scan_outfile(outfile_name);
 
-    std_seek_scan_outfile
-        << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns" << std::endl;
+    std::fstream std_seek_scan_outfile;
+    if (!exists_file(outfile_name))
+    {
+        std_seek_scan_outfile.open(outfile_name, std::ios::out);
+        std_seek_scan_outfile
+            << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns"
+            << std::endl;
+    }
+    else
+    {
+        std_seek_scan_outfile.open(outfile_name, std::ios::out | std::ios::app);
+    }
+
     for (node_id_t sample : random_ids)
     {
         struct time_result time = seek_and_scan(sample, graph, session);
@@ -122,6 +139,18 @@ int main(int argc, char *argv[])
                   << std::endl;
         return 0;
     }
+
+    cpu_set_t mask;
+    int status;
+
+    CPU_ZERO(&mask);
+    CPU_SET(7, &mask);
+    status = sched_setaffinity(0, sizeof(mask), &mask);
+    if (status != 0)
+    {
+        perror("sched_setaffinity");
+    }
+
     std::filesystem::path graphfile(argv[1]);
     string wt_db_dir(argv[2]);
     std::string wt_db_name = argv[3];

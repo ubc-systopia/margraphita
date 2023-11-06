@@ -1,3 +1,4 @@
+#include <sched.h>
 #include <times.h>
 
 #include <boost/archive/binary_iarchive.hpp>
@@ -67,9 +68,11 @@ struct time_result seek_and_scan(node_id_t vertex,
         if (src == MAKE_EKEY(vertex))
         {
             ++results.degree;
+            // std::cout << OG_KEY(dst) << " ";
         }
         else
         {
+            // std::cout << std::endl;
             break;
         }
     }
@@ -77,6 +80,12 @@ struct time_result seek_and_scan(node_id_t vertex,
     results.time_scan = timer.t_nanos();
 
     return results;
+}
+
+bool exists_file(const char *name)
+{
+    ifstream f(name);
+    return f.good();
 }
 
 void profile_wt_ekey(const filesystem::path &graphfile,
@@ -97,11 +106,21 @@ void profile_wt_ekey(const filesystem::path &graphfile,
     // create file for adjlist seek and scan times
     char outfile_name[256];
     sprintf(outfile_name, "%s_ekey_ubench.txt", graphfile.stem().c_str());
-    std::cout << outfile_name << std::endl;
-    std::ofstream ekey_seek_scan_outfile(outfile_name);
 
-    ekey_seek_scan_outfile
-        << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns" << std::endl;
+    std::fstream ekey_seek_scan_outfile;
+    if (!exists_file(outfile_name))
+    {
+        ekey_seek_scan_outfile.open(outfile_name, std::ios::out);
+        ekey_seek_scan_outfile
+            << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns"
+            << std::endl;
+    }
+    else
+    {
+        ekey_seek_scan_outfile.open(outfile_name,
+                                    std::ios::out | std::ios::app);
+    }
+
     for (node_id_t sample : random_ids)
     {
         struct time_result time = seek_and_scan(sample, graph, session);
@@ -121,6 +140,18 @@ int main(int argc, char *argv[])
                   << std::endl;
         return 0;
     }
+
+    cpu_set_t mask;
+    int status;
+
+    CPU_ZERO(&mask);
+    CPU_SET(3, &mask);
+    status = sched_setaffinity(0, sizeof(mask), &mask);
+    if (status != 0)
+    {
+        perror("sched_setaffinity");
+    }
+
     std::filesystem::path graphfile(argv[1]);
     string wt_db_dir(argv[2]);
     std::string wt_db_name = argv[3];

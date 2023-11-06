@@ -11,10 +11,17 @@ We assume that the graphs have already been generated at : graph_dir + /s{i}_e8/
 The database is assumed to be present where the bulk ingested DB was created :
     $DB_DIR/s{i}_e8
 '''
+print ("number of cpus:", os.cpu_count())
+pid = os.getpid()
+print ("cpu affinity:", os.sched_getaffinity(pid))
+os.sched_setaffinity(pid, {0, 1})
 
-for i in range(20, 27):
+for i in range(20, 21):
     vertices = 2 ** i
     edges = vertices * 8
+    cmd = f"wc -l {graph_dir}/s{i}_e8/graph_s{i}_e8_nodes | cut -d' ' -f1"
+    vertices = os.popen(cmd).read()
+
     # run the adjlist benchmark
     print(
         f"\nBenchmarking AdjList for the s{i} graph with {vertices} vertices and {edges} edges:")
@@ -42,7 +49,7 @@ for i in range(20, 27):
     # run the CSR benchmark
     print(
         f"Benchmarking CSR for the s{i} graph with {vertices} vertices and {edges} edges:")
-    cmd = f"./csr_seek_scan {vertices} {edges} {graph_dir}/s{i}_e8/graph_s{i}_e8"
+    cmd = f"./csr_seek_scan {vertices} {edges} {graph_dir}/s{i}_e8/graph_s{i}_e8_sorted"
     print(f"{cmd}\n")
     os.system(cmd)
     print('-' * 100)

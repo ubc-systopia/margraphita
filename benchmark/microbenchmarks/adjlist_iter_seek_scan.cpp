@@ -61,18 +61,27 @@ struct time_result test_out_cursor(node_id_t vertex,
         if (found.src_id == vertex)
         {
             ++results.degree;
+            // std::cout << found.dst_id << " ";
         }
         else
         {
+            // std::cout << std::endl;
             break;
         }
         edge_cursor->next(edge_cursor);
+
     } while (found.src_id == vertex);
 
     timer.stop();
     assert(results.degree == graph.get_out_degree(vertex));
     results.time_scan = timer.t_nanos();
     return results;
+}
+
+bool exists_file(const char *name)
+{
+    ifstream f(name);
+    return f.good();
 }
 
 void profile_wt_adjlist(const filesystem::path &graphfile,
@@ -96,10 +105,21 @@ void profile_wt_adjlist(const filesystem::path &graphfile,
     sprintf(outfile_iter_name,
             "%s_adjlist_iter_ubench.txt",
             graphfile.stem().c_str());
-    std::ofstream adjlist_iter_seek_scan_outfile(outfile_iter_name);
 
-    adjlist_iter_seek_scan_outfile
-        << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns" << std::endl;
+    // profile seek and scan results file
+    std::fstream adjlist_iter_seek_scan_outfile;
+    if (!exists_file(outfile_iter_name))
+    {
+        adjlist_iter_seek_scan_outfile.open(outfile_iter_name, std::ios::out);
+        adjlist_iter_seek_scan_outfile
+            << "vertex_id,degree,seek_time_ns,scan_time_per_edge_ns"
+            << std::endl;
+    }
+    else
+    {
+        adjlist_iter_seek_scan_outfile.open(outfile_iter_name,
+                                            std::ios::out | std::ios::app);
+    }
 
     for (auto sample : random_ids)
     {
@@ -121,6 +141,17 @@ int main(int argc, char *argv[])
                   << std::endl;
         return 0;
     }
+    cpu_set_t mask;
+    int status;
+
+    CPU_ZERO(&mask);
+    CPU_SET(5, &mask);
+    status = sched_setaffinity(0, sizeof(mask), &mask);
+    if (status != 0)
+    {
+        perror("sched_setaffinity");
+    }
+
     std::filesystem::path graphfile(argv[1]);
     string wt_db_dir(argv[2]);
     std::string wt_db_name = argv[3];
