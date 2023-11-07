@@ -10,10 +10,10 @@
 #include <cstring>
 #include <iostream>
 #include <map>
-//#ifdef LINUX
-//#include <source_location>
-//#define SRC_LOC std::source_location::current()
-//#endif
+// #ifdef LINUX
+// #include <source_location>
+// #define SRC_LOC std::source_location::current()
+// #endif
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -168,9 +168,9 @@ class CommonUtil
                                                         size_t size,
                                                         char *packed_str);
 
-    static void log_msg(
-         std::string_view message,
-        std::string_view file, int location);
+    static void log_msg(std::string_view message,
+                        std::string_view file,
+                        int location);
 
     // WT Session and Cursor wrangling operations
     [[maybe_unused]] static int open_cursor(WT_SESSION *session,
@@ -442,8 +442,10 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
     if (ret)
     {
         CommonUtil::log_msg("Error inserting into adjlist table" +
-                            std::to_string(ret) + " - " +
-                            wiredtiger_strerror(ret), __FILE__, __LINE__);
+                                std::to_string(ret) + " - " +
+                                wiredtiger_strerror(ret),
+                            __FILE__,
+                            __LINE__);
     }
     cursor->reset(cursor);
     return 0;

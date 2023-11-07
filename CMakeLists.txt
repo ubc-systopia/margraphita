@@ -53,28 +53,29 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 ELSE()
   MESSAGE("Generating a release build (-O3)")
   MESSAGE("Generating a Release build for WiredTiger")
-
+  SET(CMAKE_BUILD_TYPE "Release")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 # ################################################################################
 # Include WiredTiger
 # ################################################################################
-include(libs/wiredtiger/wiredtiger.cmake)
+include(wiredtiger.cmake)
 
 find_package(Git QUIET)
 
 # # ######################################################
 # # Include fmtlib and Boost Serialization              #
 # # ######################################################
-# FetchContent_Declare(fmt
-# GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-# GIT_TAG master
-# )
-# FetchContent_MakeAvailable(fmt)
-find_package(Boost COMPONENTS serialization REQUIRED)
-#find_package(Boost)
+FetchContent_Declare(fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(fmt)
 
+find_package(Boost COMPONENTS serialization REQUIRED)
+
+# find_package(Boost)
 if(Boost_FOUND)
   message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
   message(STATUS "Boost_LIBRARIES: ${Boost_LIBRARIES}")
@@ -89,7 +90,8 @@ endif()
 SET(NAME_LIB "GraphAPI")
 
 SET(PATH_BUILD "${PROJECT_SOURCE_DIR}/build")
-SET(PATH_INCLUDE "${WT_INSTALL_DIR}/include ${WT_INSTALL_DIR}/lib")
+SET(PATH_INCLUDE "${WT_INSTALL_DIR}/include")
+SET(PATH_LIBRARY "${WT_INSTALL_DIR}/lib")
 SET(PATH_SRC "${PROJECT_SOURCE_DIR}/src")
 SET(PATH_TEST "${PROJECT_SOURCE_DIR}/test")
 SET(BENCHMARK "${PROJECT_SOURCE_DIR}/benchmark")

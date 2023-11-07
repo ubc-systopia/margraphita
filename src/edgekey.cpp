@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cassert>
 #include <string>
+
 #include "common.h"
 using namespace std;
 [[maybe_unused]] const std::string GRAPH_PREFIX = "edgekey";
@@ -60,8 +61,8 @@ void EdgeKey::create_indices(WT_SESSION *sess)
     std::string idx_name, idx_conf;
     // Index on (DST,SRC) columns of the edge table
     // Used for adjacency neighbourhood iterators
-    idx_name = "index:"+EDGE_TABLE+":"+ DST_SRC_INDEX+")";
-    idx_conf = "columns=("+DST+","+SRC+")";
+    idx_name = "index:" + EDGE_TABLE + ":" + DST_SRC_INDEX;
+    idx_conf = "columns=(" + DST + "," + SRC + ")";
     if (sess->create(sess, idx_name.c_str(), idx_conf.c_str()) != 0)
     {
         throw GraphException(

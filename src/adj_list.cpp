@@ -243,8 +243,10 @@ int AdjList::add_node_in_txn(node to_insert)
         {
             CommonUtil::log_msg(
                 "Duplicate key in add_node_in_txn. Node " +
-                to_string(to_insert.id) +
-                " already exists. : " + wiredtiger_strerror(ret), __FILE__, __LINE__);
+                    to_string(to_insert.id) +
+                    " already exists. : " + wiredtiger_strerror(ret),
+                __FILE__,
+                __LINE__);
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -257,8 +259,10 @@ int AdjList::add_node_in_txn(node to_insert)
         {
             CommonUtil::log_msg(
                 "Duplicate key in add_node_in_txn. Node " +
-                to_string(to_insert.id) +
-                " already exists. : " + wiredtiger_strerror(ret),__FILE__, __LINE__);
+                    to_string(to_insert.id) +
+                    " already exists. : " + wiredtiger_strerror(ret),
+                __FILE__,
+                __LINE__);
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -270,8 +274,10 @@ int AdjList::add_node_in_txn(node to_insert)
         {
             CommonUtil::log_msg(
                 "Duplicate key in add_adjlist. An adjlist for node " +
-                to_string(to_insert.id) +
-                " already exists. : " + wiredtiger_strerror(ret),__FILE__, __LINE__);
+                    to_string(to_insert.id) +
+                    " already exists. : " + wiredtiger_strerror(ret),
+                __FILE__,
+                __LINE__);
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -378,7 +384,9 @@ int AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
     if (ret)
     {
         CommonUtil::log_msg("Failed to delete adjlist for node_id " +
-                            std::to_string(node_id) + "; TX rolled back.",__FILE__, __LINE__);
+                                std::to_string(node_id) + "; TX rolled back.",
+                            __FILE__,
+                            __LINE__);
         return ret;
     }
     cursor->reset(cursor);
@@ -413,7 +421,8 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     {
         CommonUtil::log_msg(
             "Failed to add node_id " + std::to_string(to_insert.dst_id),
-            __FILE__, __LINE__);
+            __FILE__,
+            __LINE__);
         return WT_ROLLBACK;
     }
     num_nodes_added++;
@@ -424,7 +433,8 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
     {
         CommonUtil::log_msg(
             "Failed to add node_id " + std::to_string(to_insert.dst_id),
-            __FILE__, __LINE__);
+            __FILE__,
+            __LINE__);
         return WT_ROLLBACK;
     }
     num_nodes_added++;
@@ -561,7 +571,8 @@ int AdjList::delete_node(node_id_t node_id)
     {
         CommonUtil::log_msg("Failed to delete node_id " +
                                 std::to_string(node_id) + "; TX rolled back.",
-                            __FILE__, __LINE__);
+                            __FILE__,
+                            __LINE__);
         return ret;
     }
     node_cursor->reset(node_cursor);
@@ -981,7 +992,8 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
         CommonUtil::log_msg("Failed to delete edge ()" +
                                 std::to_string(src_id) + "," +
                                 std::to_string(dst_id) + "); TX rolled back.",
-                            __FILE__, __LINE__);
+                            __FILE__,
+                            __LINE__);
         return ret;
     }
     // delete (dst_id, src_id) from edge table if undirected
@@ -993,7 +1005,8 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
             CommonUtil::log_msg(
                 "Failed to delete edge ()" + std::to_string(dst_id) + "," +
                     std::to_string(src_id) + "); TX rolled back.",
-                __FILE__, __LINE__);
+                __FILE__,
+                __LINE__);
             return ret;
         }
     }
@@ -1118,7 +1131,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
     CommonUtil::record_to_adjlist(
         session, cursor, &found);  //<-- This works just fine.
     found.edgelist.emplace_back(
-        to_insert);                // this needs to be converted first.
+        to_insert);  // this needs to be converted first.
     found.degree += 1;
     ret = error_check_insert_txn(
         CommonUtil::adjlist_to_record(session, cursor, found), false);
@@ -1127,7 +1140,8 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
         CommonUtil::log_msg("Could not insert adjlist for " +
                                 std::to_string(node_id) +
                                 "; TX NOT rolled back.",
-                            __FILE__, __LINE__);
+                            __FILE__,
+                            __LINE__);
     }
     cursor->reset(cursor);
     return ret;
@@ -1590,7 +1604,8 @@ int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
         CommonUtil::log_msg("Failed to delete edge ()" +
                                 std::to_string(src_id) + "," +
                                 std::to_string(dst_id) + "); TX rolled back.",
-                            __FILE__, __LINE__);
+                            __FILE__,
+                            __LINE__);
         return ret;
     }
     // delete (dst_id, src_id) from edge table if undirected
@@ -1602,7 +1617,8 @@ int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
             CommonUtil::log_msg(
                 "Failed to delete edge ()" + std::to_string(dst_id) + "," +
                     std::to_string(src_id) + "); TX rolled back.",
-                __FILE__, __LINE__);
+                __FILE__,
+                __LINE__);
             return ret;
         }
     }
@@ -1662,14 +1678,15 @@ int AdjList::error_check_insert_txn(int return_val, bool ignore_duplicate_key)
                 /*Rolling back the transaction here is not necessary if the
                  * cursor has been opened with overwrite=false. A plain warning
                  * is enough. */
-                CommonUtil::log_msg("WT_DUPLICATE_KEY error in insert_txn",
-                                    __FILE__, __LINE__);
+                CommonUtil::log_msg(
+                    "WT_DUPLICATE_KEY error in insert_txn", __FILE__, __LINE__);
             }
             return WT_DUPLICATE_KEY;
         case WT_NOTFOUND:
             //! Should we roll back the transaction here? This should not
             //! happen.
-            CommonUtil::log_msg("WT_NOTFOUND error in insert_txn", __FILE__, __LINE__);
+            CommonUtil::log_msg(
+                "WT_NOTFOUND error in insert_txn", __FILE__, __LINE__);
             return WT_NOTFOUND;
         default:
             session->rollback_transaction(session, nullptr);
