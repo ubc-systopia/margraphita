@@ -3,7 +3,6 @@ project(graphapi VERSION 1.0
   DESCRIPTION "C++ GraphAPI for WiredTiger"
   LANGUAGES CXX
 )
-
 include(FetchContent)
 
 # ################################################################################
@@ -22,7 +21,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   MESSAGE(STATUS "Building on MacOSX")
   add_compile_definitions(MACOSX)
-  SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -g")
+  SET(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -g")
   SET(OpenMP_CXX_FLAGS "-Xpreprocessor -fopenmp")
   SET(OMP_INCLUDE_DIR "/usr/local/opt/libomp/include")
   SET(OpenMP_CXX_LIB_NAMES "omp")
@@ -32,35 +31,36 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 else()
   MESSAGE(STATUS "Building on Linux")
   add_compile_definitions(LINUX)
-  SET(CMAKE_CXX_FLAGS "-Wall -Wpedantic -fopenmp -g")
-  find_package(Threads)
-  SET(LIB_THREADS Threads::Threads)
+
+  # SET(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic -g")
+  # find_package(Threads)
+  # SET(LIB_THREADS Threads::Threads)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
 
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-  MESSAGE(STATUS "Generating a debug build for the project and WiredTiger")
+# ################################################################################
+# Include WiredTiger
+# ################################################################################
+include(wiredtiger.cmake)
+
+IF (CMAKE_BUILD_TYPE MATCHES Debug)
+  MESSAGE(STATUS "Generating a debug build for the project")
 
   if(stat)
     MESSAGE(STATUS "Enabling statistics on WT")
     add_compile_definitions(STAT)
   endif()
 
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Og -g -fno-inline-functions -fno-omit-frame-pointer")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -Og -g -fno-inline-functions -fno-omit-frame-pointer  -fopenmp")
 ELSE()
   MESSAGE("Generating a release build (-O3)")
-  MESSAGE("Generating a Release build for WiredTiger")
-  SET(CMAKE_BUILD_TYPE "Release")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
-# ################################################################################
-# Include WiredTiger
-# ################################################################################
-include(wiredtiger.cmake)
+  SET(CMAKE_BUILD_TYPE "Release")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wpedantic -O3 -g -fopenmp")
+ENDIF (CMAKE_BUILD_TYPE MATCHES Debug)
+
+MESSAGE(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 find_package(Git QUIET)
 
@@ -69,10 +69,11 @@ find_package(Git QUIET)
 # # ######################################################
 FetchContent_Declare(fmt
   GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-  GIT_TAG master
+        GIT_TAG 10.1.1
 )
 FetchContent_MakeAvailable(fmt)
 
+#find_package(fmt)
 find_package(Boost COMPONENTS serialization REQUIRED)
 
 # find_package(Boost)

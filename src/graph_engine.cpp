@@ -183,7 +183,8 @@ void GraphEngine::open_connection()
 
 void GraphEngine::close_connection()
 {
-    CommonUtil::close_connection(conn);
+    // CommonUtil::close_connection(conn);
+    conn->close(conn, NULL);
     conn = NULL;
 }
 

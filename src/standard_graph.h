@@ -502,6 +502,9 @@ class StandardGraph : public GraphBase
     int add_edge(edge to_insert, bool is_bulk);
     bool has_edge(node_id_t src_id, node_id_t dst_id);
     int delete_edge(node_id_t src_id, node_id_t dst_id);
+    int update_edge_weight(node_id_t src_id,
+                           node_id_t dst_id,
+                           edgeweight_t weight);
     edge get_edge(node_id_t src_id,
                   node_id_t dst_id);  // todo <-- implement this
     std::vector<edge> get_edges();
@@ -553,14 +556,14 @@ class StandardGraph : public GraphBase
                            degree_t indeg,
                            degree_t outdeg);
     void delete_related_edges(WT_CURSOR *index_cursor, node_id_t node_id);
-    int error_check(int ret,std::string file, int loc);
+    int error_check(int ret, std::string file, int loc);
     int add_node_txn(node to_insert);
     int delete_edge_txn(node_id_t src_id,
                         node_id_t dst_id,
                         int *num_edges_to_add_ptr);
 
     node get_next_node(WT_CURSOR *n_iter);
-    edge get_next_edge(WT_CURSOR *e_iter);
+    [[maybe_unused]] static edge get_next_edge(WT_CURSOR *e_iter);
 };
 
 #endif

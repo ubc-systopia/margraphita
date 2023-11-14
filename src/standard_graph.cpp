@@ -186,11 +186,11 @@ void StandardGraph::drop_indices()
 
     // Drop (src) index on edge table
     string uri = "index:" + EDGE_TABLE + ":" + SRC_INDEX;
-    this->session->drop(this->session, uri.c_str(), NULL);
+    this->session->drop(this->session, uri.c_str(), nullptr);
 
     // Drop (dst) index on the edge table
     uri = "index:" + EDGE_TABLE + ":" + DST_INDEX;
-    this->session->drop(this->session, uri.c_str(), NULL);
+    this->session->drop(this->session, uri.c_str(), nullptr);
 }
 
 /**
@@ -229,19 +229,19 @@ int StandardGraph::add_node(node to_insert)
         case 0:
             break;
         case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         case WT_DUPLICATE_KEY:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_DUPLICATE_KEY;
             // return;
         default:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             throw GraphException("Failed to add node_id" +
                                  std::to_string(to_insert.id));
     }
 
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nnodes(1);
     return 0;
 }
@@ -258,7 +258,9 @@ int StandardGraph::add_node_txn(node to_insert)
     {
         node_cursor->set_value(node_cursor, "");
     }
-    return node_cursor->insert(node_cursor);
+    int ret = node_cursor->insert(node_cursor);
+    node_cursor->reset(node_cursor);
+    return ret;
 }
 
 /**
@@ -270,6 +272,7 @@ int StandardGraph::add_node_txn(node to_insert)
  */
 bool StandardGraph::has_node(node_id_t node_id)
 {
+    assert(node_cursor != nullptr);
     CommonUtil::set_key(node_cursor, node_id);
     int ret = node_cursor->search(node_cursor);
     node_cursor->reset(node_cursor);
@@ -285,28 +288,39 @@ bool StandardGraph::has_node(node_id_t node_id)
  */
 bool StandardGraph::has_edge(node_id_t src_id, node_id_t dst_id)
 {
-    CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
-    int ret = src_dst_index_cursor->search(src_dst_index_cursor);
-    src_dst_index_cursor->reset(src_dst_index_cursor);
+    CommonUtil::set_key(edge_cursor, src_id, dst_id);
+    int ret = edge_cursor->search(edge_cursor);
+    edge_cursor->reset(edge_cursor);
     return (ret == 0);
 }
 
 edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
 {
     edge found = {-1, -1, -1, -1};
-    CommonUtil::set_key(src_dst_index_cursor, src_id, dst_id);
-    int ret = src_dst_index_cursor->search(src_dst_index_cursor);
+    CommonUtil::set_key(edge_cursor, src_id, dst_id);
+    int ret = edge_cursor->search(edge_cursor);
     if (ret == 0)
     {
         found.src_id = src_id;
         found.dst_id = dst_id;
         if (opts.is_weighted)
         {
-            CommonUtil::read_from_edge_idx(src_dst_index_cursor, &found);
+            CommonUtil::record_to_edge(edge_cursor, &found);
         }
     }
-    src_dst_index_cursor->reset(src_dst_index_cursor);
+    edge_cursor->reset(edge_cursor);
     return found;
+}
+
+int StandardGraph::update_edge_weight(node_id_t src,
+                                      node_id_t dst,
+                                      edgeweight_t weight)
+{
+    if (!opts.is_weighted) return 0;  // no weight to update
+    CommonUtil::set_key(edge_cursor, src, dst);
+    edge_cursor->set_value(edge_cursor, weight);
+
+    return edge_cursor->update(edge_cursor);
 }
 
 node StandardGraph::get_node(node_id_t node_id)
@@ -328,7 +342,7 @@ node StandardGraph::get_random_node()
     node found = {0};
     int ret = 0;
 
-    if (this->random_node_cursor == NULL)
+    if (this->random_node_cursor == nullptr)
     {
         ret = _get_table_cursor(
             NODE_TABLE, &random_node_cursor, session, true, false);
@@ -361,7 +375,7 @@ int StandardGraph::delete_node(node_id_t node_id)
 
     if (!has_node(node_id))
     {
-        session->rollback_transaction(session, NULL);
+        session->rollback_transaction(session, nullptr);
         return WT_NOTFOUND;
     }
 
@@ -377,10 +391,10 @@ int StandardGraph::delete_node(node_id_t node_id)
             case 0:
                 break;
             case WT_ROLLBACK:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 return WT_ROLLBACK;
             default:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 throw GraphException("Error msg here");
         }
     }
@@ -393,10 +407,10 @@ int StandardGraph::delete_node(node_id_t node_id)
             case 0:
                 break;
             case WT_ROLLBACK:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 return WT_ROLLBACK;
             default:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 throw GraphException("Error msg here");
         }
     }
@@ -412,15 +426,15 @@ int StandardGraph::delete_node(node_id_t node_id)
             num_nodes_to_add -= 1;
             break;
         case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         default:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             throw GraphException("Could not delete node with ID " +
                                  to_string(node_id));
     }
 
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nedges(num_edges_to_add);
     add_to_nnodes(num_nodes_to_add);
 
@@ -541,31 +555,6 @@ void StandardGraph::get_nodes(vector<node> &nodes)
     node_cursor->reset(node_cursor);
 }
 
-int StandardGraph::error_check(int ret, std::string file, int loc)
-{
-    switch (ret)
-    {
-        case 0:
-            return 0;
-        case WT_DUPLICATE_KEY:
-            return -1;
-        case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
-            CommonUtil::log_msg("Error code( " + to_string(ret) +
-                                    ") :" + wiredtiger_strerror(ret),
-                                file,
-                                loc);
-            return 1;
-        default:
-            session->rollback_transaction(session, NULL);
-            CommonUtil::log_msg("Error code( " + to_string(ret) +
-                                    ") :" + wiredtiger_strerror(ret),
-                                file,
-                                loc);
-    }
-    return ret;
-}
-
 /**
  * @brief Insert an edge into the edge table
  *
@@ -578,60 +567,103 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
     int ret = 0;
 
     session->begin_transaction(session, "isolation=snapshot");
-    bool src_exists = has_node(to_insert.src_id);
-    bool dst_exists = has_node(to_insert.dst_id);
-    // Ensure src and dst nodes exist
-    if (!is_bulk)
+
+    /***** Insert nodes if they don't exist *****/
+    node src{.id = to_insert.src_id, .in_degree = 0, .out_degree = 1};
+    node dst{.id = to_insert.dst_id, .in_degree = 1, .out_degree = 0};
+    if (!opts.is_directed)
     {
-        if (!src_exists)
-        {
-            node src;
-            src.id = to_insert.src_id;
-            src.out_degree = 1;
-            src.in_degree = 0;
-            if (opts.is_directed == false)
-            {
-                src.in_degree = 1;
-            }
-            ret = error_check(add_node_txn(src), __FILE__, __LINE__);
-            if (ret != 0)
-            {
-                return ret;  // ret == 1 means rollback, ret == -1 means
-                             // duplicate key
-            }
+        src.in_degree = 1;
+        dst.out_degree = 1;
+    }
+    ret = add_node_txn(src);
+
+    switch (ret)
+    {
+        case 0:
             num_nodes_to_add += 1;
-        }
-        node_cursor->reset(node_cursor);
-        if (!dst_exists)
+            break;
+        case WT_DUPLICATE_KEY:
         {
-            node dst;
-            dst.id = to_insert.dst_id;
-            dst.out_degree = 0;
-            dst.in_degree = 1;
-            if (opts.is_directed == false)
-            {
-                dst.out_degree = 1;
-            }
-            ret = error_check(add_node_txn(dst), __FILE__, __LINE__);
-            if (ret != 0)
-            {
-                return WT_ROLLBACK;
-            }
-            else if (ret <= 0)  // -1 for WT_DUPLICATE_KEY, 0 for success
-            {
-                num_nodes_to_add += 1;
-            }
+            node found = get_node(src.id);
+            update_node_degree(node_cursor,
+                               found.id,
+                               (src.in_degree + found.in_degree),
+                               (src.out_degree + found.out_degree));
         }
-        /*At this point the src and dst nodes exists in the context of the
-        transaction, but have not yet been .committed to the database. If the
-        transaction is rolled back, the nodes will be removed. In the following
-        steps, if we try to edit the node (to increment the degree), we will get
-        a WT_ROLLBACK error. We need to handle this case by rolling back the
-        transaction and starting over.
-        */
-        std::cout << "num nodes to be inserted:" << num_nodes_to_add
-                  << std::endl;
-        CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
+        break;
+        case WT_ROLLBACK:
+        default:
+            session->rollback_transaction(session, nullptr);
+            throw GraphException("Failed to add node_id" +
+                                 std::to_string(to_insert.src_id));
+    }
+
+    ret = add_node_txn(dst);
+    switch (ret)
+    {
+        case 0:
+            num_nodes_to_add += 1;
+            break;
+        case WT_DUPLICATE_KEY:
+        {
+            node found = get_node(dst.id);
+            update_node_degree(node_cursor,
+                               found.id,
+                               (found.in_degree + dst.in_degree),
+                               (found.out_degree + dst.out_degree));
+        }
+        break;
+        case WT_ROLLBACK:
+        default:
+            session->rollback_transaction(session, nullptr);
+            CommonUtil::log_msg(
+                "Failed to add node_id" + std::to_string(to_insert.dst_id),
+                __FILE__,
+                __LINE__);
+    }
+
+    /***** Insert edge *****/
+    CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
+
+    if (opts.is_weighted)
+    {
+        edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
+    }
+    else
+    {
+        edge_cursor->set_value(edge_cursor, 0);
+    }
+
+    ret = edge_cursor->insert(edge_cursor);
+    switch (ret)
+    {
+        case 0:
+            num_edges_to_add += 1;
+            break;
+        case WT_ROLLBACK:
+            session->rollback_transaction(session, nullptr);
+            CommonUtil::log_msg("Failed to insert edge between " +
+                                    std::to_string(to_insert.src_id) + " and " +
+                                    std::to_string(to_insert.dst_id) +
+                                    wiredtiger_strerror(ret),
+                                __FILE__,
+                                __LINE__);
+            return WT_ROLLBACK;
+        case WT_DUPLICATE_KEY:
+            if (opts.is_weighted)
+            {
+                update_edge_weight(
+                    to_insert.src_id, to_insert.dst_id, to_insert.edge_weight);
+            }
+            break;
+        default:
+            break;  // do nothing
+    }
+
+    if (!opts.is_directed)
+    {
+        CommonUtil::set_key(edge_cursor, to_insert.dst_id, to_insert.src_id);
 
         if (opts.is_weighted)
         {
@@ -642,125 +674,34 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
             edge_cursor->set_value(edge_cursor, 0);
         }
 
-        ret = error_check(edge_cursor->insert(edge_cursor), __FILE__, __LINE__);
-        if (!ret)
+        ret = edge_cursor->insert(edge_cursor);
+        switch (ret)
         {
-            num_edges_to_add += 1;
-        }
-        else
-        {
-            CommonUtil::log_msg("Failed to insert edge between " +
-                                    std::to_string(to_insert.src_id) + " and " +
-                                    std::to_string(to_insert.dst_id) +
-                                    wiredtiger_strerror(ret),
-                                __FILE__,
-                                __LINE__);
-            return ret;
-        }
-
-        if (!opts.is_directed)
-        {
-            CommonUtil::set_key(
-                edge_cursor, to_insert.dst_id, to_insert.src_id);
-
-            if (opts.is_weighted)
-            {
-                edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
-            }
-            else
-            {
-                edge_cursor->set_value(edge_cursor, 0);
-            }
-
-            ret = error_check(
-                edge_cursor->insert(edge_cursor), __FILE__, __LINE__);
-            if (!ret)
-            {
+            case 0:
                 num_edges_to_add += 1;
-            }
-            else
-            {
-                CommonUtil::log_msg("Failed to insert (reverse) edge between " +
+                break;
+            case WT_ROLLBACK:
+                session->rollback_transaction(session, nullptr);
+                CommonUtil::log_msg("Failed to insert edge between " +
                                         std::to_string(to_insert.dst_id) +
                                         " and " +
                                         std::to_string(to_insert.src_id) +
                                         wiredtiger_strerror(ret),
                                     __FILE__,
                                     __LINE__);
-                return ret;
-            }
-        }
-
-        if (!is_bulk)
-        {
-            // If opts.read_optimized is true, we update in/out degreees in the
-            // node table.
-            if (this->opts.read_optimize)
-            {
-                // If the node exists, search and update. Otherwise, insert.
-                if (src_exists)
-                {
-                    CommonUtil::set_key(node_cursor, to_insert.src_id);
-                    node_cursor->search(node_cursor);
-                    // update in/out degrees for src node in NODE_TABLE
-                    node found = {0};
-                    CommonUtil::record_to_node(
-                        node_cursor, &found, opts.read_optimize);
-                    found.id = to_insert.src_id;
-                    found.out_degree++;
-                    ret = error_check(update_node_degree(node_cursor,
-                                                         found.id,
-                                                         found.in_degree,
-                                                         found.out_degree),
-                                      __FILE__,
-                                      __LINE__);
-                    //! pass the cursor
-                    //! to this function
-
-                    if (ret != 0)
-                    {
-                        CommonUtil::log_msg(
-                            "Failed to update node degree for node " +
-                                std::to_string(to_insert.src_id) +
-                                wiredtiger_strerror(ret),
-                            __FILE__,
-                            __LINE__);
-                        return ret;
-                    }
-                }
-
-                if (dst_exists)
-                {
-                    // update in/out degrees for the dst node in the NODE_TABLE
-                    CommonUtil::set_key(node_cursor, to_insert.dst_id);
-                    node_cursor->search(node_cursor);
-                    node found = {0};
-                    CommonUtil::record_to_node(
-                        node_cursor, &found, opts.read_optimize);
-                    found.id = to_insert.dst_id;
-                    found.in_degree++;
-                    ret = error_check(update_node_degree(node_cursor,
-                                                         found.id,
-                                                         found.in_degree,
-                                                         found.out_degree),
-                                      __FILE__,
-                                      __LINE__);
-                    if (ret != 0)
-                    {
-                        CommonUtil::log_msg(
-                            "Failed to update node degree for node " +
-                                std::to_string(to_insert.dst_id) +
-                                wiredtiger_strerror(ret),
-                            __FILE__,
-                            __LINE__);
-                        return ret;
-                    }
-                }
-            }
+                return WT_ROLLBACK;
+            case WT_DUPLICATE_KEY:
+                update_edge_weight(
+                    to_insert.dst_id, to_insert.src_id, to_insert.edge_weight);
+                //! We are assuming the reverse edge has the same weight. This
+                //! is likely wrong.
+                break;
+            default:
+                break;  // do nothing
         }
     }
 
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nedges(num_edges_to_add);
     add_to_nnodes(num_nodes_to_add);
     return 0;
@@ -785,7 +726,7 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
             return WT_ROLLBACK;
         case WT_NOTFOUND:
         default:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             throw GraphException("Failed to delete edge (" + to_string(src_id) +
                                  "," + to_string(dst_id));
     }
@@ -816,7 +757,7 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
                 return WT_ROLLBACK;
             case WT_NOTFOUND:
             default:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
         }
         // Update dst node's in/out degrees
         n_found = {.id = dst_id, .in_degree = 0, .out_degree = 0};
@@ -837,7 +778,7 @@ int StandardGraph::delete_edge_txn(node_id_t src_id,
                 return WT_ROLLBACK;
             case WT_NOTFOUND:
             default:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
         }
     }
     return 0;
@@ -861,15 +802,15 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
             num_edges_to_add -= 1;
             break;
         case WT_ROLLBACK:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
             // goto start_delete_edge;
         case WT_NOTFOUND:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             return WT_NOTFOUND;
             // return;
         default:
-            session->rollback_transaction(session, NULL);
+            session->rollback_transaction(session, nullptr);
             throw GraphException(
                 "Failed to delete the edge between " + std::to_string(src_id) +
                 " and " + std::to_string(dst_id) + wiredtiger_strerror(ret));
@@ -886,15 +827,15 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
                 num_edges_to_add -= 1;
                 break;
             case WT_ROLLBACK:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 return WT_ROLLBACK;
                 // goto start_delete_edge;
             case WT_NOTFOUND:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 return WT_NOTFOUND;
                 // return;
             default:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 throw GraphException(
                     "Failed to delete the reverse edge between " +
                     std::to_string(src_id) + " and " + std::to_string(dst_id) +
@@ -925,13 +866,13 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
             case 0:
                 break;
             case WT_ROLLBACK:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 return WT_ROLLBACK;
                 // goto start_delete_edge;
             case WT_NOTFOUND:
             // WT_NOTFOUND should not occur
             default:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 throw GraphException("Could not update the node with ID" +
                                      std::to_string(src_id) +
                                      wiredtiger_strerror(ret));
@@ -956,19 +897,19 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
             case 0:
                 break;
             case WT_ROLLBACK:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 return WT_ROLLBACK;
                 // goto start_delete_edge;
             case WT_NOTFOUND:
             // WT_NOTFOUND should not occur
             default:
-                session->rollback_transaction(session, NULL);
+                session->rollback_transaction(session, nullptr);
                 throw GraphException("Could not update the node with ID" +
                                      std::to_string(dst_id) +
                                      wiredtiger_strerror(ret));
         }
     }
-    session->commit_transaction(session, NULL);
+    session->commit_transaction(session, nullptr);
     add_to_nedges(num_edges_to_add);
     return 0;
 }
@@ -1406,7 +1347,7 @@ node StandardGraph::get_next_node(WT_CURSOR *n_iter)
 // WT_CURSOR *StandardGraph::get_edge_iter() { return get_edge_cursor();
 // }
 
-edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
+[[maybe_unused]] edge StandardGraph::get_next_edge(WT_CURSOR *e_iter)
 {
     if (e_iter->next(e_iter) == 0)
     {
