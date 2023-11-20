@@ -58,7 +58,7 @@ class EkeyInCursor : public InCursor
             }
         }
 
-        if (keys.end != -1 && next_expected > MAKE_EKEY(keys.end))
+        if (keys.end != -OutOfBand_ID && next_expected > MAKE_EKEY(keys.end))
         {
             goto no_next;
         }
@@ -162,7 +162,8 @@ class EkeyInCursor : public InCursor
             CommonUtil::get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
             if (OG_KEY(curr_edge.dst_id) != key)
             {
-                if (keys.end != -1 && OG_KEY(next_expected) > keys.end)
+                if (keys.end != OutOfBand_ID &&
+                    OG_KEY(next_expected) > keys.end)
                 {
                     has_next = false;
                 }
@@ -343,7 +344,8 @@ class EkeyOutCursor : public OutCursor
             CommonUtil::get_key(cursor, &curr_edge.src_id, &curr_edge.dst_id);
             if (OG_KEY(curr_edge.src_id) != key)
             {
-                if (keys.end != -1 && OG_KEY(next_expected) > keys.end)
+                if (keys.end != OutOfBand_ID &&
+                    OG_KEY(next_expected) > keys.end)
                 {
                     has_next = false;
                 }
