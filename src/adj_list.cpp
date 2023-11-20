@@ -216,7 +216,7 @@ int AdjList::add_node(node to_insert)
         return ret;
     }
     session->commit_transaction(session, nullptr);
-    add_to_nnodes(1);
+    // add_to_nnodes(1);
     return ret;
 }
 
@@ -241,12 +241,12 @@ int AdjList::add_node_in_txn(node to_insert)
     {
         if (ret == WT_DUPLICATE_KEY)
         {
-            CommonUtil::log_msg(
-                "Duplicate key in add_node_in_txn. Node " +
-                    to_string(to_insert.id) +
-                    " already exists. : " + wiredtiger_strerror(ret),
-                __FILE__,
-                __LINE__);
+            // CommonUtil::log_msg(
+            //     "Duplicate key in add_node_in_txn. Node " +
+            //         to_string(to_insert.id) +
+            //         " already exists. : " + wiredtiger_strerror(ret),
+            //     __FILE__,
+            //     __LINE__);
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -313,7 +313,7 @@ void AdjList::add_node(node_id_t to_insert,
     add_adjlist(in_adjlist_cursor, to_insert, inlist);
     add_adjlist(out_adjlist_cursor, to_insert, outlist);
 
-    add_to_nnodes(1);
+    // add_to_nnodes(1);
 }
 
 /**
@@ -523,11 +523,11 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         }
     }
     session->commit_transaction(session, nullptr);
-    add_to_nnodes(num_nodes_added);
-    add_to_nedges(1);
+    // add_to_nnodes(num_nodes_added);
+    // add_to_nedges(1);
     if (!opts.is_directed)
     {
-        add_to_nedges(1);
+        // add_to_nedges(1);
     }
     return ret;
 }
@@ -589,8 +589,8 @@ int AdjList::delete_node(node_id_t node_id)
         return ret;
     }
     session->commit_transaction(session, nullptr);
-    add_to_nnodes(-1);
-    add_to_nedges(-num_deleted_edges);
+    // add_to_nnodes(-1);
+    // add_to_nedges(-num_deleted_edges);
     return ret;
 }
 
@@ -1048,10 +1048,10 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
         }
     }
     session->commit_transaction(session, nullptr);
-    add_to_nedges(-1);
+    // add_to_nedges(-1);
     if (!opts.is_directed)
     {
-        add_to_nedges(-1);
+        // add_to_nedges(-1);
     }
     return ret;
 }
@@ -1678,8 +1678,9 @@ int AdjList::error_check_insert_txn(int return_val, bool ignore_duplicate_key)
                 /*Rolling back the transaction here is not necessary if the
                  * cursor has been opened with overwrite=false. A plain warning
                  * is enough. */
-                CommonUtil::log_msg(
-                    "WT_DUPLICATE_KEY error in insert_txn", __FILE__, __LINE__);
+                // CommonUtil::log_msg(
+                //     "WT_DUPLICATE_KEY error in insert_txn", __FILE__,
+                //     __LINE__);
             }
             return WT_DUPLICATE_KEY;
         case WT_NOTFOUND:

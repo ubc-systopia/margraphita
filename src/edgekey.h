@@ -237,7 +237,7 @@ class EkeyOutCursor : public OutCursor
             }
         }
 
-        if (keys.end != -1 && next_expected > MAKE_EKEY(keys.end))
+        if (keys.end != OutOfBand_ID && next_expected > MAKE_EKEY(keys.end))
         {
             goto no_next;
         }

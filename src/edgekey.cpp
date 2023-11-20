@@ -205,7 +205,7 @@ int EdgeKey::add_node(node to_insert)
                                  " into the edge table");
     }
     session->commit_transaction(session, nullptr);
-    add_to_nnodes(1);
+    // add_to_nnodes(1);
     return 0;
 }
 
@@ -266,8 +266,8 @@ int EdgeKey::delete_node(node_id_t node_id)
     session->commit_transaction(session, nullptr);
     if (ret != 0) return ret;
 
-    add_to_nedges(num_edges_to_add);
-    add_to_nnodes(-1);
+    // add_to_nedges(num_edges_to_add);
+    // add_to_nnodes(-1);
     return 0;
 }
 
@@ -613,8 +613,8 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
     }
 
     session->commit_transaction(session, nullptr);
-    add_to_nedges(num_edges_to_add);
-    add_to_nnodes(num_nodes_to_add);
+    // add_to_nedges(num_edges_to_add);
+    // add_to_nnodes(num_nodes_to_add);
     return 0;
 }
 
@@ -751,7 +751,7 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
         }
     }
     session->commit_transaction(session, nullptr);
-    add_to_nedges(num_edges_to_add);
+    // add_to_nedges(num_edges_to_add);
     return 0;
 }
 
@@ -1314,10 +1314,9 @@ OutCursor *EdgeKey::get_outnbd_iter()
 {
     uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new EkeyOutCursor(get_new_edge_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
+    // toReturn->set_num_nodes(num_nodes);
 
-    toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)}, true);
+    toReturn->set_key_range({0, 0}, true);
     // toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
     return toReturn;
 }
