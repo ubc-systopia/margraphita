@@ -9,6 +9,8 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <cassert>  
+
 using namespace std;
 static const char *db_name = "test";
 
@@ -92,6 +94,10 @@ char *pack_int_vector_wti(WT_SESSION *session,
 
 int main()
 {
+    #ifndef DEBUG
+    std::cout << "DEBUG not defined\n";
+    exit(1);
+    #endif
     // Create an empty vector
     vector<int> vect;
 
@@ -178,4 +184,46 @@ int main()
         : std::cout << "Emplace - false\n";
     // vec == unpacked_vec ? std::cout << "Assign- true\n"
     //                     : std::cout << "Assign  - false\n";
+
+    /**
+     * Test storing a vector of ints in a WT_ITEM without first packing it.
+     */
+    WT_CURSOR *cursor;
+    session->create(session,"table:world","key_format=i,value_format=u,columns=(src,dst)");
+    session->open_cursor(session, "table:world", NULL, NULL, &cursor);
+
+    for (int i = 0; i < 10; i++)
+    {
+        cursor->set_key(cursor, i);
+        WT_ITEM item;
+        std::vector<int> vec = {i + 1, i + 2, i + 3, i + 4, i + 5};
+        item.data = vec.data();
+        item.size = vec.size() * sizeof(int);
+        cursor->set_value(cursor, &item);
+        cursor->insert(cursor);
+    }
+
+    cursor->reset(cursor);
+    std::vector<int> temp;
+    int i=0;
+    while ((cursor->next(cursor)) == 0)
+    {
+        int key;
+        WT_ITEM item;
+        cursor->get_key(cursor, &key);
+        cursor->get_value(cursor, &item);
+        temp.assign((int *)item.data,
+                    (int *)item.data + item.size / sizeof(int));
+        int j=1;
+        for (auto v : temp)
+        {
+            assert(v == i + j);
+            j++;
+        }
+        i++;
+    }
+    std::cout << "Test to store and retrieve a vector in WT_ITEM passed\n";
+    cursor->close(cursor);
+    session->close(session, NULL);
+    conn->close(conn, NULL);
 }
