@@ -46,7 +46,9 @@ include(wiredtiger.cmake)
 
 IF (CMAKE_BUILD_TYPE MATCHES Debug)
   MESSAGE(STATUS "Generating a debug build for the project")
-
+  add_compile_definitions(DEBUG)
+  SET(ITTAPI_LIB "/usr/local/lib/libittnotify.a")
+  SET(ITTAPI_INCLUDE_DIR "/usr/local/include")
   if(stat)
     MESSAGE(STATUS "Enabling statistics on WT")
     add_compile_definitions(STAT)

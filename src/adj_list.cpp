@@ -79,7 +79,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 
     // ******** Now set up the Edge Table     **************
     // Edge Column Format : <src><dst><weight>
-    // Now prepare the edge value format. starts with II for src,dst. Add
+    // Now prepare the edge value format. starts with uu for src,dst. Add
     // another I if weighted
     vector<string> edge_columns = {SRC, DST};
     string edge_key_format = "uu";  // SRC DST in the edge table
@@ -356,7 +356,9 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
 
     // Now, initialize the in/out degree to 0 and adjlist to empty list
     WT_ITEM item;
-    item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
+    // item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
+    item.data = list.data();
+    item.size = list.size() * sizeof(node_id_t);
     cursor->set_value(
         cursor, list.size(), &item);  // serialize the vector and send ""
 

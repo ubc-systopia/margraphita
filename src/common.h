@@ -465,8 +465,10 @@ inline void CommonUtil::record_to_adjlist(WT_SESSION *session,
     int32_t degree;
     WT_ITEM item;
     cursor->get_value(cursor, &degree, &item);
-    found->edgelist = CommonUtil::unpack_int_vector_wti(
-        session, item.size, (char *)item.data);
+    found->edgelist.assign((int *)item.data,
+                           (int *)item.data + item.size / sizeof(int));
+    // found->edgelist = CommonUtil::unpack_int_vector_wti(
+    //     session, item.size, (char *)item.data);
     if (degree == 1 && found->edgelist.empty())
     {
         found->degree = 0;

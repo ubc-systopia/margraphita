@@ -1,28 +1,19 @@
-#include <math.h>
-#include <stdio.h>
-#include <unistd.h>
-
-#include <algorithm>
 #include <cassert>
-#include <deque>
-#include <fstream>
 #include <iostream>
-#include <queue>
-#include <set>
-#include <vector>
 
-#include "adj_list.h"
-#include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common.h"
-#include "csv_log.h"
 #include "edgekey.h"
 #include "graph_engine.h"
-#include "graph_exception.h"
-#include "platform_atomics.h"
-#include "pvector.h"
-#include "standard_graph.h"
 #include "times.h"
+
+#ifdef DEBUG
+#include <ittnotify.h>
+__itt_domain* domain = __itt_domain_create("MyTraces.MyDomain");
+__itt_string_handle* edgeScan = __itt_string_handle_create("EdgeScan Task");
+__itt_string_handle* outnbdScan =
+    __itt_string_handle_create("OutNbd Scan Task");
+#endif
 
 #define HUB
 
@@ -67,49 +58,70 @@ int main(int argc, char* argv[])
     adjlist adj = {0};
 #ifdef HUB
     GraphEngine graphEngineHub(engine_opts);
-
-    t.start();
-    GraphBase* graphHub = graphEngineHub.create_graph_handle();
-    for (int i = 0; i < HUB_COUNT; i++)
+    GraphBase* graphHub = nullptr;
+    if (opts.create_new)
     {
-        int err = graphHub->add_edge(edge{1, 2 + i}, false);
-        if (i % 10000)
+        t.start();
+        graphHub = graphEngineHub.create_graph_handle();
+        for (int i = 0; i < HUB_COUNT; i++)
         {
-            cout << "Percentage finished:" << i / 10000 << '\n';
+            edge e{.src_id = 1, .dst_id = i + 2};
+            int err = graphHub->add_edge(e, false);
+            if (i % 1000 == 0)
+            {
+                cout << "Percentage finished:" << i / 1000 << '\n';
+            }
         }
+        graphHub->close();
+        t.stop();
+
+        std::cout << "Graph loaded in " << t.t_micros() << std::endl;
     }
-    graphHub->close();
-    t.stop();
-
-    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
-
     for (int i = 0; i < ITERS; i++)
     {
         graphHub = graphEngineHub.create_graph_handle();
         edge_cursor = graphHub->get_edge_iter();
         t.start();
+#ifdef DEBUG
+        __itt_task_begin(domain, __itt_null, __itt_null, edgeScan);
+#endif
         edge_cursor->next(&e);
         while (e.src_id != -1)
         {
             edge_cursor->next(&e);
+            // std::cout << "Edge: " << e.src_id << " " << e.dst_id <<
+            // std::endl;
             counter1++;
         }
+#ifdef DEBUG
+        __itt_task_end(domain);
+#endif
         t.stop();
 
         std::cout << "Hub traversal completed in : " << t.t_micros()
                   << std::endl;
-
+#ifdef STAT
+        //return 0;
+#endif
         out_cursor = graphHub->get_outnbd_iter();
         t.start();
+#ifdef DEBUG
+        __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan);
+#endif
         out_cursor->next(&adj);
         while (adj.node_id != -1)
         {
             for (node_id_t v : adj.edgelist)
             {
+                // std::cout << "Edge: " << adj.node_id << " " << v <<
+                // std::endl;
                 counter2++;
             }
             out_cursor->next(&adj);
         }
+#ifdef DEBUG
+        __itt_task_end(domain);
+#endif
         graphHub->close();
         t.stop();
         assert(counter1 == counter2);

@@ -1,10 +1,10 @@
 message(CURR_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_benchmarks.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${PATH_SRC})
+INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${ITTAPI_INCLUDE_DIR} ${PATH_SRC})
 
 add_executable(adj_ekey_microbenchmark adj_ekey_microbenchmark.cpp)
-target_link_libraries(adj_ekey_microbenchmark PUBLIC ${NAME_LIB} graph_utils)
+target_link_libraries(adj_ekey_microbenchmark PUBLIC ${NAME_LIB} ${ITTAPI_LIB} graph_utils)
 # ###################################################################################
 add_executable(pagerank pagerank.cpp)
 target_link_libraries(pagerank PUBLIC ${NAME_LIB} graph_utils)

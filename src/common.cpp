@@ -125,22 +125,22 @@ int CommonUtil::open_connection(char *db_name,
                                 WT_CONNECTION **conn)
 {
     char config[1024] = "create";
+    std::string _config = conn_config;
     // add the config string
-
+    std::cout << "conn_config is: " << conn_config << std::endl;
 #ifdef STAT
-    if (conn_config.length() > 0)
+    if (_config.length() > 0)
     {
-        conn_config += ",";
+        _config += ",";
     }
-    conn_config +=
-        "statistics=(all),statistics_log=(wait=0,on_close=true,path=" +
-        log_dir + ")";
+    _config += "statistics=(all),statistics_log=(wait=0,on_close=true,path=" +
+               log_dir + ")";
 #endif
-    if (!conn_config.empty())
+    if (!_config.empty())
     {
-        snprintf(config + strlen("create"), 1018, ",%s", conn_config.c_str());
+        snprintf(config + strlen("create"), 1018, ",%s", _config.c_str());
     }
-    // std::cout << config << std::endl;
+    std::cout << _config << std::endl;
     // exit(1);
     if (wiredtiger_open(db_name, nullptr, config, conn) != 0)
     {
@@ -305,8 +305,8 @@ char *CommonUtil::pack_int_vector_wti(WT_SESSION *session,
 }
 
 void CommonUtil::log_msg(const std::string_view message,
-                         const std::string_view file, int line)
+                         const std::string_view file,
+                         int line)
 {
-    std::cerr << "file: " << file << "@" << line
-              << ": " << message << '\n';
+    std::cerr << "file: " << file << "@" << line << ": " << message << '\n';
 }
