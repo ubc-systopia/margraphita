@@ -1,4 +1,6 @@
 #include <cassert>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 
 #include "command_line.h"
@@ -6,13 +8,19 @@
 #include "edgekey.h"
 #include "graph_engine.h"
 #include "times.h"
-
+#include <sched.h>
 #ifdef DEBUG
 #include <ittnotify.h>
 __itt_domain* domain = __itt_domain_create("MyTraces.MyDomain");
-__itt_string_handle* edgeScan = __itt_string_handle_create("EdgeScan Task");
+__itt_string_handle* edgeScan_hub =
+    __itt_string_handle_create("HUB EdgeScan Task");
+__itt_string_handle* outnbdScan_hub =
+    __itt_string_handle_create("HUB OutNbd Scan Task");
+__itt_string_handle* edgeScan =
+    __itt_string_handle_create("no-hub EdgeScan Task");
 __itt_string_handle* outnbdScan =
-    __itt_string_handle_create("OutNbd Scan Task");
+    __itt_string_handle_create("no-hub OutNbd Scan Task");
+
 #endif
 
 #define HUB
@@ -21,8 +29,14 @@ __itt_string_handle* outnbdScan =
 
 #define HUB_COUNT 100000
 
+
 int main(int argc, char* argv[])
 {
+    cpu_set_t  mask;
+    CPU_ZERO(&mask);
+    CPU_SET(0, &mask);
+    int result = sched_setaffinity(0, sizeof(mask), &mask);
+    
     std::cout << "Running Iteration" << std::endl;
     CmdLineApp iter_cli(argc, argv);
     if (!iter_cli.parse_args())
@@ -43,6 +57,7 @@ int main(int argc, char* argv[])
     opts.stat_log = iter_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
     opts.type = iter_cli.get_graph_type();
+
     const int THREAD_NUM = 4;
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
@@ -56,6 +71,23 @@ int main(int argc, char* argv[])
     Times t;
     edge e = {0};
     adjlist adj = {0};
+    std::ofstream stat_file;
+    std::string stat_file_name = opts.stat_log + "/adj_ekey_microbenchmark";
+#ifdef DEBUG
+    stat_file_name = stat_file_name + "_debug";
+#endif
+#ifdef HUB
+    stat_file_name = stat_file_name + "_hub.log";
+#else
+    stat_file_name = stat_file_name + "_no_hub.log";
+#endif
+    std::cout << "Stat file name: " << stat_file_name << std::endl;
+    stat_file.open(stat_file_name, std::ios::app);
+    if (std::filesystem::file_size(stat_file_name) == 0)
+    {
+        stat_file << "edge_cursor, out_nbd_cursor" << std::endl;
+    }
+
 #ifdef HUB
     GraphEngine graphEngineHub(engine_opts);
     GraphBase* graphHub = nullptr;
@@ -74,7 +106,6 @@ int main(int argc, char* argv[])
         }
         graphHub->close();
         t.stop();
-
         std::cout << "Graph loaded in " << t.t_micros() << std::endl;
     }
     for (int i = 0; i < ITERS; i++)
@@ -83,38 +114,34 @@ int main(int argc, char* argv[])
         edge_cursor = graphHub->get_edge_iter();
         t.start();
 #ifdef DEBUG
-        __itt_task_begin(domain, __itt_null, __itt_null, edgeScan);
+        __itt_task_begin(domain, __itt_null, __itt_null, edgeScan_hub);
 #endif
         edge_cursor->next(&e);
         while (e.src_id != -1)
         {
             edge_cursor->next(&e);
-            // std::cout << "Edge: " << e.src_id << " " << e.dst_id <<
-            // std::endl;
             counter1++;
         }
 #ifdef DEBUG
         __itt_task_end(domain);
 #endif
         t.stop();
-
+        stat_file << t.t_micros() << ",";
         std::cout << "Hub traversal completed in : " << t.t_micros()
                   << std::endl;
 #ifdef STAT
-        //return 0;
+        // return 0;
 #endif
         out_cursor = graphHub->get_outnbd_iter();
         t.start();
 #ifdef DEBUG
-        __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan);
+        __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan_hub);
 #endif
         out_cursor->next(&adj);
         while (adj.node_id != -1)
         {
             for (node_id_t v : adj.edgelist)
             {
-                // std::cout << "Edge: " << adj.node_id << " " << v <<
-                // std::endl;
                 counter2++;
             }
             out_cursor->next(&adj);
@@ -125,6 +152,7 @@ int main(int argc, char* argv[])
         graphHub->close();
         t.stop();
         assert(counter1 == counter2);
+        stat_file << t.t_micros() << std::endl;
         std::cout << "Hub traversal completed in : " << t.t_micros()
                   << std::endl;
     }
@@ -135,7 +163,8 @@ int main(int argc, char* argv[])
     GraphBase* graphEdge = graphEngineEdge.create_graph_handle();
     for (int i = 0; i < HUB_COUNT; i++)
     {
-        graphEdge->add_edge(edge{i, i + 1}, false);
+        edge e{.src_id = i, .dst_id = i + 1};
+        graphEdge->add_edge(e, false);
     }
     graphEdge->close();
     t.stop();
@@ -147,19 +176,28 @@ int main(int argc, char* argv[])
         graphEdge = graphEngineEdge.create_graph_handle();
         edge_cursor = graphEdge->get_edge_iter();
         t.start();
+#ifdef DEBUG
+        __itt_task_begin(domain, __itt_null, __itt_null, edgeScan);
+#endif
         edge_cursor->next(&e);
         while (e.src_id != -1)
         {
             edge_cursor->next(&e);
             counter1++;
         }
+#ifdef DEBUG
+        __itt_task_end(domain);
+#endif
         t.stop();
-
-        std::cout << "Edge traversal completed in : " << t.t_micros()
+        stat_file << t.t_micros() << ",";
+        std::cout << "(non-hub)Edge traversal completed in : " << t.t_micros()
                   << std::endl;
 
         out_cursor = graphEdge->get_outnbd_iter();
         t.start();
+#ifdef DEBUG
+        __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan);
+#endif
         out_cursor->next(&adj);
         while (adj.node_id != -1)
         {
@@ -169,12 +207,17 @@ int main(int argc, char* argv[])
             }
             out_cursor->next(&adj);
         }
+#ifdef DEBUG
+        __itt_task_end(domain);
+#endif
         graphEdge->close();
         t.stop();
+        stat_file << t.t_micros() << std::endl;
         assert(counter1 == counter2);
         std::cout << "Edge traversal completed in : " << t.t_micros()
                   << std::endl;
     }
 #endif
+    stat_file.close();
     return 0;
 }
