@@ -24,6 +24,7 @@ __itt_string_handle* outnbdScan =
 #endif
 
 #define HUB
+#define HUB_BREAK
 
 #define ITERS 50
 
@@ -76,7 +77,11 @@ int main(int argc, char* argv[])
 #ifdef DEBUG
     stat_file_name = stat_file_name + "_debug";
 #endif
+
 #ifdef HUB
+    #ifdef HUB_BREAK
+        stat_file_name = stat_file_name + "_hub_break";
+    #endif
     stat_file_name = stat_file_name + "_hub.log";
 #else
     stat_file_name = stat_file_name + "_no_hub.log";
@@ -140,10 +145,17 @@ int main(int argc, char* argv[])
         out_cursor->next(&adj);
         while (adj.node_id != -1)
         {
+            if(opts.type == GraphType::EKey)
+            {
+                std::cout << "adj.node_id: " << adj.node_id << "has " << adj.edgelist.size() <<" neighbours" <<std::endl;
+            }
             for (node_id_t v : adj.edgelist)
             {
                 counter2++;
             }
+// #ifdef HUB_BREAK
+//             break;//for hub node, only iterate over the core.
+// #endif
             out_cursor->next(&adj);
         }
 #ifdef DEBUG
@@ -151,6 +163,7 @@ int main(int argc, char* argv[])
 #endif
         graphHub->close();
         t.stop();
+        std::cout <<"counter1(edge): "<< counter1 << " counter2:(adjlist) " << counter2 << std::endl;
         assert(counter1 == counter2);
         stat_file << t.t_micros() << std::endl;
         std::cout << "Hub traversal completed in : " << t.t_micros()
