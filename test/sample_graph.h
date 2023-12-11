@@ -1,7 +1,7 @@
 
 #ifndef SAMPLE_STD
 #define SAMPLE_STD
-#include "common.h"
+#include "common_util.h"
 namespace SampleGraph
 {
 edge edge1 = {.id =0, .src_id = 1, .dst_id = 2, .edge_weight = 0};

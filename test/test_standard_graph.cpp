@@ -1,11 +1,5 @@
-#include "test_standard_graph.h"
+#include "test_graph_engine.h"
 
-#include <cassert>
-
-#include "common.h"
-#include "graph_exception.h"
-#include "sample_graph.h"
-#include "standard_graph.h"
 #define delim "--------------"
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 

@@ -2,7 +2,7 @@
 #include <thread>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
 #include "sample_graph.h"

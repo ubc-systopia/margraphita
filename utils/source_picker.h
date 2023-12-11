@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph.h"
 
 static const int64_t kRandSeed = 27491095;

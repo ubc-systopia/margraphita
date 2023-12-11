@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph_exception.h"
 #include "lock.h"
 
@@ -17,7 +17,7 @@ class GraphBase
 {
    public:
     GraphBase() = default;
-    GraphBase(graph_opts opt_params, WT_CONNECTION *conn);  // ✅
+    GraphBase(graph_opts &opt_params, WT_CONNECTION *conn);  // ✅
     static void insert_metadata(const std::string key,
                                 const char *value,
                                 WT_CURSOR *metadata_cursor);  // ✅ check if pvt
@@ -74,8 +74,8 @@ class GraphBase
     graph_opts opts;
     int local_nnodes = 0;
     int local_nedges = 0;
-    WT_CONNECTION *connection;
-    WT_SESSION *session;
+    WT_CONNECTION *connection = nullptr;
+    WT_SESSION *session = nullptr;
     LockSet *locks = nullptr;
 
     WT_CURSOR *metadata_cursor = NULL;

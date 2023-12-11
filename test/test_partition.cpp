@@ -1,11 +1,4 @@
-#include <cassert>
-
-#include "common.h"
-#include "graph_engine.h"
-#include "graph_exception.h"
-#include "sample_graph.h"
-#include "standard_graph.h"
-#include "test_standard_graph.h"
+#include "test_graph_engine.h"
 #include "thread_utils.h"
 
 #define INFO() fprintf(stderr, "Now running: %s\n", __FUNCTION__);

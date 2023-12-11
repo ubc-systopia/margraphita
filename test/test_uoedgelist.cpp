@@ -1,10 +1,4 @@
-#include "test_uoedgelist.h"
-
-#include "common.h"
-#include "edgelist.h"
-#include "graph_engine.h"
-#include "graph_exception.h"
-#include "sample_graph.h"
+#include "test_graph_engine.h"
 
 #define delim "--------------"
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);

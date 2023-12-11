@@ -10,10 +10,10 @@
 #include <boost/serialization/vector.hpp>
 #include <cassert>
 #include <deque>
-#include <random>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <set>
 #include <sstream>
 #include <vector>
@@ -21,7 +21,7 @@
 #include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
-#include "common.h"
+#include "common_util.h"
 #include "edgekey.h"
 #include "graph_engine.h"
 #include "graph_exception.h"

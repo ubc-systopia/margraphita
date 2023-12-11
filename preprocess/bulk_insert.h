@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 #include "reader.h"
 
 extern std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;

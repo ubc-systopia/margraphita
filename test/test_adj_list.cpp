@@ -1,11 +1,4 @@
-#include "test_adj_list.h"
-
-#include <cassert>
-
-#include "common.h"
-#include "graph_engine.h"
-#include "graph_exception.h"
-#include "sample_graph.h"
+#include "test_graph_engine.h"
 
 #define delim "--------------"
 #define INFO() fprintf(stdout, "%s\nNow running: %s\n", delim, __FUNCTION__);

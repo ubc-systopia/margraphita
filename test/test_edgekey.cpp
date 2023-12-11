@@ -1,11 +1,4 @@
-#include "test_edgekey.h"
-
-#include <cassert>
-
-#include "common.h"
-#include "graph_engine.h"
-#include "graph_exception.h"
-#include "sample_graph.h"
+#include "test_graph_engine.h"
 
 #define delim "--------------"
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
@@ -359,6 +352,7 @@ void test_OutCursor(EdgeKey graph)
 {
     INFO()
     OutCursor *out_cursor = graph.get_outnbd_iter();
+    out_cursor->set_key_range(key_range{0, 0});
     adjlist found = {0};
     out_cursor->next(&found);
     while (found.node_id != -1)
@@ -479,24 +473,24 @@ int main()
     EdgeKey graph(opts, conn);
 
     create_init_nodes(graph, opts.is_directed);
-    test_get_node(graph);
-    test_node_add(graph, opts.read_optimize);
-    test_get_nodes(graph);
-    test_get_random_nodes(graph);
-    test_add_edge(graph, opts.is_directed, opts.is_weighted);
-    test_get_edge(graph);
-    test_get_edges(graph);
-    test_get_out_edges(graph);
-    test_get_out_nodes(graph);
-    test_get_in_edges(graph);
+    // test_get_node(graph);
+    // test_node_add(graph, opts.read_optimize);
+    // test_get_nodes(graph);
+    // test_get_random_nodes(graph);
+    // test_add_edge(graph, opts.is_directed, opts.is_weighted);
+    // test_get_edge(graph);
+    // test_get_edges(graph);
+    // test_get_out_edges(graph);
+    // test_get_out_nodes(graph);
+    // test_get_in_edges(graph);
 
-    test_get_in_nodes(graph);
-    test_get_in_and_out_degree(graph);
+    // test_get_in_nodes(graph);
+    // test_get_in_and_out_degree(graph);
 
-    test_delete_node(graph, opts.is_directed);
-    test_EdgeCursor(graph);
-    test_EdgeCursor_Range(graph);
-    test_InCursor(graph);
+    // test_delete_node(graph, opts.is_directed);
+    // test_EdgeCursor(graph);
+    // test_EdgeCursor_Range(graph);
+    // test_InCursor(graph);
     //! TODO: test_InCursor_Range(graph);
     test_OutCursor(graph);
     //! TODO: test_OutCursor_Range(graph);

@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 #include "reader.h"
 #include "time_structs.h"
 #include "times.h"

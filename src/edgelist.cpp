@@ -1,7 +1,10 @@
 #include "edgelist.h"
+
 #include <wiredtiger.h>
+
 #include <string>
-#include "common.h"
+
+#include "common_util.h"
 
 using namespace std;
 

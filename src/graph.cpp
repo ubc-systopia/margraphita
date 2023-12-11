@@ -3,14 +3,11 @@
 
 #include <wiredtiger.h>
 
-#include <algorithm>
-#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph_exception.h"
 using namespace std;
 

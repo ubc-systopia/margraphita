@@ -8,6 +8,7 @@
 #include <bitset>
 #include <cassert>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <map>
 // #ifdef LINUX
@@ -20,126 +21,9 @@
 #include <variant>
 #include <vector>
 
+#include "common_defs.h"
 #include "graph_exception.h"
-
-#define MAKE_EKEY(x) (x + 1)
-#define OG_KEY(x) (x - 1)
-
-// These are the string constants
-const std::string METADATA = "metadata";
-const std::string DB_NAME = "db_name";
-const std::string DB_DIR = "db_dir";
-const std::string IS_WEIGHTED = "is_weighted";
-const std::string READ_OPTIMIZE = "read_optimize";
-const std::string IS_DIRECTED = "is_directed";
-
-// Read Optimize columns
-const std::string IN_DEGREE = "in_degree";
-const std::string OUT_DEGREE = "out_degree";
-
-// Shared column names
-const std::string SRC = "src";
-const std::string DST = "dst";
-const std::string ID = "id";
-const std::string ATTR_FIRST =
-    "attr_fst";  // Used in EdgeKey as the first attribute.
-const std::string ATTR_SECOND =
-    "attr_scnd";  // Used in EdgeKey as the second attribute.
-const std::string WEIGHT = "weight";
-const std::string NODE_TABLE = "node";
-const std::string EDGE_TABLE = "edge";
-const std::string SRC_INDEX = "IX_edge_" + SRC;
-const std::string DST_INDEX = "IX_edge_" + DST;
-const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
-const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
-// specific to AdjList implementation
-const std::string OUT_ADJLIST = "adjlistout";
-const std::string IN_ADJLIST = "adjlistin";
-const std::string node_count = "nNodes";
-const std::string edge_count = "nEdges";
-
-typedef int32_t node_id_t;
-typedef int32_t edgeweight_t;
-typedef uint32_t degree_t;
-
-/// @brief EdgeKey specific definitions
-const node_id_t OutOfBand_ID =
-    0;  // Used to be -1. Changed to 0 to avoid issues with unsigned types.
-const degree_t OutOfBand_Val = UINT32_MAX;
-#define MAKE_EKEY(x) (x + 1)
-#define OG_KEY(x) (x - 1)
-
-typedef enum GraphType
-{
-    Std,
-    Adj,
-    EKey,
-    EList,
-} GraphType;
-
-struct graph_opts
-{
-    bool create_new = true;
-    bool read_optimize = true;
-    bool is_directed = true;
-    bool is_weighted = false;
-    std::string db_name;
-    std::string db_dir;
-    bool optimize_create;  // directs when the index should be created
-    std::string conn_config;
-    std::string stat_log;
-    GraphType type;
-};
-
-typedef struct node
-{
-    node_id_t id;  // node ID
-    degree_t in_degree = 0;
-    degree_t out_degree = 0;
-
-} node;
-
-typedef struct edge
-{
-    int32_t id = 0;
-    node_id_t src_id = 0;
-    node_id_t dst_id = 0;
-    edgeweight_t edge_weight = 0;
-} edge;
-
-typedef struct edge_index
-{
-    node_id_t src_id = 0;
-    node_id_t dst_id = 0;
-    edge_index() : src_id(0), dst_id(0) {}
-    edge_index(node_id_t a, node_id_t b) : src_id(a), dst_id(b) {}
-
-} edge_index;
-
-typedef struct edge_index key_pair;
-
-typedef struct key_range
-{
-    node_id_t start;
-    node_id_t end;
-    key_range() : start(), end() {}
-    key_range(node_id_t a, node_id_t b) : start(a), end(b) {}
-} key_range;
-
-typedef struct edge_range
-{
-    key_pair start;
-    key_pair end;
-    edge_range() : start(), end() {}
-    edge_range(key_pair a, key_pair b) : start(a), end(b) {}
-} edge_range;
-
-typedef struct adjlist
-{
-    node_id_t node_id;
-    degree_t degree;
-    std::vector<node_id_t> edgelist;
-} adjlist;
+#include "iterator.h"
 
 // TODO: remove unused functions from this class.
 
@@ -232,6 +116,307 @@ class CommonUtil
                                      degree_t *in,
                                      degree_t *out);
 };
+
+void CommonUtil::create_dir(const std::string &path)
+{
+    std::filesystem::path dirname = path;
+    if (std::filesystem::exists(dirname))
+    {
+        std::filesystem::remove_all(dirname);  // remove if exists;
+    }
+    std::filesystem::create_directories(dirname);
+}
+
+bool CommonUtil::check_dir_exists(const std::string &path)
+{
+    if (std::filesystem::exists(path))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void CommonUtil::set_table(WT_SESSION *session,
+                           const std::string &prefix,
+                           std::vector<std::string> columns,
+                           const std::string &key_fmt,
+                           const std::string &val_fmt)
+{
+    if (!columns.empty())
+    {
+        std::vector<std::string>::iterator ptr;
+        std::string concat = columns.at(0);
+        for (ptr = columns.begin() + 1; ptr < columns.end(); ptr++)
+        {
+            concat += "," + *ptr;
+        }
+
+        // Now insert in WT
+        std::string table_name = "table:" + prefix;
+        std::string wt_format_string = "key_format=" + key_fmt +
+                                       ",value_format=" + val_fmt +
+                                       ",columns=(" + concat + ")";
+        char *n = const_cast<char *>(table_name.c_str());
+        char *f = const_cast<char *>(wt_format_string.c_str());
+        session->create(session, n, f);
+    }
+    else
+    {
+        std::string table_name = "table:" + prefix;
+        session->create(
+            session, table_name.c_str(), "key_format=I,value_format=I");
+    }
+}
+
+std::string CommonUtil::get_db_name(const std::string &prefix,
+                                    const std::string &name)
+{
+    return (prefix + "-" + name);
+}
+
+void CommonUtil::check_graph_params(const graph_opts &params)
+{
+    std::vector<std::string> missing_params;
+
+    // TODO: this needs to be updated
+    if (!missing_params.empty())
+    {
+        std::vector<std::string>::iterator missing_param_ptr;
+        std::string to_return = missing_params.at(0);
+        for (missing_param_ptr = missing_params.begin() + 1;
+             missing_param_ptr < missing_params.end();
+             missing_param_ptr++)
+        {
+            to_return += "," + *missing_param_ptr;
+        }
+        throw GraphException(to_return);
+    }
+}
+
+int CommonUtil::close_cursor(WT_CURSOR *cursor)
+{
+    if (int ret = cursor->close(cursor) != 0)
+    {
+        fprintf(stderr, "Failed to close the cursor\n ");
+        return ret;
+    }
+    return 0;
+}
+
+int CommonUtil::close_session(WT_SESSION *session)
+{
+    if (session->close(session, nullptr) != 0)
+    {
+        fprintf(stderr, "Failed to close session\n");
+        return (-1);
+    }
+    return 0;
+}
+
+int CommonUtil::close_connection(WT_CONNECTION *conn)
+{
+    if (conn->close(conn, nullptr) != 0)
+    {
+        fprintf(stderr, "Failed to close connection\n");
+        return (-1);
+    }
+    return 0;
+}
+
+int CommonUtil::open_connection(char *db_name,
+                                const std::string &log_dir,
+                                const std::string &conn_config,
+                                WT_CONNECTION **conn)
+{
+    char config[1024] = "create";
+    std::string _config = conn_config;
+    // add the config string
+    std::cout << "conn_config is: " << conn_config << std::endl;
+#ifdef STAT
+    if (_config.length() > 0)
+    {
+        _config += ",";
+    }
+    _config += "statistics=(all),statistics_log=(wait=0,on_close=true,path=" +
+               log_dir + ")";
+#endif
+    if (!_config.empty())
+    {
+        snprintf(config + strlen("create"), 1018, ",%s", _config.c_str());
+    }
+    std::cout << _config << std::endl;
+    // exit(1);
+    if (wiredtiger_open(db_name, nullptr, config, conn) != 0)
+    {
+        fprintf(stderr, "Failed to open connection\n");
+        return (-1);
+    }
+    return 0;
+}
+
+int CommonUtil::open_session(WT_CONNECTION *conn, WT_SESSION **session)
+{
+    // if (conn->open_session(conn, NULL, NULL, session) != 0)
+    // {
+    //     fprintf(stderr, "Failed to open session\n");
+    //     return (-1);
+    // }
+    // return 0;
+    if (conn->open_session(conn, nullptr, "isolation=snapshot", session) != 0)
+    {
+        fprintf(stderr, "Failed to open session\n");
+        return (-1);
+    }
+    return 0;
+}
+
+[[maybe_unused]] int CommonUtil::open_cursor(WT_SESSION *session,
+                                             WT_CURSOR **cursor,
+                                             const std::string &uri,
+                                             WT_CURSOR *to_dup,
+                                             const std::string &config)
+{
+    if (session->open_cursor(
+            session, uri.c_str(), to_dup, config.c_str(), cursor) != 0)
+    {
+        fprintf(stderr, "Failed to open the cursor on URI %s", uri.c_str());
+    }
+    return 0;
+}
+
+[[maybe_unused]] int CommonUtil::dup_cursor(WT_SESSION *session,
+                                            WT_CURSOR *to_dup,
+                                            WT_CURSOR **cursor)
+{
+    if (session->open_cursor(session, nullptr, to_dup, nullptr, cursor) != 0)
+    {
+        fprintf(stderr, "Failed to duplicte the cursor on URI %s", to_dup->uri);
+    }
+    return 0;
+}
+
+void CommonUtil::check_return(int retval, const std::string &mesg)
+{
+    if (retval > 0)
+    {
+        throw GraphException(mesg);
+    }
+}
+
+void CommonUtil::dump_node(node to_print)
+{
+    std::cout << "ID is: \t" << to_print.id << std::endl;
+    std::cout << "in_degree is:\t" << to_print.in_degree << std::endl;
+    std::cout << "out_degree is:\t" << to_print.out_degree << "\n\n";
+}
+
+void CommonUtil::dump_edge(edge to_print)
+{
+    std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
+    std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
+    std::cout << "Weight is:\t" << to_print.edge_weight << "\n\n";
+}
+
+[[maybe_unused]] void CommonUtil::dump_edge_index(edge_index to_print)
+{
+    std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
+    std::cout << "DST id is:\t" << to_print.dst_id << "\n\n";
+}
+
+void CommonUtil::dump_adjlist(const adjlist &to_print)
+{
+    std::cout << "Node ID is: \t" << to_print.node_id << std::endl;
+    std::cout << "degree is:\t" << to_print.degree << std::endl;
+    std::cout << "Adjacency List is:\t {";
+    for (int n : to_print.edgelist)
+    {
+        std::cout << n << " ";
+    }
+    std::cout << "}"
+              << "\n\n";
+}
+
+/**
+ * We need to change how the int/string vector packing is implemented:
+ * 1. pack_int_vector
+ * 2. unpack_int_vector
+ * 3. pack_string_vector
+ * 4. unpack_string_vector
+ *
+ */
+
+/**
+ * @brief This function unpacks the buffer into a vector<int>. This assumes the
+ * buffer was packed using pack_int_vector_std()
+ * @param to_unpack string that contains the packed vector
+ * @return std::vector<int> unpacked buffer
+ */
+std::vector<node_id_t> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
+                                                         size_t size,
+                                                         char *packed_str)
+{
+    WT_PACK_STREAM *psp;
+    WT_ITEM unpacked;
+    size_t used;
+
+    wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
+    wiredtiger_unpack_item(psp, &unpacked);
+    wiredtiger_pack_close(psp, &used);
+
+    int vec_size = (int)size / sizeof(node_id_t);
+    std::vector<node_id_t> unpacked_vec(vec_size);
+    for (int i = 0; i < vec_size; i++)
+        unpacked_vec[i] = ((node_id_t *)unpacked.data)[i];
+
+    return unpacked_vec;
+}
+
+/**
+ * @brief This function is used to pack all integers in the integer vector by
+ * using the wiredtiger packing stream interface. There's nothing to it, really:
+ * This packs it into a malloc'd buffer and sets the size variable passed as
+ * argument.
+ *
+ * @param session The WiredTiger Session variable
+ * @param to_pack The vector of ints to pack.
+ * @param size pointer to a size_t variable to store the size of buffer. THIS IS
+ * NEEDED TO UNPACK -> STORE THIS IN THE TABLE
+ * @return buffer containing the packed array.
+ */
+char *CommonUtil::pack_int_vector_wti(WT_SESSION *session,
+                                      std::vector<node_id_t> to_pack,
+                                      size_t *size)
+{
+    WT_PACK_STREAM *psp;
+    WT_ITEM item;
+    item.data = to_pack.data();
+    item.size = sizeof(node_id_t) * to_pack.size();
+
+    void *pack_buf = malloc(sizeof(node_id_t) * to_pack.size());
+    int ret = wiredtiger_pack_start(session, "u", pack_buf, item.size, &psp);
+    if (ret == 0)
+    {
+        wiredtiger_pack_item(psp, &item);
+        wiredtiger_pack_close(psp, size);
+    }
+    else
+    {
+        std::cerr << "Error in packing" << std::endl;
+        exit(-1);
+    }
+
+    return (char *)pack_buf;
+}
+
+void CommonUtil::log_msg(const std::string_view message,
+                         const std::string_view file,
+                         int line)
+{
+    std::cerr << "file: " << file << "@" << line << ": " << message << '\n';
+}
 
 /***************************************************************************
  *            Serialization/ Deserialization methods common to all
@@ -516,162 +701,5 @@ inline void CommonUtil::record_to_edge_ekey(WT_CURSOR *cur, edge *found)
     }
     found->edge_weight = a;
 }
-/****
- * The following are iterator definitions.
- */
-
-class table_iterator
-{
-   protected:
-    WT_CURSOR *cursor = nullptr;
-    WT_SESSION *session = nullptr;
-    bool is_first = true;
-    bool has_next = true;
-    void init(WT_CURSOR *cursor_, WT_SESSION *sess_)
-    {
-        cursor = cursor_;
-        session = sess_;
-    }
-    // TODO: Change this to accept a Graph object reference and the
-    // table/index name for which the cursor is sought. Current design needs
-    // the user to know which table to provide a cursor for. This is
-    // guaranteed to cause bugs.
-   public:
-    void set_key(node_id_t key) { CommonUtil::set_key(cursor, key); }
-    bool has_more() { return has_next; };
-    virtual void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-    }
-};
-
-class OutCursor : public table_iterator
-{
-   protected:
-    key_range keys{};
-    int num_nodes{};
-
-   public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start);
-    }
-
-    // I hate this, but I can't think of an elegant way
-    void set_key_range(key_range _keys, bool is_Ekey)
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start, OutOfBand_ID);
-    }
-
-    void set_num_nodes(int num) { num_nodes = num; }
-
-    virtual void next(adjlist *found) = 0;
-    virtual void next(adjlist *found, node_id_t key) = 0;
-};
-
-class InCursor : public table_iterator
-{
-   protected:
-    key_range keys{};
-    int num_nodes{};
-
-   public:
-    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start);
-    }
-
-    // I hate this, but I can't think of an elegant way
-    void set_key_range(key_range _keys, bool is_Ekey)
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start, OutOfBand_ID);
-    }
-
-    void set_num_nodes(int num) { num_nodes = num; }
-
-    virtual void next(adjlist *found) = 0;
-    virtual void next(adjlist *found, node_id_t key) = 0;
-};
-
-class NodeCursor : public table_iterator
-{
-   protected:
-    key_range keys{};
-
-   public:
-    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
-    {
-        init(node_cur, sess);
-        keys = {-1, -1};
-    }
-
-    /**
-     * @brief Set the key range object
-     *
-     * @param _keys the key range object. Set the end key to INT_MAX if you
-     * want to get all the nodes from start node.
-     */
-    virtual void set_key_range(key_range _keys)  // overrided by edgekey
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start);
-    }
-
-    virtual void next(node *found) = 0;
-};
-
-class EdgeCursor : public table_iterator
-{
-   protected:
-    key_pair start_edge{};
-    key_pair end_edge{};
-    bool get_weight = true;
-
-   public:
-    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
-    {
-        init(composite_edge_cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-    }
-
-    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess, bool get_weight)
-    {
-        init(composite_edge_cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-        this->get_weight = get_weight;
-    }
-
-    // Overwrites set_key(int key) implementation in table_iterator
-    void set_key(int key) = delete;
-
-    virtual void set_key(edge_range range)
-    {
-        start_edge = range.start;
-        end_edge = range.end;
-        CommonUtil::set_key(cursor, range.start.src_id, range.start.dst_id);
-    }
-
-    virtual void next(edge *found) = 0;
-};
 
 #endif

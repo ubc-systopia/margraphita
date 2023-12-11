@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 
 using namespace std;
 [[maybe_unused]] const std::string GRAPH_PREFIX = "std";

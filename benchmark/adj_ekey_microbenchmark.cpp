@@ -1,14 +1,15 @@
+#include <sched.h>
+
 #include <cassert>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 
 #include "command_line.h"
-#include "common.h"
+#include "common_util.h"
 #include "edgekey.h"
 #include "graph_engine.h"
 #include "times.h"
-#include <sched.h>
 #ifdef DEBUG
 #include <ittnotify.h>
 __itt_domain* domain = __itt_domain_create("MyTraces.MyDomain");
