@@ -11,7 +11,7 @@
 #include "graph_exception.h"
 using namespace std;
 
-GraphBase::GraphBase(graph_opts opt_params, WT_CONNECTION *conn)
+GraphBase::GraphBase(graph_opts &opt_params, WT_CONNECTION *conn)
 {
     opts = opt_params;
     connection = conn;
@@ -19,7 +19,7 @@ GraphBase::GraphBase(graph_opts opt_params, WT_CONNECTION *conn)
     {
         throw GraphException("Cannot open session");
     }
-    __restore_from_db();
+    if (opts.create_new == false) _restore_from_db();
 }
 
 void GraphBase::create_metadata_table(graph_opts &opts, WT_CONNECTION *conn)
@@ -170,19 +170,26 @@ int GraphBase::_get_table_cursor(std::string table,
     }
     if (int ret =
             session->open_cursor(
-                session, table_name.c_str(), NULL, config.c_str(), cursor) != 0)
+                session, table_name.c_str(), nullptr, config.c_str(), cursor) !=
+            0)
     {
-        fprintf(
-            stderr, "Failed to get table cursor to %s\n", table_name.c_str());
-        return ret;
+        throw GraphException("Failed to open the cursor on the table " +
+                             table_name);
     }
     return 0;
 }
 
-void GraphBase::close() { CommonUtil::close_session(session); }
+void GraphBase::close()
+{
+    int ret = this->connection->close(this->connection, nullptr);
+    if (ret != 0)
+    {
+        throw GraphException("Failed to close the connection");
+    }
+}
 
 // Close, restore from DB, create/drop indices
-void GraphBase::__restore_from_db()
+void GraphBase::_restore_from_db()
 {
     WT_CURSOR *cursor = nullptr;
     int ret = _get_table_cursor(METADATA, &cursor, session, false, false);
@@ -241,7 +248,7 @@ void GraphBase::__restore_from_db()
 }
 
 // Close, restore from DB, create/drop indices
-void GraphBase::__restore_from_db(std::string db_name)
+void GraphBase::_restore_from_db(std::string db_name)
 {
     int ret = CommonUtil::open_connection(const_cast<char *>(db_name.c_str()),
                                           opts.stat_log,
@@ -381,7 +388,7 @@ void GraphBase::set_num_edges(uint64_t numEdges, WT_CURSOR *metadata_cursor)
                            metadata_cursor);
 }
 
-uint64_t GraphBase::get_num_nodes()
+uint32_t GraphBase::get_num_nodes()
 {
     std::string found = get_metadata(node_count);
     return std::stoi(found);

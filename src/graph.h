@@ -18,13 +18,17 @@ class GraphBase
    public:
     GraphBase() = default;
     GraphBase(graph_opts &opt_params, WT_CONNECTION *conn);  // ✅
-    static void insert_metadata(const std::string key,
+
+    //    virtual ~GraphBase() { CommonUtil::close_connection(this->connection);
+    //    }
+
+    static void insert_metadata(std::string key,
                                 const char *value,
                                 WT_CURSOR *metadata_cursor);  // ✅ check if pvt
     std::string get_metadata(std::string key,
-                             WT_CURSOR *metadata_cursor);     // ✅
-    virtual node get_node(node_id_t node_id) = 0;             // ✅
-    virtual node get_random_node() = 0;                       // ✅
+                             WT_CURSOR *metadata_cursor);  // ✅
+    virtual node get_node(node_id_t node_id) = 0;          // ✅
+    virtual node get_random_node() = 0;                    // ✅
     static void create_metadata_table(
         graph_opts &opts,
         WT_CONNECTION *conn);  // Used during first-time init of DB
@@ -58,11 +62,11 @@ class GraphBase
     void set_locks(LockSet *locks_ptr);
 
     void close();
-    uint64_t get_num_nodes();
+    uint32_t get_num_nodes();
     uint64_t get_num_edges();
     void set_num_nodes(uint64_t num_nodes, WT_CURSOR *cursor);
     void set_num_edges(uint64_t num_edges, WT_CURSOR *cursor);
-    std::string get_db_name() const { return opts.db_name; };
+    [[nodiscard]] std::string get_db_name() const { return opts.db_name; };
 
     static int _get_table_cursor(std::string table,
                                  WT_CURSOR **cursor,
@@ -78,19 +82,18 @@ class GraphBase
     WT_SESSION *session = nullptr;
     LockSet *locks = nullptr;
 
-    WT_CURSOR *metadata_cursor = NULL;
+    WT_CURSOR *metadata_cursor = nullptr;
 
-    WT_CONNECTION *get_db_conn() { return this->connection; }
-    WT_SESSION *get_db_session() { return this->session; }
+    [[maybe_unused]] WT_CONNECTION *get_db_conn() { return this->connection; }
+    [[maybe_unused]] WT_SESSION *get_db_session() { return this->session; }
     int _get_index_cursor(std::string table_name,
                           std::string idx_name,
                           std::string projection,
                           WT_CURSOR **cursor);
-    void __restore_from_db();
-    void __restore_from_db(std::string db_name);
+    [[maybe_unused]] void _restore_from_db();
+    [[maybe_unused]] void _restore_from_db(std::string db_name);
 
-    void drop_indices();
-    void close_all_cursors();
+    virtual void close_all_cursors() = 0;
     void add_to_nnodes(int amnt);
     void add_to_nedges(int amnt);
 

@@ -18,45 +18,48 @@ class AdjInCursor : public InCursor
    public:
     AdjInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
-    void next(adjlist *found)
+    void set_key_range(key_range _key) override
+    {
+        keys = _key;
+        is_first = false;
+
+        // Advances the cursor to the first valid record in range
+        if (keys.start != -1)
+        {
+            int status;
+            CommonUtil::set_key(cursor, keys.start);
+            cursor->search_near(cursor, &status);
+            if (status < 0)
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    this->has_next = false;
+                }
+            }
+        }
+        else
+        {
+            // Advances the cursor to first position
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+    }
+
+    void next(adjlist *found) override
     {
         if (!has_next)
         {
             goto no_next;
         }
 
-        if (is_first)
-        {
-            is_first = false;
-
-            if (keys.start != -1)
-            {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status < 0)
-                {
-                    // Advances the cursor
-                    if (cursor->next(cursor) != 0)
-                    {
-                        goto no_next;
-                    }
-                }
-            }
-            else
-            {
-                // Advances the cursor
-                if (cursor->next(cursor) != 0)
-                {
-                    goto no_next;
-                }
-            }
-        }
-
         node_id_t curr_key;
         CommonUtil::get_key(cursor, &curr_key);
 
-        if (keys.end != -1 && curr_key > keys.end)
+        if (keys.end != -1 &&
+            curr_key > keys.end)  // there is an end key and we have passed it
         {
             goto no_next;
         }
@@ -77,7 +80,7 @@ class AdjInCursor : public InCursor
         has_next = false;
     }
 
-    void next(adjlist *found, node_id_t key)
+    void next(adjlist *found, node_id_t key) override
     {
         // Must reset OutCursor if already no_next
         if (!has_next)
@@ -147,39 +150,41 @@ class AdjOutCursor : public OutCursor
    public:
     AdjOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
-    void next(adjlist *found)
+    // use key_pair to define start and end keys.
+    // advance the cursor to the first valid record in range
+    void set_key_range(key_range _keys) override
     {
-        if (!has_next)
-        {
-            goto no_next;
-        }
+        keys = _keys;
+        is_first = false;
 
-        if (is_first)
+        if (keys.start != -1)
         {
-            is_first = false;
-
-            if (keys.start != -1)
-            {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status < 0)
-                {
-                    // Advances the cursor
-                    if (cursor->next(cursor) != 0)
-                    {
-                        goto no_next;
-                    }
-                }
-            }
-            else
+            int status;
+            CommonUtil::set_key(cursor, keys.start);
+            cursor->search_near(cursor, &status);
+            if (status < 0)
             {
                 // Advances the cursor
                 if (cursor->next(cursor) != 0)
                 {
-                    goto no_next;
+                    this->has_next = false;
                 }
             }
+        }
+        else
+        {
+            // Advances the cursor to the first position
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+    }
+    void next(adjlist *found) override
+    {
+        if (!has_next)
+        {
+            goto no_next;
         }
 
         int curr_key;
@@ -206,7 +211,7 @@ class AdjOutCursor : public OutCursor
         has_next = false;
     }
 
-    void next(adjlist *found, node_id_t key)
+    void next(adjlist *found, node_id_t key) override
     {
         // Must reset OutCursor if already no_next
         if (!has_next)
@@ -276,47 +281,100 @@ class AdjNodeCursor : public NodeCursor
    public:
     AdjNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
-    // use key_pair to define start and end keys.
-    void next(node *found)
+    void set_key_range(key_range _keys) override
     {
-        if (!has_next)
-        {
-            goto no_next;
-        }
+        keys = _keys;
+        is_first = false;
 
-        if (is_first)
+        // Advances the cursor to the first valid record in range
+        if (keys.start != -1)
         {
-            is_first = false;
-
-            if (keys.start != -1)
+            int status;
+            CommonUtil::set_key(cursor, keys.start);
+            cursor->search_near(cursor, &status);
+            if (status < 0)
             {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status >= 0)
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
                 {
-                    goto first_time_skip_next;
+                    this->has_next = false;
                 }
             }
         }
-
-        if (cursor->next(cursor) == 0)
-        {
-        first_time_skip_next:
-            CommonUtil::get_key(cursor, &found->id);
-            if (keys.end != -1 && found->id > keys.end)
-            {
-                goto no_next;
-            }
-
-            CommonUtil::record_to_node(cursor, found, true);
-        }
         else
         {
-        no_next:
-            found->id = -1;
-            found->in_degree = -1;
-            found->out_degree = -1;
+            // Advances the cursor to the first position in the table.
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+    }
+
+    void no_next(node *found)
+    {
+        found->id = -1;
+        found->in_degree = -1;
+        found->out_degree = -1;
+        has_next = false;
+    }
+
+    // use key_pair to define start and end keys.
+    void next(node *found) override
+    {
+        if (!has_next)
+        {
+            no_next(found);
+            return;
+        }
+
+        CommonUtil::get_key(cursor, &found->id);
+        if (keys.end != -1 &&
+            found->id > keys.end)  // gone beyond the end of range
+        {
+            no_next(found);
+            return;
+        }
+
+        CommonUtil::record_to_node(cursor, found, true);
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+        }
+    }
+    //! TEST ME
+    void next(node *found, node_id_t key) override
+    {
+        // Must reset if already no_next or if requested key is out of range
+        if ((!has_next) || (keys.end != -1 && key > keys.end) ||
+            (keys.start != -1 && key < keys.start))
+        {
+            no_next(found);
+            return;
+        }
+
+        CommonUtil::set_key(cursor, key);
+        int status;
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                no_next(found);
+            }
+        }
+        int curr_key;
+        CommonUtil::get_key(cursor, &curr_key);
+
+        if (curr_key == key)
+        {
+            CommonUtil::record_to_node(cursor, found, true);
+        }
+
+        // no relevant node was found.
+        if (keys.end != -1 && curr_key > keys.end)
+        {
             has_next = false;
         }
     }
@@ -327,64 +385,70 @@ class AdjEdgeCursor : public EdgeCursor
    public:
     AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
-    AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess, bool get_weight)
-        : EdgeCursor(cur, sess, get_weight)
+    void set_key(edge_range range) override
     {
-    }
+        start_edge = range.start;
+        end_edge = range.end;
+        is_first = false;
 
-    void next(edge *found)
-    {
-        if (!has_next)
+        // Advances the cursor to the first valid record in range
+        if (start_edge.src_id != -1 && start_edge.dst_id != -1)
         {
-            goto no_next;
-        }
-
-        // If first time calling next, we want the exact record corresponding to
-        // the key_pair start or, if there is no such record, the smallest
-        // record larger than the key_pair
-        if (is_first)
-        {
-            is_first = false;
-            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+            int status;
+            CommonUtil::set_key(cursor, start_edge.src_id, start_edge.dst_id);
+            cursor->search_near(cursor, &status);
+            if (status < 0)
             {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status >= 0)
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
                 {
-                    goto first_time_skip_next;
+                    this->has_next = false;
                 }
-            }
-        }
-
-        // Check existence of next record
-        if (cursor->next(cursor) == 0)
-        {
-        first_time_skip_next:
-            CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
-
-            // If end_edge is set
-            if (end_edge.src_id != -1)
-            {
-                // If found > end edge
-                if (!(found->src_id < end_edge.src_id ||
-                      ((found->src_id == end_edge.src_id) &&
-                       (found->dst_id <= end_edge.dst_id))))
-                {
-                    goto no_next;
-                }
-            }
-            if (get_weight)
-            {
-                CommonUtil::record_to_edge(cursor, found);
             }
         }
         else
         {
-        no_next:
-            found->src_id = -1;
-            found->dst_id = -1;
-            found->edge_weight = -1;
+            // Advances the cursor to the first position in the table.
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+    }
+    void no_next(edge *found)
+    {
+        found->src_id = -1;
+        found->dst_id = -1;
+        found->edge_weight = -1;
+        has_next = false;
+    }
+
+    void next(edge *found) override
+    {
+        if (!has_next)
+        {
+            no_next(found);
+            return;
+        }
+
+        CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
+
+        // If end_edge is set
+        if (end_edge.src_id != -1)
+        {
+            // If found.src > end_edge.src or the edge is such that the source
+            // is less than end.src but the destination is greater than end.dst
+            if ((found->src_id > end_edge.src_id) ||
+                ((found->src_id == end_edge.src_id) &&
+                 (found->dst_id > end_edge.dst_id)))
+                no_next(found);
+        }
+        if (get_weight)
+        {
+            CommonUtil::record_to_edge(cursor, found);
+        }
+        if (cursor->next(cursor) != 0)
+        {
             has_next = false;
         }
     }
@@ -398,36 +462,34 @@ class AdjList : public GraphBase
             WT_CONNECTION *connection);  // TODO: merge the 2 constructors
     static void create_wt_tables(
         graph_opts &opts, WT_CONNECTION *conn);  // Need this to init graph db
-    int add_node(node to_insert);
+    int add_node(node to_insert) override;
     void add_node(node_id_t to_insert,
                   std::vector<node_id_t> &inlist,
                   std::vector<node_id_t> &outlist);
-    bool has_node(node_id_t node_id);
-    node get_node(node_id_t node_id);
-    int delete_node(node_id_t node_id);
-    node get_random_node();
-    degree_t get_in_degree(node_id_t node_id);
-    degree_t get_out_degree(node_id_t node_id);
-    std::vector<node> get_nodes();
+    bool has_node(node_id_t node_id) override;
+    node get_node(node_id_t node_id) override;
+    int delete_node(node_id_t node_id) override;
+    node get_random_node() override;
+    degree_t get_in_degree(node_id_t node_id) override;
+    degree_t get_out_degree(node_id_t node_id) override;
+    std::vector<node> get_nodes() override;
 
-    int add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(node_id_t src_id, node_id_t dst_id);
-    int delete_edge(node_id_t src_id, node_id_t dst_id);
-    edge get_edge(node_id_t src_id, node_id_t dst_id);
-    std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(node_id_t node_id);
-    std::vector<node> get_out_nodes(node_id_t node_id);
-    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id);
-    std::vector<edge> get_in_edges(node_id_t node_id);
-    std::vector<node> get_in_nodes(node_id_t node_id);
-    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id);
-    std::string get_db_name() const { return opts.db_name; };
+    int add_edge(edge to_insert, bool is_bulk) override;
+    bool has_edge(node_id_t src_id, node_id_t dst_id) override;
+    int delete_edge(node_id_t src_id, node_id_t dst_id) override;
+    edge get_edge(node_id_t src_id, node_id_t dst_id) override;
+    std::vector<edge> get_edges() override;
+    std::vector<edge> get_out_edges(node_id_t node_id) override;
+    std::vector<node> get_out_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) override;
+    std::vector<edge> get_in_edges(node_id_t node_id) override;
+    std::vector<node> get_in_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) override;
     std::vector<node_id_t> get_adjlist(WT_CURSOR *cursor, node_id_t node_id);
-    OutCursor *get_outnbd_iter();
-    InCursor *get_innbd_iter();
-    NodeCursor *get_node_iter();
-    EdgeCursor *get_edge_iter();
-
+    OutCursor *get_outnbd_iter() override;
+    InCursor *get_innbd_iter() override;
+    NodeCursor *get_node_iter() override;
+    EdgeCursor *get_edge_iter() override;
     // edgeweight_t get_edge_weight(node_id_t src_id, node_id_t dst_id);
     [[maybe_unused]] void update_edge_weight(
         node_id_t src_id,
@@ -450,13 +512,12 @@ class AdjList : public GraphBase
 
    private:
     // structure of the graph
-    int node_attr_size = 0;  // set on checking the list len
 
-    WT_CURSOR *node_cursor = NULL;
-    WT_CURSOR *random_node_cursor = NULL;
-    WT_CURSOR *edge_cursor = NULL;
-    WT_CURSOR *in_adjlist_cursor = NULL;
-    WT_CURSOR *out_adjlist_cursor = NULL;
+    WT_CURSOR *node_cursor = nullptr;
+    [[maybe_unused]] WT_CURSOR *random_node_cursor = nullptr;
+    WT_CURSOR *edge_cursor = nullptr;
+    WT_CURSOR *in_adjlist_cursor = nullptr;
+    WT_CURSOR *out_adjlist_cursor = nullptr;
 
     // AdjList specific internal methods:
     [[maybe_unused]] node get_next_node(WT_CURSOR *n_cur);
@@ -481,8 +542,6 @@ class AdjList : public GraphBase
                            degree_t outdeg);
 
     [[maybe_unused]] void dump_tables();
-    void create_indices() { return; }  // here because defined in interface
-
     int add_one_node_degree(WT_CURSOR *cursor,
                             node_id_t to_update,
                             bool is_out_degree);
@@ -495,15 +554,13 @@ class AdjList : public GraphBase
     int error_check_update_txn(int return_val);
     int error_check_read_txn(int return_val);
     int error_check_remove_txn(int return_val);
+    inline void close_all_cursors() override
+    {
+        CommonUtil::close_cursor(node_cursor);
+        CommonUtil::close_cursor(edge_cursor);
+        CommonUtil::close_cursor(in_adjlist_cursor);
+        CommonUtil::close_cursor(out_adjlist_cursor);
+    }
 };
 
-/**
- * iterator design:
- *
- * In the application, we need access to in and out neighbouhoods.
- * Ideally, we need an iterator class, on object of which can be returned to the
- * app these objects should have set_key(src, dst) and std::vector<int>
- * get_value()
- *
- */
 #endif

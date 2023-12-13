@@ -70,6 +70,8 @@ struct graph_opts
     std::string conn_config;
     std::string stat_log;
     GraphType type;
+
+    ~graph_opts(){};
 };
 
 typedef struct node

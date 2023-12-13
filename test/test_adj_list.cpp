@@ -3,7 +3,7 @@
 #define delim "--------------"
 #define INFO() fprintf(stdout, "%s\nNow running: %s\n", delim, __FUNCTION__);
 
-void create_init_nodes(AdjList graph, bool is_directed)
+void create_init_nodes(AdjList &graph, bool is_directed)
 {
     INFO()
     if (!is_directed)
@@ -25,8 +25,6 @@ void create_init_nodes(AdjList graph, bool is_directed)
         edge_cnt++;
     }
 }
-
-void tearDown(AdjList graph) { graph.close(); }
 
 void test_node_add(AdjList graph, bool read_optimize)
 {
@@ -408,22 +406,22 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     WT_CURSOR *adj_in_cur = graph.get_in_adjlist_cursor();
 
     // Verify node4 exists
-    n_cursor->set_key(n_cursor, SampleGraph::node4.id);
+    CommonUtil::set_key(n_cursor, SampleGraph::node4.id);
     int ret = n_cursor->search(n_cursor);
     assert(ret == 0);
     n_cursor->reset(n_cursor);
 
     // Delete node4 and verify it was actually deleted
     graph.delete_node(SampleGraph::node4.id);
-    n_cursor->set_key(n_cursor, SampleGraph::node4.id);
+    CommonUtil::set_key(n_cursor, SampleGraph::node4.id);
     ret = n_cursor->search(n_cursor);
     assert(ret != 0);
 
     // Verify node4's adjacency lists are deleted
-    adj_out_cur->set_key(adj_out_cur, SampleGraph::node4.id);
+    CommonUtil::set_key(adj_out_cur, SampleGraph::node4.id);
     ret = adj_out_cur->search(adj_out_cur);
     assert(ret != 0);
-    adj_in_cur->set_key(adj_in_cur, SampleGraph::node4.id);
+    CommonUtil::set_key(adj_in_cur, SampleGraph::node4.id);
     ret = adj_in_cur->search(adj_in_cur);
     assert(ret != 0);
 
@@ -483,16 +481,20 @@ void test_OutCursor(AdjList graph)
     }
 }
 
-void test_NodeCursor(AdjList graph)
+void test_NodeCursor(AdjList &graph)
 {
     INFO();
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
-    int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
+    int nodeIdList[] = {
+        1, 3, 5, 6, 7, 8};  // the list should be {1, 3, 4, 5, 6, 7, 8} if
+                            // delete_isolated_node is not called.
     int i = 0;
     node_cursor->next(&found);
     while (found.id != -1)
     {
+        std::cout << "Found node " << found.id << "\tExpected node "
+                  << nodeIdList[i] << std::endl;
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
         node_cursor->next(&found);
@@ -505,7 +507,8 @@ void test_NodeCursor_Range(AdjList graph)
     INFO();
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
-    int nodeIdList[] = {3, 4, 5, 6};
+    int nodeIdList[] = {3, 5, 6};  // The list should be {3,5,6} if
+                                   // delete_isolated_node is not called.
     int i = 0;
     node_cursor->set_key_range(key_range{3, 6});
     node_cursor->next(&found);
@@ -580,19 +583,19 @@ int main()
         opts.stat_log = "./";
     }
 
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-    GraphEngineTest myEngine(engine_opts);
-    WT_CONNECTION *conn = myEngine.public_get_connection();
+    // GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+    //                                            .opts = opts};
+    GraphEngine myEngine(THREAD_NUM, opts);
+    WT_CONNECTION *conn = myEngine.get_connection();
     AdjList graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
     test_get_nodes(graph);
     test_get_node(graph);
     test_add_edge(graph, opts.is_directed);
-    /*
-     test_add_fail should fail if create_new is false
-     add_edge->add_to_adjlists assumes no duplicate edges.
-     */
+    // /*
+    //  test_add_fail should fail if create_new is false
+    //  add_edge->add_to_adjlists assumes no duplicate edges.
+    //  */
     test_get_edge(graph);
     test_get_out_edges(graph);
     test_get_in_edges(graph);
@@ -600,7 +603,7 @@ int main()
     test_get_in_nodes(graph);
     test_get_in_degree(graph);
     test_delete_node(graph, opts.is_directed);
-    // // test_delete_isolated_node(graph, opts.is_directed);
+    test_delete_isolated_node(graph, opts.is_directed);
 
     test_InCursor(graph);
     test_OutCursor(graph);
@@ -608,6 +611,5 @@ int main()
     test_NodeCursor_Range(graph);
     test_EdgeCursor(graph);
     test_EdgeCursor_Range(graph);
-
-    tearDown(graph);
+    conn->close(conn, NULL);
 }

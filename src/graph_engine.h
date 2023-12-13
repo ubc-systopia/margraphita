@@ -4,7 +4,7 @@
 #include "adj_list.h"
 #include "common_util.h"
 #include "edgekey.h"
-#include "edgelist.h"
+// #include "edgelist.h"
 #include "graph.h"
 #include "graph_exception.h"
 #include "lock.h"
@@ -15,27 +15,22 @@ using namespace std;
 class GraphEngine
 {
    public:
-    struct graph_engine_opts
-    {
-        int num_threads;
-        graph_opts opts;
-    };
-    GraphEngine(graph_engine_opts engine_opts);
+    GraphEngine(int _num_threads, graph_opts &engine_opts);
     ~GraphEngine();
-    GraphBase* create_graph_handle();
+    GraphBase *create_graph_handle();
     void create_indices();
     void calculate_thread_offsets();
     void calculate_thread_offsets_edge_partition();
     void close_graph();
     edge_range get_edge_range(int thread_id);
     key_range get_key_range(int thread_id);
-    WT_CONNECTION* get_connection();
+    WT_CONNECTION *get_connection();
 
    protected:
-    WT_CONNECTION* conn = nullptr;
+    WT_CONNECTION *conn = nullptr;
     std::vector<key_range> node_ranges;
     std::vector<edge_range> edge_ranges;
-    LockSet* locks;
+    LockSet *locks;
     int num_threads;
     graph_opts opts;
 
@@ -46,20 +41,20 @@ class GraphEngine
     void calculate_thread_offsets(int thread_max,
                                   node_id_t num_nodes,
                                   node_id_t num_edges,
-                                  std::vector<key_range>& node_ranges,
-                                  std::vector<edge_range>& edge_offsets);
+                                  std::vector<key_range> &node_ranges,
+                                  std::vector<edge_range> &edge_offsets);
     void calculate_thread_offsets_edge_partition(
         int thread_max,
         node_id_t num_nodes,
         node_id_t num_edges,
-        std::vector<edge_range>& edge_offsets);
+        std::vector<edge_range> &edge_offsets);
 };
 
-GraphEngine::GraphEngine(graph_engine_opts engine_opts)
+GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
 {
-    num_threads = engine_opts.num_threads;
-    opts = engine_opts.opts;
-    check_opts_valid();
+    num_threads = _num_threads;
+    // init with the engine_opts passed as args without copying
+    opts = engine_opts;
     locks = new LockSet();
     if (opts.create_new)
     {
@@ -74,10 +69,8 @@ GraphEngine::GraphEngine(graph_engine_opts engine_opts)
 GraphEngine::~GraphEngine()
 {
     delete locks;
-    if (conn != NULL)
-    {
-        close_connection();
-    }
+    // This is handled in the GraphBase destructor.
+    //  close_connection();
 }
 
 GraphBase *GraphEngine::create_graph_handle()
@@ -95,10 +88,10 @@ GraphBase *GraphEngine::create_graph_handle()
     {
         ptr = new EdgeKey(opts, conn);
     }
-    else if (opts.type == GraphType::EList)
-    {
-        ptr = new UnOrderedEdgeList(opts, conn);
-    }
+    //    else if (opts.type == GraphType::EList)
+    //    {
+    //        ptr = new UnOrderedEdgeList(opts, conn);
+    //    }
     else
     {
         throw GraphException("Failed to create graph object");
@@ -120,10 +113,10 @@ void GraphEngine::create_indices()
     {
         EdgeKey::create_indices(sess);
     }
-    else if (opts.type == GraphType::EList)
-    {
-        UnOrderedEdgeList::create_indices(sess);
-    }
+    //    else if (opts.type == GraphType::EList)
+    //    {
+    //        UnOrderedEdgeList::create_indices(sess);
+    //    }
     else
     {
         throw GraphException("Failed to create graph object");
@@ -208,10 +201,10 @@ void GraphEngine::create_new_graph()
     {
         EdgeKey::create_wt_tables(opts, conn);
     }
-    else if (opts.type == GraphType::EList)
-    {
-        UnOrderedEdgeList::create_wt_tables(opts, conn);
-    }
+    //    else if (opts.type == GraphType::EList)
+    //    {
+    //        UnOrderedEdgeList::create_wt_tables(opts, conn);
+    //    }
     else
     {
         throw GraphException("Failed to create graph object");
@@ -235,8 +228,11 @@ void GraphEngine::open_connection()
 void GraphEngine::close_connection()
 {
     // CommonUtil::close_connection(conn);
-    conn->close(conn, NULL);
-    conn = NULL;
+    if (conn != NULL)
+    {
+        conn->close(conn, NULL);
+        conn = NULL;
+    }
 }
 
 WT_CONNECTION *GraphEngine::get_connection() { return conn; }
