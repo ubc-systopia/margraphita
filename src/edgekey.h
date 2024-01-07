@@ -529,5 +529,30 @@ class EdgeKey : public GraphBase
         OG_KEY(*key);
         OG_KEY(*key2);
     }
+
+    inline void record_to_node_ekey(WT_CURSOR *cur, node *found)
+    {
+        // std::cout << cur->value_format << std::endl;
+        //! checked that it works for negative int32_t values.
+        int a = 0, b = 0;
+        int ret = cur->get_value(cur, &a, &b);
+        if (ret != 0)
+        {
+            throw GraphException("Failed to get node attributes");
+        }
+        found->in_degree = a;
+        found->out_degree = b;
+    }
+
+    inline void record_to_edge_ekey(WT_CURSOR *cur, edge *found)
+    {
+        int a = 0, b = 0;
+        int ret = cur->get_value(cur, &a, &b);
+        if (ret != 0)
+        {
+            throw GraphException("Failed to get edge val");
+        }
+        found->edge_weight = a;
+    }
 };
 #endif
