@@ -1,12 +1,6 @@
 #ifndef EDGE_KEY
 #define EDGE_KEY
 
-#include <wiredtiger.h>
-
-#include <iostream>
-#include <string>
-#include <unordered_map>
-
 #include "common_util.h"
 #include "graph.h"
 #include "graph_exception.h"
@@ -15,37 +9,22 @@ using namespace std;
 
 class EkeyInCursor : public InCursor
 {
-    node_id_t next_expected = 1;
-    bool data_remaining = true;
+    //    node_id_t next_expected = 1;
+    //    bool data_remaining = true;
 
     // This accepts a dst_src_cursor
    public:
     EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
-    void next(adjlist *found) override
+    void set_key_range(key_range _keys) final
     {
-        node_id_t src;
-        node_id_t dst;
-        edge curr_edge;
+        keys = _keys;
+        is_first = false;
 
-        if (!has_next) goto no_next;
-
-        if (!data_remaining) goto no_data_remaining;
-
-        if (is_first)
+        // Now we set the cursor to the first relevant record in range
+        if (keys.start != OutOfBand_ID)  // the user DID set a start key
         {
-            is_first = false;
-
-            node_id_t to_search = 0;
-
-            if (keys.start != 0)
-            {
-                to_search = keys.start;
-                next_expected = keys.start;
-            }
-
-            CommonUtil::set_key(cursor, MAKE_EKEY(to_search), OutOfBand_ID);
-
+            CommonUtil::set_key(cursor, MAKE_EKEY(keys.start), OutOfBand_ID);
             int status;
             cursor->search_near(cursor, &status);
             if (status < 0)
@@ -53,30 +32,39 @@ class EkeyInCursor : public InCursor
                 // Advances the cursor
                 if (cursor->next(cursor) != 0)
                 {
-                    goto no_data_remaining;
+                    this->has_next = false;
                 }
             }
         }
-
-        if (keys.end != -OutOfBand_ID && next_expected > MAKE_EKEY(keys.end))
+        else  // the user did not set a start key
         {
-            goto no_next;
+            // Advance the cursor to the first record
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
         }
+    }
+
+    void next(adjlist *found) final
+    {
+        node_id_t src;
+        node_id_t dst;
+        edge curr_edge;
+        int ret = 0;
+
+        if (!has_next) goto no_next;
 
         // dst_src_cursor. pay attention to the (dst,src) order here
         CommonUtil::get_key(cursor, &dst, &src);
-
+        // check if we are past the valid range
+        if (keys.end != OutOfBand_ID && OG_KEY(dst) > keys.end)
+        {
+            goto no_next;
+        }
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = OG_KEY(dst);
-
-        if (dst != next_expected)
-        {
-            found->node_id = OG_KEY(next_expected);
-            next_expected += 1;
-            return;
-        }
-        next_expected += 1;
 
         do
         {
@@ -92,9 +80,8 @@ class EkeyInCursor : public InCursor
                 return;
             }
 
-        } while (cursor->next(cursor) == 0);
-
-        data_remaining = false;
+        } while ((ret = cursor->next(cursor) == 0));
+        if (ret != 0) has_next = false;
         return;
 
     no_next:
@@ -102,47 +89,29 @@ class EkeyInCursor : public InCursor
         found->edgelist.clear();
         found->node_id = -1;
         has_next = false;
-        return;
-    no_data_remaining:
-        if (keys.end != -1 && next_expected > keys.end)
-        {
-            goto no_next;
-        }
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = OG_KEY(next_expected);
-        next_expected += 1;
     }
 
-    void next(adjlist *found, node_id_t key) override
+    void next(adjlist *found, node_id_t key) final
     {
         edge curr_edge;
-        // Must reset OutCursor if already no_next
+        int ret = 0;
         if (!has_next)
         {
             goto no_next;
         }
 
         // Access outside of range not permitted
-        if (keys.end != -1 && key > keys.end)
+        if ((keys.end != OutOfBand_ID && key > keys.end) ||
+            (keys.start != OutOfBand_ID && key < keys.start))
         {
             goto no_next;
         }
-
-        if (keys.start != -1 && key < keys.start)
-        {
-            goto no_next;
-        }
-
-        next_expected = MAKE_EKEY(key) + 1;
 
         CommonUtil::set_key(cursor, MAKE_EKEY(key), OutOfBand_ID);
 
         found->degree = 0;
         found->edgelist.clear();
         found->node_id = key;
-
-        data_remaining = true;
 
         int status;
         // error_check(cursor->search_near(cursor, &status));
@@ -163,7 +132,7 @@ class EkeyInCursor : public InCursor
             if (OG_KEY(curr_edge.dst_id) != key)
             {
                 if (keys.end != OutOfBand_ID &&
-                    OG_KEY(next_expected) > keys.end)
+                    OG_KEY(curr_edge.dst_id) > keys.end)
                 {
                     has_next = false;
                 }
@@ -171,9 +140,8 @@ class EkeyInCursor : public InCursor
             }
             found->edgelist.push_back(OG_KEY(curr_edge.src_id));
             found->degree++;
-        } while (cursor->next(cursor) == 0);
-
-        data_remaining = true;
+        } while ((ret = cursor->next(cursor)) == 0);
+        if (ret != 0) has_next = false;
         return;
 
     no_next:
@@ -187,16 +155,46 @@ class EkeyInCursor : public InCursor
 class EkeyOutCursor : public OutCursor
 {
    private:
-    node_id_t next_expected = 1;
     bool data_remaining = true;
+    node_id_t last_node_id = 1;
+    // bool is_weighted = false;
 
    public:
-    EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
-
-    void next(adjlist *found)
+    EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess)
     {
-        node_id_t src;
-        node_id_t dst;
+        keys = {-1, -1};
+    }
+
+    void set_key_range(key_range _keys) override
+    {
+        keys = _keys;
+        CommonUtil::set_key(cursor, MAKE_EKEY(keys.start), OutOfBand_ID);
+        // Advance the cursor to the first record >= start
+        int status;
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+        // advance the cursor again to hit the adjacency list
+        if (cursor->next(cursor) != 0)
+        {
+            data_remaining = false;
+            return;
+        }
+        // At the end of this call, the cursor points to the adjacency list of
+        // the first node >= start
+    }
+
+    void next(adjlist *found) override
+    {
+        //      node_id_t src;
+        //      node_id_t dst;
         edge curr_edge;
 
         if (!has_next)
@@ -204,65 +202,15 @@ class EkeyOutCursor : public OutCursor
             goto no_next;
         }
 
-        if (!data_remaining)
-        {
-            goto no_data_remaining;
-        }
-
-        if (is_first)
-        {
-            is_first = false;
-
-            if (keys.start != 0)
-            {
-                next_expected = MAKE_EKEY(keys.start);
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status < 0)
-                {
-                    // Advances the cursor
-                    if (cursor->next(cursor) != 0)
-                    {
-                        goto no_data_remaining;
-                    }
-                }
-            }
-            else
-            {
-                // Advances the cursor
-                if (cursor->next(cursor) != 0)
-                {
-                    goto no_data_remaining;
-                }
-            }
-        }
-
-        if (keys.end != OutOfBand_ID && next_expected > MAKE_EKEY(keys.end))
-        {
-            goto no_next;
-        }
-
-        CommonUtil::get_key(cursor, &src, &dst);
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = OG_KEY(src);
-        int32_t tmp;  // this is needed in the get_Val but is discarded
-        cursor->get_value(cursor, &curr_edge.edge_weight, &tmp);
-
-        if (src != next_expected)
-        {
-            found->node_id = OG_KEY(next_expected);
-            next_expected += 1;
-            return;
-        }
-        next_expected += 1;
-
+        // edgeweight_t tmp;
         do
         {
             CommonUtil ::get_key(cursor, &curr_edge.src_id, &curr_edge.dst_id);
-            cursor->get_value(cursor, &curr_edge.edge_weight, &tmp);
-            if (src == curr_edge.src_id)
+            // if (is_weighted) cursor->get_value(cursor,
+            // &curr_edge.edge_weight, &tmp);
+            found->node_id = OG_KEY(curr_edge.src_id);
+            if (curr_edge.src_id > last_node_id &&
+                curr_edge.src_id <= MAKE_EKEY(keys.end))
             {
                 if (curr_edge.dst_id != 0)
                 {
@@ -272,6 +220,10 @@ class EkeyOutCursor : public OutCursor
             }
             else
             {
+                // We have advanced to the next node
+                last_node_id = curr_edge.src_id;
+                if (cursor->next(cursor) != 0)
+                    has_next = false;  // advance to the next node
                 return;
             }
         } while (cursor->next(cursor) == 0);
@@ -284,89 +236,9 @@ class EkeyOutCursor : public OutCursor
         found->edgelist.clear();
         found->node_id = -1;
         has_next = false;
-        return;
-    no_data_remaining:
-        if (keys.end != -1 && next_expected > keys.end)
-        {
-            goto no_next;
-        }
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = OG_KEY(next_expected);
-        next_expected += 1;
     }
 
-    void next(adjlist *found, node_id_t key)
-    {
-        edge curr_edge;
-        // Must reset OutCursor if already no_next
-        if (!has_next)
-        {
-            goto no_next;
-        }
-
-        // Access outside of range not permitted
-        if (keys.end != -1 && key > keys.end)
-        {
-            goto no_next;
-        }
-
-        if (keys.start != -1 && key < keys.start)
-        {
-            goto no_next;
-        }
-
-        next_expected = MAKE_EKEY(key) + 1;
-
-        CommonUtil::set_key(cursor, MAKE_EKEY(key), OutOfBand_ID);
-
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = key;
-
-        data_remaining = true;
-
-        int status;
-        // error_check(cursor->search_near(cursor, &status));
-        cursor->search_near(cursor, &status);
-        if (status < 0)
-        {
-            // Advances the cursor
-            if (cursor->next(cursor) != 0)
-            {
-                data_remaining = false;
-                return;
-            }
-        }
-
-        do
-        {
-            CommonUtil::get_key(cursor, &curr_edge.src_id, &curr_edge.dst_id);
-            if (OG_KEY(curr_edge.src_id) != key)
-            {
-                if (keys.end != OutOfBand_ID &&
-                    OG_KEY(next_expected) > keys.end)
-                {
-                    has_next = false;
-                }
-                return;
-            }
-            if (curr_edge.dst_id != 0)
-            {
-                found->edgelist.push_back(OG_KEY(curr_edge.dst_id));
-                found->degree++;
-            }
-        } while (cursor->next(cursor) == 0);
-
-        data_remaining = false;
-        return;
-
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
-        has_next = false;
-    }
+    void next(adjlist *found, node_id_t key) override {}
 };
 /**
  * @brief This class is used to iterate over the nodes of a graph.
@@ -380,13 +252,13 @@ class EkeyNodeCursor : public NodeCursor
     // Takes a composite index cursor on (dst, src)
     EkeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
-    void set_key_range(key_range _keys)
+    void set_key_range(key_range _keys) override
     {
         keys = _keys;
         CommonUtil::set_key(cursor, OutOfBand_ID, MAKE_EKEY(keys.start));
     }
 
-    void next(node *found)
+    void next(node *found) override
     {
         edge curr_edge;
         if (!has_next)
@@ -439,6 +311,8 @@ class EkeyNodeCursor : public NodeCursor
             has_next = false;
         }
     }
+
+    void next(node *found, node_id_t key) override {}
 };
 
 class EkeyEdgeCursor : public EdgeCursor
@@ -446,69 +320,101 @@ class EkeyEdgeCursor : public EdgeCursor
    public:
     EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
-    EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess, bool get_weight)
-        : EdgeCursor(cur, sess, get_weight)
-    {
-    }
-    void set_key(edge_range range)
+    void set_key(edge_range range) override
     {
         start_edge = range.start;
         end_edge = range.end;
-        CommonUtil::set_key(cursor,
-                            MAKE_EKEY(range.start.src_id),
-                            MAKE_EKEY(range.start.dst_id));
+        is_first = false;
+
+        // set the cursor to the first relevant record in range
+        if (range.start.src_id != -1 &&
+            range.start.dst_id != -1)  // the range is not empty
+        {
+            CommonUtil::set_key(cursor,
+                                MAKE_EKEY(range.start.src_id),
+                                MAKE_EKEY(range.start.dst_id));
+            int status;
+            cursor->search_near(cursor, &status);
+            if (status < 0)
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    this->has_next = false;
+                }
+            }
+        }
+        else  // the range is empty
+        {
+            // Advance the cursor to the first record
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
     }
 
-    void next(edge *found)
+    void next(edge *found) override
     {
         if (!has_next)
         {
             goto no_next;
         }
 
-        // If first time calling next, we want the exact record corresponding to
-        // the key_pair start or, if there is no such record, the smallest
-        // record larger than the key_pair
-        if (is_first)
-        {
-            is_first = false;
-
-            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
-            {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                std::cout << "status: " << status << std::endl;
-                if (status >= 0)
-                {
-                    goto skip_first_advance;
-                }
-            }
-        }
-
-        if (cursor->next(cursor) != 0)
-        {
-            goto no_next;
-        }
+        //        // If first time calling next, we want the exact record
+        //        corresponding to
+        //        // the key_pair start or, if there is no such record, the
+        //        smallest
+        //        // record larger than the key_pair
+        //        if (is_first)
+        //        {
+        //            is_first = false;
+        //
+        //            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+        //            {
+        //                int status;
+        //                cursor->search_near(cursor, &status);
+        //                std::cout << "status: " << status << std::endl;
+        //                if (status >= 0)
+        //                {
+        //                    goto skip_first_advance;
+        //                }
+        //            }
+        //        }
+        //
+        //        if (cursor->next(cursor) != 0)
+        //        {
+        //            goto no_next;
+        //        }
 
     skip_first_advance:
         // Advance until cursor is pointing to an edge
-        while (true)
+        do
         {
-            // error_check(
-            //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
             CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
-            found->src_id -= 1;
-            found->dst_id -= 1;
+            OG_KEY(found->src_id);  // -= 1;
+            OG_KEY(found->dst_id);  // -= 1;
             if (found->dst_id != -1)
             {
-                goto edge_found;
+                break;  // found an edge
             }
-            if (cursor->next(cursor) != 0)
-            {
-                goto no_next;
-            }
-        }
+        } while (cursor->next(cursor) == 0);
+        //        while (true)
+        //        {
+        //            // error_check(
+        //            //     cursor->get_key(cursor, &found->src_id,
+        //            &found->dst_id)); CommonUtil::get_key(cursor,
+        //            &found->src_id, &found->dst_id); OG_KEY(found->src_id); //
+        //            -= 1; OG_KEY(found->dst_id);  // -= 1; if (found->dst_id
+        //            != -1)
+        //            {
+        //                goto edge_found;
+        //            }
+        //            if (cursor->next(cursor) != 0)
+        //            {
+        //                goto no_next;
+        //            }
+        //        }
 
     edge_found:
         // If end_edge is set
@@ -542,43 +448,39 @@ class EdgeKey : public GraphBase
     EdgeKey(graph_opts &opt_params,
             WT_CONNECTION *conn);  // TODO: merge the 2 constructors
     static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
-    int add_node(node to_insert);
+    int add_node(node to_insert) override;
 
-    bool has_node(node_id_t node_id);
-    node get_node(node_id_t node_id);
-    int delete_node(node_id_t node_id);
-    node get_random_node();
-    degree_t get_in_degree(node_id_t node_id);
-    degree_t get_out_degree(node_id_t node_id);
-    std::vector<node> get_nodes();
-    int add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(node_id_t src_id, node_id_t dst_id);
-    int delete_edge(node_id_t src_id, node_id_t dst_id);
-    edge get_edge(node_id_t src_id, node_id_t dst_id);
-    std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(node_id_t node_id);
-    std::vector<node> get_out_nodes(node_id_t node_id);
-    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id);
-    std::vector<edge> get_in_edges(node_id_t node_id);
-    std::vector<node> get_in_nodes(node_id_t node_id);
-    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id);
+    bool has_node(node_id_t node_id) override;
+    node get_node(node_id_t node_id) override;
+    int delete_node(node_id_t node_id) override;
+    node get_random_node() override;
+    degree_t get_in_degree(node_id_t node_id) override;
+    degree_t get_out_degree(node_id_t node_id) override;
+    std::vector<node> get_nodes() override;
+    int add_edge(edge to_insert, bool is_bulk) override;
+    bool has_edge(node_id_t src_id, node_id_t dst_id) override;
+    int delete_edge(node_id_t src_id, node_id_t dst_id) override;
+    edge get_edge(node_id_t src_id, node_id_t dst_id) override;
+    std::vector<edge> get_edges() override;
+    std::vector<edge> get_out_edges(node_id_t node_id) override;
+    std::vector<node> get_out_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) override;
+    std::vector<edge> get_in_edges(node_id_t node_id) override;
+    std::vector<node> get_in_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) override;
 
-    OutCursor *get_outnbd_iter();
-    InCursor *get_innbd_iter();
-    NodeCursor *get_node_iter();
-    EdgeCursor *get_edge_iter();
+    OutCursor *get_outnbd_iter() override;
+    InCursor *get_innbd_iter() override;
+    NodeCursor *get_node_iter() override;
+    EdgeCursor *get_edge_iter() override;
+
     // internal cursor operations:
     void init_cursors();  // todo <-- implement this
-    WT_CURSOR *get_src_idx_cursor();
-    [[maybe_unused]] WT_CURSOR *get_dst_idx_cursor();
     [[maybe_unused]] WT_CURSOR *get_node_cursor();
     WT_CURSOR *get_edge_cursor();
-
-    //    WT_CURSOR *get_new_src_idx_cursor();
-    WT_CURSOR *get_new_dst_idx_cursor();
-    WT_CURSOR *get_new_node_cursor();
     WT_CURSOR *get_new_edge_cursor();
-    WT_CURSOR *get_new_random_node_cursor();
+    [[maybe_unused]] WT_CURSOR *get_new_node_cursor();
+    [[maybe_unused]] WT_CURSOR *get_new_random_node_cursor();
     WT_CURSOR *get_dst_src_idx_cursor();
     WT_CURSOR *get_new_dst_src_idx_cursor();
     static void create_indices(WT_SESSION *session);
@@ -597,10 +499,35 @@ class EdgeKey : public GraphBase
     int add_edge_only(edge to_insert);
     int add_node_txn(node to_insert);
     int error_check_add_edge(int ret);
-    node get_next_node(WT_CURSOR *n_iter);
-    edge get_next_edge(WT_CURSOR *e_iter);
 
     [[maybe_unused]] void drop_indices();
-    void close_all_cursors();
+    [[maybe_unused]] inline void close_all_cursors() override
+    {
+        edge_cursor->close(edge_cursor);
+        dst_src_idx_cursor->close(dst_src_idx_cursor);
+        random_cursor->close(random_cursor);
+    }
+
+    inline void set_key_node(WT_CURSOR *cursor, node_id_t key)
+    {
+        CommonUtil::set_key(cursor, MAKE_EKEY(key), OutOfBand_ID);
+    }
+    inline void set_key_edge(WT_CURSOR *cursor, node_id_t key, node_id_t key2)
+    {
+        CommonUtil::set_key(cursor, MAKE_EKEY(key), MAKE_EKEY(key2));
+    }
+
+    inline void get_key_node(WT_CURSOR *cursor, node_id_t *key)
+    {
+        CommonUtil::get_key(cursor, key);
+        OG_KEY(*key);
+    }
+
+    inline void get_key_edge(WT_CURSOR *cursor, node_id_t *key, node_id_t *key2)
+    {
+        CommonUtil::get_key(cursor, key, key2);
+        OG_KEY(*key);
+        OG_KEY(*key2);
+    }
 };
 #endif

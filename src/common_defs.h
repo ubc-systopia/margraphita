@@ -119,8 +119,20 @@ typedef struct edge_range
 
 typedef struct adjlist
 {
-    node_id_t node_id;
-    degree_t degree;
+    node_id_t node_id{};
+    degree_t degree{};
     std::vector<node_id_t> edgelist;
+    // This could be dynamic, but this is a good starting point.
+    adjlist() { edgelist.reserve(1000); }
+    adjlist(node_id_t id, degree_t deg) : node_id(id), degree(deg)
+    {
+        edgelist.reserve(deg);
+    }
+    void clear()
+    {
+        edgelist.clear();
+        node_id = 0;
+        degree = 0;
+    }
 } adjlist;
 #endif

@@ -112,12 +112,12 @@ add_subdirectory(utils)
 # Create Test executables
 add_subdirectory(test)
 
-# Benchmarks executables
-add_subdirectory(benchmark)
+## Benchmarks executables
+#add_subdirectory(benchmark)
+#
+## Preprocess executables
+#add_subdirectory(preprocess)
 
-# Preprocess executables
-add_subdirectory(preprocess)
-
-configure_file(${PROJECT_SOURCE_DIR}/.githooks/pre-commit ${PROJECT_SOURCE_DIR}/.git/hooks COPYONLY)
+#configure_file(${PROJECT_SOURCE_DIR}/.githooks/pre-commit ${PROJECT_SOURCE_DIR}/.git/hooks COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/config.json ${CMAKE_CURRENT_BINARY_DIR}/preprocess COPYONLY)
 configure_file(${PROJECT_SOURCE_DIR}/config.json ${CMAKE_CURRENT_BINARY_DIR}/benchmark COPYONLY)

@@ -1,6 +1,5 @@
 #include "edgekey.h"
 
-#include <fmt/core.h>
 #include <wiredtiger.h>
 
 #include <algorithm>
@@ -1312,12 +1311,7 @@ WT_CURSOR *EdgeKey::get_new_dst_src_idx_cursor()
 
 OutCursor *EdgeKey::get_outnbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn = new EkeyOutCursor(get_new_edge_cursor(), session);
-    // toReturn->set_num_nodes(num_nodes);
-
-    toReturn->set_key_range({0, 0}, true);
-    // toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
     return toReturn;
 }
 
@@ -1327,7 +1321,7 @@ InCursor *EdgeKey::get_innbd_iter()
     InCursor *toReturn =
         new EkeyInCursor(get_new_dst_src_idx_cursor(), session);
     // toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({0, 0}, true);
+    toReturn->set_key_range({0, 0});
     // toReturn->set_key_range(
     //     {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)}, true);
     // toReturn->set_key_range({0, static_cast<node_id_t>((int64_t)num_nodes)});
@@ -1342,7 +1336,7 @@ NodeCursor *EdgeKey::get_node_iter()
 
 EdgeCursor *EdgeKey::get_edge_iter()
 {
-    return new EkeyEdgeCursor(get_new_edge_cursor(), session, opts.is_weighted);
+    return new EkeyEdgeCursor(get_new_edge_cursor(), session);
 }
 
 [[maybe_unused]] WT_CURSOR *EdgeKey::get_node_cursor()
@@ -1350,29 +1344,9 @@ EdgeCursor *EdgeKey::get_edge_iter()
     return get_dst_src_idx_cursor();
 }
 
-[[maybe_unused]] WT_CURSOR *EdgeKey::get_new_node_cursor()
+[[maybe_unused]] [[maybe_unused]] WT_CURSOR *EdgeKey::get_new_node_cursor()
 {
     return get_new_dst_src_idx_cursor();
-}
-
-[[maybe_unused]] node EdgeKey::get_next_node(WT_CURSOR *dst_cur)
-{
-    CommonUtil::set_key(dst_cur, OutOfBand_ID);
-    WT_CURSOR *e_cur = get_edge_cursor();
-    node found = {-1};
-    if (dst_cur->search(dst_cur) == 0)
-    {
-        node_id_t node_id, temp;
-        dst_cur->get_value(dst_cur, &node_id, &temp);
-        assert(temp == OutOfBand_ID);  // this should be true
-        CommonUtil::set_key(e_cur, MAKE_EKEY(node_id), OutOfBand_ID);
-        if (e_cur->search(e_cur) == 0)
-        {
-            found.id = node_id;
-            CommonUtil::record_to_node_ekey(e_cur, &found);
-        }
-    }
-    return found;
 }
 
 WT_CURSOR *EdgeKey::get_edge_cursor()
@@ -1399,28 +1373,4 @@ WT_CURSOR *EdgeKey::get_new_edge_cursor()
     }
 
     return new_edge_cursor;
-}
-
-[[maybe_unused]] edge EdgeKey::get_next_edge(WT_CURSOR *e_cur)
-{
-    edge found = {-1};
-    while (e_cur->next(e_cur) == 0)
-    {
-        CommonUtil::get_key(e_cur, &found.src_id, &found.dst_id);
-        if (found.dst_id != OutOfBand_ID)
-        {
-            if (opts.is_weighted)
-            {
-                CommonUtil::record_to_edge_ekey(e_cur, &found);
-            }
-            break;
-        }
-    }
-    return found;
-}
-
-[[maybe_unused]] void EdgeKey::close_all_cursors()
-{
-    edge_cursor->close(edge_cursor);
-    metadata_cursor->close(metadata_cursor);
 }

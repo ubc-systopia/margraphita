@@ -1,4 +1,9 @@
-#include "test_graph_engine.h"
+#include <cassert>
+
+#include "common_util.h"
+#include "graph_engine.h"
+#include "graph_exception.h"
+#include "sample_graph.h"
 
 #define delim "--------------"
 #define INFO() fprintf(stdout, "%s\nNow running: %s\n", delim, __FUNCTION__);
@@ -458,11 +463,12 @@ void test_InCursor(AdjList graph)
 {
     INFO();
     InCursor *in_cursor = graph.get_innbd_iter();
-    adjlist found = {0};
+    adjlist found;
     in_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
+        found.clear();
         in_cursor->next(&found);
     }
 }
@@ -471,12 +477,12 @@ void test_OutCursor(AdjList graph)
 {
     INFO();
     OutCursor *out_cursor = graph.get_outnbd_iter();
-    adjlist found = {0};
+    adjlist found;
     out_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
-        found = {0};
+        found.clear();
         out_cursor->next(&found);
     }
 }

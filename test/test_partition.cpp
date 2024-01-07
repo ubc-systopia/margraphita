@@ -1,4 +1,9 @@
-#include "test_graph_engine.h"
+#include <cassert>
+
+#include "common_util.h"
+#include "graph_engine.h"
+#include "graph_exception.h"
+#include "sample_graph.h"
 #include "thread_utils.h"
 
 #define INFO() fprintf(stderr, "Now running: %s\n", __FUNCTION__);
@@ -31,10 +36,8 @@ int main()
 
     const int THREAD_NUM = 8;
 
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-    GraphEngineTest myEngine(engine_opts);
-    WT_CONNECTION *conn = myEngine.public_get_connection();
+    GraphEngine myEngine(THREAD_NUM, opts);
+    WT_CONNECTION *conn = myEngine.get_connection();
     EdgeKey graph(opts, conn);
 
     std::vector<key_range> node_offsets;

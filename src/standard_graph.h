@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph.h"
 #include "graph_exception.h"
 
@@ -22,7 +22,9 @@ class StdInCursor : public InCursor
    public:
     StdInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
-    void next(adjlist *found)
+    void set_key_range(key_range _keys) override{};
+
+    void next(adjlist *found) override
     {
         node_id_t src;
         node_id_t dst;
@@ -120,7 +122,7 @@ class StdInCursor : public InCursor
         next_expected += 1;
     }
 
-    void next(adjlist *found, node_id_t key)
+    void next(adjlist *found, node_id_t key) override
     {
         edge curr_edge;
         // Must reset OutCursor if already no_next
@@ -197,7 +199,9 @@ class StdOutCursor : public OutCursor
    public:
     StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
-    void next(adjlist *found)
+    void set_key_range(key_range _keys) override {}
+
+    void next(adjlist *found) override
     {
         node_id_t src;
         node_id_t dst;
@@ -295,7 +299,7 @@ class StdOutCursor : public OutCursor
         next_expected += 1;
     }
 
-    void next(adjlist *found, node_id_t key)
+    void next(adjlist *found, node_id_t key) override
     {
         edge curr_edge;
         // Must reset OutCursor if already no_next
@@ -369,7 +373,11 @@ class StdNodeCursor : public NodeCursor
    public:
     StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
-    void next(node *found)
+    void set_key_range(key_range _keys) override {}
+
+    void next(node *found, node_id_t key) override {}
+
+    void next(node *found) override
     {
         if (!has_next)
         {
@@ -419,13 +427,9 @@ class StdEdgeCursor : public EdgeCursor
 {
    public:
     StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
+    void set_key(edge_range range) override {}
 
-    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess, bool get_weight)
-        : EdgeCursor(cur, sess, get_weight)
-    {
-    }
-
-    void next(edge *found)
+    void next(edge *found) override
     {
         if (!has_next)
         {
@@ -491,79 +495,70 @@ class StandardGraph : public GraphBase
     StandardGraph(graph_opts &opt_params,
                   WT_CONNECTION *conn);  // TODO: merge the 2 constructors
     static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
-    int add_node(node to_insert);
-    bool has_node(node_id_t node_id);
-    node get_node(node_id_t node_id);
-    int delete_node(node_id_t node_id);
-    node get_random_node();
-    degree_t get_in_degree(node_id_t node_id);
-    degree_t get_out_degree(node_id_t node_id);
-    std::vector<node> get_nodes();
-    int add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(node_id_t src_id, node_id_t dst_id);
-    int delete_edge(node_id_t src_id, node_id_t dst_id);
+    int add_node(node to_insert) override;
+    bool has_node(node_id_t node_id) override;
+    node get_node(node_id_t node_id) override;
+    int delete_node(node_id_t node_id) override;
+    node get_random_node() override;
+    degree_t get_in_degree(node_id_t node_id) override;
+    degree_t get_out_degree(node_id_t node_id) override;
+    std::vector<node> get_nodes() override;
+    int add_edge(edge to_insert, bool is_bulk) override;
+    bool has_edge(node_id_t src_id, node_id_t dst_id) override;
+    int delete_edge(node_id_t src_id, node_id_t dst_id) override;
     int update_edge_weight(node_id_t src_id,
                            node_id_t dst_id,
                            edgeweight_t weight);
     edge get_edge(node_id_t src_id,
-                  node_id_t dst_id);  // todo <-- implement this
-    std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(node_id_t node_id);
-    std::vector<node> get_out_nodes(node_id_t node_id);
-    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id);
-    std::vector<edge> get_in_edges(node_id_t node_id);
-    std::vector<node> get_in_nodes(node_id_t node_id);
-    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id);
+                  node_id_t dst_id) override;  // todo <-- implement this
+    std::vector<edge> get_edges() override;
+    std::vector<edge> get_out_edges(node_id_t node_id) override;
+    std::vector<node> get_out_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) override;
+    std::vector<edge> get_in_edges(node_id_t node_id) override;
+    std::vector<node> get_in_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) override;
     void get_nodes(vector<node> &nodes);
-    std::string get_db_name() const { return opts.db_name; };
 
-    OutCursor *get_outnbd_iter();
-    InCursor *get_innbd_iter();
-    NodeCursor *get_node_iter();
-    EdgeCursor *get_edge_iter();
+    OutCursor *get_outnbd_iter() override;
+    InCursor *get_innbd_iter() override;
+    NodeCursor *get_node_iter() override;
+    EdgeCursor *get_edge_iter() override;
 
     // internal cursor methods
-    //! Check if these should be public
-    void init_cursors();  // todo <-- implement this
-    WT_CURSOR *get_node_cursor();
+    void drop_indices();
+    static void create_indices(WT_SESSION *sess);
+
     WT_CURSOR *get_edge_cursor();
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
-    WT_CURSOR *get_src_dst_idx_cursor();
-    WT_CURSOR *get_random_node_cursor();
-
     WT_CURSOR *get_new_node_cursor();
     WT_CURSOR *get_new_edge_cursor();
     WT_CURSOR *get_new_src_idx_cursor();
     WT_CURSOR *get_new_dst_idx_cursor();
-    WT_CURSOR *get_new_src_dst_idx_cursor();
     std::vector<edge> test_cursor_iter(node_id_t node_id);
-    static void create_indices(WT_SESSION *sess);
 
    private:
     // Cursors
-    WT_CURSOR *node_cursor = NULL;
-    WT_CURSOR *random_node_cursor = NULL;
-    WT_CURSOR *edge_cursor = NULL;
-    WT_CURSOR *src_dst_index_cursor = NULL;
-    WT_CURSOR *src_index_cursor = NULL;
-    WT_CURSOR *dst_index_cursor = NULL;
+    WT_CURSOR *node_cursor = nullptr;
+    WT_CURSOR *random_node_cursor = nullptr;
+    WT_CURSOR *edge_cursor = nullptr;
+    WT_CURSOR *src_dst_index_cursor = nullptr;
+    WT_CURSOR *src_index_cursor = nullptr;
+    WT_CURSOR *dst_index_cursor = nullptr;
 
     // Internal methods
-    void drop_indices();
+
+    void init_cursors();
+    void close_all_cursors() override;
     int update_node_degree(WT_CURSOR *cursor,
                            node_id_t node_id,
                            degree_t indeg,
                            degree_t outdeg);
-    void delete_related_edges(WT_CURSOR *index_cursor, node_id_t node_id);
-    int error_check(int ret, std::string file, int loc);
     int add_node_txn(node to_insert);
     int delete_edge_txn(node_id_t src_id,
                         node_id_t dst_id,
                         int *num_edges_to_add_ptr);
-
-    node get_next_node(WT_CURSOR *n_iter);
-    [[maybe_unused]] static edge get_next_edge(WT_CURSOR *e_iter);
 };
 
 #endif

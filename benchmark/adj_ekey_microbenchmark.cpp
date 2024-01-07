@@ -31,14 +31,13 @@ __itt_string_handle* outnbdScan =
 
 #define HUB_COUNT 100000
 
-
 int main(int argc, char* argv[])
 {
-    cpu_set_t  mask;
+    cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(0, &mask);
     int result = sched_setaffinity(0, sizeof(mask), &mask);
-    
+
     std::cout << "Running Iteration" << std::endl;
     CmdLineApp iter_cli(argc, argv);
     if (!iter_cli.parse_args())
@@ -61,8 +60,7 @@ int main(int argc, char* argv[])
     opts.type = iter_cli.get_graph_type();
 
     const int THREAD_NUM = 4;
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
+    GraphEngine myEngine(THREAD_NUM, opts);
 
     int num_trials = iter_cli.get_num_trials();
     EdgeCursor* edge_cursor;
@@ -80,9 +78,9 @@ int main(int argc, char* argv[])
 #endif
 
 #ifdef HUB
-    #ifdef HUB_BREAK
-        stat_file_name = stat_file_name + "_hub_break";
-    #endif
+#ifdef HUB_BREAK
+    stat_file_name = stat_file_name + "_hub_break";
+#endif
     stat_file_name = stat_file_name + "_hub.log";
 #else
     stat_file_name = stat_file_name + "_no_hub.log";
@@ -95,7 +93,7 @@ int main(int argc, char* argv[])
     }
 
 #ifdef HUB
-    GraphEngine graphEngineHub(engine_opts);
+    GraphEngine graphEngineHub(THREAD_NUM, opts);
     GraphBase* graphHub = nullptr;
     if (opts.create_new)
     {
@@ -146,17 +144,18 @@ int main(int argc, char* argv[])
         out_cursor->next(&adj);
         while (adj.node_id != -1)
         {
-            if(opts.type == GraphType::EKey)
+            if (opts.type == GraphType::EKey)
             {
-                std::cout << "adj.node_id: " << adj.node_id << "has " << adj.edgelist.size() <<" neighbours" <<std::endl;
+                std::cout << "adj.node_id: " << adj.node_id << "has "
+                          << adj.edgelist.size() << " neighbours" << std::endl;
             }
             for (node_id_t v : adj.edgelist)
             {
                 counter2++;
             }
-// #ifdef HUB_BREAK
-//             break;//for hub node, only iterate over the core.
-// #endif
+            // #ifdef HUB_BREAK
+            //             break;//for hub node, only iterate over the core.
+            // #endif
             out_cursor->next(&adj);
         }
 #ifdef DEBUG
@@ -164,7 +163,8 @@ int main(int argc, char* argv[])
 #endif
         graphHub->close();
         t.stop();
-        std::cout <<"counter1(edge): "<< counter1 << " counter2:(adjlist) " << counter2 << std::endl;
+        std::cout << "counter1(edge): " << counter1 << " counter2:(adjlist) "
+                  << counter2 << std::endl;
         assert(counter1 == counter2);
         stat_file << t.t_micros() << std::endl;
         std::cout << "Hub traversal completed in : " << t.t_micros()

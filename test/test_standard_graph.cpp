@@ -1,4 +1,9 @@
-#include "test_graph_engine.h"
+#include <cassert>
+
+#include "common_util.h"
+#include "graph_engine.h"
+#include "graph_exception.h"
+#include "sample_graph.h"
 
 #define delim "--------------"
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
@@ -388,12 +393,12 @@ void test_InCursor(StandardGraph &graph)
 {
     INFO()
     InCursor *in_cursor = graph.get_innbd_iter();
-    adjlist found = {0};
+    adjlist found;
     in_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
-        found = {0};
+        found.clear();
         in_cursor->next(&found);
     }
 
@@ -410,12 +415,12 @@ void test_OutCursor(StandardGraph &graph)
 {
     INFO()
     OutCursor *out_cursor = graph.get_outnbd_iter();
-    adjlist found = {0};
+    adjlist found;
     out_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
-        found = {0};
+        found.clear();
         out_cursor->next(&found);
     }
 
@@ -549,10 +554,8 @@ int main()
     }
 
     // Test std_graph setup
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-    GraphEngineTest myEngine(engine_opts);
-    WT_CONNECTION *conn = myEngine.public_get_connection();
+    GraphEngine myEngine(THREAD_NUM, opts);
+    WT_CONNECTION *conn = myEngine.get_connection();
 
     StandardGraph graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);

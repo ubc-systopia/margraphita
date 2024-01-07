@@ -96,7 +96,7 @@ GraphBase *GraphEngine::create_graph_handle()
     {
         throw GraphException("Failed to create graph object");
     }
-    ptr->set_locks(locks);
+    //    ptr->set_locks(locks);
     return ptr;
 }
 
