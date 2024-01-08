@@ -508,26 +508,29 @@ class EdgeKey : public GraphBase
         random_cursor->close(random_cursor);
     }
 
-    inline void set_key_node(WT_CURSOR *cursor, node_id_t key)
+    inline void set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2)
     {
-        CommonUtil::set_key(cursor, MAKE_EKEY(key), OutOfBand_ID);
-    }
-    inline void set_key_edge(WT_CURSOR *cursor, node_id_t key, node_id_t key2)
-    {
-        CommonUtil::set_key(cursor, MAKE_EKEY(key), MAKE_EKEY(key2));
+        if (key1 != OutOfBand_ID) key1 = MAKE_EKEY(key1);
+        if (key2 != OutOfBand_ID) key2 = MAKE_EKEY(key2);
+        CommonUtil::set_key(cursor, key1, key2);
     }
 
-    inline void get_key_node(WT_CURSOR *cursor, node_id_t *key)
-    {
-        CommonUtil::get_key(cursor, key);
-        OG_KEY(*key);
-    }
+    //    inline void set_key_node(WT_CURSOR *cursor, node_id_t key)
+    //    {
+    //        CommonUtil::set_key(cursor, MAKE_EKEY(key), OutOfBand_ID);
+    //    }
+    //    inline void set_key_edge(WT_CURSOR *cursor, node_id_t key1, node_id_t
+    //    key2)
+    //    {
+    //        CommonUtil::set_key(cursor, MAKE_EKEY(key1), MAKE_EKEY(key2));
+    //    }
 
-    inline void get_key_edge(WT_CURSOR *cursor, node_id_t *key, node_id_t *key2)
+    inline int get_key(WT_CURSOR *cursor, node_id_t *key1, node_id_t *key2)
     {
-        CommonUtil::get_key(cursor, key, key2);
-        OG_KEY(*key);
-        OG_KEY(*key2);
+        int ret = CommonUtil::get_key(cursor, key1, key2);
+        if (*key1 != OutOfBand_ID) *key1 = OG_KEY(*key1);
+        if (*key2 != OutOfBand_ID) *key2 = OG_KEY(*key2);
+        return ret;
     }
 
     inline void record_to_node_ekey(WT_CURSOR *cur, node *found)
