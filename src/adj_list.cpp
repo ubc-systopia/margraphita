@@ -1333,7 +1333,7 @@ EdgeCursor *AdjList::get_edge_iter()
     edge_range range;
     range.start = key_pair(-1, -1);
     range.end = key_pair(num_nodes - 1, num_nodes - 1);
-    toReturn->set_key(range);
+    toReturn->set_key_range(range);
     return toReturn;
 }
 

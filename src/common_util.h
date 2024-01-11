@@ -99,15 +99,15 @@ class CommonUtil
     static void record_to_adjlist(WT_SESSION *session,
                                   WT_CURSOR *cursor,
                                   adjlist *found);
+
+    static void ekey_set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
+    static int ekey_get_key(WT_CURSOR *cursor,
+                            node_id_t *key1,
+                            node_id_t *key2);
     static void record_to_node_ekey(WT_CURSOR *cur, node *found);
     static void record_to_node_ekeyidx(WT_CURSOR *idx_cursor, node *found);
     static void record_to_edge_ekey(WT_CURSOR *cur, edge *found);
     static void get_val_idx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b);
-    static void get_ekey_dst_src_val(WT_CURSOR *idx_cursor,
-                                     node_id_t *a,
-                                     node_id_t *b,
-                                     degree_t *in,
-                                     degree_t *out);
 };
 
 /***************************************************************************
@@ -238,25 +238,6 @@ inline void CommonUtil::get_val_idx(WT_CURSOR *idx_cursor,
     *b = __builtin_bswap32(dst_id);
 }
 
-inline void CommonUtil::get_ekey_dst_src_val(WT_CURSOR *idx_cursor,
-                                             node_id_t *a,
-                                             node_id_t *b,
-                                             degree_t *in,
-                                             degree_t *out)
-{
-    WT_ITEM x, y;
-    degree_t in_degree, out_degree;
-    idx_cursor->get_value(idx_cursor, &x, &y, &in_degree, &out_degree);
-
-    uint32_t sid = *(uint32_t *)x.data;
-    uint32_t did = *(uint32_t *)y.data;
-
-    *a = __builtin_bswap32(sid);
-    *b = __builtin_bswap32(did);
-    *in = in_degree;
-    *out = out_degree;
-}
-
 /**
  * @brief This function accepts a cursor to the adjlist table and an adjlist
  * sturct to insert.
@@ -359,6 +340,25 @@ inline void CommonUtil::record_to_edge_ekey(WT_CURSOR *cur, edge *found)
         throw GraphException("Failed to get edge val");
     }
     found->edge_weight = a;
+}
+
+inline void CommonUtil::ekey_set_key(WT_CURSOR *cursor,
+                                     node_id_t key1,
+                                     node_id_t key2)
+{
+    if (key1 != OutOfBand_ID) key1 = MAKE_EKEY(key1);
+    if (key2 != OutOfBand_ID) key2 = MAKE_EKEY(key2);
+    CommonUtil::set_key(cursor, key1, key2);
+}
+
+inline int CommonUtil::ekey_get_key(WT_CURSOR *cursor,
+                                    node_id_t *key1,
+                                    node_id_t *key2)
+{
+    int ret = CommonUtil::get_key(cursor, key1, key2);
+    if (*key1 != OutOfBand_ID) *key1 = OG_KEY(*key1);
+    if (*key2 != OutOfBand_ID) *key2 = OG_KEY(*key2);
+    return ret;
 }
 
 #endif

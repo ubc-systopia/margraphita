@@ -22,8 +22,8 @@ class table_iterator
     }
 
    public:
-//    virtual void set_key(
-//        node_id_t key) = 0;  //{ CommonUtil::set_key(cursor, key); }
+    //    virtual void ekey_set_key(
+    //        node_id_t key) = 0;  //{ CommonUtil::ekey_set_key(cursor, key); }
     [[nodiscard]] bool has_more() const { return has_next; };
     virtual void reset()
     {
@@ -96,8 +96,8 @@ class NodeCursor : public table_iterator
     virtual void set_key_range(key_range _keys)  =0;// overrided by edgekey
 //    {
 //        keys = _keys;
-//        CommonUtil::set_key(cursor, keys.start);
-//    }
+    //        CommonUtil::ekey_set_key(cursor, keys.start);
+    //    }
 
     virtual void next(node *found) = 0;
     virtual void next(node *found, node_id_t key) = 0;
@@ -127,10 +127,10 @@ class EdgeCursor : public table_iterator
 //    } // for edgekey
 //    //! This is not necessary.
 
-    // Overwrites set_key(int key) implementation in table_iterator
-//    void set_key(int key) = delete;
+    // Overwrites ekey_set_key(int key) implementation in table_iterator
+    //    void ekey_set_key(int key) = delete;
 
-    virtual void set_key(edge_range range) =0;
+    virtual void set_key_range(edge_range range) = 0;
 
     virtual void next(edge *found) = 0;
 };

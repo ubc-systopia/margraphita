@@ -385,7 +385,7 @@ class AdjEdgeCursor : public EdgeCursor
    public:
     AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 
-    void set_key(edge_range range) override
+    void set_key_range(edge_range range) override
     {
         start_edge = range.start;
         end_edge = range.end;
