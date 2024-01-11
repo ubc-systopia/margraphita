@@ -255,7 +255,37 @@ class EkeyNodeCursor : public NodeCursor
     void set_key_range(key_range _keys) override
     {
         keys = _keys;
-        CommonUtil::set_key(cursor, OutOfBand_ID, MAKE_EKEY(keys.start));
+        // set the cursor to the first relevant record in range
+        if (keys.start != OutOfBand_ID && keys.end != OutOfBand_ID)
+        {
+            CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID);
+            int status;
+            cursor->search_near(cursor, &status);
+            if (status < 0)
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    this->has_next = false;
+                }
+            }
+        }
+        else
+        {
+            // Advance the cursor to the first record
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+    }
+
+    void no_next(node *found)
+    {
+        found->id = -1;
+        found->in_degree = -1;
+        found->out_degree = -1;
+        has_next = false;
     }
 
     void next(node *found) override
@@ -263,52 +293,27 @@ class EkeyNodeCursor : public NodeCursor
         edge curr_edge;
         if (!has_next)
         {
-            goto no_next;
+            no_next(found);
         }
 
-        if (is_first)
+        CommonUtil::ekey_get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
+        found->id = curr_edge.src_id;
+        cursor->get_value(cursor, &found->in_degree, &found->out_degree);
+        if (keys.end != OutOfBand_ID && curr_edge.src_id > keys.end)
         {
-            is_first = false;
-
-            if (keys.start != -1)
-            {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status >= 0)
-                {
-                    goto first_time_skip_next;
-                }
-            }
+            no_next(found);
         }
 
-        if (cursor->next(cursor) == 0)
+        if (curr_edge.dst_id != OutOfBand_ID)
         {
-        first_time_skip_next:
-
-            CommonUtil::get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
-
-            curr_edge.src_id = OG_KEY(curr_edge.src_id);
-            curr_edge.dst_id = OG_KEY(curr_edge.dst_id);
-            found->id = curr_edge.src_id;
-            cursor->get_value(cursor, &found->in_degree, &found->out_degree);
-            if (keys.end != -1 && curr_edge.src_id > keys.end)
-            {
-                goto no_next;
-            }
-
-            if (curr_edge.dst_id != -1)
-            {
-                goto no_next;
-            }
+            no_next(found);
         }
-        else
+        int ret = cursor->next(cursor);
+        if (ret != 0)
         {
-        no_next:
-            found->id = -1;
-            found->in_degree = -1;
-            found->out_degree = -1;
+            std::cout << wiredtiger_strerror(ret) << std::endl;
             has_next = false;
+            return;
         }
     }
 

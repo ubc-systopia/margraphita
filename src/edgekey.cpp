@@ -1486,7 +1486,10 @@ InCursor *EdgeKey::get_innbd_iter()
 
 NodeCursor *EdgeKey::get_node_iter()
 {
-    return new EkeyNodeCursor(get_new_dst_src_idx_cursor(), session);
+    NodeCursor *toReturn =
+        new EkeyNodeCursor(get_new_dst_src_idx_cursor(), session);
+    toReturn->set_key_range({OutOfBand_ID, OutOfBand_ID});
+    return toReturn;
 }
 
 EdgeCursor *EdgeKey::get_edge_iter()

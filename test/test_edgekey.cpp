@@ -493,12 +493,12 @@ int main()
 
     test_delete_node(graph, opts.is_directed);
     test_EdgeCursor(graph);
-    // test_EdgeCursor_Range(graph);
-    //    test_InCursor(graph);
+    test_EdgeCursor_Range(graph);
+    // test_InCursor(graph);
     //! TODO: test_InCursor_Range(graph);
     //    test_OutCursor(graph);
     //    //! TODO: test_OutCursor_Range(graph);
-    //    test_NodeCursor(graph);
+    test_NodeCursor(graph);
     //    test_NodeCursor_Range(graph);
 
     tearDown(graph);
