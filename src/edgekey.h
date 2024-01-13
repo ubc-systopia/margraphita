@@ -156,20 +156,27 @@ class EkeyOutCursor : public OutCursor
 {
    private:
     bool data_remaining = true;
-    node_id_t last_node_id = 1;
     // bool is_weighted = false;
+    node_id_t curr_node;
 
    public:
-    EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess)
-    {
-        keys = {-1, -1};
-    }
+    EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
 
     void set_key_range(key_range _keys) override
     {
-        keys = _keys;
-        CommonUtil::set_key(cursor, MAKE_EKEY(keys.start), OutOfBand_ID);
+        keys.start = _keys.start;
+        if (_keys.end == OutOfBand_ID)
+        {
+            keys.end = INT32_MAX;
+        }
+        else
+        {
+            keys.end = _keys.end;
+        }
+
+        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID);
         // Advance the cursor to the first record >= start
+
         int status;
         cursor->search_near(cursor, &status);
         if (status < 0)
@@ -181,60 +188,47 @@ class EkeyOutCursor : public OutCursor
                 return;
             }
         }
-        // advance the cursor again to hit the adjacency list
-        if (cursor->next(cursor) != 0)
-        {
-            data_remaining = false;
-            return;
-        }
-        // At the end of this call, the cursor points to the adjacency list of
-        // the first node >= start
+        node_id_t temp_dst;
+        CommonUtil::ekey_get_key(cursor, &curr_node, &temp_dst);
     }
 
     void next(adjlist *found) override
     {
-        //      node_id_t src;
-        //      node_id_t dst;
-        edge curr_edge;
+        node_id_t src, dst;
 
         if (!has_next)
         {
-            goto no_next;
+            found->node_id = -1;
+            found->degree = -1;
+            found->edgelist.clear();
+            return;
         }
 
-        // edgeweight_t tmp;
-        do
+        // get edge
+        CommonUtil::ekey_get_key(cursor, &src, &dst);
+        if (dst == OutOfBand_ID) curr_node = src;
+        int res = 0;
+        while ((res = cursor->next(cursor)) == 0)
         {
-            CommonUtil ::get_key(cursor, &curr_edge.src_id, &curr_edge.dst_id);
-            // if (is_weighted) cursor->get_value(cursor,
-            // &curr_edge.edge_weight, &tmp);
-            found->node_id = OG_KEY(curr_edge.src_id);
-            if (curr_edge.src_id > last_node_id &&
-                curr_edge.src_id <= MAKE_EKEY(keys.end))
+            CommonUtil::ekey_get_key(cursor, &src, &dst);
+            found->node_id = curr_node;
+            if (src == curr_node && dst != OutOfBand_ID)
             {
-                if (curr_edge.dst_id != 0)
-                {
-                    found->degree++;
-                    found->edgelist.push_back(OG_KEY(curr_edge.dst_id));
-                }
+                found->edgelist.push_back(dst);
+                found->degree++;
             }
             else
             {
-                // We have advanced to the next node
-                last_node_id = curr_edge.src_id;
-                if (cursor->next(cursor) != 0)
-                    has_next = false;  // advance to the next node
+                curr_node = src;
+                if (curr_node > keys.end)
+                {
+                    has_next = false;
+                    return;
+                }
                 return;
             }
-        } while (cursor->next(cursor) == 0);
-
-        data_remaining = false;
-        return;
-
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
+        }
+        found->node_id = src;
         has_next = false;
     }
 

@@ -368,11 +368,22 @@ void test_OutCursor(EdgeKey &graph)
         out_cursor->next(&found);
     }
     out_cursor->reset();
-    // testing next() with a key
+
+    // testing next() with a key range set
     fprintf(stderr, "\n ---- \ndumping node 1:\n");
-    int nodeID = 1;
-    out_cursor->next(&found, nodeID);
+
+    out_cursor->set_key_range({3, 6});
+    found.clear();
+    out_cursor->next(&found);
     CommonUtil::dump_adjlist(found);
+    out_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        out_cursor->next(&found);
+    }
+    out_cursor->reset();
 }
 
 void test_NodeCursor(EdgeKey &graph)
@@ -496,8 +507,8 @@ int main()
     test_EdgeCursor_Range(graph);
     // test_InCursor(graph);
     //! TODO: test_InCursor_Range(graph);
-    //    test_OutCursor(graph);
-    //    //! TODO: test_OutCursor_Range(graph);
+    test_OutCursor(graph);
+    // test_OutCursor_Range(graph);
     test_NodeCursor(graph);
     test_NodeCursor_Range(graph);
 
