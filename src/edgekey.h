@@ -255,11 +255,13 @@ class EkeyNodeCursor : public NodeCursor
     void set_key_range(key_range _keys) override
     {
         keys = _keys;
+        int status;
+        node_id_t temp1, temp2;
         // set the cursor to the first relevant record in range
-        if (keys.start != OutOfBand_ID && keys.end != OutOfBand_ID)
+        if (keys.start != OutOfBand_ID)
         {
-            CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID);
-            int status;
+            CommonUtil::ekey_set_key(cursor, OutOfBand_ID, keys.start);
+            // flipped because (dst, src)
             cursor->search_near(cursor, &status);
             if (status < 0)
             {
@@ -299,6 +301,7 @@ class EkeyNodeCursor : public NodeCursor
         CommonUtil::ekey_get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
         found->id = curr_edge.src_id;
         cursor->get_value(cursor, &found->in_degree, &found->out_degree);
+
         if (keys.end != OutOfBand_ID && curr_edge.src_id > keys.end)
         {
             no_next(found);

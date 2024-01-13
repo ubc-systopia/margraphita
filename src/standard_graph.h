@@ -427,7 +427,7 @@ class StdEdgeCursor : public EdgeCursor
 {
    public:
     StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
-    void set_key(edge_range range) override {}
+    void set_key_range(edge_range range) override {}
 
     void next(edge *found) override
     {

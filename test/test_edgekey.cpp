@@ -499,7 +499,7 @@ int main()
     //    test_OutCursor(graph);
     //    //! TODO: test_OutCursor_Range(graph);
     test_NodeCursor(graph);
-    //    test_NodeCursor_Range(graph);
+    test_NodeCursor_Range(graph);
 
     tearDown(graph);
 }
