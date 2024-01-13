@@ -1493,7 +1493,7 @@ EdgeCursor *EdgeKey::get_edge_iter()
 {
     EdgeCursor *toReturn = new EkeyEdgeCursor(get_new_edge_cursor(), session);
     edge_range rng;
-    rng.start  = {-1, -1};
+    rng.start = {-1, -1};
     rng.end = {-1, -1};
     toReturn->set_key_range(rng);
     return toReturn;

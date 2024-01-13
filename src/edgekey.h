@@ -9,7 +9,7 @@ using namespace std;
 
 class EkeyInCursor : public InCursor
 {
-    //    node_id_t next_expected = 1;
+    node_id_t curr_node;
     //    bool data_remaining = true;
 
     // This accepts a dst_src_cursor
@@ -18,103 +18,21 @@ class EkeyInCursor : public InCursor
 
     void set_key_range(key_range _keys) final
     {
-        keys = _keys;
-        is_first = false;
-
-        // Now we set the cursor to the first relevant record in range
-        if (keys.start != OutOfBand_ID)  // the user DID set a start key
+        keys.start = _keys.start;
+        if (_keys.end == OutOfBand_ID)
         {
-            CommonUtil::set_key(cursor, MAKE_EKEY(keys.start), OutOfBand_ID);
-            int status;
-            cursor->search_near(cursor, &status);
-            if (status < 0)
-            {
-                // Advances the cursor
-                if (cursor->next(cursor) != 0)
-                {
-                    this->has_next = false;
-                }
-            }
+            keys.end = INT32_MAX;
         }
-        else  // the user did not set a start key
+        else
         {
-            // Advance the cursor to the first record
-            if (cursor->next(cursor) != 0)
-            {
-                this->has_next = false;
-            }
-        }
-    }
-
-    void next(adjlist *found) final
-    {
-        node_id_t src;
-        node_id_t dst;
-        edge curr_edge;
-        int ret = 0;
-
-        if (!has_next) goto no_next;
-
-        // dst_src_cursor. pay attention to the (dst,src) order here
-        CommonUtil::get_key(cursor, &dst, &src);
-        // check if we are past the valid range
-        if (keys.end != OutOfBand_ID && OG_KEY(dst) > keys.end)
-        {
-            goto no_next;
-        }
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = OG_KEY(dst);
-
-        do
-        {
-            // dst_src_cursor. pay attention to the (dst,src) order here
-            CommonUtil::get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
-            if (dst == curr_edge.dst_id)
-            {
-                found->degree++;
-                found->edgelist.push_back(OG_KEY(curr_edge.src_id));
-            }
-            else
-            {
-                return;
-            }
-
-        } while ((ret = cursor->next(cursor) == 0));
-        if (ret != 0) has_next = false;
-        return;
-
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
-        has_next = false;
-    }
-
-    void next(adjlist *found, node_id_t key) final
-    {
-        edge curr_edge;
-        int ret = 0;
-        if (!has_next)
-        {
-            goto no_next;
+            keys.end = _keys.end;
         }
 
-        // Access outside of range not permitted
-        if ((keys.end != OutOfBand_ID && key > keys.end) ||
-            (keys.start != OutOfBand_ID && key < keys.start))
-        {
-            goto no_next;
-        }
-
-        CommonUtil::set_key(cursor, MAKE_EKEY(key), OutOfBand_ID);
-
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = key;
-
+        // We need to position this cursor to the first record where dst >
+        // OutOfBand_ID (i.e. 1) and src >= keys.start reversed because (dst,
+        // src)
+        CommonUtil::ekey_set_key(cursor, (OutOfBand_ID + 1), keys.start);
         int status;
-        // error_check(cursor->search_near(cursor, &status));
         cursor->search_near(cursor, &status);
         if (status < 0)
         {
@@ -125,31 +43,61 @@ class EkeyInCursor : public InCursor
                 return;
             }
         }
+        node_id_t temp_src;
+        CommonUtil::ekey_get_key(cursor, &curr_node, &temp_src);
+        std::cout << "curr_node: " << curr_node << " temp_src: " << temp_src
+                  << std::endl;
+    }
 
-        do
+    void next(adjlist *found) final
+    {
+        node_id_t src;
+        node_id_t dst;
+        edge curr_edge;
+        int res = 0;
+
+        if (!has_next)
         {
-            CommonUtil::get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
-            if (OG_KEY(curr_edge.dst_id) != key)
+            found->degree = -1;
+            found->edgelist.clear();
+            found->node_id = -1;
+            has_next = false;
+            return;
+        }
+
+        // get edge
+        CommonUtil::ekey_get_key(cursor, &dst, &src);
+        found->node_id = dst;
+        if (dst == curr_node)
+        {
+            found->edgelist.push_back(src);
+            found->degree++;
+        }
+        // now advance till we hit another dst
+
+        while (res = cursor->next(cursor) == 0)
+        {
+            CommonUtil::ekey_get_key(cursor, &dst, &src);
+            if (dst == curr_node)
             {
-                if (keys.end != OutOfBand_ID &&
-                    OG_KEY(curr_edge.dst_id) > keys.end)
+                found->edgelist.push_back(src);
+                found->degree++;
+            }
+            else
+            {
+                curr_node = dst;
+                if (curr_node > keys.end)
                 {
                     has_next = false;
+                    return;
                 }
                 return;
             }
-            found->edgelist.push_back(OG_KEY(curr_edge.src_id));
-            found->degree++;
-        } while ((ret = cursor->next(cursor)) == 0);
-        if (ret != 0) has_next = false;
-        return;
-
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
+        }
         has_next = false;
     }
+
+    void next(adjlist *found, node_id_t key) final {}
 };
 
 class EkeyOutCursor : public OutCursor

@@ -347,11 +347,11 @@ void test_InCursor(EdgeKey &graph)
         in_cursor->next(&found);
     }
     in_cursor->reset();
-    // testing next() with a key
-    int nodeID = 0;
-    in_cursor->next(&found, nodeID);
-    fprintf(stderr, "\n ---- \ndumping node 0:\n");
-    CommonUtil::dump_adjlist(found);
+    // // testing next() with a key
+    // int nodeID = 0;
+    // in_cursor->next(&found, nodeID);
+    // fprintf(stderr, "\n ---- \ndumping node 0:\n");
+    // CommonUtil::dump_adjlist(found);
 }
 
 void test_OutCursor(EdgeKey &graph)
@@ -505,10 +505,9 @@ int main()
     test_delete_node(graph, opts.is_directed);
     test_EdgeCursor(graph);
     test_EdgeCursor_Range(graph);
-    // test_InCursor(graph);
+    test_InCursor(graph);
     //! TODO: test_InCursor_Range(graph);
     test_OutCursor(graph);
-    // test_OutCursor_Range(graph);
     test_NodeCursor(graph);
     test_NodeCursor_Range(graph);
 
