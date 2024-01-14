@@ -338,6 +338,7 @@ void test_InCursor(EdgeKey &graph)
 {
     INFO()
     InCursor *in_cursor = graph.get_innbd_iter();
+    in_cursor->set_key_range(key_range{0, 0});
     adjlist found;
     in_cursor->next(&found);
     while (found.node_id != -1)
@@ -347,11 +348,20 @@ void test_InCursor(EdgeKey &graph)
         in_cursor->next(&found);
     }
     in_cursor->reset();
-    // // testing next() with a key
-    // int nodeID = 0;
-    // in_cursor->next(&found, nodeID);
-    // fprintf(stderr, "\n ---- \ndumping node 0:\n");
-    // CommonUtil::dump_adjlist(found);
+
+    // testing next() with a key range set
+    fprintf(stderr, "\n ---- \ndumping node 1:\n");
+
+    in_cursor->set_key_range(key_range{3, 6});
+    found.clear();
+    in_cursor->next(&found);
+
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        in_cursor->next(&found);
+    }
 }
 
 void test_OutCursor(EdgeKey &graph)

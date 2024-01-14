@@ -9,14 +9,49 @@ using namespace std;
 
 class EkeyInCursor : public InCursor
 {
-    node_id_t curr_node;
-    //    bool data_remaining = true;
+    node_id_t curr_node, curr_edge_dst;
+    bool more_edges = true;
+    WT_CURSOR *node_ptr = nullptr;
 
     // This accepts a dst_src_cursor
    public:
     EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
-    void set_key_range(key_range _keys) final
+    // void set_key_range(key_range _keys) final
+    // {
+    //     keys.start = _keys.start;
+    //     if (_keys.end == OutOfBand_ID)
+    //     {
+    //         keys.end = INT32_MAX;
+    //     }
+    //     else
+    //     {
+    //         keys.end = _keys.end;
+    //     }
+
+    //     // We need to position this cursor to the first record where dst >
+    //     // OutOfBand_ID (i.e. 1) and src >= keys.start reversed because (dst,
+    //     // src)
+    //     CommonUtil::ekey_set_key(cursor, (OutOfBand_ID + 1), keys.start);
+    //     int status;
+    //     cursor->search_near(cursor, &status);
+    //     if (status < 0)
+    //     {
+    //         // Advances the cursor
+    //         if (cursor->next(cursor) != 0)
+    //         {
+    //             has_next = false;
+    //             return;
+    //         }
+    //     }
+    //     node_id_t temp_src;
+    //     CommonUtil::ekey_get_key(cursor, &curr_node, &temp_src);
+    //     // std::cout << "curr_node: " << curr_node << " temp_src: " <<
+    //     temp_src
+    //     //           << std::endl;
+    // }
+
+    void set_key_range(key_range _keys) override
     {
         keys.start = _keys.start;
         if (_keys.end == OutOfBand_ID)
@@ -27,12 +62,36 @@ class EkeyInCursor : public InCursor
         {
             keys.end = _keys.end;
         }
+        session->open_cursor(session,
+                             "index:edge:IX_edge_dstsrc(attr_fst,attr_scnd)",
+                             nullptr,
+                             nullptr,
+                             &node_ptr);
+        
+        node_id_t temp_dst, temp_src;
 
+        CommonUtil::ekey_set_key(node_ptr, OutOfBand_ID, keys.start);
+        int status;
+        node_ptr->search_near(node_ptr, &status);
+        std::cout << "status is "<<status << std::endl;
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (node_ptr->next(node_ptr) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+
+        CommonUtil::ekey_get_key(node_ptr, &temp_dst, &curr_node); // temp_dst = OutOfBand_ID for nodes
+        // std::cout << "from setting node (dst, src): " << curr_node << ", " << temp1 << std::endl;
+        
+        
         // We need to position this cursor to the first record where dst >
         // OutOfBand_ID (i.e. 1) and src >= keys.start reversed because (dst,
         // src)
         CommonUtil::ekey_set_key(cursor, (OutOfBand_ID + 1), keys.start);
-        int status;
         cursor->search_near(cursor, &status);
         if (status < 0)
         {
@@ -43,13 +102,110 @@ class EkeyInCursor : public InCursor
                 return;
             }
         }
-        node_id_t temp_src;
-        CommonUtil::ekey_get_key(cursor, &curr_node, &temp_src);
-        std::cout << "curr_node: " << curr_node << " temp_src: " << temp_src
-                  << std::endl;
+        
+        CommonUtil::ekey_get_key(cursor, &temp_dst, &temp_src);
+        // std::cout << "From settin edge (dst,src): " << temp_dst << ", " << temp_src<< std::endl;
     }
 
     void next(adjlist *found) final
+    {
+        node_id_t temp_src, temp_dst;
+        int res = 0;
+
+        if (!has_next)
+        {
+            found->degree = -1;
+            found->edgelist.clear();
+            found->node_id = -1;
+            has_next = false;
+            return;
+        }
+
+        // get edge
+        if (!more_edges) goto no_more_edges;
+        CommonUtil::ekey_get_key(cursor, &curr_edge_dst, &temp_src);
+        if (curr_edge_dst == curr_node)
+        {
+            found->node_id = curr_edge_dst;
+            found->edgelist.push_back(temp_src);
+            found->degree++;
+        }
+        else
+        {
+            no_more_edges:
+            //this branch will be hit for all nodes that don't have an incoming edge
+
+            found->node_id = curr_node;
+            found->degree = 0;
+            found->edgelist.clear();
+            
+            node_ptr->next(node_ptr);
+            CommonUtil::ekey_get_key(node_ptr, &temp_src, &curr_node);
+            if(curr_node > keys.end || temp_src != OutOfBand_ID)
+            {
+                has_next = false;
+            }
+            return;
+        }
+
+        // now advance till we hit another dst
+        while (cursor->next(cursor) == 0)
+        {
+            CommonUtil::ekey_get_key(cursor, &curr_edge_dst, &temp_src);
+            if (curr_edge_dst == curr_node)
+            {
+                found->edgelist.push_back(temp_src);
+                found->degree++;
+            }
+            else
+            {
+                
+                //We have hit a new dst, so we need to update the node cursor
+                node_ptr->next(node_ptr);
+                CommonUtil::ekey_get_key(node_ptr, &temp_src, &curr_node);
+                if(curr_node == curr_edge_dst)
+                //next node is matches the node we are on the in-edge for
+                {
+                    if (curr_node > keys.end)
+                    {
+                        has_next = false;
+                        return;
+                    }
+                    return;
+                }
+                else
+                {
+                    //next node is not the same as the node we are on the in-edge for
+                    //nothing to do here, just return. this is handled above.
+                    return;
+                }
+                
+            }
+        }
+        //no more edges. check if there are any more nodes
+        node_ptr->next(node_ptr);
+        CommonUtil::ekey_get_key(node_ptr, &temp_src, &curr_node);
+        if(curr_node <= keys.end && temp_src == OutOfBand_ID) // valid, in-range node.
+        {
+            //we still have work to do.
+             more_edges = false;
+            return;
+        }
+        else{
+            has_next = false;
+        }
+       
+    }
+
+    /**
+     * @brief What I'm trying here is to duplicate the cursor, and then keep one
+     * cursor at the nodes part of the index, and use the other cursor to
+     * iterate over the edges. This is a hacky solution, but I'm not sure how
+     * else to do it.
+     *
+     * @param found
+     */
+    void next_original(adjlist *found)
     {
         node_id_t src;
         node_id_t dst;
@@ -73,8 +229,8 @@ class EkeyInCursor : public InCursor
             found->edgelist.push_back(src);
             found->degree++;
         }
-        // now advance till we hit another dst
 
+        // now advance till we hit another dst
         while (res = cursor->next(cursor) == 0)
         {
             CommonUtil::ekey_get_key(cursor, &dst, &src);

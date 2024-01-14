@@ -1476,7 +1476,7 @@ InCursor *EdgeKey::get_innbd_iter()
     //    uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn =
         new EkeyInCursor(get_new_dst_src_idx_cursor(), session);
-    toReturn->set_key_range({0, 0});
+    //toReturn->set_key_range({0, 0});
 
     return toReturn;
 }
