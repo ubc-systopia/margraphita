@@ -1260,7 +1260,9 @@ InCursor *StandardGraph::get_innbd_iter()
 
 NodeCursor *StandardGraph::get_node_iter()
 {
-    return new StdNodeCursor(get_new_node_cursor(), session);
+    NodeCursor *to_return = new StdNodeCursor(get_new_node_cursor(), session);
+    to_return->set_key_range({-1,-1});
+    return to_return;
 }
 
 EdgeCursor *StandardGraph::get_edge_iter()

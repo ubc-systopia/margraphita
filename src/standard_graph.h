@@ -373,7 +373,42 @@ class StdNodeCursor : public NodeCursor
    public:
     StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
-    void set_key_range(key_range _keys) override {}
+    void set_key_range(key_range _keys) override 
+    {
+         keys = _keys;
+        is_first = false;
+
+        // Advances the cursor to the first valid record in range
+        if (keys.start != -1)
+        {
+            int status;
+            CommonUtil::set_key(cursor, keys.start);
+            cursor->search_near(cursor, &status);
+            if (status < 0)
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    this->has_next = false;
+                }
+            }
+        }
+        else
+        {
+            // Advances the cursor to the first position in the table.
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+    }
+    void no_next(node *found)
+    {
+        found->id = -1;
+        found->in_degree = -1;
+        found->out_degree = -1;
+        has_next = false;
+    }
 
     void next(node *found, node_id_t key) override {}
 
@@ -381,43 +416,21 @@ class StdNodeCursor : public NodeCursor
     {
         if (!has_next)
         {
-            goto no_next;
+            no_next(found);
+            return;
         }
 
-        if (is_first)
+        CommonUtil::get_key(cursor, &found->id);
+        if (keys.end != -1 &&
+            found->id > keys.end)  // gone beyond the end of range
         {
-            is_first = false;
-
-            if (keys.start != -1)
-            {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status >= 0)
-                {
-                    goto first_time_skip_next;
-                }
-            }
+            no_next(found);
+            return;
         }
 
-        if (cursor->next(cursor) == 0)
+        CommonUtil::record_to_node(cursor, found, true);
+        if (cursor->next(cursor) != 0)
         {
-        first_time_skip_next:
-            // error_check(cursor->get_key(cursor, &found->id));
-            CommonUtil::get_key(cursor, &found->id);
-            if (keys.end != -1 && found->id > keys.end)
-            {
-                goto no_next;
-            }
-
-            CommonUtil::record_to_node(cursor, found, true);
-        }
-        else
-        {
-        no_next:
-            found->id = -1;
-            found->in_degree = -1;
-            found->out_degree = -1;
             has_next = false;
         }
     }
