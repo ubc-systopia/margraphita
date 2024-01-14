@@ -1265,7 +1265,10 @@ NodeCursor *StandardGraph::get_node_iter()
 
 EdgeCursor *StandardGraph::get_edge_iter()
 {
-    return new StdEdgeCursor(get_new_edge_cursor(), session);
+    EdgeCursor *toreturn = new StdEdgeCursor(get_new_edge_cursor(), session);
+    edge_range range = {{-1,-1}, {-1,-1}};
+    toreturn->set_key_range(range);
+    return toreturn;
 }
 
 vector<edge> StandardGraph::test_cursor_iter(node_id_t node_id)

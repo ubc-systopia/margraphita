@@ -427,64 +427,78 @@ class StdEdgeCursor : public EdgeCursor
 {
    public:
     StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
-    void set_key_range(edge_range range) override {}
+    
+    
+    void set_key_range(edge_range range) override {
+        start_edge = range.start;
+        end_edge = range.end;
+        is_first = false;
 
-    void next(edge *found) override
-    {
-        if (!has_next)
+        // Advances the cursor to the first valid record in range
+        if (start_edge.src_id != -1 && start_edge.dst_id != -1)
         {
-            goto no_next;
-        }
-
-        // If first time calling next, we want the exact record corresponding to
-        // the key_pair start or, if there is no such record, the smallest
-        // record larger than the key_pair
-        if (is_first)
-        {
-            is_first = false;
-
-            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+            int status;
+            CommonUtil::set_key(cursor, start_edge.src_id, start_edge.dst_id);
+            cursor->search_near(cursor, &status);
+            if (status < 0)
             {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status >= 0)
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
                 {
-                    goto first_time_skip_next;
+                    this->has_next = false;
                 }
             }
-        }
-
-        // Check existence of next record
-        if (cursor->next(cursor) == 0)
-        {
-        first_time_skip_next:
-            // error_check(
-            //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
-            CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
-
-            // If end_edge is set
-            if (end_edge.src_id != -1)
-            {
-                // If found > end edge
-                if (!(found->src_id < end_edge.src_id ||
-                      ((found->src_id == end_edge.src_id) &&
-                       (found->dst_id <= end_edge.dst_id))))
-                {
-                    goto no_next;
-                }
-            }
-
-            CommonUtil::record_to_edge(cursor, found);
         }
         else
         {
-        no_next:
-            found->src_id = -1;
-            found->dst_id = -1;
-            found->edge_weight = -1;
+            // Advances the cursor to the first position in the table.
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+        // //dump the set key
+        // node_id_t src,dst;
+        // CommonUtil::get_key(cursor, &src, &dst);
+        // std::cout<<"set key: "<<src<<" "<<dst<<std::endl;
+
+    }
+
+    void no_next(edge *found) {
+        found->src_id = -1;
+        found->dst_id = -1;
+        found->edge_weight = -1;
+        has_next = false;
+    }
+
+    void next(edge *found) override
+    {
+        if(!has_next) {
+            no_next(found);
+            return;
+        }
+
+    
+        CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
+
+        // If end_edge is set
+        if (end_edge.src_id != 0)
+        {
+            // If found > end edge
+            if ((found->src_id > end_edge.src_id ||
+                    ((found->src_id == end_edge.src_id) &&
+                    (found->dst_id >= end_edge.dst_id))))
+            {
+                no_next(found);
+            }
+        }
+
+        CommonUtil::record_to_edge(cursor, found);
+        if (cursor->next(cursor) != 0)
+        {
             has_next = false;
         }
+        
     }
 };
 
