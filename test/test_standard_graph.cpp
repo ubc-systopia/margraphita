@@ -592,10 +592,10 @@ int main()
 
     // test_InCursor(graph);
     test_OutCursor(graph);
-    // test_NodeCursor(graph);
-    //  test_NodeCursor_Range(graph);
-    //  test_EdgeCursor(graph);
-    //  test_EdgeCursor_Range(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
 
     // Test std_graph teardown
     tearDown(graph);

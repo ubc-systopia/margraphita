@@ -488,7 +488,7 @@ class StdEdgeCursor : public EdgeCursor
         CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
 
         // If end_edge is set
-        if (end_edge.src_id != 0)
+        if (end_edge.src_id != -1)
         {
             // If found > end edge
             if ((found->src_id > end_edge.src_id ||
