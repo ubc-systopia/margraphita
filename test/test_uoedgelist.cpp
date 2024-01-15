@@ -1,7 +1,6 @@
-#include "test_uoedgelist.h"
+#include <cassert>
 
-#include "common.h"
-#include "edgelist.h"
+#include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
 #include "sample_graph.h"

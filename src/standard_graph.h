@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph.h"
 #include "graph_exception.h"
 
@@ -16,17 +16,194 @@ using namespace std;
 class StdInCursor : public InCursor
 {
    private:
-    bool data_remaining = true;
-    node_id_t next_expected = 0;
+    node_id_t curr_node, curr_edge_dst, unused;
+    bool more_edges = true;
+    WT_CURSOR *node_cursor = nullptr;
 
    public:
-    StdInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
+    /**
+     * @param cur: The cursor for finding nodes that have an incoming edge. In
+     * this case, the cursor is the dst_idx_cursor
+     * @param sess :The session for the cursor. It is used to open a cursor to
+     * the node table
+     */
 
-    void next(adjlist *found)
+    StdInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess)
+    {
+        int ret = session->open_cursor(
+            session, "table:node", nullptr, nullptr, &node_cursor);
+        if (ret != 0)
+        {
+            throw GraphException("Failed to open node cursor" +
+                                 string(wiredtiger_strerror(ret)));
+        }
+    }
+
+    void no_next(adjlist *found)
+    {
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+    }
+
+    void set_key_range(key_range _keys) override
+    {
+        keys = _keys;
+        if (_keys.end == -1 || _keys.end == 0)
+        {
+            keys.end = INT32_MAX;
+        }
+
+        CommonUtil::set_key(
+            cursor, keys.start);  // set the key to the start of the range
+        int status;
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+        CommonUtil::get_key(cursor, &curr_edge_dst);
+
+        /*
+         * Set the node_cursor to the start of the range
+         */
+        CommonUtil::set_key(node_cursor, keys.start);
+        node_cursor->search_near(node_cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (node_cursor->next(node_cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+
+        CommonUtil::get_key(node_cursor, &curr_node);
+        // std::cout << "curr_node: " << curr_node << std::endl;
+
+        //        node_id_t src, dst;
+        //        CommonUtil::get_key(cursor, &curr_edge_dst);
+        //        std::cout << "curr_edge_src: " << curr_edge_dst << std::endl;
+        //        CommonUtil::get_val_idx(cursor, &src, &dst);
+        //        std::cout << "curr_edge_src: " << src << "\tdst is: " << dst
+        //                  << std::endl;
+    }
+
+    void next(adjlist *found) override
+    {
+        node_id_t temp_src, temp_dst;
+        int res = 0;
+        if (!has_next)
+        {
+            no_next(found);
+            return;
+        }
+
+        // get the edge
+        if (!more_edges)
+        {
+            goto no_more_edges;
+        }
+
+        CommonUtil::get_key(cursor, &curr_edge_dst);
+        if (curr_edge_dst == curr_node)
+        {
+            CommonUtil::get_val_idx(cursor, &temp_src, &temp_dst);
+            found->node_id = curr_edge_dst;
+            found->edgelist.push_back(temp_src);
+            found->degree++;
+        }
+        else
+        {
+        no_more_edges:
+            // this branch should be taken for all nodes that don't have any
+            // in-edges
+            found->node_id = curr_node;
+            found->degree = 0;
+            found->edgelist.clear();
+
+            // advance the node cursor
+            if (node_cursor->next(node_cursor) == 0)
+            {
+                CommonUtil::get_key(node_cursor, &curr_node);
+                if (curr_node > keys.end)
+                {
+                    has_next = false;
+                    return;
+                }
+            }
+            else
+            {
+                has_next = false;
+                return;
+            }
+            return;
+        }
+
+        // advance the edge cursor till we hit a new dst
+        while (cursor->next(cursor) == 0)
+        {
+            CommonUtil::get_key(cursor, &temp_dst);
+            if (temp_dst == curr_node)
+            {
+                CommonUtil::get_val_idx(cursor, &temp_src, &temp_dst);
+                found->edgelist.push_back(temp_src);
+                found->degree++;
+            }
+            else
+            {
+                // we have hit a new dst
+                node_cursor->next(node_cursor);
+                CommonUtil::get_key(node_cursor, &curr_node);
+                if (curr_node == temp_dst)
+                {
+                    if (curr_node > keys.end)
+                    {
+                        has_next = false;
+                        return;
+                    }
+                    return;
+                }
+                else
+                {
+                    // the next node is not the same as the node whose out_nbd
+                    // the edge cursor has travelled to.There is nothing to do
+                    // here -- it is handled above. Return.
+                    return;
+                }
+            }
+        }
+        more_edges = false;
+        // If we reach here, it means we have exhausted the edge_cursor. We
+        // must check if there are more nodes to process, because while
+        // there can only be an edge between two existing nodes, there can
+        // be nodes not having any edges.
+        if (node_cursor->next(node_cursor) == 0)
+        {
+            CommonUtil::get_key(node_cursor, &curr_node);
+            if (curr_node > keys.end)
+            {
+                has_next = false;
+            }
+            return;
+        }
+        has_next = false;
+    }
+
+    void next_og(adjlist *found)
     {
         node_id_t src;
         node_id_t dst;
         edge curr_edge;
+        bool data_remaining = true;
+        node_id_t next_expected = keys.start;
 
         if (!has_next)
         {
@@ -120,248 +297,177 @@ class StdInCursor : public InCursor
         next_expected += 1;
     }
 
-    void next(adjlist *found, node_id_t key)
-    {
-        edge curr_edge;
-        // Must reset OutCursor if already no_next
-        if (!has_next)
-        {
-            goto no_next;
-        }
-
-        // Access outside of range not permitted
-        if (keys.end != -1 && key > keys.end)
-        {
-            goto no_next;
-        }
-
-        if (keys.start != -1 && key < keys.start)
-        {
-            goto no_next;
-        }
-
-        next_expected = key + 1;
-
-        CommonUtil::set_key(cursor, key);
-
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = key;
-
-        data_remaining = true;
-
-        int status;
-        // error_check(cursor->search_near(cursor, &status));
-        cursor->search_near(cursor, &status);
-        if (status < 0)
-        {
-            // Advances the cursor
-            if (cursor->next(cursor) != 0)
-            {
-                data_remaining = false;
-                return;
-            }
-        }
-
-        do
-        {
-            CommonUtil::read_from_edge_idx(cursor, &curr_edge);
-            if (curr_edge.dst_id != key)
-            {
-                if (keys.end != -1 && next_expected > keys.end)
-                {
-                    has_next = false;
-                }
-                return;
-            }
-            found->edgelist.push_back(curr_edge.src_id);
-            found->degree++;
-        } while (cursor->next(cursor) == 0);
-
-        data_remaining = false;
-        return;
-
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
-        has_next = false;
-    }
+    void next(adjlist *found, node_id_t key) override {}
 };
 
 class StdOutCursor : public OutCursor
 {
-    bool data_remaining = true;
-    node_id_t next_expected = 0;
+    node_id_t curr_node, curr_edge_src, unused;
+    bool more_edges = true;
+    WT_CURSOR *node_cursor = nullptr;
 
    public:
-    StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
-
-    void next(adjlist *found)
+    StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess)
     {
-        node_id_t src;
-        node_id_t dst;
-        edge curr_edge;
-
-        if (!has_next)
+        int ret = session->open_cursor(
+            session, "table:node", nullptr, nullptr, &node_cursor);
+        if (ret != 0)
         {
-            goto no_next;
+            throw GraphException("Failed to open node cursor" +
+                                 string(wiredtiger_strerror(ret)));
         }
+    }
 
-        if (!data_remaining)
-        {
-            goto no_data_remaining;
-        }
-
-        if (is_first)
-        {
-            is_first = false;
-
-            if (keys.start != -1)
-            {
-                next_expected = keys.start;
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status < 0)
-                {
-                    // Advances the cursor
-                    if (cursor->next(cursor) != 0)
-                    {
-                        goto no_data_remaining;
-                    }
-                }
-            }
-            else
-            {
-                // Advances the cursor
-                if (cursor->next(cursor) != 0)
-                {
-                    goto no_data_remaining;
-                }
-            }
-        }
-
-        if (keys.end != -1 && next_expected > keys.end)
-        {
-            goto no_next;
-        }
-
-        CommonUtil::get_val_idx(cursor, &src, &dst);
-
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = src;
-
-        if (src != next_expected)
-        {
-            found->node_id = next_expected;
-            next_expected += 1;
-            return;
-        }
-        next_expected += 1;
-
-        do
-        {
-            CommonUtil ::read_from_edge_idx(cursor, &curr_edge);
-            if (src == curr_edge.src_id)
-            {
-                found->degree++;
-                found->edgelist.push_back(curr_edge.dst_id);
-            }
-            else
-            {
-                return;
-            }
-        } while (cursor->next(cursor) == 0);
-
-        data_remaining = false;
-        return;
-
-    no_next:
+    void no_next(adjlist *found)
+    {
         found->degree = -1;
         found->edgelist.clear();
         found->node_id = -1;
         has_next = false;
-        return;
-    no_data_remaining:
-        if (keys.end != -1 && next_expected > keys.end)
-        {
-            goto no_next;
-        }
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = next_expected;
-        next_expected += 1;
     }
 
-    void next(adjlist *found, node_id_t key)
+    void set_key_range(key_range _keys) override
     {
-        edge curr_edge;
-        // Must reset OutCursor if already no_next
-        if (!has_next)
+        keys = _keys;
+        if (_keys.end == -1 || _keys.end == 0)
         {
-            goto no_next;
+            keys.end = INT32_MAX;
         }
 
-        // Access outside of range not permitted
-        if (keys.end != -1 && key > keys.end)
-        {
-            goto no_next;
-        }
-
-        if (keys.start != -1 && key < keys.start)
-        {
-            goto no_next;
-        }
-
-        next_expected = key + 1;
-
-        CommonUtil::set_key(cursor, key);
-
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = key;
-
-        data_remaining = true;
-
+        CommonUtil::set_key(
+            cursor, keys.start, -1);  // set the key to the start of the range
         int status;
-        // error_check(cursor->search_near(cursor, &status));
         cursor->search_near(cursor, &status);
         if (status < 0)
         {
             // Advances the cursor
             if (cursor->next(cursor) != 0)
             {
-                data_remaining = false;
+                has_next = false;
+                return;
+            }
+        }
+        CommonUtil::get_key(cursor, &curr_edge_src, &unused);
+
+        /*
+         * Set the node_cursor to the start of the range
+         */
+        CommonUtil::set_key(node_cursor, keys.start);
+        node_cursor->search_near(node_cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (node_cursor->next(node_cursor) != 0)
+            {
+                has_next = false;
                 return;
             }
         }
 
-        do
+        CommonUtil::get_key(node_cursor, &curr_node);
+    }
+
+    void next(adjlist *found) override
+    {
+        node_id_t temp_src, temp_dst;
+        int res = 0;
+
+        if (!has_next)
         {
-            CommonUtil::read_from_edge_idx(cursor, &curr_edge);
-            if (curr_edge.src_id != key)
+            no_next(found);
+            return;
+        }
+
+        // get the edge
+        if (!more_edges)
+        {
+            goto no_more_edges;
+        }
+
+        CommonUtil::get_key(cursor, &curr_edge_src, &temp_dst);
+        if (curr_edge_src == curr_node)
+        {
+            found->node_id = curr_edge_src;
+            found->edgelist.push_back(temp_dst);
+            found->degree++;
+        }
+        else
+        {
+        no_more_edges:
+            // this branch should be taken for all nodes that don't have any
+            // out-edges
+            found->node_id = curr_node;
+            found->degree = 0;
+            found->edgelist.clear();
+
+            // advance the node cursor
+            if (node_cursor->next(node_cursor) == 0)
             {
-                if (keys.end != -1 && next_expected > keys.end)
+                CommonUtil::get_key(node_cursor, &curr_node);
+                if (curr_node > keys.end)
                 {
                     has_next = false;
+                    return;
                 }
+            }
+            else
+            {
+                has_next = false;
                 return;
             }
-            found->edgelist.push_back(curr_edge.dst_id);
-            found->degree++;
-        } while (cursor->next(cursor) == 0);
+            return;
+        }
 
-        data_remaining = false;
-        return;
-
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
+        // advance the edge cursor till we hit a new src
+        while (cursor->next(cursor) == 0)
+        {
+            CommonUtil::get_key(cursor, &temp_src, &temp_dst);
+            if (temp_src == curr_node)
+            {
+                found->edgelist.push_back(temp_dst);
+                found->degree++;
+            }
+            else
+            {
+                // we have hit a new src
+                node_cursor->next(node_cursor);
+                CommonUtil::get_key(node_cursor, &curr_node);
+                if (curr_node == temp_src)
+                {
+                    if (curr_node > keys.end)
+                    {
+                        has_next = false;
+                        return;
+                    }
+                    return;
+                }
+                else
+                {
+                    // the next node is not the same as the node whose out_nbd
+                    // the edge cursor has travelled to.There is nothing to do
+                    // here -- it is handled above. Return.
+                    return;
+                }
+            }
+        }
+        more_edges = false;
+        // If we reach here, it means we have exhausted the edge_cursor. We
+        // must check if there are more nodes to process, because while
+        // there can only be an edge between two existing nodes, there can
+        // be nodes not having any edges.
+        if (node_cursor->next(node_cursor) == 0)
+        {
+            CommonUtil::get_key(node_cursor, &curr_node);
+            if (curr_node > keys.end)
+            {
+                has_next = false;
+            }
+            return;
+        }
         has_next = false;
     }
+
+    void next(adjlist *found, node_id_t key) override {}
 };
 
 class StdNodeCursor : public NodeCursor
@@ -369,47 +475,64 @@ class StdNodeCursor : public NodeCursor
    public:
     StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
 
-    void next(node *found)
+    void set_key_range(key_range _keys) override 
     {
-        if (!has_next)
-        {
-            goto no_next;
-        }
+        keys = _keys;
+        is_first = false;
 
-        if (is_first)
+        // Advances the cursor to the first valid record in range
+        if (keys.start != -1)
         {
-            is_first = false;
-
-            if (keys.start != -1)
+            int status;
+            CommonUtil::set_key(cursor, keys.start);
+            cursor->search_near(cursor, &status);
+            if (status < 0)
             {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status >= 0)
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
                 {
-                    goto first_time_skip_next;
+                    this->has_next = false;
                 }
             }
         }
-
-        if (cursor->next(cursor) == 0)
-        {
-        first_time_skip_next:
-            // error_check(cursor->get_key(cursor, &found->id));
-            CommonUtil::get_key(cursor, &found->id);
-            if (keys.end != -1 && found->id > keys.end)
-            {
-                goto no_next;
-            }
-
-            CommonUtil::record_to_node(cursor, found, true);
-        }
         else
         {
-        no_next:
-            found->id = -1;
-            found->in_degree = -1;
-            found->out_degree = -1;
+            // Advances the cursor to the first position in the table.
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+    }
+    void no_next(node *found)
+    {
+        found->id = -1;
+        found->in_degree = -1;
+        found->out_degree = -1;
+        has_next = false;
+    }
+
+    void next(node *found, node_id_t key) override {}
+
+    void next(node *found) override
+    {
+        if (!has_next)
+        {
+            no_next(found);
+            return;
+        }
+
+        CommonUtil::get_key(cursor, &found->id);
+        if (keys.end != -1 &&
+            found->id > keys.end)  // gone beyond the end of range
+        {
+            no_next(found);
+            return;
+        }
+
+        CommonUtil::record_to_node(cursor, found, true);
+        if (cursor->next(cursor) != 0)
+        {
             has_next = false;
         }
     }
@@ -419,68 +542,78 @@ class StdEdgeCursor : public EdgeCursor
 {
    public:
     StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
+    
+    
+    void set_key_range(edge_range range) override {
+        start_edge = range.start;
+        end_edge = range.end;
+        is_first = false;
 
-    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess, bool get_weight)
-        : EdgeCursor(cur, sess, get_weight)
-    {
-    }
-
-    void next(edge *found)
-    {
-        if (!has_next)
+        // Advances the cursor to the first valid record in range
+        if (start_edge.src_id != -1 && start_edge.dst_id != -1)
         {
-            goto no_next;
-        }
-
-        // If first time calling next, we want the exact record corresponding to
-        // the key_pair start or, if there is no such record, the smallest
-        // record larger than the key_pair
-        if (is_first)
-        {
-            is_first = false;
-
-            if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+            int status;
+            CommonUtil::set_key(cursor, start_edge.src_id, start_edge.dst_id);
+            cursor->search_near(cursor, &status);
+            if (status < 0)
             {
-                int status;
-                // error_check(cursor->search_near(cursor, &status));
-                cursor->search_near(cursor, &status);
-                if (status >= 0)
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
                 {
-                    goto first_time_skip_next;
+                    this->has_next = false;
                 }
             }
-        }
-
-        // Check existence of next record
-        if (cursor->next(cursor) == 0)
-        {
-        first_time_skip_next:
-            // error_check(
-            //     cursor->get_key(cursor, &found->src_id, &found->dst_id));
-            CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
-
-            // If end_edge is set
-            if (end_edge.src_id != -1)
-            {
-                // If found > end edge
-                if (!(found->src_id < end_edge.src_id ||
-                      ((found->src_id == end_edge.src_id) &&
-                       (found->dst_id <= end_edge.dst_id))))
-                {
-                    goto no_next;
-                }
-            }
-
-            CommonUtil::record_to_edge(cursor, found);
         }
         else
         {
-        no_next:
-            found->src_id = -1;
-            found->dst_id = -1;
-            found->edge_weight = -1;
+            // Advances the cursor to the first position in the table.
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+        // //dump the set key
+        // node_id_t src,dst;
+        // CommonUtil::get_key(cursor, &src, &dst);
+        // std::cout<<"set key: "<<src<<" "<<dst<<std::endl;
+
+    }
+
+    void no_next(edge *found) {
+        found->src_id = -1;
+        found->dst_id = -1;
+        found->edge_weight = -1;
+        has_next = false;
+    }
+
+    void next(edge *found) override
+    {
+        if(!has_next) {
+            no_next(found);
+            return;
+        }
+
+    
+        CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
+
+        // If end_edge is set
+        if (end_edge.src_id != -1)
+        {
+            // If found > end edge
+            if ((found->src_id > end_edge.src_id ||
+                    ((found->src_id == end_edge.src_id) &&
+                    (found->dst_id >= end_edge.dst_id))))
+            {
+                no_next(found);
+            }
+        }
+
+        CommonUtil::record_to_edge(cursor, found);
+        if (cursor->next(cursor) != 0)
+        {
             has_next = false;
         }
+        
     }
 };
 
@@ -491,79 +624,70 @@ class StandardGraph : public GraphBase
     StandardGraph(graph_opts &opt_params,
                   WT_CONNECTION *conn);  // TODO: merge the 2 constructors
     static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
-    int add_node(node to_insert);
-    bool has_node(node_id_t node_id);
-    node get_node(node_id_t node_id);
-    int delete_node(node_id_t node_id);
-    node get_random_node();
-    degree_t get_in_degree(node_id_t node_id);
-    degree_t get_out_degree(node_id_t node_id);
-    std::vector<node> get_nodes();
-    int add_edge(edge to_insert, bool is_bulk);
-    bool has_edge(node_id_t src_id, node_id_t dst_id);
-    int delete_edge(node_id_t src_id, node_id_t dst_id);
+    int add_node(node to_insert) override;
+    bool has_node(node_id_t node_id) override;
+    node get_node(node_id_t node_id) override;
+    int delete_node(node_id_t node_id) override;
+    node get_random_node() override;
+    degree_t get_in_degree(node_id_t node_id) override;
+    degree_t get_out_degree(node_id_t node_id) override;
+    std::vector<node> get_nodes() override;
+    int add_edge(edge to_insert, bool is_bulk) override;
+    bool has_edge(node_id_t src_id, node_id_t dst_id) override;
+    int delete_edge(node_id_t src_id, node_id_t dst_id) override;
     int update_edge_weight(node_id_t src_id,
                            node_id_t dst_id,
                            edgeweight_t weight);
     edge get_edge(node_id_t src_id,
-                  node_id_t dst_id);  // todo <-- implement this
-    std::vector<edge> get_edges();
-    std::vector<edge> get_out_edges(node_id_t node_id);
-    std::vector<node> get_out_nodes(node_id_t node_id);
-    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id);
-    std::vector<edge> get_in_edges(node_id_t node_id);
-    std::vector<node> get_in_nodes(node_id_t node_id);
-    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id);
+                  node_id_t dst_id) override;  // todo <-- implement this
+    std::vector<edge> get_edges() override;
+    std::vector<edge> get_out_edges(node_id_t node_id) override;
+    std::vector<node> get_out_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) override;
+    std::vector<edge> get_in_edges(node_id_t node_id) override;
+    std::vector<node> get_in_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) override;
     void get_nodes(vector<node> &nodes);
-    std::string get_db_name() const { return opts.db_name; };
 
-    OutCursor *get_outnbd_iter();
-    InCursor *get_innbd_iter();
-    NodeCursor *get_node_iter();
-    EdgeCursor *get_edge_iter();
+    OutCursor *get_outnbd_iter() override;
+    InCursor *get_innbd_iter() override;
+    NodeCursor *get_node_iter() override;
+    EdgeCursor *get_edge_iter() override;
 
     // internal cursor methods
-    //! Check if these should be public
-    void init_cursors();  // todo <-- implement this
-    WT_CURSOR *get_node_cursor();
+    void drop_indices();
+    static void create_indices(WT_SESSION *sess);
+
     WT_CURSOR *get_edge_cursor();
     WT_CURSOR *get_src_idx_cursor();
     WT_CURSOR *get_dst_idx_cursor();
-    WT_CURSOR *get_src_dst_idx_cursor();
-    WT_CURSOR *get_random_node_cursor();
-
     WT_CURSOR *get_new_node_cursor();
     WT_CURSOR *get_new_edge_cursor();
     WT_CURSOR *get_new_src_idx_cursor();
     WT_CURSOR *get_new_dst_idx_cursor();
-    WT_CURSOR *get_new_src_dst_idx_cursor();
     std::vector<edge> test_cursor_iter(node_id_t node_id);
-    static void create_indices(WT_SESSION *sess);
 
    private:
     // Cursors
-    WT_CURSOR *node_cursor = NULL;
-    WT_CURSOR *random_node_cursor = NULL;
-    WT_CURSOR *edge_cursor = NULL;
-    WT_CURSOR *src_dst_index_cursor = NULL;
-    WT_CURSOR *src_index_cursor = NULL;
-    WT_CURSOR *dst_index_cursor = NULL;
+    WT_CURSOR *node_cursor = nullptr;
+    WT_CURSOR *random_node_cursor = nullptr;
+    WT_CURSOR *edge_cursor = nullptr;
+    WT_CURSOR *src_dst_index_cursor = nullptr;
+    WT_CURSOR *src_index_cursor = nullptr;
+    WT_CURSOR *dst_index_cursor = nullptr;
 
     // Internal methods
-    void drop_indices();
+
+    void init_cursors();
+    void close_all_cursors() override;
     int update_node_degree(WT_CURSOR *cursor,
                            node_id_t node_id,
                            degree_t indeg,
                            degree_t outdeg);
-    void delete_related_edges(WT_CURSOR *index_cursor, node_id_t node_id);
-    int error_check(int ret, std::string file, int loc);
     int add_node_txn(node to_insert);
     int delete_edge_txn(node_id_t src_id,
                         node_id_t dst_id,
                         int *num_edges_to_add_ptr);
-
-    node get_next_node(WT_CURSOR *n_iter);
-    [[maybe_unused]] static edge get_next_edge(WT_CURSOR *e_iter);
 };
 
 #endif

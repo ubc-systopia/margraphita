@@ -10,7 +10,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "edgekey.h"
 
 #define error_check(call)                                                \

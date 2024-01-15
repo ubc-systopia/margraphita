@@ -13,7 +13,7 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "parallel_hashmap/phmap.h"
 #define MAPNAME phmap::parallel_flat_hash_map
 #define NMSP phmap

@@ -2,6 +2,7 @@
 #define GRAPH_EXCEPTION
 #include <exception>
 #include <iostream>
+#include <utility>
 
 // Shamelessly copied from https://stackoverflow.com/a/8152888
 
@@ -19,7 +20,7 @@ class GraphException : public std::exception
     /** Constructor (C++ STL strings).
      *  @param message The error message.
      */
-    explicit GraphException(const std::string &message) : msg_(message) {}
+    explicit GraphException(std::string message) : msg_(std::move(message)) {}
 
     /** Destructor.
      * Virtual to allow for subclassing.

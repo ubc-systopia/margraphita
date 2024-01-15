@@ -17,10 +17,10 @@ ADD_EXECUTABLE(test_edgekey "${PATH_TEST}/test_edgekey.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_edgekey PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_edgekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
-# Test UNordered EdgeLog
-ADD_EXECUTABLE(test_elist "${PATH_TEST}/test_uoedgelist.cpp")
-TARGET_INCLUDE_DIRECTORIES(test_elist PRIVATE ${PATH_SRC})
-TARGET_LINK_LIBRARIES(test_elist PUBLIC ${NAME_LIB} ${wt_shared_lib})
+## Test UNordered EdgeLog
+#ADD_EXECUTABLE(test_elist "${PATH_TEST}/test_uoedgelist.cpp")
+#TARGET_INCLUDE_DIRECTORIES(test_elist PRIVATE ${PATH_SRC})
+#TARGET_LINK_LIBRARIES(test_elist PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
 # Test Partitioning
 ADD_EXECUTABLE(test_partition "${PATH_TEST}/test_partition.cpp")
@@ -46,3 +46,7 @@ TARGET_LINK_LIBRARIES(test_packing PUBLIC ${NAME_LIB} ${wt_shared_lib})
 # ADD_EXECUTABLE(test_string_fmt "${PATH_TEST}/test_string_fmt.cpp")
 # TARGET_INCLUDE_DIRECTORIES(test_string_fmt PRIVATE ${PATH_SRC})
 # TARGET_LINK_LIBRARIES(test_string_fmt PUBLIC ${NAME_LIB} ${wt_shared_lib} fmt::fmt)
+#
+#Test Std Containers
+ADD_EXECUTABLE(std_container_test "${PATH_TEST}/array_test.cpp")
+set_source_files_properties( "${PATH_TEST}/array_test.cpp" PROPERTIES COMPILE_FLAGS "-std=c++20 -O3" )

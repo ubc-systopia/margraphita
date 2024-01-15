@@ -1,14 +1,7 @@
-#include "common.h"
-
-#include <wiredtiger.h>
-
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <iostream>
-#include <string>
-
-#include "graph_exception.h"
+//
+// Created by puneet on 12/12/23.
+//
+#include "common_util.h"
 
 void CommonUtil::create_dir(const std::string &path)
 {
@@ -99,35 +92,24 @@ int CommonUtil::close_cursor(WT_CURSOR *cursor)
     return 0;
 }
 
-int CommonUtil::close_session(WT_SESSION *session)
-{
-    if (session->close(session, nullptr) != 0)
-    {
-        fprintf(stderr, "Failed to close session\n");
-        return (-1);
-    }
-    return 0;
-}
-
 int CommonUtil::close_connection(WT_CONNECTION *conn)
 {
-    if (conn->close(conn, nullptr) != 0)
+    int ret = conn->close(conn, nullptr);
+    if (ret != 0)
     {
-        fprintf(stderr, "Failed to close connection\n");
-        return (-1);
+        throw GraphException("failed to close the connection");
     }
     return 0;
 }
 
-int CommonUtil::open_connection(char *db_name,
-                                const std::string &log_dir,
+int CommonUtil::open_connection(const char *db_name,
+                                const std::string &logdir,
                                 const std::string &conn_config,
                                 WT_CONNECTION **conn)
 {
     char config[1024] = "create";
-    std::string _config = conn_config;
-    // add the config string
-    std::cout << "conn_config is: " << conn_config << std::endl;
+    std::string _config;
+    _config = conn_config;
 #ifdef STAT
     if (_config.length() > 0)
     {
@@ -140,8 +122,8 @@ int CommonUtil::open_connection(char *db_name,
     {
         snprintf(config + strlen("create"), 1018, ",%s", _config.c_str());
     }
-    std::cout << _config << std::endl;
-    // exit(1);
+    std::cout << "conn_config is: " << conn_config << std::endl;
+
     if (wiredtiger_open(db_name, nullptr, config, conn) != 0)
     {
         fprintf(stderr, "Failed to open connection\n");
@@ -241,31 +223,31 @@ void CommonUtil::dump_adjlist(const adjlist &to_print)
  *
  */
 
-/**
- * @brief This function unpacks the buffer into a vector<int>. This assumes the
- * buffer was packed using pack_int_vector_std()
- * @param to_unpack string that contains the packed vector
- * @return std::vector<int> unpacked buffer
- */
-std::vector<node_id_t> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
-                                                         size_t size,
-                                                         char *packed_str)
-{
-    WT_PACK_STREAM *psp;
-    WT_ITEM unpacked;
-    size_t used;
-
-    wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
-    wiredtiger_unpack_item(psp, &unpacked);
-    wiredtiger_pack_close(psp, &used);
-
-    int vec_size = (int)size / sizeof(node_id_t);
-    std::vector<node_id_t> unpacked_vec(vec_size);
-    for (int i = 0; i < vec_size; i++)
-        unpacked_vec[i] = ((node_id_t *)unpacked.data)[i];
-
-    return unpacked_vec;
-}
+///**
+// * @brief This function unpacks the buffer into a vector<int>. This assumes
+// the
+// * buffer was packed using pack_int_vector_std()
+// * @param to_unpack string that contains the packed vector
+// * @return std::vector<int> unpacked buffer
+// */
+// std::vector<node_id_t> CommonUtil::unpack_int_vector_wti(WT_SESSION *session,
+//                                                         size_t size,
+//                                                         char *packed_str) {
+//  WT_PACK_STREAM *psp;
+//  WT_ITEM unpacked;
+//  size_t used;
+//
+//  wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
+//  wiredtiger_unpack_item(psp, &unpacked);
+//  wiredtiger_pack_close(psp, &used);
+//
+//  int vec_size = (int) size / sizeof(node_id_t);
+//  std::vector<node_id_t> unpacked_vec(vec_size);
+//  for (int i = 0; i < vec_size; i++)
+//    unpacked_vec[i] = ((node_id_t *) unpacked.data)[i];
+//
+//  return unpacked_vec;
+//}
 
 /**
  * @brief This function is used to pack all integers in the integer vector by

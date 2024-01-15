@@ -12,13 +12,13 @@
 #include <vector>
 
 #include "adj_list.h"
-#include "common.h"
+#include "common_util.h"
 #include "graph_engine.h"
 
-class GraphEngineTest : public GraphEngine
+class AdjList_SeekScan_Test : public GraphEngine
 {
    public:
-    explicit GraphEngineTest(graph_engine_opts engine_opts)
+    explicit AdjList_SeekScan_Test(graph_engine_opts engine_opts)
         : GraphEngine(std::move(engine_opts))
     {
     }
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 
     GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
                                                .opts = opts};
-    GraphEngineTest myEngine(engine_opts);
+    AdjList_SeekScan_Test myEngine(engine_opts);
     WT_CONNECTION *conn = myEngine.public_get_connection();
     WT_SESSION *session;
     if (CommonUtil::open_session(conn, &session) != 0)

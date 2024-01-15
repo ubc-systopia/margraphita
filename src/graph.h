@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph_exception.h"
 #include "lock.h"
 
@@ -17,38 +17,41 @@ class GraphBase
 {
    public:
     GraphBase() = default;
-    GraphBase(graph_opts opt_params, WT_CONNECTION *conn);  // ✅
-    static void insert_metadata(const std::string key,
+    GraphBase(graph_opts &opt_params, WT_CONNECTION *conn);
+
+    //    virtual ~GraphBase() { CommonUtil::close_connection(this->connection);
+    //    }
+
+    static void insert_metadata(std::string key,
                                 const char *value,
                                 WT_CURSOR *metadata_cursor);  // ✅ check if pvt
-    std::string get_metadata(std::string key,
-                             WT_CURSOR *metadata_cursor);     // ✅
-    virtual node get_node(node_id_t node_id) = 0;             // ✅
-    virtual node get_random_node() = 0;                       // ✅
+    std::string get_metadata(std::string key, WT_CURSOR *metadata_cursor);
+    virtual node get_node(node_id_t node_id) = 0;
+    virtual node get_random_node() = 0;
     static void create_metadata_table(
         graph_opts &opts,
         WT_CONNECTION *conn);  // Used during first-time init of DB
-    virtual int add_node(node to_insert) = 0;                         // ✅
-    virtual bool has_node(node_id_t node_id) = 0;                     // ✅
-    virtual int delete_node(node_id_t node_id) = 0;                   // ✅
-    virtual int add_edge(edge to_insert, bool is_bulk) = 0;           // ✅
-    virtual int delete_edge(node_id_t src_id, node_id_t dst_id) = 0;  // ✅
-    virtual edge get_edge(node_id_t src_id, node_id_t dst_id) = 0;    // ✅
+    virtual int add_node(node to_insert) = 0;
+    virtual bool has_node(node_id_t node_id) = 0;
+    virtual int delete_node(node_id_t node_id) = 0;
+    virtual int add_edge(edge to_insert, bool is_bulk) = 0;
+    virtual int delete_edge(node_id_t src_id, node_id_t dst_id) = 0;
+    virtual edge get_edge(node_id_t src_id, node_id_t dst_id) = 0;
     // void update_edge(edge to_update); no need to implement.
-    virtual std::vector<node> get_nodes() = 0;  // ✅
-    virtual std::vector<edge> get_edges() = 0;  // ✅
+    virtual std::vector<node> get_nodes() = 0;
+    virtual std::vector<edge> get_edges() = 0;
     virtual bool has_edge(node_id_t src_id, node_id_t dst_id) = 0;
 
-    virtual degree_t get_out_degree(node_id_t node_id) = 0;          // ✅
-    virtual degree_t get_in_degree(node_id_t node_id) = 0;           // ✅
-    virtual std::vector<edge> get_out_edges(node_id_t node_id) = 0;  // ✅
-    virtual std::vector<node> get_out_nodes(node_id_t node_id) = 0;  // ✅
+    virtual degree_t get_out_degree(node_id_t node_id) = 0;
+    virtual degree_t get_in_degree(node_id_t node_id) = 0;
+    virtual std::vector<edge> get_out_edges(node_id_t node_id) = 0;
+    virtual std::vector<node> get_out_nodes(node_id_t node_id) = 0;
 
     virtual std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) = 0;
     virtual std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) = 0;
 
-    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;  // ✅
-    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;  // ✅
+    virtual std::vector<edge> get_in_edges(node_id_t node_id) = 0;
+    virtual std::vector<node> get_in_nodes(node_id_t node_id) = 0;
 
     virtual OutCursor *get_outnbd_iter() = 0;
     virtual InCursor *get_innbd_iter() = 0;
@@ -58,42 +61,36 @@ class GraphBase
     void set_locks(LockSet *locks_ptr);
 
     void close();
-    uint64_t get_num_nodes();
+    uint32_t get_num_nodes();
     uint64_t get_num_edges();
     void set_num_nodes(uint64_t num_nodes, WT_CURSOR *cursor);
     void set_num_edges(uint64_t num_edges, WT_CURSOR *cursor);
-    std::string get_db_name() const { return opts.db_name; };
-
-    static int _get_table_cursor(std::string table,
-                                 WT_CURSOR **cursor,
-                                 WT_SESSION *session,
-                                 bool is_random,
-                                 bool prevent_overwrite);
+    [[nodiscard]] std::string get_db_name() const { return opts.db_name; };
 
    protected:
     graph_opts opts;
     int local_nnodes = 0;
     int local_nedges = 0;
-    WT_CONNECTION *connection;
-    WT_SESSION *session;
+    WT_CONNECTION *connection = nullptr;
+    WT_SESSION *session = nullptr;
     LockSet *locks = nullptr;
 
-    WT_CURSOR *metadata_cursor = NULL;
+    WT_CURSOR *metadata_cursor = nullptr;
 
-    WT_CONNECTION *get_db_conn() { return this->connection; }
-    WT_SESSION *get_db_session() { return this->session; }
+    [[maybe_unused]] WT_CONNECTION *get_db_conn() { return this->connection; }
+    [[maybe_unused]] WT_SESSION *get_db_session() { return this->session; }
+    static int _get_table_cursor(std::string table,
+                                 WT_CURSOR **cursor,
+                                 WT_SESSION *session,
+                                 bool is_random,
+                                 bool prevent_overwrite);
     int _get_index_cursor(std::string table_name,
                           std::string idx_name,
                           std::string projection,
                           WT_CURSOR **cursor);
-    void __restore_from_db();
-    void __restore_from_db(std::string db_name);
+    [[maybe_unused]] void _restore_from_db();
+    [[maybe_unused]] void _restore_from_db(std::string db_name);
 
-    void drop_indices();
-    void close_all_cursors();
-    void add_to_nnodes(int amnt);
-    void add_to_nedges(int amnt);
-
-    std::string get_metadata(const std::string &key);
+    virtual void close_all_cursors() = 0;
 };
 #endif

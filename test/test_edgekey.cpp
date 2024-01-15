@@ -1,8 +1,6 @@
-#include "test_edgekey.h"
-
 #include <cassert>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
 #include "sample_graph.h"
@@ -10,7 +8,7 @@
 #define delim "--------------"
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 
-void create_init_nodes(EdgeKey graph, bool is_directed)
+void create_init_nodes(EdgeKey &graph, bool is_directed)
 {
     INFO()
     if (!is_directed)
@@ -33,7 +31,7 @@ void create_init_nodes(EdgeKey graph, bool is_directed)
     }
 }
 
-void test_get_node(EdgeKey graph)
+void test_get_node(EdgeKey &graph)
 {
     INFO()
     node found = graph.get_node(SampleGraph::node1.id);
@@ -46,7 +44,7 @@ void test_get_node(EdgeKey graph)
     CommonUtil::dump_node(found);
 }
 
-void test_node_add(EdgeKey graph, bool read_optimize)
+void test_node_add(EdgeKey &graph, bool read_optimize)
 {
     INFO()
     node new_node = {.id = 11, .in_degree = 0, .out_degree = 0};
@@ -60,7 +58,7 @@ void test_node_add(EdgeKey graph, bool read_optimize)
     }
 }
 
-void test_get_nodes(EdgeKey graph)
+void test_get_nodes(EdgeKey &graph)
 {
     INFO()
     for (node x : graph.get_nodes())
@@ -69,7 +67,7 @@ void test_get_nodes(EdgeKey graph)
     }
 }
 
-void test_get_random_nodes(EdgeKey graph)
+void test_get_random_nodes(EdgeKey &graph)
 {
     INFO()
     fprintf(stderr, "Random node:\n");
@@ -77,7 +75,7 @@ void test_get_random_nodes(EdgeKey graph)
     CommonUtil::dump_node(graph.get_random_node());
 }
 
-void test_add_edge(EdgeKey graph, bool is_directed, bool is_weighted)
+void test_add_edge(EdgeKey &graph, bool is_directed, bool is_weighted)
 {
     INFO()
     edge to_insert = {
@@ -124,7 +122,7 @@ void test_add_edge(EdgeKey graph, bool is_directed, bool is_weighted)
     }
 }
 
-void test_get_edge(EdgeKey graph)
+void test_get_edge(EdgeKey &graph)
 {
     INFO()
     edge found =
@@ -139,7 +137,7 @@ void test_get_edge(EdgeKey graph)
     assert(found.edge_weight == -1);
 }
 
-void test_get_edges(EdgeKey graph)
+void test_get_edges(EdgeKey &graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_edges();
@@ -149,7 +147,7 @@ void test_get_edges(EdgeKey graph)
     }
 }
 
-void test_get_out_edges(EdgeKey graph)
+void test_get_out_edges(EdgeKey &graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_out_edges(1);
@@ -182,7 +180,7 @@ void test_get_out_edges(EdgeKey graph)
     assert(assert_fail);
 }
 
-void test_get_out_nodes(EdgeKey graph)
+void test_get_out_nodes(EdgeKey &graph)
 {
     INFO()
     std::vector<node> nodes = graph.get_out_nodes(1);
@@ -215,7 +213,7 @@ void test_get_out_nodes(EdgeKey graph)
     assert(assert_fail);
 }
 
-void test_get_in_edges(EdgeKey graph)
+void test_get_in_edges(EdgeKey &graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_in_edges(3);
@@ -250,7 +248,7 @@ void test_get_in_edges(EdgeKey graph)
     assert(assert_fail);
 }
 
-void test_get_in_nodes(EdgeKey graph)
+void test_get_in_nodes(EdgeKey &graph)
 {
     INFO()
     std::vector<node> nodes = graph.get_in_nodes(3);
@@ -283,7 +281,7 @@ void test_get_in_nodes(EdgeKey graph)
     assert(assert_fail);
 }
 
-void test_delete_node(EdgeKey graph, bool is_directed)
+void test_delete_node(EdgeKey &graph, bool is_directed)
 {
     INFO()
     WT_CURSOR *e_cur = graph.get_edge_cursor();
@@ -324,7 +322,7 @@ void test_delete_node(EdgeKey graph, bool is_directed)
     }
 }
 
-void test_get_in_and_out_degree(EdgeKey graph)
+void test_get_in_and_out_degree(EdgeKey &graph)
 {
     INFO()
     degree_t indeg, outdeg;
@@ -334,48 +332,71 @@ void test_get_in_and_out_degree(EdgeKey graph)
     assert(outdeg == 3);
 }
 
-void tearDown(EdgeKey graph) { graph.close(); }
+void tearDown(EdgeKey &graph) { graph.close(); }
 
-void test_InCursor(EdgeKey graph)
+void test_InCursor(EdgeKey &graph)
 {
     INFO()
     InCursor *in_cursor = graph.get_innbd_iter();
-    adjlist found = {0};
+    in_cursor->set_key_range(key_range{0, 0});
+    adjlist found;
     in_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
+        found.clear();
         in_cursor->next(&found);
     }
     in_cursor->reset();
-    // testing next() with a key
-    int nodeID = 0;
-    in_cursor->next(&found, nodeID);
-    fprintf(stderr, "\n ---- \ndumping node 0:\n");
-    CommonUtil::dump_adjlist(found);
+
+    // testing next() with a key range set
+    fprintf(stderr, "\n ---- \ndumping node 1:\n");
+
+    in_cursor->set_key_range(key_range{3, 6});
+    found.clear();
+    in_cursor->next(&found);
+
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        in_cursor->next(&found);
+    }
 }
 
-void test_OutCursor(EdgeKey graph)
+void test_OutCursor(EdgeKey &graph)
 {
     INFO()
     OutCursor *out_cursor = graph.get_outnbd_iter();
-    adjlist found = {0};
+    out_cursor->set_key_range(key_range{0, 0});
+    adjlist found;
     out_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
-        found = {0};
+        found.clear();
         out_cursor->next(&found);
     }
     out_cursor->reset();
-    // testing next() with a key
+
+    // testing next() with a key range set
     fprintf(stderr, "\n ---- \ndumping node 1:\n");
-    int nodeID = 1;
-    out_cursor->next(&found, nodeID);
+
+    out_cursor->set_key_range({3, 6});
+    found.clear();
+    out_cursor->next(&found);
     CommonUtil::dump_adjlist(found);
+    out_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        out_cursor->next(&found);
+    }
+    out_cursor->reset();
 }
 
-void test_NodeCursor(EdgeKey graph)
+void test_NodeCursor(EdgeKey &graph)
 {
     INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
@@ -392,7 +413,7 @@ void test_NodeCursor(EdgeKey graph)
     }
 }
 
-void test_NodeCursor_Range(EdgeKey graph)
+void test_NodeCursor_Range(EdgeKey &graph)
 {
     INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
@@ -410,7 +431,7 @@ void test_NodeCursor_Range(EdgeKey graph)
     }
 }
 
-void test_EdgeCursor(EdgeKey graph)
+void test_EdgeCursor(EdgeKey &graph)
 {
     INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
@@ -429,11 +450,11 @@ void test_EdgeCursor(EdgeKey graph)
     }
 }
 
-void test_EdgeCursor_Range(EdgeKey graph)
+void test_EdgeCursor_Range(EdgeKey &graph)
 {
     INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
-    edge_cursor->set_key(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
     edge found;
     int srcIdList[] = {1, 5, 7};
     int dstIdList[] = {7, 6, 8};
@@ -472,10 +493,8 @@ int main()
         opts.stat_log = "./";
     }
 
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-    GraphEngineTest myEngine(engine_opts);
-    WT_CONNECTION *conn = myEngine.public_get_connection();
+    GraphEngine myEngine(THREAD_NUM, opts);
+    WT_CONNECTION *conn = myEngine.get_connection();
     EdgeKey graph(opts, conn);
 
     create_init_nodes(graph, opts.is_directed);
@@ -499,7 +518,6 @@ int main()
     test_InCursor(graph);
     //! TODO: test_InCursor_Range(graph);
     test_OutCursor(graph);
-    //! TODO: test_OutCursor_Range(graph);
     test_NodeCursor(graph);
     test_NodeCursor_Range(graph);
 

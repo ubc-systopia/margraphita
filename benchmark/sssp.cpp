@@ -16,7 +16,7 @@
 #include "adj_list.h"
 #include "bitmap.h"
 #include "command_line.h"
-#include "common.h"
+#include "common_util.h"
 #include "csv_log.h"
 #include "edgekey.h"
 #include "graph_engine.h"

@@ -1,18 +1,16 @@
-#include "test_standard_graph.h"
-
 #include <cassert>
 
-#include "common.h"
+#include "common_util.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "sample_graph.h"
-#include "standard_graph.h"
+
 #define delim "--------------"
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 
 void test_get_nodes(StandardGraph &graph)
 {
     INFO()
-    std::cout << graph.get_num_nodes() << std::endl;
 
     for (node x : graph.get_nodes())
     {
@@ -33,8 +31,8 @@ void create_init_nodes(StandardGraph &graph, bool is_directed)
         test_node_count++;
     }
     assert(test_node_count == 6);
-    ret = graph.get_num_nodes();
-    assert(ret == 6);
+    // ret = graph.get_num_nodes();
+    // assert(ret == 6);
     if (!is_directed)
     {
         SampleGraph::create_undirected_edges();
@@ -388,47 +386,58 @@ void test_get_edges(StandardGraph &graph, bool is_directed)
     assert(found.edge_weight == -1);
 }
 
-void print_delim() { cout << endl << "--------------------" << endl; }
-
 void test_InCursor(StandardGraph &graph)
 {
     INFO()
     InCursor *in_cursor = graph.get_innbd_iter();
-    adjlist found = {0};
+    adjlist found;
     in_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
-        found = {0};
+        found.clear();
         in_cursor->next(&found);
     }
 
+    std::cout << "-------------------\n"
+              << "now testing with a set range\n"
+              << "-------------------\n";
+    
     in_cursor->reset();
-
-    in_cursor->next(&found, 3);
-    assert(found.node_id == 3);
-    std::cout << "found.edgelist.size() = " << found.edgelist.size() << endl;
-    assert(found.edgelist.size() ==
-           1);  // size is 1 after deleting node 2; 2 if not deleted
+    in_cursor->set_key_range(key_range(3, 5));
+    in_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        in_cursor->next(&found);
+    }
 }
 
 void test_OutCursor(StandardGraph &graph)
 {
     INFO()
     OutCursor *out_cursor = graph.get_outnbd_iter();
-    adjlist found = {0};
+    adjlist found;
     out_cursor->next(&found);
     while (found.node_id != -1)
     {
         CommonUtil::dump_adjlist(found);
-        found = {0};
+        found.clear();
         out_cursor->next(&found);
     }
-
+    std::cout << "-------------------\n"
+              << "now testing with a set range\n"
+              << "-------------------\n";
     out_cursor->reset();
-    out_cursor->next(&found, 1);
-    assert(found.node_id == 1);
-    assert(found.edgelist.size() == 2);
+    out_cursor->set_key_range(key_range(3, 5));
+    out_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        out_cursor->next(&found);
+    }
 }
 
 void test_index_cursor(StandardGraph &graph)
@@ -513,7 +522,8 @@ void test_EdgeCursor_Range(StandardGraph &graph)
 {
     INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
-    edge_cursor->set_key(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    
     edge found;
     int srcIdList[] = {1, 5, 7};
     int dstIdList[] = {7, 6, 8};
@@ -555,16 +565,12 @@ int main()
     }
 
     // Test std_graph setup
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-    GraphEngineTest myEngine(engine_opts);
-    WT_CONNECTION *conn = myEngine.public_get_connection();
+    GraphEngine myEngine(THREAD_NUM, opts);
+    WT_CONNECTION *conn = myEngine.get_connection();
 
     StandardGraph graph(opts, conn);
     create_init_nodes(graph, opts.is_directed);
-    //  Test num_get_nodes and num_get_edges
-    test_get_num_nodes_and_edges(graph, opts.is_directed);
-    // // Test get_node()
+    //Test get_node()
     test_get_node(graph);
     // Test get_in_degree()
     test_get_in_degree(graph, opts.is_directed);

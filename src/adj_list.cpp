@@ -1,14 +1,8 @@
 #include "adj_list.h"
 
-#include <wiredtiger.h>
-
 #include <algorithm>
-#include <cstring>
-#include <iostream>
-#include <string>
-#include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 
 using namespace std;
 
@@ -309,7 +303,7 @@ void AdjList::add_node(node_id_t to_insert,
         throw GraphException("Failed to add node_id" +
                              std::to_string(to_insert));
     }
-    // Now add the adjlist entires
+    // Now add the adjlist entries
     add_adjlist(in_adjlist_cursor, to_insert, inlist);
     add_adjlist(out_adjlist_cursor, to_insert, outlist);
 
@@ -359,8 +353,9 @@ void AdjList::add_adjlist(WT_CURSOR *cursor,
     // item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
     item.data = list.data();
     item.size = list.size() * sizeof(node_id_t);
-    cursor->set_value(
-        cursor, list.size(), &item);  // serialize the vector and send ""
+    cursor->set_value(cursor,
+                      list.size(),
+                      &item);  // serialize the vector and send ""
 
     if (cursor->insert(cursor) != 0)
     {
@@ -405,8 +400,8 @@ int AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
  * @returns WT_ROLLBACK if there is a concurrent read/write conflict
  * @returns WT_DUPLICATE_KEY if there is a key conflict within the database
  * @returns WT_NOT_FOUND if a component associated with the edge is
- * missing TODO: findout if this is neccessary
- * @throws GraphException for other databse errors
+ * missing TODO: find out if this is necessary
+ * @throws GraphException for other database errors
  */
 
 int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
@@ -508,7 +503,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         }
     }
 
-    // If opts.read_optimized is true, we update in/out degreees in the node
+    // If opts.read_optimized is true, we update in/out degrees in the node
     // table.
     if (this->opts.read_optimize)
     {
@@ -585,7 +580,7 @@ int AdjList::delete_node(node_id_t node_id)
         return ret;
     }
 
-    // delete OUT_ADJLIST entrties
+    // delete OUT_ADJLIST entries
     if ((ret = delete_adjlist(out_adjlist_cursor, node_id)))
     {
         return ret;
@@ -1130,8 +1125,9 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
     }
     adjlist found = adjlist();
     found.node_id = node_id;
-    CommonUtil::record_to_adjlist(
-        session, cursor, &found);  //<-- This works just fine.
+    CommonUtil::record_to_adjlist(session,
+                                  cursor,
+                                  &found);  //<-- This works just fine.
     found.edgelist.emplace_back(
         to_insert);  // this needs to be converted first.
     found.degree += 1;
@@ -1315,22 +1311,30 @@ OutCursor *AdjList::get_outnbd_iter()
 
 InCursor *AdjList::get_innbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
+    uint32_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new AdjInCursor(get_new_in_adjlist_cursor(), session);
     toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
     return toReturn;
 }
 
 NodeCursor *AdjList::get_node_iter()
 {
-    return new AdjNodeCursor(get_new_node_cursor(), session);
+    uint32_t num_nodes = this->get_num_nodes();
+    NodeCursor *toReturn = new AdjNodeCursor(get_new_node_cursor(), session);
+    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
+    return toReturn;
 }
 
 EdgeCursor *AdjList::get_edge_iter()
 {
-    return new AdjEdgeCursor(get_new_edge_cursor(), session, opts.is_weighted);
+    uint32_t num_nodes = this->get_num_nodes();
+    EdgeCursor *toReturn = new AdjEdgeCursor(get_new_edge_cursor(), session);
+    edge_range range;
+    range.start = key_pair(-1, -1);
+    range.end = key_pair(num_nodes - 1, num_nodes - 1);
+    toReturn->set_key_range(range);
+    return toReturn;
 }
 
 WT_CURSOR *AdjList::get_node_cursor()

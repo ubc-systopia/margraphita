@@ -1,13 +1,14 @@
 #ifndef BASE_COMMON
 #define BASE_COMMON
 
-#include <stdarg.h>
-#include <stdio.h>
 #include <wiredtiger.h>
 
 #include <bitset>
 #include <cassert>
+#include <cstdarg>
+#include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <map>
 // #ifdef LINUX
@@ -20,126 +21,9 @@
 #include <variant>
 #include <vector>
 
+#include "common_defs.h"
 #include "graph_exception.h"
-
-#define MAKE_EKEY(x) (x + 1)
-#define OG_KEY(x) (x - 1)
-
-// These are the string constants
-const std::string METADATA = "metadata";
-const std::string DB_NAME = "db_name";
-const std::string DB_DIR = "db_dir";
-const std::string IS_WEIGHTED = "is_weighted";
-const std::string READ_OPTIMIZE = "read_optimize";
-const std::string IS_DIRECTED = "is_directed";
-
-// Read Optimize columns
-const std::string IN_DEGREE = "in_degree";
-const std::string OUT_DEGREE = "out_degree";
-
-// Shared column names
-const std::string SRC = "src";
-const std::string DST = "dst";
-const std::string ID = "id";
-const std::string ATTR_FIRST =
-    "attr_fst";  // Used in EdgeKey as the first attribute.
-const std::string ATTR_SECOND =
-    "attr_scnd";  // Used in EdgeKey as the second attribute.
-const std::string WEIGHT = "weight";
-const std::string NODE_TABLE = "node";
-const std::string EDGE_TABLE = "edge";
-const std::string SRC_INDEX = "IX_edge_" + SRC;
-const std::string DST_INDEX = "IX_edge_" + DST;
-const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
-const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
-// specific to AdjList implementation
-const std::string OUT_ADJLIST = "adjlistout";
-const std::string IN_ADJLIST = "adjlistin";
-const std::string node_count = "nNodes";
-const std::string edge_count = "nEdges";
-
-typedef int32_t node_id_t;
-typedef int32_t edgeweight_t;
-typedef uint32_t degree_t;
-
-/// @brief EdgeKey specific definitions
-const node_id_t OutOfBand_ID =
-    0;  // Used to be -1. Changed to 0 to avoid issues with unsigned types.
-const degree_t OutOfBand_Val = UINT32_MAX;
-#define MAKE_EKEY(x) (x + 1)
-#define OG_KEY(x) (x - 1)
-
-typedef enum GraphType
-{
-    Std,
-    Adj,
-    EKey,
-    EList,
-} GraphType;
-
-struct graph_opts
-{
-    bool create_new = true;
-    bool read_optimize = true;
-    bool is_directed = true;
-    bool is_weighted = false;
-    std::string db_name;
-    std::string db_dir;
-    bool optimize_create;  // directs when the index should be created
-    std::string conn_config;
-    std::string stat_log;
-    GraphType type;
-};
-
-typedef struct node
-{
-    node_id_t id;  // node ID
-    degree_t in_degree = 0;
-    degree_t out_degree = 0;
-
-} node;
-
-typedef struct edge
-{
-    int32_t id = 0;
-    node_id_t src_id = 0;
-    node_id_t dst_id = 0;
-    edgeweight_t edge_weight = 0;
-} edge;
-
-typedef struct edge_index
-{
-    node_id_t src_id = 0;
-    node_id_t dst_id = 0;
-    edge_index() : src_id(0), dst_id(0) {}
-    edge_index(node_id_t a, node_id_t b) : src_id(a), dst_id(b) {}
-
-} edge_index;
-
-typedef struct edge_index key_pair;
-
-typedef struct key_range
-{
-    node_id_t start;
-    node_id_t end;
-    key_range() : start(), end() {}
-    key_range(node_id_t a, node_id_t b) : start(a), end(b) {}
-} key_range;
-
-typedef struct edge_range
-{
-    key_pair start;
-    key_pair end;
-    edge_range() : start(), end() {}
-    edge_range(key_pair a, key_pair b) : start(a), end(b) {}
-} edge_range;
-
-typedef struct adjlist
-{
-    node_id_t node_id;
-    degree_t degree;
-    std::vector<node_id_t> edgelist;
-} adjlist;
+#include "iterator.h"
 
 // TODO: remove unused functions from this class.
 
@@ -164,9 +48,10 @@ class CommonUtil
     static char *pack_int_vector_wti(WT_SESSION *session,
                                      std::vector<node_id_t> to_pack,
                                      size_t *size);
-    static std::vector<node_id_t> unpack_int_vector_wti(WT_SESSION *session,
-                                                        size_t size,
-                                                        char *packed_str);
+    //    static std::vector<node_id_t> unpack_int_vector_wti(WT_SESSION
+    //    *session,
+    //                                                        size_t size,
+    //                                                        char *packed_str);
 
     static void log_msg(std::string_view message,
                         std::string_view file,
@@ -179,9 +64,8 @@ class CommonUtil
                                             WT_CURSOR *to_dup,
                                             const std::string &config);
     static int close_cursor(WT_CURSOR *cursor);
-    static int close_session(WT_SESSION *session);
     static int close_connection(WT_CONNECTION *conn);
-    static int open_connection(char *db_name,
+    static int open_connection(const char *db_name,
                                const std::string &logdir,
                                const std::string &config,
                                WT_CONNECTION **conn);
@@ -190,17 +74,10 @@ class CommonUtil
                           WT_CURSOR **cursor);
     static void set_key(WT_CURSOR *cursor, node_id_t key);
     static void set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
-    static void set_key(WT_CURSOR *cursor,
-                        int32_t id,
-                        node_id_t key1,
-                        node_id_t key2);
+
     static int get_key(WT_CURSOR *cursor, node_id_t *key);
     static int get_key(WT_CURSOR *cursor, node_id_t *key1, node_id_t *key2);
-    static int get_key(WT_CURSOR *cursor,
-                       int32_t *id,
-                       node_id_t *key1,
-                       node_id_t *key2);
-    static node_id_t extract_flip_endian(WT_ITEM id);
+
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
     static void check_return(int retval, const std::string &mesg);
     static void dump_node(node to_print);
@@ -222,15 +99,15 @@ class CommonUtil
     static void record_to_adjlist(WT_SESSION *session,
                                   WT_CURSOR *cursor,
                                   adjlist *found);
+
+    static void ekey_set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
+    static int ekey_get_key(WT_CURSOR *cursor,
+                            node_id_t *key1,
+                            node_id_t *key2);
     static void record_to_node_ekey(WT_CURSOR *cur, node *found);
     static void record_to_node_ekeyidx(WT_CURSOR *idx_cursor, node *found);
     static void record_to_edge_ekey(WT_CURSOR *cur, edge *found);
     static void get_val_idx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b);
-    static void get_ekey_dst_src_val(WT_CURSOR *idx_cursor,
-                                     node_id_t *a,
-                                     node_id_t *b,
-                                     degree_t *in,
-                                     degree_t *out);
 };
 
 /***************************************************************************
@@ -246,13 +123,6 @@ class CommonUtil
  * @param node_id The Node ID to be updated
  * @param new_attrs The new node attribute vector.
  */
-
-inline node_id_t CommonUtil::extract_flip_endian(WT_ITEM id)
-{
-    node_id_t a;
-    memcpy(&a, id.data, sizeof(a));
-    return __builtin_bswap32(a);
-}
 
 inline void CommonUtil::set_key(WT_CURSOR *cursor, node_id_t key)
 {
@@ -272,17 +142,6 @@ inline void CommonUtil::set_key(WT_CURSOR *cursor,
     cursor->set_key(cursor, &k1, &k2);
 }
 
-inline void CommonUtil::set_key(WT_CURSOR *cursor,
-                                int32_t id,
-                                node_id_t key1,
-                                node_id_t key2)
-{
-    uint32_t a = __builtin_bswap32(key1);
-    uint32_t b = __builtin_bswap32(key2);
-    WT_ITEM k1 = {.data = &a, .size = sizeof(a)};
-    WT_ITEM k2 = {.data = &b, .size = sizeof(b)};
-    cursor->set_key(cursor, id, &k1, &k2);
-}
 
 inline int CommonUtil::get_key(WT_CURSOR *cursor, node_id_t *key)
 {
@@ -306,21 +165,6 @@ inline int CommonUtil::get_key(WT_CURSOR *cursor,
     return ret;
 }
 
-inline int CommonUtil::get_key(WT_CURSOR *cursor,
-                               int32_t *id,
-                               node_id_t *key1,
-                               node_id_t *key2)
-{
-    WT_ITEM k1, k2;
-    int32_t found_id;
-    int ret = cursor->get_key(cursor, &found_id, &k1, &k2);
-    uint32_t a = *(uint32_t *)k1.data;
-    uint32_t b = *(uint32_t *)k2.data;
-    *key1 = __builtin_bswap32(a);
-    *key2 = __builtin_bswap32(b);
-    *id = found_id;
-    return ret;
-}
 
 inline int CommonUtil::node_to_record(WT_CURSOR *cursor,
                                       node to_insert,
@@ -392,25 +236,6 @@ inline void CommonUtil::get_val_idx(WT_CURSOR *idx_cursor,
     uint32_t dst_id = *(uint32_t *)y.data;
     *a = __builtin_bswap32(src_id);
     *b = __builtin_bswap32(dst_id);
-}
-
-inline void CommonUtil::get_ekey_dst_src_val(WT_CURSOR *idx_cursor,
-                                             node_id_t *a,
-                                             node_id_t *b,
-                                             degree_t *in,
-                                             degree_t *out)
-{
-    WT_ITEM x, y;
-    degree_t in_degree, out_degree;
-    idx_cursor->get_value(idx_cursor, &x, &y, &in_degree, &out_degree);
-
-    uint32_t sid = *(uint32_t *)x.data;
-    uint32_t did = *(uint32_t *)y.data;
-
-    *a = __builtin_bswap32(sid);
-    *b = __builtin_bswap32(did);
-    *in = in_degree;
-    *out = out_degree;
 }
 
 /**
@@ -516,162 +341,24 @@ inline void CommonUtil::record_to_edge_ekey(WT_CURSOR *cur, edge *found)
     }
     found->edge_weight = a;
 }
-/****
- * The following are iterator definitions.
- */
 
-class table_iterator
+inline void CommonUtil::ekey_set_key(WT_CURSOR *cursor,
+                                     node_id_t key1,
+                                     node_id_t key2)
 {
-   protected:
-    WT_CURSOR *cursor = nullptr;
-    WT_SESSION *session = nullptr;
-    bool is_first = true;
-    bool has_next = true;
-    void init(WT_CURSOR *cursor_, WT_SESSION *sess_)
-    {
-        cursor = cursor_;
-        session = sess_;
-    }
-    // TODO: Change this to accept a Graph object reference and the
-    // table/index name for which the cursor is sought. Current design needs
-    // the user to know which table to provide a cursor for. This is
-    // guaranteed to cause bugs.
-   public:
-    void set_key(node_id_t key) { CommonUtil::set_key(cursor, key); }
-    bool has_more() { return has_next; };
-    virtual void reset()
-    {
-        cursor->reset(cursor);
-        is_first = true;
-        has_next = true;
-    }
-};
+    if (key1 != OutOfBand_ID) key1 = MAKE_EKEY(key1);
+    if (key2 != OutOfBand_ID) key2 = MAKE_EKEY(key2);
+    CommonUtil::set_key(cursor, key1, key2);
+}
 
-class OutCursor : public table_iterator
+inline int CommonUtil::ekey_get_key(WT_CURSOR *cursor,
+                                    node_id_t *key1,
+                                    node_id_t *key2)
 {
-   protected:
-    key_range keys{};
-    int num_nodes{};
-
-   public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start);
-    }
-
-    // I hate this, but I can't think of an elegant way
-    void set_key_range(key_range _keys, bool is_Ekey)
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start, OutOfBand_ID);
-    }
-
-    void set_num_nodes(int num) { num_nodes = num; }
-
-    virtual void next(adjlist *found) = 0;
-    virtual void next(adjlist *found, node_id_t key) = 0;
-};
-
-class InCursor : public table_iterator
-{
-   protected:
-    key_range keys{};
-    int num_nodes{};
-
-   public:
-    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {-1, -1};
-    }
-
-    void set_key_range(key_range _keys)
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start);
-    }
-
-    // I hate this, but I can't think of an elegant way
-    void set_key_range(key_range _keys, bool is_Ekey)
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start, OutOfBand_ID);
-    }
-
-    void set_num_nodes(int num) { num_nodes = num; }
-
-    virtual void next(adjlist *found) = 0;
-    virtual void next(adjlist *found, node_id_t key) = 0;
-};
-
-class NodeCursor : public table_iterator
-{
-   protected:
-    key_range keys{};
-
-   public:
-    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
-    {
-        init(node_cur, sess);
-        keys = {-1, -1};
-    }
-
-    /**
-     * @brief Set the key range object
-     *
-     * @param _keys the key range object. Set the end key to INT_MAX if you
-     * want to get all the nodes from start node.
-     */
-    virtual void set_key_range(key_range _keys)  // overrided by edgekey
-    {
-        keys = _keys;
-        CommonUtil::set_key(cursor, keys.start);
-    }
-
-    virtual void next(node *found) = 0;
-};
-
-class EdgeCursor : public table_iterator
-{
-   protected:
-    key_pair start_edge{};
-    key_pair end_edge{};
-    bool get_weight = true;
-
-   public:
-    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
-    {
-        init(composite_edge_cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-    }
-
-    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess, bool get_weight)
-    {
-        init(composite_edge_cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
-        this->get_weight = get_weight;
-    }
-
-    // Overwrites set_key(int key) implementation in table_iterator
-    void set_key(int key) = delete;
-
-    virtual void set_key(edge_range range)
-    {
-        start_edge = range.start;
-        end_edge = range.end;
-        CommonUtil::set_key(cursor, range.start.src_id, range.start.dst_id);
-    }
-
-    virtual void next(edge *found) = 0;
-};
+    int ret = CommonUtil::get_key(cursor, key1, key2);
+    if (*key1 != OutOfBand_ID) *key1 = OG_KEY(*key1);
+    if (*key2 != OutOfBand_ID) *key2 = OG_KEY(*key2);
+    return ret;
+}
 
 #endif

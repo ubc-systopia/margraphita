@@ -3,7 +3,7 @@
 #include <string>
 
 #include "benchmark_definitions.h"
-#include "common.h"
+#include "common_util.h"
 
 void print_csv_info(std::string name,
                     int starting_node,

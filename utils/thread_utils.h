@@ -11,7 +11,7 @@
 
 #include <cassert>
 
-#include "../src/common.h"
+#include "../src/common_util.h"
 
 /**
  * @brief We use this function to assign a thread to a specific subset of the

@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph_exception.h"
 #include "gtest/gtest.h"
 #include "standard_graph.h"

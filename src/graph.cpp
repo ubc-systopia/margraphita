@@ -3,18 +3,15 @@
 
 #include <wiredtiger.h>
 
-#include <algorithm>
-#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph_exception.h"
 using namespace std;
 
-GraphBase::GraphBase(graph_opts opt_params, WT_CONNECTION *conn)
+GraphBase::GraphBase(graph_opts &opt_params, WT_CONNECTION *conn)
 {
     opts = opt_params;
     connection = conn;
@@ -22,7 +19,7 @@ GraphBase::GraphBase(graph_opts opt_params, WT_CONNECTION *conn)
     {
         throw GraphException("Cannot open session");
     }
-    __restore_from_db();
+    if (opts.create_new == false) _restore_from_db();
 }
 
 void GraphBase::create_metadata_table(graph_opts &opts, WT_CONNECTION *conn)
@@ -173,19 +170,26 @@ int GraphBase::_get_table_cursor(std::string table,
     }
     if (int ret =
             session->open_cursor(
-                session, table_name.c_str(), NULL, config.c_str(), cursor) != 0)
+                session, table_name.c_str(), nullptr, config.c_str(), cursor) !=
+            0)
     {
-        fprintf(
-            stderr, "Failed to get table cursor to %s\n", table_name.c_str());
-        return ret;
+        throw GraphException("Failed to open the cursor on the table " +
+                             table_name);
     }
     return 0;
 }
 
-void GraphBase::close() { CommonUtil::close_session(session); }
+void GraphBase::close()
+{
+    int ret = this->connection->close(this->connection, nullptr);
+    if (ret != 0)
+    {
+        throw GraphException("Failed to close the connection");
+    }
+}
 
 // Close, restore from DB, create/drop indices
-void GraphBase::__restore_from_db()
+void GraphBase::_restore_from_db()
 {
     WT_CURSOR *cursor = nullptr;
     int ret = _get_table_cursor(METADATA, &cursor, session, false, false);
@@ -244,7 +248,7 @@ void GraphBase::__restore_from_db()
 }
 
 // Close, restore from DB, create/drop indices
-void GraphBase::__restore_from_db(std::string db_name)
+void GraphBase::_restore_from_db(std::string db_name)
 {
     int ret = CommonUtil::open_connection(const_cast<char *>(db_name.c_str()),
                                           opts.stat_log,
@@ -309,37 +313,6 @@ void GraphBase::__restore_from_db(std::string db_name)
 }
 
 /**
- * @brief Returns the metadata associated with the key param from the
- * METADATA table. Same from standard_graph implementation
- */
-
-std::string GraphBase::get_metadata(const std::string &key)
-{
-    int ret = 0;
-    WT_CURSOR *metadata_cursor = nullptr;
-    if ((ret = _get_table_cursor(
-             METADATA, &metadata_cursor, session, false, false)) != 0)
-    {
-        fprintf(stderr, "Failed to create cursor to the metadata table.");
-        exit(-1);
-    }
-
-    metadata_cursor->set_key(metadata_cursor, key.c_str());
-    ret = metadata_cursor->search(metadata_cursor);
-    if (ret != 0)
-    {
-        fprintf(
-            stderr, "Failed to retrieve metadata for the key %s", key.c_str());
-        exit(-1);
-    }
-
-    const char *value;
-    ret = metadata_cursor->get_value(metadata_cursor, &value);
-
-    return std::string(value);
-}
-
-/**
  * @brief Generic function to create the indexes on a table
  *
  * @param table_name The name of the table on which the index is to be
@@ -370,58 +343,58 @@ int GraphBase::_get_index_cursor(std::string table_name,
     return 0;
 }
 
-void GraphBase::set_num_nodes(uint64_t numNodes, WT_CURSOR *metadata_cursor)
+void GraphBase::set_num_nodes(uint64_t num_nodes, WT_CURSOR *metadata_cursor)
 {
     return insert_metadata(node_count,
-                           const_cast<char *>(std::to_string(numNodes).c_str()),
-                           metadata_cursor);
+        const_cast<char *>(std::to_string(num_nodes).c_str()),
+        metadata_cursor);
 }
 
-void GraphBase::set_num_edges(uint64_t numEdges, WT_CURSOR *metadata_cursor)
+void GraphBase::set_num_edges(uint64_t num_edges, WT_CURSOR *metadata_cursor)
 {
     return insert_metadata(edge_count,
-                           const_cast<char *>(std::to_string(numEdges).c_str()),
-                           metadata_cursor);
+        const_cast<char *>(std::to_string(num_edges).c_str()),
+        metadata_cursor);
 }
 
-uint64_t GraphBase::get_num_nodes()
+uint32_t GraphBase::get_num_nodes()
 {
-    std::string found = get_metadata(node_count);
+    std::string found = get_metadata(node_count, metadata_cursor);
     return std::stoi(found);
 }
 
 uint64_t GraphBase::get_num_edges()
 {
-    std::string found = get_metadata(edge_count);
+    std::string found = get_metadata(edge_count, metadata_cursor);
     return std::stoi(found);
 }
 
-void GraphBase::set_locks(LockSet *locks_ptr) { locks = locks_ptr; }
+// void GraphBase::set_locks(LockSet *locks_ptr) { locks = locks_ptr; }
 
-void GraphBase::add_to_nnodes(int amnt)
-{
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_node_num_lock());
-        set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
-        omp_unset_lock(locks->get_node_num_lock());
-    }
-    else
-    {
-        set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
-    }
-}
+// void GraphBase::add_to_nnodes(int amnt)
+// {
+//     if (locks != nullptr)
+//     {
+//         omp_set_lock(locks->get_node_num_lock());
+//         set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
+//         omp_unset_lock(locks->get_node_num_lock());
+//     }
+//     else
+//     {
+//         set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
+//     }
+// }
 
-void GraphBase::add_to_nedges(int amnt)
-{
-    if (locks != nullptr)
-    {
-        omp_set_lock(locks->get_edge_num_lock());
-        set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
-        omp_unset_lock(locks->get_edge_num_lock());
-    }
-    else
-    {
-        set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
-    }
-}
+// void GraphBase::add_to_nedges(int amnt)
+// {
+//     if (locks != nullptr)
+//     {
+//         omp_set_lock(locks->get_edge_num_lock());
+//         set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
+//         omp_unset_lock(locks->get_edge_num_lock());
+//     }
+//     else
+//     {
+//         set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
+//     }
+//}

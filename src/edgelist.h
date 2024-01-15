@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph.h"
 #include "graph_exception.h"
 

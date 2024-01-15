@@ -13,7 +13,7 @@
 #include "adj_list.h"
 #include "bitmap.h"
 #include "command_line.h"
-#include "common.h"
+#include "common_util.h"
 #include "edgekey.h"
 #include "graph_exception.h"
 #include "platform_atomics.h"

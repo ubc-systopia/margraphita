@@ -2,7 +2,7 @@
 #include <thread>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
 #include "sample_graph.h"
@@ -33,9 +33,7 @@ int main()
         opts.stat_log = "./";
     }
 
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-    GraphEngine myEngine(engine_opts);
+    GraphEngine myEngine(THREAD_NUM, opts);
 
     GraphBase* graph = myEngine.create_graph_handle();
     graph->add_node(node{.id = 0});

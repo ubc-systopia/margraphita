@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "bulk_insert.h"
-#include "common.h"
+#include "common_util.h"
 #include "parallel_hashmap/phmap.h"
 #include "reader.h"
 #include "time_structs.h"

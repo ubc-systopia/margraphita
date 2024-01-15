@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 using namespace std;
 static const char *db_name = "test";
 
