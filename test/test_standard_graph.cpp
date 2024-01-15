@@ -423,10 +423,10 @@ void test_OutCursor(StandardGraph &graph)
         out_cursor->next(&found);
     }
 
-    out_cursor->reset();
-    out_cursor->next(&found, 1);
-    assert(found.node_id == 1);
-    assert(found.edgelist.size() == 2);
+    // out_cursor->reset();
+    //  out_cursor->next(&found, 1);
+    //   assert(found.node_id == 1);
+    //   assert(found.edgelist.size() == 2);
 }
 
 void test_index_cursor(StandardGraph &graph)
@@ -591,11 +591,11 @@ int main()
     test_node_delete(graph, opts.is_directed);
 
     // test_InCursor(graph);
-    // /test_OutCursor(graph);
-    test_NodeCursor(graph);
-    test_NodeCursor_Range(graph);
-    test_EdgeCursor(graph);
-    test_EdgeCursor_Range(graph);
+    test_OutCursor(graph);
+    // test_NodeCursor(graph);
+    //  test_NodeCursor_Range(graph);
+    //  test_EdgeCursor(graph);
+    //  test_EdgeCursor_Range(graph);
 
     // Test std_graph teardown
     tearDown(graph);

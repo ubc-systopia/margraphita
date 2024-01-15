@@ -27,7 +27,12 @@ class table_iterator
     [[nodiscard]] bool has_more() const { return has_next; };
     virtual void reset()
     {
-        cursor->reset(cursor);
+        int ret = cursor->reset(cursor);
+        if (ret != 0)
+        {
+            std::cout << "Error in resetting cursor" << wiredtiger_strerror(ret)
+                      << std::endl;
+        }
         is_first = true;
         has_next = true;
     }

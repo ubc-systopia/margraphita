@@ -164,7 +164,7 @@ class EkeyInCursor : public InCursor
                 node_ptr->next(node_ptr);
                 CommonUtil::ekey_get_key(node_ptr, &temp_src, &curr_node);
                 if(curr_node == curr_edge_dst)
-                //next node is matches the node we are on the in-edge for
+                // next node matches the node we are on the in-edge for
                 {
                     if (curr_node > keys.end)
                     {

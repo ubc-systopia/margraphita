@@ -1242,10 +1242,9 @@ WT_CURSOR *StandardGraph::get_new_dst_idx_cursor()
 
 OutCursor *StandardGraph::get_outnbd_iter()
 {
-    uint32_t num_nodes = this->get_num_nodes();
-    OutCursor *toReturn = new StdOutCursor(get_new_src_idx_cursor(), session);
-    toReturn->set_num_nodes(static_cast<int>(num_nodes));
-    toReturn->set_key_range({0, static_cast<node_id_t>(num_nodes)});
+    OutCursor *toReturn = new StdOutCursor(get_new_edge_cursor(), session);
+    key_range range = {0, 0};
+    toReturn->set_key_range(range);
     return toReturn;
 }
 
