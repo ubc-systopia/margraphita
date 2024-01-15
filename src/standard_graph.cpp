@@ -1250,10 +1250,8 @@ OutCursor *StandardGraph::get_outnbd_iter()
 
 InCursor *StandardGraph::get_innbd_iter()
 {
-    uint32_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new StdInCursor(get_new_dst_idx_cursor(), session);
-    toReturn->set_num_nodes(static_cast<int>(num_nodes));
-    toReturn->set_key_range({0, static_cast<node_id_t>(num_nodes)});
+    toReturn->set_key_range({0, 0});
     return toReturn;
 }
 
