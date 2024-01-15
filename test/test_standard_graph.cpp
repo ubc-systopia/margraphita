@@ -399,13 +399,19 @@ void test_InCursor(StandardGraph &graph)
         in_cursor->next(&found);
     }
 
-    //    in_cursor->reset();
-    //
-    //    in_cursor->next(&found, 3);
-    //    assert(found.node_id == 3);
-    //    std::cout << "found.edgelist.size() = " << found.edgelist.size() <<
-    //    endl; assert(found.edgelist.size() ==
-    //           1);  // size is 1 after deleting node 2; 2 if not deleted
+    std::cout << "-------------------\n"
+              << "now testing with a set range\n"
+              << "-------------------\n";
+    
+    in_cursor->reset();
+    in_cursor->set_key_range(key_range(3, 5));
+    in_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        in_cursor->next(&found);
+    }
 }
 
 void test_OutCursor(StandardGraph &graph)
@@ -420,11 +426,18 @@ void test_OutCursor(StandardGraph &graph)
         found.clear();
         out_cursor->next(&found);
     }
-
-    // out_cursor->reset();
-    //  out_cursor->next(&found, 1);
-    //   assert(found.node_id == 1);
-    //   assert(found.edgelist.size() == 2);
+    std::cout << "-------------------\n"
+              << "now testing with a set range\n"
+              << "-------------------\n";
+    out_cursor->reset();
+    out_cursor->set_key_range(key_range(3, 5));
+    out_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        out_cursor->next(&found);
+    }
 }
 
 void test_index_cursor(StandardGraph &graph)
