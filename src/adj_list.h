@@ -15,6 +15,12 @@ using namespace std;
 
 class AdjInCursor : public InCursor
 {
+   private:
+    bool all_nodes = false;
+
+   public:
+    void setAllNodes(bool allNodes) { all_nodes = allNodes; }
+
    public:
     AdjInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
 
@@ -47,37 +53,43 @@ class AdjInCursor : public InCursor
             }
         }
     }
+    void no_next(adjlist *found)
+    {
+        found->degree = -1;
+        found->edgelist.clear();
+        found->node_id = -1;
+        has_next = false;
+    }
 
     void next(adjlist *found) override
     {
         if (!has_next)
         {
-            goto no_next;
+            no_next(found);
+            return;
         }
 
         node_id_t curr_key;
-        CommonUtil::get_key(cursor, &curr_key);
-
-        if (keys.end != -1 &&
-            curr_key > keys.end)  // there is an end key and we have passed it
+        do
         {
-            goto no_next;
-        }
+            CommonUtil::get_key(cursor, &curr_key);
 
-        CommonUtil::record_to_adjlist(session, cursor, found);
-        found->node_id = curr_key;
+            if (keys.end != -1 &&
+                curr_key >
+                    keys.end)  // there is an end key and we have passed it
+            {
+                no_next(found);
+                return;
+            }
 
-        if (cursor->next(cursor) != 0)
-        {
-            has_next = false;
-        }
-        return;
+            CommonUtil::record_to_adjlist(session, cursor, found);
+            found->node_id = curr_key;
 
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
-        has_next = false;
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+            }
+        } while (found->degree == 0 && all_nodes == false);
     }
 
     void next(adjlist *found, node_id_t key) override
