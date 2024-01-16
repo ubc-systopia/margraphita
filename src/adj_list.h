@@ -92,78 +92,29 @@ class AdjInCursor : public InCursor
         } while (found->degree == 0 && all_nodes == false);
     }
 
-    void next(adjlist *found, node_id_t key) override
+    void next(adjlist *found, node_id_t key) override {}
+};
+
+class AdjOutCursor : public OutCursor
+{
+   private:
+    bool all_nodes = false;
+
+   public:
+    AdjOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
+    void setAllNodes(bool allNodes) { all_nodes = allNodes; }
+
+    // use key_pair to define start and end keys.
+    // advance the cursor to the first valid record in range
+
+    void no_next(adjlist *found)
     {
-        // Must reset OutCursor if already no_next
-        if (!has_next)
-        {
-            goto no_next;
-        }
-
-        // Access outside of range not permitted
-        if (keys.end != -1 && key > keys.end)
-        {
-            goto no_next;
-        }
-
-        if (keys.start != -1 && key < keys.start)
-        {
-            goto no_next;
-        }
-
-        CommonUtil::set_key(cursor, key);
-
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = key;
-
-        int status;
-        // error_check(cursor->search_near(cursor, &status));
-        cursor->search_near(cursor, &status);
-        if (status < 0)
-        {
-            // Advances the cursor
-            if (cursor->next(cursor) != 0)
-            {
-                has_next = false;
-                return;
-            }
-        }
-
-        int curr_key;
-        CommonUtil::get_key(cursor, &curr_key);
-
-        if (curr_key == key)
-        {
-            CommonUtil::record_to_adjlist(session, cursor, found);
-        }
-
-        if (keys.end != -1 && curr_key > keys.end)
-        {
-            has_next = false;
-        }
-
-        if (cursor->next(cursor) != 0)
-        {
-            has_next = false;
-        }
-        return;
-
-    no_next:
         found->degree = -1;
         found->edgelist.clear();
         found->node_id = -1;
         has_next = false;
     }
-};
 
-class AdjOutCursor : public OutCursor
-{
-   public:
-    AdjOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
-
-    // use key_pair to define start and end keys.
-    // advance the cursor to the first valid record in range
     void set_key_range(key_range _keys) override
     {
         keys = _keys;
@@ -196,96 +147,32 @@ class AdjOutCursor : public OutCursor
     {
         if (!has_next)
         {
-            goto no_next;
+            no_next(found);
+            return;
         }
 
         int curr_key;
-        CommonUtil::get_key(cursor, &curr_key);
-
-        if (keys.end != -1 && curr_key > keys.end)
+        do
         {
-            goto no_next;
-        }
+            CommonUtil::get_key(cursor, &curr_key);
 
-        CommonUtil::record_to_adjlist(session, cursor, found);
-        found->node_id = curr_key;
+            if (keys.end != -1 && curr_key > keys.end)
+            {
+                no_next(found);
+                return;
+            }
 
-        if (cursor->next(cursor) != 0)
-        {
-            has_next = false;
-        }
-        return;
+            CommonUtil::record_to_adjlist(session, cursor, found);
+            found->node_id = curr_key;
 
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
-        has_next = false;
-    }
-
-    void next(adjlist *found, node_id_t key) override
-    {
-        // Must reset OutCursor if already no_next
-        if (!has_next)
-        {
-            goto no_next;
-        }
-
-        // Access outside of range not permitted
-        if (keys.end != -1 && key > keys.end)
-        {
-            goto no_next;
-        }
-
-        if (keys.start != -1 && key < keys.start)
-        {
-            goto no_next;
-        }
-
-        CommonUtil::set_key(cursor, key);
-
-        found->degree = 0;
-        found->edgelist.clear();
-        found->node_id = key;
-
-        int status;
-        // error_check(cursor->search_near(cursor, &status));
-        cursor->search_near(cursor, &status);
-        if (status < 0)
-        {
-            // Advances the cursor
             if (cursor->next(cursor) != 0)
             {
                 has_next = false;
-                return;
             }
-        }
-
-        int curr_key;
-        CommonUtil::get_key(cursor, &curr_key);
-
-        if (curr_key == key)
-        {
-            CommonUtil::record_to_adjlist(session, cursor, found);
-        }
-
-        if (keys.end != -1 && curr_key > keys.end)
-        {
-            has_next = false;
-        }
-
-        if (cursor->next(cursor) != 0)
-        {
-            has_next = false;
-        }
-        return;
-
-    no_next:
-        found->degree = -1;
-        found->edgelist.clear();
-        found->node_id = -1;
-        has_next = false;
+        } while (found->degree == 0 && all_nodes == false);
     }
+
+    void next(adjlist *found, node_id_t key) override {}
 };
 
 class AdjNodeCursor : public NodeCursor

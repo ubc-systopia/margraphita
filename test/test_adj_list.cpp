@@ -493,8 +493,11 @@ void test_InCursor(AdjList graph)
 void test_OutCursor(AdjList graph)
 {
     INFO();
-    OutCursor *out_cursor = graph.get_outnbd_iter();
     adjlist found;
+
+    auto *out_cursor = (AdjOutCursor *)graph.get_outnbd_iter();
+    out_cursor->setAllNodes(true);
+    std::cout << "Printing in-adjlists for all nodes (AllNodes=true)\n";
     out_cursor->next(&found);
     while (found.node_id != -1)
     {
@@ -502,6 +505,20 @@ void test_OutCursor(AdjList graph)
         found.clear();
         out_cursor->next(&found);
     }
+    delete out_cursor;
+
+    out_cursor = (AdjOutCursor *)graph.get_outnbd_iter();
+    // out_cursor->setAllNodes(false);
+    std::cout << "Printing in-adjlists for nodes with non-null nbd "
+                 "(AllNodes=false)\n";
+    out_cursor->next(&found);
+    while (found.node_id != -1)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        out_cursor->next(&found);
+    }
+    delete out_cursor;
 }
 
 void test_NodeCursor(AdjList &graph)
