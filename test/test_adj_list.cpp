@@ -463,23 +463,9 @@ void test_InCursor(AdjList graph)
 {
     INFO();
     auto *in_cursor = (AdjInCursor *)graph.get_innbd_iter();
-    // in_cursor->setAllNodes(true);
-    //     std::cout << "Printing in-adjlists for all nodes (AllNodes=true)\n"
-    //               << std::endl;
-    //     adjlist found;
-    //     in_cursor->next(&found);
-    //     while (found.node_id != -1)
-    //     {
-    //         CommonUtil::dump_adjlist(found);
-    //         found.clear();
-    //         in_cursor->next(&found);
-    //     }
-    //     in_cursor->reset();
-    //     found.clear();
-    std::cout
-        << "Printing in-adjlists for nodes with non-null nbd (AllNodes=false)\n"
-        << std::endl;
-    in_cursor->setAllNodes(false);
+    in_cursor->setAllNodes(true);
+    std::cout << "Printing in-adjlists for all nodes (AllNodes=true)\n"
+              << std::endl;
     adjlist found;
     in_cursor->next(&found);
     while (found.node_id != -1)
@@ -488,6 +474,20 @@ void test_InCursor(AdjList graph)
         found.clear();
         in_cursor->next(&found);
     }
+    found.clear();
+    //    std::cout
+    //        << "Printing in-adjlists for nodes with non-null nbd
+    //        (AllNodes=false)\n"
+    //        << std::endl;
+    //    in_cursor->setAllNodes(false);
+    //    adjlist found;
+    //    in_cursor->next(&found);
+    //    while (found.node_id != -1)
+    //    {
+    //        CommonUtil::dump_adjlist(found);
+    //        found.clear();
+    //        in_cursor->next(&found);
+    //    }
 }
 
 void test_OutCursor(AdjList graph)

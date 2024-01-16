@@ -172,7 +172,7 @@ class EkeyOutCursor : public OutCursor
         while (cursor->next(cursor) == 0)
         {
             CommonUtil::ekey_get_key(cursor, &src, &dst);
-            found->node_id = src;
+            found->node_id = curr_node;
             if (src == curr_node && dst != OutOfBand_ID)
             {
                 found->edgelist.push_back(dst);

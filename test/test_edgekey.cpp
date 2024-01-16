@@ -513,6 +513,7 @@ int main()
     test_get_in_and_out_degree(graph);
 
     test_delete_node(graph, opts.is_directed);
+    test_get_edges(graph);
     test_EdgeCursor(graph);
     test_EdgeCursor_Range(graph);
     test_InCursor(graph);
