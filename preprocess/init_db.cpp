@@ -37,12 +37,10 @@ int main(int argc, char *argv[])
     opts.conn_config = "cache_size=10GB";  // init_cli.get_conn_config();
     opts.type = init_cli.get_graph_type();
     const int THREAD_NUM = 1;
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
 
     Times t;
     t.start();
-    GraphEngine graphEngine(engine_opts);
+    GraphEngine graphEngine(THREAD_NUM, opts);
     t.stop();
     cout << "Graph created in " << t.t_micros() << endl;
 

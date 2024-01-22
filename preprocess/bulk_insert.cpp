@@ -15,15 +15,15 @@
 #include "time_structs.h"
 #include "times.h"
 
-#define PRINT_ERROR(src, dst, ret, msg)                        \
-    std::cerr << "Error inserting edge (" << src << "," << dst \
-              << "). ret= " << ret << " : " << msg << std::endl;
-#define PRINT_NODE_ERROR(node, ret, msg)                                      \
-    std::cerr << "Error inserting node " << node << ". ret = " << ret << ": " \
-              << msg << std::endl;
+#define PRINT_ERROR(src, dst, ret, msg)                            \
+    std::cerr << "Error inserting edge (" << (src) << "," << (dst) \
+              << "). ret= " << (ret) << " : " << (msg) << std::endl;
+#define PRINT_NODE_ERROR(node, ret, msg)                                  \
+    std::cerr << "Error inserting node " << (node) << ". ret = " << (ret) \
+              << ": " << (msg) << std::endl;
 std::string pack_int_to_str(degree_t a, degree_t b)
 {
-    return std::string(to_string(a) + to_string(b));
+    return std::string(std::to_string(a) + std::to_string(b));
 }
 
 const static int NUM_THREADS = 16;
@@ -44,7 +44,6 @@ std::mutex lock;
 
 void print_time_csvline(const std::string &db_name,
                         const std::string &db_path,
-
                         time_info &edget,
                         time_info &nodet,
                         bool is_readopt,
@@ -76,8 +75,8 @@ void print_time_csvline(const std::string &db_name,
 void insert_stats_to_session(WT_SESSION *session, size_t edgeNo, size_t nodeNo)
 {
     WT_CURSOR *cursor;
-    if (session->open_cursor(session, "table:metadata", NULL, NULL, &cursor) !=
-        0)
+    if (session->open_cursor(
+            session, "table:metadata", nullptr, nullptr, &cursor) != 0)
     {
         std::cout << "Failed to open metadata table";
     }
@@ -102,13 +101,13 @@ void insert_stats(size_t edgeNo, size_t nodeNo, const std::string &type)
 {
     WT_SESSION *session = nullptr;
     if (type == "std")
-        conn_std->open_session(conn_std, NULL, NULL, &session);
+        conn_std->open_session(conn_std, nullptr, nullptr, &session);
     else if (type == "adj")
-        conn_adj->open_session(conn_adj, NULL, NULL, &session);
+        conn_adj->open_session(conn_adj, nullptr, nullptr, &session);
     else if (type == "ekey")
-        conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
+        conn_ekey->open_session(conn_ekey, nullptr, nullptr, &session);
     insert_stats_to_session(session, edgeNo, nodeNo);
-    session->close(session, NULL);
+    session->close(session, nullptr);
 }
 
 time_info insert_edge_thread(int _tid)
@@ -145,8 +144,9 @@ time_info insert_edge_thread(int _tid)
     if (type_opt == "std")
     {
         int ret;
-        conn_std->open_session(conn_std, NULL, NULL, &session);
-        ret = session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
+        conn_std->open_session(conn_std, nullptr, nullptr, &session);
+        ret = session->open_cursor(
+            session, "table:edge", nullptr, nullptr, &cursor);
         if (ret != 0)
         {
             std::cout << "Failed to open cursor: " << wiredtiger_strerror(ret)
@@ -166,13 +166,13 @@ time_info insert_edge_thread(int _tid)
         }
 
         cursor->close(cursor);
-        session->close(session, NULL);
+        session->close(session, nullptr);
     }
     else if (type_opt == "adj")
     {
         int ret;
-        conn_adj->open_session(conn_adj, NULL, NULL, &session);
-        session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
+        conn_adj->open_session(conn_adj, nullptr, nullptr, &session);
+        session->open_cursor(session, "table:edge", nullptr, nullptr, &cursor);
 
         for (edge e : edjlist)
         {
@@ -184,13 +184,13 @@ time_info insert_edge_thread(int _tid)
             }
         }
         cursor->close(cursor);
-        session->close(session, NULL);
+        session->close(session, nullptr);
     }
     else if (type_opt == "ekey")
     {
         int ret;
-        conn_ekey->open_session(conn_ekey, NULL, NULL, &session);
-        session->open_cursor(session, "table:edge", NULL, NULL, &cursor);
+        conn_ekey->open_session(conn_ekey, nullptr, nullptr, &session);
+        session->open_cursor(session, "table:edge", nullptr, nullptr, &cursor);
 
         for (edge e : edjlist)
         {
@@ -203,7 +203,7 @@ time_info insert_edge_thread(int _tid)
             }
         }
         cursor->close(cursor);
-        session->close(session, NULL);
+        session->close(session, nullptr);
     }
 
     t.stop();
@@ -235,24 +235,27 @@ time_info insert_node(int _tid)
 
     if (type_opt == "all" || type_opt == "std")
     {
-        conn_std->open_session(conn_std, NULL, NULL, &std_sess);
-        std_sess->open_cursor(std_sess, "table:node", NULL, NULL, &std_cur);
+        conn_std->open_session(conn_std, nullptr, nullptr, &std_sess);
+        std_sess->open_cursor(
+            std_sess, "table:node", nullptr, nullptr, &std_cur);
     }
 
     if (type_opt == "all" || type_opt == "ekey")
     {
-        conn_ekey->open_session(conn_ekey, NULL, NULL, &ekey_sess);
-        ekey_sess->open_cursor(ekey_sess, "table:edge", NULL, NULL, &ekey_cur);
+        conn_ekey->open_session(conn_ekey, nullptr, nullptr, &ekey_sess);
+        ekey_sess->open_cursor(
+            ekey_sess, "table:edge", nullptr, nullptr, &ekey_cur);
     }
 
     if (type_opt == "all" || type_opt == "adj")
     {
-        conn_adj->open_session(conn_adj, NULL, NULL, &adj_sess);
-        adj_sess->open_cursor(adj_sess, "table:node", NULL, NULL, &adj_cur);
+        conn_adj->open_session(conn_adj, nullptr, nullptr, &adj_sess);
         adj_sess->open_cursor(
-            adj_sess, "table:adjlistin", NULL, NULL, &adj_incur);
+            adj_sess, "table:node", nullptr, nullptr, &adj_cur);
         adj_sess->open_cursor(
-            adj_sess, "table:adjlistout", NULL, NULL, &adj_outcur);
+            adj_sess, "table:adjlistin", nullptr, nullptr, &adj_incur);
+        adj_sess->open_cursor(
+            adj_sess, "table:adjlistout", nullptr, nullptr, &adj_outcur);
     }
     t.start();
     for (node to_insert : nodes)
@@ -357,17 +360,17 @@ time_info insert_node(int _tid)
     if (type_opt == "all" || type_opt == "std")
     {
         std_cur->close(std_cur);
-        std_sess->close(std_sess, NULL);
+        std_sess->close(std_sess, nullptr);
     }
     if (type_opt == "all" || type_opt == "ekey")
     {
         ekey_cur->close(ekey_cur);
-        ekey_sess->close(ekey_sess, NULL);
+        ekey_sess->close(ekey_sess, nullptr);
     }
     if (type_opt == "all" || type_opt == "adj")
     {
         adj_cur->close(adj_cur);
-        adj_sess->close(adj_sess, NULL);
+        adj_sess->close(adj_sess, nullptr);
     }
 
     return info;
@@ -381,18 +384,19 @@ int main(int argc, char *argv[])
         params.print_help();
         return -1;
     }
-
+    graph_opts opts = params.make_graph_opts();
+    std::string log_dir = params.get_logdir();
     std::string middle;
-    if (params.is_read_optimize())
+    if (opts.read_optimize)
     {
         middle += "r";
     }
-    if (params.is_directed())
+    if (opts.is_directed)
     {
         middle += "d";
     }
-    dataset = params.get_dataset();
-    read_optimized = params.is_read_optimize();
+    dataset = opts.dataset;
+    read_optimized = opts.read_optimize;
     std::string _db_name;
     std::string conn_config = "create,cache_size=10GB";
 #ifdef STAT
@@ -406,10 +410,9 @@ int main(int argc, char *argv[])
     type_opt = params.get_type_str();
     if (type_opt == "all" || type_opt == "std")
     {
-        _db_name = params.get_db_path() + "/std_" + middle + "_" +
-                   params.get_db_name();
+        _db_name = opts.db_dir + "/std_" + middle + "_" + opts.db_name;
         if (wiredtiger_open(_db_name.c_str(),
-                            NULL,
+                            nullptr,
                             const_cast<char *>(conn_config.c_str()),
                             &conn_std) != 0)
         {
@@ -421,10 +424,9 @@ int main(int argc, char *argv[])
     // open adjlist connection
     if (type_opt == "all" || type_opt == "adj")
     {
-        _db_name = params.get_db_path() + "/adj_" + middle + "_" +
-                   params.get_db_name();
+        _db_name = opts.db_dir + "/adj_" + middle + "_" + opts.db_name;
         if (wiredtiger_open(_db_name.c_str(),
-                            NULL,
+                            nullptr,
                             const_cast<char *>(conn_config.c_str()),
                             &conn_adj) != 0)
         {
@@ -436,10 +438,9 @@ int main(int argc, char *argv[])
     // open ekey connection
     if (type_opt == "all" || type_opt == "ekey")
     {
-        _db_name = params.get_db_path() + "/ekey_" + middle + "_" +
-                   params.get_db_name();
+        _db_name = opts.db_dir + "/ekey_" + middle + "_" + opts.db_name;
         if (wiredtiger_open(_db_name.c_str(),
-                            NULL,
+                            nullptr,
                             const_cast<char *>(conn_config.c_str()),
                             &conn_ekey) != 0)
         {
@@ -447,7 +448,7 @@ int main(int argc, char *argv[])
             exit(1);
         }
     }
-    num_per_chunk = (int)(params.get_num_edges() / NUM_THREADS);
+    num_per_chunk = (int)(opts.num_edges / NUM_THREADS);
     // We are using edge IDs now so we might need to assign a unique range to
     // each thread
     Times t;
@@ -527,25 +528,25 @@ int main(int argc, char *argv[])
     std::cout << "time to insert_nodes " << node_times.insert_time << std::endl;
     std::cout << "time to read nodes " << node_times.read_time << std::endl;
 
-    print_time_csvline(params.get_db_name(),
-                       params.get_db_path(),
+    print_time_csvline(opts.db_name,
+                       opts.db_dir,
                        edge_times,
                        node_times,
-                       params.is_read_optimize(),
-                       params.get_logdir(),
+                       opts.read_optimize,
+                       log_dir,
                        type_opt);
 
     if (type_opt == "all" || type_opt == "std")
     {
-        conn_std->close(conn_std, NULL);
+        conn_std->close(conn_std, nullptr);
     }
     if (type_opt == "all" || type_opt == "adj")
     {
-        conn_adj->close(conn_adj, NULL);
+        conn_adj->close(conn_adj, nullptr);
     }
     if (type_opt == "all" || type_opt == "ekey")
     {
-        conn_ekey->close(conn_ekey, NULL);
+        conn_ekey->close(conn_ekey, nullptr);
     }
 
     return (EXIT_SUCCESS);

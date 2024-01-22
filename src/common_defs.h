@@ -3,8 +3,8 @@
 
 #include <string>
 #include <vector>
-#define MAKE_EKEY(x) (x + 1)
-#define OG_KEY(x) (x - 1)
+#define MAKE_EKEY(x) ((x) + 1)
+#define OG_KEY(x) ((x)-1)
 
 // These are the string constants
 const std::string METADATA = "metadata";
@@ -47,8 +47,6 @@ typedef uint32_t degree_t;
 const node_id_t OutOfBand_ID =
     0;  // Used to be -1. Changed to 0 to avoid issues with unsigned types.
 const degree_t OutOfBand_Val = UINT32_MAX;
-#define MAKE_EKEY(x) (x + 1)
-#define OG_KEY(x) (x - 1)
 
 typedef enum GraphType
 {
@@ -57,6 +55,21 @@ typedef enum GraphType
     EKey,
     EList,
 } GraphType;
+
+static std::string get_type_str(GraphType type)
+{
+    switch (type)
+    {
+        case GraphType::Std:
+            return "std";
+        case GraphType::Adj:
+            return "adj";
+        case GraphType::EKey:
+            return "ekey";
+        default:
+            return "unknown";
+    }
+}
 
 struct graph_opts
 {
@@ -70,13 +83,16 @@ struct graph_opts
     std::string conn_config;
     std::string stat_log;
     GraphType type;
-
-    ~graph_opts(){};
+    double num_nodes;
+    double num_edges;
+    std::string dataset;
+    int num_threads = 1;
+    ~graph_opts() = default;
 };
 
 typedef struct node
 {
-    node_id_t id;  // node ID
+    node_id_t id = -1;  // node ID
     degree_t in_degree = 0;
     degree_t out_degree = 0;
 

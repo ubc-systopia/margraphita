@@ -21,7 +21,7 @@ set(WT_INSTALL_DIR "${PREFIX_DIR}/wiredtiger-install")
 set(WT_BINARY_DIR "${PREFIX_DIR}/wiredtiger-build")
 
 set(WT_BINARY "${WT_BINARY_DIR}/wt")
-
+message(STATUS "WiredTiger binary is ${WT_BINARY}")
 if(NOT EXISTS ${WT_BINARY})
   MESSAGE(STATUS "WiredTiger binary ${WT_BINARY} not found, downloading...")
   include(ExternalProject)

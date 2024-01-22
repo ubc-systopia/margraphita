@@ -1,12 +1,10 @@
-#include <stdlib.h>
-
 #include <cstdint>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 
 #include "common_util.h"
 
-using namespace std;
 
 class time_info
 {
@@ -18,14 +16,14 @@ class time_info
     long num_rollbacks = 0;
     long num_failures = 0;
 };
-static auto dump_time_info = [](time_info &tinfo)
+[[maybe_unused]] static auto dump_time_info = [](time_info &tinfo)
 {
-    cout << "Insert time: " << tinfo.insert_time << endl;
-    cout << "Read time: " << tinfo.read_time << endl;
-    cout << "Rollback time: " << tinfo.rback_time << endl;
-    cout << "Num inserted: " << tinfo.num_inserted << endl;
-    cout << "Num rollbacks: " << tinfo.num_rollbacks << endl;
-    cout << "Num failures: " << tinfo.num_failures << endl;
+    std::cout << "Insert time: " << tinfo.insert_time << std::endl;
+    std::cout << "Read time: " << tinfo.read_time << std::endl;
+    std::cout << "Rollback time: " << tinfo.rback_time << std::endl;
+    std::cout << "Num inserted: " << tinfo.num_inserted << std::endl;
+    std::cout << "Num rollbacks: " << tinfo.num_rollbacks << std::endl;
+    std::cout << "Num failures: " << tinfo.num_failures << std::endl;
 };
 
 class InsertOpts
@@ -39,19 +37,13 @@ class InsertOpts
     std::vector<std::string> help_strings_;
 
     std::string db_name;
-
+    graph_opts opts{
+        .create_new = true, .is_weighted = false, .optimize_create = true};
     enum GraphType graph_type
     {
     };
     std::string logdir;
-    std::string db_path;  // This contains the path to the db dir.
-    std::string dataset;
-    double num_edges{};
-    double num_nodes{};
-
-    bool directed = true;
     bool read_optimize = false;
-    int num_threads = 1;
 
     void add_help_message(char opt,
                           const std::string &opt_arg,
@@ -61,7 +53,7 @@ class InsertOpts
         char buf[100];
         snprintf(
             buf, 100, " -%c %-20s: %-54s", opt, opt_arg.c_str(), text.c_str());
-        help_strings_.push_back(buf);
+        help_strings_.emplace_back(buf);
     }
 
    public:
@@ -107,41 +99,43 @@ class InsertOpts
         switch (opt)
         {
             case 'd':
-                db_name = optarg;
+                opts.db_name = optarg;
                 break;
             case 'p':
-                db_path = optarg;
-                if ('/' == db_path.back())
-                    db_path.pop_back();  // delete trailing '/'
+                opts.db_dir = optarg;
+                if ('/' == opts.db_dir.back())
+                    opts.db_dir.pop_back();  // delete trailing '/'
                 break;
             case 'l':
                 logdir = optarg;
                 if ('/' == logdir.back())
                     logdir.pop_back();  // delete trailing '/'
+                if (!opts.db_name.empty())
+                    opts.stat_log = logdir + "/" + opts.db_name;
                 break;
             case 'e':
-                num_edges = strtod(optarg, NULL);
+                opts.num_edges = strtod(optarg, nullptr);
                 break;
             case 'n':
-                num_nodes = strtod(optarg, NULL);
+                opts.num_nodes = strtod(optarg, nullptr);
                 break;
             case 'f':
-                dataset = optarg;
+                opts.dataset = optarg;
                 break;
             case 't':
             {
-                graph_type = handle_graph_type(opt_arg);
+                opts.type = handle_graph_type(opt_arg);
                 break;
             }
             case 'r':
-                read_optimize = true;
+                opts.read_optimize = true;
                 break;
             case 'u':
-                directed = false;
+                opts.is_directed = false;
                 break;
             case 'm':
-                cout << opt << " " << optarg << endl;
-                num_threads = static_cast<int>(strtod(optarg, NULL));
+                std::cout << opt << " " << optarg << std::endl;
+                opts.num_threads = static_cast<int>(strtod(optarg, nullptr));
                 break;
             case ':':
             /* missing option argument */
@@ -187,18 +181,19 @@ class InsertOpts
         std::exit(0);
     }
 
-    [[nodiscard]] std::string get_db_name() const { return db_name; }
-    [[nodiscard]] std::string get_db_path() const { return db_path; }
-    [[nodiscard]] std::string get_logdir() const { return logdir; }
-    [[nodiscard]] std::string get_dataset() const { return dataset; }
-    [[nodiscard]] double get_num_nodes() const { return num_nodes; }
-    [[nodiscard]] double get_num_edges() const { return num_edges; }
-    [[nodiscard]] bool is_read_optimize() const { return read_optimize; }
-    [[nodiscard]] bool is_directed() const { return directed; }
-    [[nodiscard]] int get_num_threads() const { return num_threads; }
-    [[nodiscard]] GraphType get_graph_type() const { return graph_type; }
-    [[nodiscard]] std::string get_type_str() const
+    [[nodiscard]] std::string get_logdir() const
+    {
+        if (opts.stat_log.empty())
+        {
+            return logdir + "/" + opts.db_name;
+        }
+        else
+        {
+            return opts.stat_log;
+        }
+    }
 
+    [[nodiscard]] std::string get_type_str() const
     {
         if (graph_type == GraphType::Std)
         {
@@ -219,20 +214,10 @@ class InsertOpts
         }
     }
 
-    [[nodiscard]] graph_opts make_graph_opts() const
+    [[nodiscard]] const graph_opts &make_graph_opts()
 
     {
-        graph_opts opts;
-        opts.create_new = true;
-        opts.optimize_create = true;
-        opts.is_directed = is_directed();
-        opts.read_optimize = is_read_optimize();
-        opts.is_weighted = false;
-        opts.db_dir = get_db_path();
-        opts.db_name = get_db_name();
-        opts.type = get_graph_type();
-        opts.stat_log = get_logdir() + "/" + get_db_name();
-
+        opts.stat_log = get_logdir() + "/" + opts.db_name;
         return opts;
     }
 };

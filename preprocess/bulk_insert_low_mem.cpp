@@ -208,7 +208,7 @@ void insert_node(int _tid)
     ekey_sess->close(ekey_sess, nullptr);
 }
 
-void create_adj_insert_thread(int _tid, const string &adj_type)
+void create_adj_insert_thread(int _tid, const std::string &adj_type)
 {
     int tid = _tid;
     std::string filename = dataset;
@@ -310,18 +310,17 @@ int main(int argc, char *argv[])
         params.print_help();
         return -1;
     }
-
+    graph_opts opts = params.make_graph_opts();
     std::string middle;
-    if (params.is_read_optimize())
+    if (opts.read_optimize)
     {
         middle += "r";
     }
-    if (params.is_directed())
+    if (opts.is_directed)
     {
         middle += "d";
     }
-    dataset = params.get_dataset();
-    read_optimized = params.is_read_optimize();
+    dataset = opts.dataset;
     std::string _db_name;
     std::string conn_config = "create,cache_size=10GB";
 #ifdef STAT
@@ -329,16 +328,17 @@ int main(int argc, char *argv[])
         "statistics=(all),statistics_log=(wait=0,on_close=true";
     conn_config += "," + stat_config;
 #endif
-    num_per_chunk = (int)(params.get_num_edges() / NUM_THREADS);
+    num_per_chunk = (int)(opts.num_edges / NUM_THREADS);
     // We are using edge IDs now so we might need to assign a unique range to
     // each thread
 
     // open std connection
-    type_opt = "all";
+    type_opt = params.get_type_str();
+    std::vector<std::string> db_names = {};
+
     if (type_opt == "all" || type_opt == "std")
     {
-        _db_name = params.get_db_path() + "/std_" + middle + "_" +
-                   params.get_db_name();
+        _db_name = opts.db_dir + "/std_" + middle + "_" + opts.db_name;
         if (wiredtiger_open(_db_name.c_str(),
                             nullptr,
                             const_cast<char *>(conn_config.c_str()),
@@ -352,8 +352,7 @@ int main(int argc, char *argv[])
     // open adjlist connection
     if (type_opt == "all" || type_opt == "adj")
     {
-        _db_name = params.get_db_path() + "/adj_" + middle + "_" +
-                   params.get_db_name();
+        _db_name = opts.db_dir + "/adj_" + middle + "_" + opts.db_name;
         if (wiredtiger_open(_db_name.c_str(),
                             nullptr,
                             const_cast<char *>(conn_config.c_str()),
@@ -367,8 +366,7 @@ int main(int argc, char *argv[])
     // open ekey connection
     if (type_opt == "all" || type_opt == "ekey")
     {
-        _db_name = params.get_db_path() + "/ekey_" + middle + "_" +
-                   params.get_db_name();
+        _db_name = opts.db_dir + "/ekey_" + middle + "_" + opts.db_name;
         if (wiredtiger_open(_db_name.c_str(),
                             nullptr,
                             const_cast<char *>(conn_config.c_str()),

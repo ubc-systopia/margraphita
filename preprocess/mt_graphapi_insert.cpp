@@ -2,20 +2,13 @@
 
 #include <fstream>
 #include <iostream>
-#include <set>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "adj_list.h"
-#include "command_line.h"
 #include "common_util.h"
-#include "edgekey.h"
 #include "graph_engine.h"
-#include "graph_exception.h"
 #include "reader.h"
-#include "standard_graph.h"
 #include "time_structs.h"
 #include "times.h"
 #include "wiredtiger.h"
@@ -23,11 +16,10 @@
 std::vector<edge> failed_inserts;
 std::mutex fail_lock;
 
-void print_time_csvline(InsertOpts params, time_info &t)
+void print_time_csvline(const graph_opts &params, time_info &t)
 {
     std::ofstream log_file;
-    std::string logfile_name =
-        params.get_logdir() + "/" + params.get_db_name() + "_api_tx.csv";
+    std::string logfile_name = params.stat_log + "_api_tx.csv";
 
     log_file.open(logfile_name, std::fstream::app);
 
@@ -40,12 +32,12 @@ void print_time_csvline(InsertOpts params, time_info &t)
                "t_insert, t_rback, num_rback, num_fail, num_ins, num_threads\n";
     }
 
-    log_file << params.get_db_path() << "/" << params.get_db_name() << ","
-             << params.get_type_str() << "," << params.is_read_optimize() << ","
-             << params.get_num_nodes() << "," << params.get_num_edges() << ","
+    log_file << params.db_dir << "/" << params.db_name << ","
+             << get_type_str(params.type) << "," << params.read_optimize << ","
+             << params.num_nodes << "," << params.num_edges << ","
              << t.insert_time << "," << t.rback_time << "," << t.num_rollbacks
              << "," << t.num_failures << "," << t.num_inserted << ","
-             << params.get_num_threads() << "\n";
+             << params.num_threads << "\n";
     log_file.close();
 }
 
@@ -125,12 +117,8 @@ int main(int argc, char *argv[])
 
     Times timer;
     timer.start();
-
-    GraphEngine::graph_engine_opts engine_opts{
-        .num_threads = test_params.get_num_threads(),
-        .opts = test_params.make_graph_opts()};
-
-    GraphEngine graphEngine(engine_opts);
+    graph_opts opts = test_params.make_graph_opts();
+    GraphEngine graphEngine(opts.num_threads, opts);
     // GraphBase *graph = graphEngine.create_graph_handle();
 
     timer.stop();
@@ -140,7 +128,7 @@ int main(int argc, char *argv[])
 
     // Now insert edges
     timer.start();
-    int NUM_THREADS = test_params.get_num_threads();
+    int NUM_THREADS = opts.num_threads;
     std::cout << "Inserting edges with " << NUM_THREADS << " threads"
               << std::endl;
 
@@ -150,9 +138,9 @@ int main(int argc, char *argv[])
         GraphBase *graph = graphEngine.create_graph_handle();
         time_info this_thread_time;
         insert_edge_thread(i,
-                           test_params.get_dataset(),
-                           test_params.get_num_threads(),
-                           test_params.get_num_edges(),
+                           opts.dataset,
+                           opts.num_threads,
+                           opts.num_edges,
                            graph,
                            this_thread_time);
 #pragma omp critical
@@ -179,9 +167,8 @@ int main(int argc, char *argv[])
     cout << "Inserted the failed edges in : " << timer.t_micros() << endl;
 
     std::cout << "Insertion summary (summed for all threads):\n";
-    std::cout << "Number (nodes, edges) in graph : "
-              << test_params.get_num_nodes() << ", "
-              << test_params.get_num_edges() << std::endl;
+    std::cout << "Number (nodes, edges) in graph : " << opts.num_nodes << ", "
+              << opts.num_edges << std::endl;
     std::cout << "Number of edges inserted: " << edge_insert_times.num_inserted
               << std::endl;
     std::cout << "Number of Rollbacks: " << edge_insert_times.num_rollbacks
@@ -199,7 +186,7 @@ int main(int argc, char *argv[])
     edge_insert_times.rback_time = edge_insert_times.rback_time / NUM_THREADS;
     edge_insert_times.insert_time = edge_insert_times.insert_time / NUM_THREADS;
 
-    print_time_csvline(test_params, edge_insert_times);
+    print_time_csvline(opts, edge_insert_times);
 
     cout << "-------------------" << endl;
     for (edge x : failed_inserts)
