@@ -13,7 +13,7 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "common.h"
+#include "common_util.h"
 #include "parallel_hashmap/phmap.h"
 #define MAPNAME phmap::parallel_flat_hash_map
 #define NMSP phmap
@@ -30,7 +30,7 @@ using hash_t = HashT<node_id_t, node_id_t>;
 double num_edges;
 double num_nodes;
 std::string dataset;
-std::string out_dir;
+[[maybe_unused]] std::string out_dir;
 bool map_exit = false;
 
 hash_t remap;
@@ -175,16 +175,17 @@ int main(int argc, char *argv[])
     }
     assert(remap.size() == num_nodes);
 
-    auto shoulda = num_nodes / NUM_THREADS;
+    auto __nodes_per_edge = num_nodes / NUM_THREADS;
     int i = 0;
     for (auto x : offsets)
     {
-        std::cout << (i * shoulda) << "\t(" << x << "," << end_offsets[i] << ")"
-                  << std::endl;
+        std::cout << (i * __nodes_per_edge) << "\t(" << x << ","
+                  << end_offsets[i] << ")" << std::endl;
         i++;
     }
     std::filesystem::path path(dataset);
-    std::string out_filename = path.parent_path().string() + "/dense_map.txt";
+    std::string out_filename =
+        path.parent_path().string() + "/dense_map_og.txt";
     std::cout << "\ndense_map file is :" << out_filename << std::endl;
     std::ofstream out(out_filename.c_str());
     for (auto iter = remap.begin(); iter != remap.end(); ++iter)
@@ -209,7 +210,7 @@ int main(int argc, char *argv[])
     }
     std::cout << "-----------------\n\n";
     i = 0;
-    shoulda = num_edges / NUM_THREADS;
+    auto shoulda = num_edges / NUM_THREADS;
     for (auto x : e_offsets)
     {
         std::cout << (i * shoulda) << "\t(" << x << "," << e_end_offsets[i]

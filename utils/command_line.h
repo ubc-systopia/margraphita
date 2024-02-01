@@ -3,11 +3,12 @@
 
 #include <getopt.h>
 
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 
 class CmdLineBase
 {

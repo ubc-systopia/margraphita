@@ -1,3 +1,9 @@
-[submodule "libs/wiredtiger"]
-	path = libs/wiredtiger
-	url = https://github.com/artorhem/wiredtiger.git
+#[submodule "libs/wiredtiger"]
+#	path = libs/wiredtiger
+#	url = https://github.com/artorhem/wiredtiger.git
+[submodule "data-plots"]
+	path = data-plots
+	url = git@github.com:artorhem/data-plots.git
+[submodule "plots"]
+	path = plots
+	url = git@github.com:artorhem/flexograph-plots.git

@@ -9,13 +9,13 @@
 #include <set>
 #include <vector>
 
-#include "GraphCreate.h"
 #include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
-#include "common.h"
+#include "common_util.h"
 #include "csv_log.h"
 #include "edgekey.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
 #include "thread_utils.h"
@@ -92,22 +92,17 @@ int main(int argc, char *argv[])
     }
 
     graph_opts opts;
-    opts.create_new = bfs_cli.is_create_new();
-    opts.is_directed = bfs_cli.is_directed();
-    opts.read_optimize = bfs_cli.is_read_optimize();
-    opts.is_weighted = bfs_cli.is_weighted();
-    opts.optimize_create = bfs_cli.is_create_optimized();
-    opts.db_name = bfs_cli.get_db_name();  //${type}_rd_${ds}
-    opts.db_dir = bfs_cli.get_db_path();
-    std::string bfs_log = bfs_cli.get_logdir();  //$RESULT/$bmark
-    opts.stat_log = bfs_log + "/" + opts.db_name;
-    opts.conn_config = "cache_size=10GB";  // bfs_cli.get_conn_config();
-    opts.type = bfs_cli.get_graph_type();
+    get_graph_opts(bfs_cli, opts);
+    opts.stat_log = bfs_cli.get_logdir() + "/" + opts.db_name;
+
+    const int THREAD_NUM = 1;
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
 
     Times timer;
     timer.start();
-    GraphFactory f;
-    GraphBase *graph = f.CreateGraph(opts);
+    GraphEngine graphEngine(engine_opts);
+    GraphBase *graph = graphEngine.create_graph_handle();
     timer.stop();
     std::cout << "Graph loaded in " << timer.t_micros() << std::endl;
 
@@ -129,8 +124,12 @@ int main(int argc, char *argv[])
         timer.stop();
         double time_from_outside = timer.t_micros();
         std::cout << "BFS  completed in : " << time_from_outside << std::endl;
-        print_csv_info(
-            opts.db_name, start_vertex, bfs_run, time_from_outside, bfs_log);
+        print_csv_info(opts.db_name,
+                       start_vertex,
+                       bfs_run,
+                       time_from_outside,
+                       bfs_cli.get_logdir());
     }
     graph->close();
+    graphEngine.close_graph();
 }

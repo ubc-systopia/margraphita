@@ -1,10 +1,13 @@
 #ifndef _BENCHMARK_DEFS
 #define _BENCHMARK_DEFS
 
+#include <errno.h>
 #include <sys/mman.h>
 
 #include <cassert>
+#include <chrono>
 #include <cstdint>
+#include <sstream>
 
 typedef struct bfs_info
 {
@@ -27,6 +30,25 @@ typedef struct tc_info
           trust_time(_val),
           cycle_time(_val){};
 } tc_info;
+
+typedef struct cc_info
+{
+    int component_count;
+    double time_taken;
+    cc_info(int _val) : component_count(_val), time_taken(_val){};
+} cc_info;
+
+typedef struct iter_info
+{
+    double time_taken;
+    iter_info(int _val) : time_taken(_val){};
+} iter_info;
+
+typedef struct sssp_info
+{
+    double time_taken;
+    sssp_info(int _val) : time_taken(_val){};
+} sssp_info;
 
 typedef struct pr_map
 {
@@ -56,6 +78,7 @@ void make_pr_mmap(int N, T **ptr)
         perror("mmap failed");
         exit(1);
     }
+    assert(ptr != NULL);
     int ret =
         madvise(*ptr,
                 sizeof(pr_map) * N,
@@ -68,4 +91,46 @@ void make_pr_mmap(int N, T **ptr)
     }
     assert(ptr != NULL);
 }
+
+std::string generate_timestamp()
+{
+    auto start = std::chrono::system_clock::now();
+    int epoch = std::chrono::duration_cast<std::chrono::seconds>(
+                    start.time_since_epoch())
+                    .count();
+
+    std::stringstream s;
+    s << std::hex << epoch;
+    return s.str();
+}
+
+// void set_group_id()
+// {
+//     int gid = atoi(std::getenv("GRAPHS_GROUP_ID"));
+//     if (gid == 0)
+//     {
+//         fprintf(stderr, "GRAPHS_GROUP_ID not set\n");
+//         exit(1);
+//     }
+//     if (setgid(gid) != 0)
+//     {
+//         perror("setgid failed");
+//         exit(1);
+//     }
+// }
+
+template <typename T>
+void get_graph_opts(T &cli, graph_opts &opts)
+{
+    opts.create_new = cli.is_create_new();
+    opts.is_directed = cli.is_directed();
+    opts.read_optimize = cli.is_read_optimize();
+    opts.is_weighted = cli.is_weighted();
+    opts.optimize_create = cli.is_create_optimized();
+    opts.db_name = cli.get_db_name();  //${type}_rd_${ds}
+    opts.db_dir = cli.get_db_path();
+    opts.conn_config = "cache_size=10GB";  // pr_cli.get_conn_config();
+    opts.type = cli.get_graph_type();
+}
+
 #endif

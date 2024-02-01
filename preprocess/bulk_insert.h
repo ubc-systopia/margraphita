@@ -1,8 +1,6 @@
 #ifndef BULK_INSERT_H
 #define BULK_INSERT_H
 #include <getopt.h>
-#include <math.h>
-#include <time.h>
 #include <unistd.h>
 
 #include <atomic>
@@ -12,10 +10,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 #include "reader.h"
-
-#define NUM_THREADS 16
 
 extern std::unordered_map<node_id_t, std::vector<node_id_t>> in_adjlist;
 extern std::unordered_map<node_id_t, std::vector<node_id_t>> out_adjlist;

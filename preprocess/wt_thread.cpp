@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common.h"
+#include "common_util.h"
 
 #define NUM_THREADS 10
 

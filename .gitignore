@@ -1,4 +1,5 @@
 boost_1_72_0/
+libs/wiredtiger/*
 WiredTiger
 WiredTiger.basecfg
 WiredTiger.lock
@@ -10,6 +11,7 @@ graph_api
 src/db/
 cscope.out
 tags
+build/*
 build/profile/
 build/release/
 build/wt_stats/
@@ -24,3 +26,19 @@ workspace.code-workspace
 tasks.md
 build/paths.sh
 outputs/
+build/.cmake/
+build/.ninja_deps
+build/.ninja_log
+build/CMakeCache.txt
+build/CMakeFiles/
+build/benchmark/
+build/build.ninja
+build/cmake_install.cmake
+build/compile_commands.json
+build/preprocess/
+build/src/
+build/stat/
+build/test/
+build/utils/
+cmake-build-debug/
+.idea/

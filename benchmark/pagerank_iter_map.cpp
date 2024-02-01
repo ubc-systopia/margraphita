@@ -1,5 +1,4 @@
 #include <math.h>
-#include <omp.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -13,13 +12,13 @@
 #include <sstream>
 #include <vector>
 
-#include "GraphCreate.h"
 #include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
-#include "common.h"
+#include "common_util.h"
 #include "csv_log.h"
 #include "edgekey.h"
+#include "graph_engine.h"
 #include "graph_exception.h"
 #include "pvector.h"
 #include "standard_graph.h"
@@ -146,29 +145,29 @@ int main(int argc, char *argv[])
     }
 
     graph_opts opts;
-    opts.create_new = pr_cli.is_create_new();
-    opts.is_directed = pr_cli.is_directed();
-    opts.read_optimize = pr_cli.is_read_optimize();
-    opts.is_weighted = pr_cli.is_weighted();
-    opts.optimize_create = pr_cli.is_create_optimized();
-    opts.db_name = pr_cli.get_db_name();  //${type}_rd_${ds}
-    opts.db_dir = pr_cli.get_db_path();
-    std::string pr_log = pr_cli.get_logdir();  //$RESULT/$bmark
-    opts.stat_log = pr_log + "/" + opts.db_name;
-    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
-    opts.type = pr_cli.get_graph_type();
+    get_graph_opts(pr_cli, opts);
+    opts.stat_log = pr_cli.get_logdir() + "/" + opts.db_name;
+
+    const int THREAD_NUM = 1;
+    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
+                                               .opts = opts};
 
     Times t;
     t.start();
-    GraphFactory f;
-    GraphBase *graph = f.CreateGraph(opts);
+    GraphEngine graphEngine(engine_opts);
+    GraphBase *graph = graphEngine.create_graph_handle();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 
     // Now run PR
     t.start();
-    pagerank(graph, opts, pr_cli.iterations(), pr_cli.tolerance(), pr_log);
+    pagerank(graph,
+             opts,
+             pr_cli.iterations(),
+             pr_cli.tolerance(),
+             pr_cli.get_logdir());
     t.stop();
     cout << "PR  completed in : " << t.t_micros() << endl;
     graph->close();
+    graphEngine.close_graph();
 }

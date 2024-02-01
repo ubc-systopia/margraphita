@@ -21,7 +21,7 @@ echo " -m cit-Patents"
 echo " -t std"
 exit 1;}
 
-index_create=0
+index_create=1
 RESULT=$(pwd)
 preprocess=1
 insert=1
@@ -102,7 +102,6 @@ if [ $insert -eq 1 ]
 then
 
 #Now create an empty DBs for all three representations for  insertion
-#Using pagerank for this. Too lazy to do any better :(
 # Here rd in the DB Name indicates the r(read optimize) and d(directed) flags
 if [[ $type == "std" || $type == "all" ]]
 then
@@ -135,9 +134,9 @@ echo "#Inserting ${dataset}" >> insert_time.txt
 echo "Command,Real time,User Timer,Sys Time,Major Page Faults,Max Resident Set" >> ${RESULT}/insert_time.txt
 echo "#${dataset}:" >> ${RESULT}/insert_time.txt
 echo "#${dataset}:" >> ${RESULT}/insert_log.txt
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -r -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt"
 
-$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt
+# "$TIME_CMD --format="%C,%e,%U,%S,%F,%M" --output-file=insert_time.txt --append  ${RELEASE_PATH}/preprocess/bulk_insert -d ${dataset} -e ${edgecnt} -n ${nodecnt} -f ${graph} -t ${type} -p ${output} -l ${RESULT}/kron_insert.csv>> ${RESULT}/insert_log.txt"
 
 fi
 

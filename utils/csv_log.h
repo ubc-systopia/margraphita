@@ -1,9 +1,9 @@
-#ifndef _CSV_LOG_H
+#ifndef CSV_LOG_H
 #define CSV_LOG_H
 #include <string>
 
 #include "benchmark_definitions.h"
-#include "common.h"
+#include "common_util.h"
 
 void print_csv_info(std::string name,
                     int starting_node,
@@ -50,6 +50,67 @@ void print_csv_info(std::string name, tc_info &info, std::string csv_logdir)
 
     FILE << name << ",tc," << info.cycle_count << "," << info.cycle_time << ","
          << info.trust_count << "," << info.trust_time << "\n";
+
+    FILE.close();
+}
+
+void print_csv_info(std::string name, cc_info &info, std::string csv_logdir)
+{
+    fstream FILE;
+    std::string _name = csv_logdir + "/" + name + "_cc.csv";
+    if (access(_name.c_str(), F_OK) == -1)
+    {
+        // The file does not exist yet.
+        FILE.open(_name, ios::out | ios::app);
+        FILE << "#db_name, benchmark, component_count, time_taken_usec\n";
+    }
+    else
+    {
+        FILE.open(_name, ios::out | ios::app);
+    }
+
+    FILE << name << ",cc," << info.component_count << "," << info.time_taken
+         << "\n";
+
+    FILE.close();
+}
+
+void print_csv_info(std::string name, sssp_info &info, std::string csv_logdir)
+{
+    fstream FILE;
+    std::string _name = csv_logdir + "/" + name + "_sssp.csv";
+    if (access(_name.c_str(), F_OK) == -1)
+    {
+        // The file does not exist yet.
+        FILE.open(_name, ios::out | ios::app);
+        FILE << "#db_name, benchmark, time_taken_usec\n";
+    }
+    else
+    {
+        FILE.open(_name, ios::out | ios::app);
+    }
+
+    FILE << name << ",sssp," << info.time_taken << "\n";
+
+    FILE.close();
+}
+
+void print_csv_info(std::string name, iter_info &info, std::string csv_logdir)
+{
+    fstream FILE;
+    std::string _name = csv_logdir + "/" + name + "_sssp.csv";
+    if (access(_name.c_str(), F_OK) == -1)
+    {
+        // The file does not exist yet.
+        FILE.open(_name, ios::out | ios::app);
+        FILE << "#db_name, benchmark, time_taken_usec\n";
+    }
+    else
+    {
+        FILE.open(_name, ios::out | ios::app);
+    }
+
+    FILE << name << ",sssp," << info.time_taken << "\n";
 
     FILE.close();
 }

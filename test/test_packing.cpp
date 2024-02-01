@@ -9,6 +9,8 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <cassert>  
+
 using namespace std;
 static const char *db_name = "test";
 
@@ -32,8 +34,43 @@ std::vector<int> unpack_int_vector_wti(WT_SESSION *session,
     std::vector<int> unpacked_vec;
 
     int vec_size = (int)size / sizeof(int);
+    unpacked_vec.assign((int *)unpacked.data, (int *)unpacked.data + vec_size);
+    return unpacked_vec;
+}
+
+std::vector<int> unpack_int_vector_wti_pushback(WT_SESSION *session,
+                                                size_t size,
+                                                char *packed_str)
+{
+    WT_PACK_STREAM *psp;
+    WT_ITEM unpacked;
+    size_t used;
+    wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
+    wiredtiger_unpack_item(psp, &unpacked);
+    wiredtiger_pack_close(psp, &used);
+    std::vector<int> unpacked_vec;
+
+    int vec_size = (int)size / sizeof(int);
     for (int i = 0; i < vec_size; i++)
         unpacked_vec.push_back(((int *)unpacked.data)[i]);
+    return unpacked_vec;
+}
+
+std::vector<int> unpack_int_vector_wti_emplaceback(WT_SESSION *session,
+                                                   size_t size,
+                                                   char *packed_str)
+{
+    WT_PACK_STREAM *psp;
+    WT_ITEM unpacked;
+    size_t used;
+    wiredtiger_unpack_start(session, "u", packed_str, size, &psp);
+    wiredtiger_unpack_item(psp, &unpacked);
+    wiredtiger_pack_close(psp, &used);
+    std::vector<int> unpacked_vec;
+
+    int vec_size = (int)size / sizeof(int);
+    for (int i = 0; i < vec_size; i++)
+        unpacked_vec.emplace_back(((int *)unpacked.data)[i]);
     return unpacked_vec;
 }
 
@@ -57,6 +94,10 @@ char *pack_int_vector_wti(WT_SESSION *session,
 
 int main()
 {
+    #ifndef DEBUG
+    std::cout << "DEBUG not defined\n";
+    exit(1);
+    #endif
     // Create an empty vector
     vector<int> vect;
 
@@ -67,11 +108,8 @@ int main()
 
     auto gen = [&dist, &mersenne_engine]() { return dist(mersenne_engine); };
 
-    vector<int> vec;
-    // generate(begin(vec), end(vec), gen);
-
-    // for (long x : vec)
-    //     cout << x << endl;
+    std::vector<int> vec(1000000);
+    std::generate(begin(vec), end(vec), gen);
 
     WT_CONNECTION *conn;
     WT_SESSION *session;
@@ -79,26 +117,8 @@ int main()
     wiredtiger_open("./db", NULL, "create", &conn);
     conn->open_session(conn, NULL, NULL, &session);
 
-    /*
-    This is a definitely a problem with the API -- as an application developer,
-    I need to know the size of the buffer needed to hold the packed array before
-    I pack it.
-    */
     auto start = std::chrono::steady_clock::now();
-    // WT_PACK_STREAM *psp, *psp1;
-    // WT_ITEM item;
-    // item.data = vec.data();
-    // item.size = sizeof(long) * vec.size();
 
-    // void *pack_buf = malloc(sizeof(long) * vec.size());
-
-    // int vec_size = sizeof(long) * vec.size();
-    // int ret = wiredtiger_pack_start(session, "u", pack_buf,
-    //                                 vec_size, &psp);
-
-    // wiredtiger_pack_item(psp, &item);
-    // size_t used;
-    // wiredtiger_pack_close(psp, &used);
     size_t size;
     char *buf = pack_int_vector_wti(session, vec, &size);
 
@@ -111,32 +131,99 @@ int main()
     std::cout << "Size used = " << size << "; Size of long " << sizeof(int)
               << "; size of vec " << vec.size() << "\n";
 
+    std::cout << "--------------------------------------------\n" << std::endl;
+
     start = std::chrono::steady_clock::now();
-
-    // //----------------
-    // WT_ITEM unpacked;
-    // int64_t size_val;
-
-    // wiredtiger_unpack_start(session, "u", pack_buf, used, &psp1);
-    // wiredtiger_unpack_item(psp1, &unpacked);
-    // wiredtiger_pack_close(psp1, &used);
-
-    // std::cout << "size_val : " << size_val << "\nbuf_size: " << unpacked.size
-    // << "\nused = " << used;
-
-    // std::vector<long> unpacked_vec;
-    // for (int i = 0; i < vec.size(); i++)
-    //     unpacked_vec.push_back(((long *)unpacked.data)[i]);
-    // // // cout << ((long *)unpacked.data)[i] << "\t";
-    // // // return 0;
-
     std::vector<int> unpacked_vec = unpack_int_vector_wti(session, size, buf);
     end = std::chrono::steady_clock::now();
-
-    vec == unpacked_vec ? std::cout << "true" : std::cout << "false";
-    std::cout << "unpacked in : "
+    std::cout << "Assign unpacked in : "
               << std::chrono::duration_cast<std::chrono::microseconds>(end -
                                                                        start)
                      .count()
               << "\n";
+
+    std::cout << "--------------------------------------------\n" << std::endl;
+    start = std::chrono::steady_clock::now();
+    std::vector<int> unpacked_vec1 =
+        unpack_int_vector_wti_pushback(session, size, buf);
+    end = std::chrono::steady_clock::now();
+    std::cout << "pushback in : "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end -
+                                                                       start)
+                     .count()
+              << "\n";
+
+    std::cout << "--------------------------------------------\n" << std::endl;
+
+    start = std::chrono::steady_clock::now();
+    std::vector<int> unpacked_vec2 =
+        unpack_int_vector_wti_emplaceback(session, size, buf);
+    end = std::chrono::steady_clock::now();
+    std::cout << "Emplace in : "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end -
+                                                                       start)
+                     .count()
+              << "\n";
+    std::cout << "--------------------------------------------\n" << std::endl;
+
+    std::equal(vec.begin(), vec.end(), unpacked_vec.begin())
+        ? std::cout << "Assign - true\n"
+        : std::cout << "Assign - false\n";
+    // vec == unpacked_vec1 ? std::cout << "Pushback -true\n"
+    //                      : std::cout << "Pushback -false\n";
+
+    std::equal(vec.begin(), vec.end(), unpacked_vec1.begin())
+        ? std::cout << "Pushback - true\n"
+        : std::cout << "Pushback - false\n";
+
+    // vec == unpacked_vec2 ? std::cout << "Emplace- true\n"
+    //                      : std::cout << "Emplace  - false\n";
+
+    std::equal(vec.begin(), vec.end(), unpacked_vec2.begin())
+        ? std::cout << "Emplace - true\n"
+        : std::cout << "Emplace - false\n";
+    // vec == unpacked_vec ? std::cout << "Assign- true\n"
+    //                     : std::cout << "Assign  - false\n";
+
+    /**
+     * Test storing a vector of ints in a WT_ITEM without first packing it.
+     */
+    WT_CURSOR *cursor;
+    session->create(session,"table:world","key_format=i,value_format=u,columns=(src,dst)");
+    session->open_cursor(session, "table:world", NULL, NULL, &cursor);
+
+    for (int i = 0; i < 10; i++)
+    {
+        cursor->set_key(cursor, i);
+        WT_ITEM item;
+        std::vector<int> vec = {i + 1, i + 2, i + 3, i + 4, i + 5};
+        item.data = vec.data();
+        item.size = vec.size() * sizeof(int);
+        cursor->set_value(cursor, &item);
+        cursor->insert(cursor);
+    }
+
+    cursor->reset(cursor);
+    std::vector<int> temp;
+    int i=0;
+    while ((cursor->next(cursor)) == 0)
+    {
+        int key;
+        WT_ITEM item;
+        cursor->get_key(cursor, &key);
+        cursor->get_value(cursor, &item);
+        temp.assign((int *)item.data,
+                    (int *)item.data + item.size / sizeof(int));
+        int j=1;
+        for (auto v : temp)
+        {
+            assert(v == i + j);
+            j++;
+        }
+        i++;
+    }
+    std::cout << "Test to store and retrieve a vector in WT_ITEM passed\n";
+    cursor->close(cursor);
+    session->close(session, NULL);
+    conn->close(conn, NULL);
 }

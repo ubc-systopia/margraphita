@@ -1,27 +1,14 @@
-#include <math.h>
-#include <omp.h>
-#include <stdio.h>
-#include <sys/mman.h>
-#include <unistd.h>
 
-#include <cassert>
-#include <chrono>
-#include <cstring>
-#include <fstream>
+#include <sys/mman.h>
+
 #include <iostream>
-#include <mutex>
 #include <shared_mutex>
-#include <sstream>
 #include <vector>
 
-#include "GraphCreate.h"
-#include "adj_list.h"
 #include "command_line.h"
-#include "common.h"
-#include "edgekey.h"
+#include "common_util.h"
 #include "graph.h"
-#include "graph_exception.h"
-#include "standard_graph.h"
+#include "graph_engine.h"
 #include "times.h"
 
 int main(int argc, char *argv[])
@@ -49,18 +36,18 @@ int main(int argc, char *argv[])
     opts.stat_log = init_log + "/" + opts.db_name;
     opts.conn_config = "cache_size=10GB";  // init_cli.get_conn_config();
     opts.type = init_cli.get_graph_type();
+    const int THREAD_NUM = 1;
 
     Times t;
     t.start();
-    GraphFactory f;
-    GraphBase *graph = f.CreateGraph(opts);
+    GraphEngine graphEngine(THREAD_NUM, opts);
     t.stop();
     cout << "Graph created in " << t.t_micros() << endl;
 
     // must use derived class object here
     if (init_cli.is_exit_on_create())  // Exit after creating the db
     {
-        graph->close();
+        graphEngine.close_graph();
         exit(0);
     }
 
@@ -68,10 +55,10 @@ int main(int argc, char *argv[])
     if (init_cli.is_index_create() && opts.type != GraphType::Adj)
     {
         t.start();
-        graph->make_indexes();
+        graphEngine.create_indices();
         t.stop();
         cout << "Indices created in " << t.t_micros() << endl;
-        graph->close();
-        exit(0);
     }
+    graphEngine.close_graph();
+    exit(0);
 }
