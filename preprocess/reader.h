@@ -1,11 +1,5 @@
 #ifndef READER_H
 #define READER_H
-// #include <boost/archive/binary_iarchive.hpp>
-// #include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/utility.hpp>
-#include <boost/serialization/vector.hpp>
 #include <fstream>
 #include <iostream>
 #include <mutex>
@@ -59,7 +53,7 @@ class EdgeReader
                        filename.substr(pos, filename.size());
         }
 
-        adj_file = std::ofstream((filename), std::ios::binary);
+        adj_file = std::ofstream(filename, std::ofstream::out);
         std::cout << "Filename: " << filename << std::endl;
         if (!edge_file.is_open())
         {
@@ -123,10 +117,6 @@ class EdgeReader
 
     void write_adjlist_to_file()
     {
-        // boost::archive::binary_oarchive oa(adj_file);
-        // boost::archive::text_oarchive oa(adj_file);
-        // oa << node_adj_list.node_id << node_adj_list.edgelist.size()
-        //   << node_adj_list.edgelist;
         adj_file << node_adj_list.node_id << " "
                  << node_adj_list.edgelist.size() << " ";
         for (auto n : node_adj_list.edgelist)
