@@ -134,6 +134,11 @@ class EdgeReader
         conflict.second = last_conflict;
         return conflict;
     }
+    ~EdgeReader()
+    {
+        edge_file.close();
+        adj_file.close();
+    }
 };
 
 // read from boost archive file

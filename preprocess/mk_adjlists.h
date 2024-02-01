@@ -6,8 +6,9 @@
 #define GRAPHAPI_MK_ADJLISTS_H
 #include <string>
 #include <utility>
+
+#include "cstdlib"
 #include "reader.h"
-#include "stdlib.h"
 
 #define NUM_THREADS 16
 double num_edges;
@@ -46,8 +47,8 @@ void delete_last_line(int _tid)
 
     //run the sed command
     std::string command = "sed -i '$d' " + filename + "_out";
-    std::cout << "Command: " << command << std::endl;
-    //system(command.c_str());
+    // std::cout << "Command: " << command << std::endl;
+    system(command.c_str());
 }
 
 void replace_first_line(int _tid, const adjlist& merged)
@@ -65,8 +66,8 @@ void replace_first_line(int _tid, const adjlist& merged)
             command += " " + std::to_string(i);
     }
     command +=  "/' " + filename + "_out";
-    std::cout <<"Command: " << command << std::endl;
-    //system(command.c_str());
+    // std::cout <<"Command: " << command << std::endl;
+    system(command.c_str());
 }
 
 void merge_conflicts()
@@ -93,5 +94,28 @@ void merge_conflicts()
 
 }
 
-
+void print_conflict_map()
+{
+    for (const auto& item : conflicts)
+    {
+        std::cout << "Thread: " << item.first << std::endl;
+        std::cout << "Top: " << std::endl;
+        adjlist temp = item.second.first;
+        std::cout << "node: " << temp.node_id << ":: ";
+        for (auto i : temp.edgelist)
+        {
+            std::cout << i << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "Bottom: " << std::endl;
+        temp = item.second.second;
+        std::cout << "node: " << temp.node_id << ":: ";
+        for (auto i : temp.edgelist)
+        {
+            std::cout << i << " ";
+        }
+        std::cout << "\n----------------------" << std::endl
+                  << "----------------------" << std::endl;
+    }
+}
 #endif  // GRAPHAPI_MK_ADJLISTS_H
