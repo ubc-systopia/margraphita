@@ -34,22 +34,23 @@ int main (int argc, char** argv)
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        insert_edge_thread(i);
+        insert_edge_thread(i, "out");
     }
     //merge the conflicts
-    merge_conflicts();
+    merge_conflicts("out");
 
     std::cout << "\n\nNow repeat this process for the reversed graph\n\n";
-    dataset = opts.dataset + "_reverse";
+    // change the filename to the reversed graph
+    dataset = dataset + "_reverse";
 
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        insert_edge_thread(i);
+        insert_edge_thread(i, "in");
     }
     // print the conflicts
     // print_conflict_map();
     // merge the conflicts
-    merge_conflicts();
+    merge_conflicts("in");
 }
 

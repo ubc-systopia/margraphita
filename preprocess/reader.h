@@ -48,10 +48,19 @@ class EdgeReader
         num_per_chunk = _num;
 
         std::ios::sync_with_stdio(false);
-        edge_file = std::ifstream(_filename, std::ifstream::in);
-        adj_file =
-            std::ofstream((_filename + "_" + adj_type), std::ios::binary);
+        edge_file = std::ifstream(filename, std::ifstream::in);
 
+        std::string dirname = filename.substr(0, filename.find_last_of('/'));
+        // strip the filename of anything after_
+        std::string::size_type pos = filename.find_last_of('_');
+        if (pos != std::string::npos)
+        {
+            filename = dirname + "/" + adj_type +
+                       filename.substr(pos, filename.size());
+        }
+
+        adj_file = std::ofstream((filename), std::ios::binary);
+        std::cout << "Filename: " << filename << std::endl;
         if (!edge_file.is_open())
         {
             throw GraphException("** could not open " + filename);

@@ -124,7 +124,7 @@ class Preprocess:
         cmd = f"parallel awk -f count.awk ::: {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a*" + \
               "| awk '{sum += $1} END {print sum}'"
 
-        print(cmd)
+        self.log(f"Running command: {cmd}\n")
         st = time.time()
         found_edges = int(check_output(cmd, shell=True).split()[0])
         et = time.time()
@@ -210,6 +210,28 @@ class Preprocess:
             et = time.time()
             print(f"Time taken to construct the adjacency list files: {et - st}\n")
 
+        self.log("Preprocessing complete")
+
+    def cleanup(self):
+        # remove all the intermediate files
+        self.log("Cleaning up")
+        cmd = f"rm {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a*"
+        self.log(f"Running command: {cmd}\n")
+        if not self.config_data['dry_run']:
+            os.system(cmd)
+        cmd = f"rm {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse_a*"
+        self.log(f"Running command: {cmd}\n")
+        if not self.config_data['dry_run']:
+            os.system(cmd)
+        cmd = f"rm {self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
+        self.log(f"Running command: {cmd}\n")
+        if not self.config_data['dry_run']:
+            os.system(cmd)
+        cmd = f"rm {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse"
+        self.log(f"Running command: {cmd}\n")
+        if not self.config_data['dry_run']:
+            os.system(cmd)
+
     def api_insert(self, graph_type):
         pass
 
@@ -288,6 +310,7 @@ def main():
         preprocess.preprocess()
         time_end = time.time()
         print(f"Time taken to preprocess: {time_end - time_beg}\n")
+        preprocess.cleanup()
 
     if config_data['insert']:
         if config_data['bulk_insert']:
