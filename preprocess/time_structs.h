@@ -1,10 +1,11 @@
+#include <getopt.h>
+
 #include <cstdint>
 #include <cstdlib>
 #include <sstream>
 #include <string>
 
 #include "common_util.h"
-
 
 class time_info
 {

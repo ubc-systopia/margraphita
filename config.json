@@ -1,6 +1,6 @@
 {
-    "GRAPH_PROJECT_DIR": "/home/jackgong/margraphita",
-    "KRON_GEN_PATH": "/home/jackgong/PaRMAT/Release/PaRMAT",
+    "GRAPH_PROJECT_DIR": "scratch/margraphita",
+    "KRON_GEN_PATH": "PaRMAT/Release/PaRMAT",
     "KRON_GRAPHS_PATH": "/drives/hdd_main",
     "DB_DIR": "/graphs",
     "LOG_DIR": "/drives/hdd_main/logs",

@@ -1,7 +1,9 @@
 #ifndef READER_H
 #define READER_H
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
+// #include <boost/archive/binary_iarchive.hpp>
+// #include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
 #include <fstream>
@@ -12,6 +14,7 @@
 #include <vector>
 
 #include "bulk_insert.h"
+#include "common_defs.h"
 #include "common_util.h"
 namespace reader
 {
@@ -27,40 +30,29 @@ class EdgeReader
     int num_per_chunk;
     std::ifstream edge_file;
     std::ofstream adj_file, edge_file_txt;
-    std::pair<int, std::vector<node_id_t>> node_adj_list;
-    std::vector<node_id_t> adjlist;  // for adjlist.
+    adjlist node_adj_list, first_conflict, last_conflict;
     node_id_t last_node_id = 0;
-    bool is_first = false;
-    bool is_last = false;
-    int max_pos = 0;
-    bool is_right = false;
+    long max_pos = 0;
+    bool first = false;
+    int cur_pos = 0;
 
    public:
-    EdgeReader(std::string _filename, int _beg, int _num, std::string adj_type)
+    EdgeReader(const std::string& _filename,
+               int _beg,
+               int _num,
+               const std::string& adj_type)
     {
         filename = _filename;
         beg_offset = _beg;
+        cur_pos = beg_offset;
         num_per_chunk = _num;
-        adjlist.reserve(10000);
+
         std::ios::sync_with_stdio(false);
         edge_file = std::ifstream(_filename, std::ifstream::in);
         adj_file =
             std::ofstream((_filename + "_" + adj_type), std::ios::binary);
-        if (edge_file.is_open())
-        {
-            int i = 0;
-            while (i < beg_offset)
-            {
-                std::string line;
-                getline(edge_file, line);
-                i++;
-            }
-            is_first = true;
-            edge_file.seekg(0, edge_file.end);
-            max_pos = edge_file.tellg();
-            edge_file.seekg(0, edge_file.beg);
-        }
-        else
+
+        if (!edge_file.is_open())
         {
             throw GraphException("** could not open " + filename);
         }
@@ -71,55 +63,76 @@ class EdgeReader
         }
     }
 
-    int get_next_edge(edge& e)
+    void mk_adjlist()
     {
+        edge e;
         std::string line;
-        if (edge_file.tellg() < max_pos)
+        while (getline(edge_file, line))
         {
-            getline(edge_file, line);
             std::stringstream s_stream(line);
             s_stream >> e.src_id;
             s_stream >> e.dst_id;
 
-            if (is_first)
+            if (cur_pos == beg_offset)
             {
-                last_node_id = e.src_id;
-                is_first = false;
+                node_adj_list.node_id = e.src_id;
+                node_adj_list.edgelist.push_back(e.dst_id);
+                first = true;
+                cur_pos++;
+                continue;
             }
 
-            if (e.src_id == last_node_id)
+            if (e.src_id == node_adj_list.node_id)
             {
-                adjlist.push_back(e.dst_id);
+                node_adj_list.edgelist.push_back(e.dst_id);
             }
-            else
+            else  // new node
             {
-                node_adj_list.first = last_node_id;
-                node_adj_list.second = adjlist;
-                write_adjlist_to_file(e, node_adj_list);
+                write_adjlist_to_file();
+                if (first)
+                {
+                    first_conflict.edgelist = std::move(node_adj_list.edgelist);
+                    first_conflict.node_id = node_adj_list.node_id;
+                    first = false;
+                }
+                node_adj_list.clear();
+                node_adj_list.node_id = e.src_id;
+                node_adj_list.edgelist.push_back(e.dst_id);
             }
-            return 0;
+            cur_pos++;
         }
-        else
-        {
-            node_adj_list.first = last_node_id;
-            node_adj_list.second = adjlist;
-            write_adjlist_to_file(e, node_adj_list);
-            edge_file.close();
-            edge_file_txt.close();
-            adj_file.close();
-            return -1;
-        }
+        write_adjlist_to_file();
+
+        last_conflict.node_id = node_adj_list.node_id;
+        last_conflict.edgelist = std::move(node_adj_list.edgelist);
+        node_adj_list.clear();
+
+        edge_file.close();
+        edge_file_txt.close();
+        adj_file.close();
     }
 
-    void write_adjlist_to_file(
-        const edge& e,
-        const std::pair<int, std::vector<node_id_t>>& node_adj_list)
+    void write_adjlist_to_file()
     {
-        boost::archive::binary_oarchive oa(adj_file);
-        oa << node_adj_list;
-        adjlist.clear();
-        adjlist.push_back(e.dst_id);
-        last_node_id = e.src_id;
+        // boost::archive::binary_oarchive oa(adj_file);
+        // boost::archive::text_oarchive oa(adj_file);
+        // oa << node_adj_list.node_id << node_adj_list.edgelist.size()
+        //   << node_adj_list.edgelist;
+        adj_file << node_adj_list.node_id << " "
+                 << node_adj_list.edgelist.size() << " ";
+        for (auto n : node_adj_list.edgelist)
+        {
+            adj_file << n << " ";
+        }
+        adj_file << "\n";
+    }
+
+    std::pair<adjlist, adjlist> get_conflict() const
+    {
+        std::pair<adjlist, adjlist> conflict;
+        conflict.first = first_conflict;
+        conflict.second = last_conflict;
+        return conflict;
     }
 };
 
@@ -151,7 +164,7 @@ class AdjReader
     {
         if ((adj_file.tellg() < length))
         {
-            boost::archive::binary_iarchive ia(adj_file);
+            boost::archive::text_iarchive ia(adj_file);
             ia >> node_adj_list;
             return 0;
         }

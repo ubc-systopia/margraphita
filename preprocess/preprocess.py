@@ -1,188 +1,268 @@
 import argparse
 import os
+import sys
 import time
 from datetime import datetime
 from subprocess import check_output
+from paths import ConfigReader
 
 
 class Preprocess:
     def __init__(self, config_data: dict[str, any]):
+        print("Preprocessing the graph")
         self.config_data = config_data
-        self.log_file = os.path.join(config_data['log_dir'], "insert_kron.log")
-        self.log = open(self.log_file, "w")
+        self.cmdcnt = 0
+        self.log_file = os.path.join(config_data['log_dir'], "insert.log")
+        self.logger = open(self.log_file, "w")
         self.date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.log_entry = "Scale: " + \
-                         str(self.config_data['scale']) + "\nPath:" + self.config_data[
-                             'graph_path'] + "\nDate: " + self.date + "\n"
-        self.log.write(self.log_entry)
+        log_entry = "Path:" + \
+                    self.config_data['graph_path'] + "\nDate: " + self.date + "\n"
+        if ('scale' in self.config_data):
+            log_entry += "Scale: " + str(self.config_data['scale']) + "\n"
+        self.logger.write(log_entry)
+        # dump the config data
+        self.logger.write("Config data:\n")
+        for key, value in self.config_data.items():
+            self.logger.write(key + ":" + str(value) + "\n")
 
-    def demarcate_log(self, message: str):
-        self.log.write("\n##############################\n# " +
-                       message + "\n#############################\n")
+    def log(self, message: str):
+        self.logger.write(f"\n###Step{self.cmdcnt}####\n" + message + "\n")
+        self.cmdcnt += 1
 
     def build_bulk_cmd(self, graph_type: str, is_ro: bool):
-        if self.config_data['low_mem']:
-            bulk_binary = "bulk_insert_low_mem"
-        else:
-            bulk_binary = "bulk_insert"
-
-        cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['graph_path']} -t {graph_type} -p {self.config_data['output_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log "
+        # if self.config_data['low_mem']:
+        #     bulk_binary = "bulk_insert_low_mem"
+        # else:
+        #     bulk_binary = "bulk_insert"
+        bulk_binary = "mk_adjlists"
+        cmd = f"{self.config_data['cmd_root']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -t {graph_type} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log "
         if is_ro:
             cmd += " -r"
         return cmd
 
     def build_index_cmd(self, graph_type: str, is_ro: bool):
-        cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/init_db -b PR -f {self.config_data['log_dir']}"
+        cmd = f"{self.config_data['cmd_root']}/preprocess/init_db -b PR -f {self.config_data['log_dir']}"
         cmd += f" -m {graph_type}_" + (
-            "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['output_dir']}"
+            "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['db_dir']}"
         cmd += f" -s {self.config_data['dataset_name']} -d -l {graph_type} -x"
         if is_ro:
             cmd += " -r"
         return cmd
 # -f is for log_dir and stats_dir
 
-    def build_init_cmd(self, graph_type: str, is_ro: bool):
-        cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/init_db -n -m {graph_type}_" + (
-            "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['output_dir']} -s {self.config_data['dataset_name']} -o -d -l {graph_type} -e -f {self.config_data['log_dir']}"
-        if is_ro:
+    def init_db(self, graph_type: str):
+        cmd = (f"{self.config_data['cmd_root']}/preprocess/init_db -n -m {graph_type}_" +
+               ("rd" if self.config_data['read_optimized'] else "d") +
+               f"_{self.config_data['dataset_name']} -a {self.config_data['db_dir']} -s {self.config_data['dataset_name']} -o -d -l {graph_type} -e -f {self.config_data['log_dir']}")
+        if self.config_data['read_optimized']:
             cmd += " -r"
-        return cmd
+        self.log(f"Initializing DB: {cmd}\n")
+        if not self.config_data['dry_run']:
+            os.system(cmd)
 
     def bulk_insert(self):
         for graph_type in ['std', 'ekey', 'adj']:
             for is_ro in [True, False]:
-                self.demarcate_log("Bulk Inserting " + graph_type + " graph")
-                # directed, read_optimized, init DB
-                init_cmd = self.build_init_cmd(graph_type, is_ro)
-                self.log.write(
-                    f"Initializing DB, read_optimize= {is_ro}: {init_cmd}\n")
-                os.system(init_cmd)
-
+                self.log("Bulk Inserting " + graph_type + " graph")
                 # directed, read_optimized, bulk insert
                 name_str = f"{graph_type}_" + \
                     ("rd" if is_ro else "d") + \
                     f"_{self.config_data['dataset_name']}"
-                self.log.write(f"Bulk Inserting {name_str}\n")
+                self.log(f"Bulk Inserting {name_str}\n")
                 bulk_cmd = self.build_bulk_cmd(graph_type, is_ro)
 
-                self.log.write(f"Command: {bulk_cmd}\n")
+                self.log(f"Command: {bulk_cmd}\n")
                 start = time.perf_counter()
-                os.system(bulk_cmd)
+                if not self.config_data['dry_run']:
+                    os.system(bulk_cmd)
                 stop = time.perf_counter()
-                self.log.write(f"Time: {stop - start}\n")
+                self.log(f"Time: {stop - start}\n")
 
     def create_index(self):
-        self.demarcate_log("Creating indices")
+        self.log("Creating indices")
         for graph_type in ["std", "ekey"]:
             for is_ro in [True, False]:
                 index_cmd = self.build_index_cmd(graph_type, is_ro)
-                self.log.write(f"Creating index: {index_cmd}\n")
-                os.system(index_cmd)
+                self.log(f"Creating index: {index_cmd}\n")
+                if (not self.config_data['dry_run']):
+                    os.system(index_cmd)
+
+    def dump_config(self):
+        # dump the config data
+        for key, value in self.config_data.items():
+            print(key + ":" + str(value) + "\n")
+
 
     def preprocess(self):
         ##############################
-        # assert num_edges matches the number of edges in the graph
+        # sort the graph
         ##############################
-        self.demarcate_log(
-            "Asserting num_edges matches the number of edges in the graph")
-        found_edges = int(check_output(
-            ["wc", "-l", self.config_data['graph_path']]).split()[0])
-        assert found_edges == self.config_data['num_edges']
+
+        self.log("Sorting the graph")
+        sort_cmd = f"sort -g -k1,1 -k2,2 --parallel=10 -S 10G {self.config_data['graph_path']} > {self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
+
+        self.config_data['sorted_graph'] = f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
+        self.log(f"Running sort command: {sort_cmd}\n")
+        if (not self.config_data['dry_run']):
+            os.system(sort_cmd)
+
+        ##############################
+        # Split the graph into NUM_THREADS files
+        ##############################
+        self.log(f"Splitting the graph into NUM_THREAD({self.config_data['num_threads']}) files")
+        split_cmd = f"split --number=l/{self.config_data['num_threads']} {self.config_data['sorted_graph']} {self.config_data['output_dir']}/{self.config_data['dataset_name']}_"
+        self.log(f"Running split command: {split_cmd}\n")
+        if (not self.config_data['dry_run']):
+            os.system(split_cmd)
+
+        ##############################
+        # determine num_edges from the graph
+        ##############################
+        self.log(
+            "Get the number of edges from the graph using awk")
+        cmd = f"parallel awk -f count.awk ::: {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a*" + \
+              "| awk '{sum += $1} END {print sum}'"
+
+        print(cmd)
+        found_edges = int(check_output(cmd, shell=True).split()[0])
+        self.config_data['num_edges'] = found_edges
+        self.log(f"The graph has {found_edges} edges")
+        print("Found edges: " + str(found_edges))
 
         ##############################
         # compute num_nodes from the graph
         ##############################
-        self.demarcate_log(
-            "sed the graph to replace tabs with newlines and compute number of nodes")
-        sed_cmd = f"sed 's/\\t/\\n/' {self.config_data['graph_path']} > {self.config_data['graph_path']}.tmp"
-        print(sed_cmd)
-        self.log.write(f"Running sed command: {sed_cmd}\n")
-        os.system(sed_cmd)
+        self.log("Constructing the nodes file")
+        cmd = f"ls {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a* | parallel awk -f nodes.awk " + "{}" + f" | sort -u -n >  {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
+        print(cmd)
+        self.log(f"Running command: {cmd}\n")
+        if (not self.config_data['dry_run']):
+            os.system(cmd)
 
-        sort_cmd = f"sort -g -u --parallel=10 -S 10G {self.config_data['graph_path']}.tmp > {self.config_data['graph_path']}_nodes"
-        self.log.write(f"Running sort command: {sort_cmd}\n")
-        os.system(sort_cmd)
         found_nodes = int(check_output(
-            ["wc", "-l", f"{self.config_data['graph_path']}_nodes"]).split()[0])
+            ["wc", "-l", f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"]).split()[0])
         self.config_data['num_nodes'] = found_nodes
-
-        ##############################
-        # sort the graph
-        ##############################
-        self.demarcate_log("Sorting the graph")
-        sort_cmd = f"sort -g -k 1,1 -k 2,2 --parallel=10 -S 10G {self.config_data['graph_path']} > {self.config_data['graph_path']}_sorted"
-        # use the sorted graph from now on
-        self.config_data['graph_path'] += "_sorted"
-        self.log.write(f"Running sort command: {sort_cmd}\n")
-        os.system(sort_cmd)
+        self.log(f"Counting the number of nodes {found_nodes}")
+        print("Found nodes: " + str(found_nodes))
 
         ##################################
         # reverse the graph
         ##################################
-        self.demarcate_log("Reversing the graph")
-        reverse_cmd = f"awk '{{print $2\"\\t\"$1}}' {self.config_data['graph_path']} > {self.config_data['graph_path']}_reverse"
+        self.log("Reversing the graph")
+        reverse_cmd = f"awk '{{print $2\"\\t\"$1}}' {self.config_data['graph_path']} > {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse"
         print(reverse_cmd)
-        self.log.write(
+
+        self.log(
             f"Generating the reverse graph (dst, src): {reverse_cmd}\n")
-        os.system(reverse_cmd)
+        if (not self.config_data['dry_run']):
+            os.system(reverse_cmd)
 
-        sort_cmd = f"sort -g -k 1,1 -k 2,2 --parallel=10 -S 10G {self.config_data['graph_path']}_reverse > {self.config_data['graph_path']}_reverse_sorted"
-        self.log.write(f"Running sort command: {sort_cmd}\n")
-        os.system(sort_cmd)
+        sort_cmd = f"sort -g -k1,1 -k2,2 --parallel=10 -S 10G {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse > {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse_sorted"
+        self.log(f"Running sort command: {sort_cmd}\n")
+        if (not self.config_data['dry_run']):
+            os.system(sort_cmd)
 
-        rename_cmd = f"mv {self.config_data['graph_path']}_reverse_sorted {self.config_data['graph_path']}_reverse"
-        self.log.write(f"Renaming reverse graph: {rename_cmd}\n")
-        os.system(rename_cmd)
+        rename_cmd = f"mv {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse_sorted {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse"
+        self.log(f"Renaming reverse graph: {rename_cmd}\n")
+        if (not self.config_data['dry_run']):
+            os.system(rename_cmd)
 
-        remap_cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/dense_vertexranges -n {found_nodes} -e {found_edges} -f {self.config_data['graph_path']}_reverse"
-        self.log.write(f"Running remap command: {remap_cmd}\n")
-        os.system(remap_cmd)
+        self.config_data[
+            'reverse_graph'] = f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse"
 
-        ##################################
-        # Construct the id map and construct the new graph based on these ID mappings
-        ##################################
-        self.demarcate_log(
-            "Constructing the id map and constructing the new graph based on these ID mappings")
-        remap_cmd = f"{self.config_data['RELEASE_PATH']}/preprocess/dense_vertexranges -n {found_nodes} -e {found_edges} -f {self.config_data['graph_path']} "
-        self.log.write(f"Running remap command: {remap_cmd}\n")
-        os.system(remap_cmd)
+        ##############################
+        # Split the reverse graph into NUM_THREADS files
+        ##############################
+        self.log(f"Splitting the graph into NUM_THREAD({self.config_data['num_threads']}) files")
+        split_cmd = f"split --number=l/{self.config_data['num_threads']} {self.config_data['reverse_graph']} {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse_"
+        self.log(f"Running split command: {split_cmd}\n")
+        if (not self.config_data['dry_run']):
+            os.system(split_cmd)
 
-        # split the nodes into NUM_THREADS files
-        split_cmd = f"split --number=l/{self.config_data['num_threads']} {self.config_data['graph_path']}_nodes {self.config_data['graph_path']}_nodes"
-        self.log.write(f"Running split command: {split_cmd}\n")
-        os.system(split_cmd)
+    def api_insert(self, graph_type):
+        pass
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Preprocess the graph and insert into the database")
-    parser.add_argument("--log_dir", type=str, help="log directory")
-    parser.add_argument("--dataset_name", type=str, help="dataset name")
-    parser.add_argument("--graph_dir", type=str, help="graph directory")
-    parser.add_argument("--graph_path", type=str, help="graph path")
-    parser.add_argument("--num_nodes", type=int, help="number of nodes")
-    parser.add_argument("--num_edges", type=int, help="number of edges")
-    parser.add_argument("--graph_type", type=str, help="graph type")
-    parser.add_argument("--output_dir", type=str, help="output directory")
-    parser.add_argument("--preprocess", action='store_true',
+    parser.add_argument("-l", "--log_dir", type=str, help="log directory")
+    parser.add_argument("-g", "--graph_path", type=str, help="graph path")
+    parser.add_argument("-v", "--num_nodes", type=int, help="number of nodes")
+    parser.add_argument("-e", "--num_edges", type=int, help="number of edges")
+    parser.add_argument("-d", "--db_dir", type=str, help="DB directory")
+    parser.add_argument("-p", "--preprocess", action='store_true',
                         default=True, help="preprocess graphs")
-    parser.add_argument("--index", action='store_true',
+    parser.add_argument("-x", "--index", action='store_true',
                         default=False, help="create index")
-    parser.add_argument("--insert", action='store_true',
-                        default=True, help="bulk insert the graph")
-    parser.add_argument("--num_threads", type=int,
+    parser.add_argument("-i", "--insert", action='store_true',
+                        default=True, help="insert the graph. Bulk insert if -b is specified")
+    parser.add_argument("-b", "--bulk_insert", action='store_true',
+                        default=False, help="bulk insert")
+    parser.add_argument("-m", "--num_threads", type=int,
                         help="number of threads", default=16)
-    parser.add_argument("--num_partitions", type=int,
+    parser.add_argument("-a", "--num_partitions", type=int,
                         help="number of partitions", default=16)
+    parser.add_argument("-s", "--dry_run", action='store_true', default=False,
+                        help="dry run")
+    parser.add_argument("-o", "--read_optimized", action='store_true', default=True,
+                        help="read optimized")
 
+    # check that there are some arguments passed
+    assert len(sys.argv) > 1, "No arguments passed"
     args = parser.parse_args()
+
+    # check that the graph path is passed
+    assert args.graph_path is not None, "Graph path not specified"
+
+    # check that the graph path exists
+    assert os.path.exists(args.graph_path), "Graph path does not exist"
+    args.dataset_name = args.graph_path.split("/")[-1].split(".")[0]
+
+    # output the graphs in the same directory as the graph
+    args.output_dir = os.path.dirname(args.graph_path)
+    args.output_dir = os.path.join(args.output_dir, "preprocess")
+    if args.output_dir == "":
+        exit(f"Graph path {args.output_dir} is not valid")
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    if (args.db_dir is None):
+        print("Output directory not specified, using dataset path")
+        args.db_dir = args.graph_path.split("/")[-1].split(".")[0]
+    os.makedirs(args.db_dir, exist_ok=True)
 
     if args.log_dir is None:
         print("Using CWD as log directory")
         args.log_dir = os.getcwd()
+    os.makedirs(args.log_dir, exist_ok=True)
 
-    preprocess = Preprocess(vars(args))
-    preprocess.preprocess()
+    # read the config file
+    config_data = ConfigReader("config.json").read_config()
+    config_data.update(vars(args))  # add args to config
+
+    # see if we are in debug/release/profile/stat mode
+    cwd = os.getcwd()
+    if "debug" in cwd:
+        config_data['cmd_root'] = config_data['DEBUG_PATH']
+    elif "release" in cwd:
+        config_data['cmd_root'] = config_data['RELEASE_PATH']
+    elif "profile" in cwd:
+        config_data['cmd_root'] = config_data['PROFILE_PATH']
+    elif "stats" in cwd:
+        config_data['cmd_root'] = config_data['STATS_PATH']
+
+    preprocess = Preprocess(config_data)
+    if config_data['preprocess']:
+        preprocess.preprocess()
+        preprocess.dump_config()
+
+    if config_data['insert']:
+        if config_data['bulk_insert']:
+            preprocess.bulk_insert()
+        else:
+            for graph_type in ["std", "ekey", "adj"]:
+                preprocess.init_db(graph_type)
+                preprocess.api_insert(graph_type)
 
 
 if __name__ == "__main__":

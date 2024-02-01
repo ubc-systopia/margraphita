@@ -50,3 +50,8 @@ TARGET_LINK_LIBRARIES(test_packing PUBLIC ${NAME_LIB} ${wt_shared_lib})
 #Test Std Containers
 ADD_EXECUTABLE(std_container_test "${PATH_TEST}/array_test.cpp")
 set_source_files_properties( "${PATH_TEST}/array_test.cpp" PROPERTIES COMPILE_FLAGS "-std=c++20 -O3" )
+
+#test bulk_load
+ADD_EXECUTABLE(test_bulk_load "${PATH_TEST}/test_bulk_load.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_bulk_load PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_bulk_load PUBLIC ${NAME_LIB} ${wt_shared_lib})

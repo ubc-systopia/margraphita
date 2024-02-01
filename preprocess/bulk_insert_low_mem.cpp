@@ -9,10 +9,12 @@
 
 #include "bulk_insert.h"
 #include "common_util.h"
+#include "mk_adjlists.h"
 #include "parallel_hashmap/phmap.h"
 #include "reader.h"
 #include "time_structs.h"
 #include "times.h"
+
 #define MAPNAME phmap::parallel_flat_hash_map
 #define NMSP phmap
 #define NUM_THREADS 16
@@ -334,7 +336,7 @@ int main(int argc, char *argv[])
 
     // open std connection
     type_opt = params.get_type_str();
-    std::vector<std::string> db_names = {};
+    //    std::vector<std::string> db_names = {};
 
     if (type_opt == "all" || type_opt == "std")
     {
