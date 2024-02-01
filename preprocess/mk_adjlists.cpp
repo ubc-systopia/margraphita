@@ -47,7 +47,8 @@ int main (int argc, char** argv)
     {
         insert_edge_thread(i);
     }
-    print_conflict_map();
+    // print the conflicts
+    // print_conflict_map();
     // merge the conflicts
     merge_conflicts();
 }

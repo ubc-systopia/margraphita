@@ -30,11 +30,7 @@ class Preprocess:
         self.cmdcnt += 1
 
     def build_bulk_cmd(self, graph_type: str, is_ro: bool):
-        # if self.config_data['low_mem']:
-        #     bulk_binary = "bulk_insert_low_mem"
-        # else:
-        #     bulk_binary = "bulk_insert"
-        bulk_binary = "mk_adjlists"
+        bulk_binary = "bulk_insert"
         cmd = f"{self.config_data['cmd_root']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -t {graph_type} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log "
         if is_ro:
             cmd += " -r"
@@ -104,8 +100,10 @@ class Preprocess:
         self.config_data['sorted_graph'] = f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
         self.log(f"Running sort command: {sort_cmd}\n")
         if (not self.config_data['dry_run']):
+            st = time.time()
             os.system(sort_cmd)
-
+            et = time.time()
+            print(f"Time taken to sort the graph: {et - st}\n")
         ##############################
         # Split the graph into NUM_THREADS files
         ##############################
@@ -113,7 +111,10 @@ class Preprocess:
         split_cmd = f"split --number=l/{self.config_data['num_threads']} {self.config_data['sorted_graph']} {self.config_data['output_dir']}/{self.config_data['dataset_name']}_"
         self.log(f"Running split command: {split_cmd}\n")
         if (not self.config_data['dry_run']):
+            st = time.time()
             os.system(split_cmd)
+            et = time.time()
+            print(f"Time taken to split the graph: {et - st}\n")
 
         ##############################
         # determine num_edges from the graph
@@ -124,7 +125,10 @@ class Preprocess:
               "| awk '{sum += $1} END {print sum}'"
 
         print(cmd)
+        st = time.time()
         found_edges = int(check_output(cmd, shell=True).split()[0])
+        et = time.time()
+        print(f"Time taken to count the edges: {et - st}\n")
         self.config_data['num_edges'] = found_edges
         self.log(f"The graph has {found_edges} edges")
         print("Found edges: " + str(found_edges))
@@ -137,10 +141,15 @@ class Preprocess:
         print(cmd)
         self.log(f"Running command: {cmd}\n")
         if (not self.config_data['dry_run']):
+            st = time.time()
             os.system(cmd)
-
+            et = time.time()
+            print(f"Time taken to construct the nodes file: {et - st}\n")
+        st = time.time()
         found_nodes = int(check_output(
             ["wc", "-l", f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"]).split()[0])
+        et = time.time()
+        print(f"Time taken to count the nodes: {et - st}\n")
         self.config_data['num_nodes'] = found_nodes
         self.log(f"Counting the number of nodes {found_nodes}")
         print("Found nodes: " + str(found_nodes))
@@ -154,13 +163,19 @@ class Preprocess:
 
         self.log(
             f"Generating the reverse graph (dst, src): {reverse_cmd}\n")
-        if (not self.config_data['dry_run']):
+        if not self.config_data['dry_run']:
+            st = time.time()
             os.system(reverse_cmd)
+            et = time.time()
+            print(f"Time taken to reverse the graph: {et - st}\n")
 
         sort_cmd = f"sort -g -k1,1 -k2,2 --parallel=10 -S 10G {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse > {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse_sorted"
         self.log(f"Running sort command: {sort_cmd}\n")
-        if (not self.config_data['dry_run']):
+        if not self.config_data['dry_run']:
+            st = time.time()
             os.system(sort_cmd)
+            et = time.time()
+            print(f"Time taken to sort the reverse graph: {et - st}\n")
 
         rename_cmd = f"mv {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse_sorted {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse"
         self.log(f"Renaming reverse graph: {rename_cmd}\n")
@@ -177,7 +192,23 @@ class Preprocess:
         split_cmd = f"split --number=l/{self.config_data['num_threads']} {self.config_data['reverse_graph']} {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse_"
         self.log(f"Running split command: {split_cmd}\n")
         if (not self.config_data['dry_run']):
+            st = time.time()
             os.system(split_cmd)
+            et = time.time()
+            print(f"Time taken to split the reverse graph: {et - st}\n")
+
+        ##############################
+        # Now construct the adjacency list files
+        ##############################
+        self.log("Constructing the adjacency list files")
+        graph_type = "adj"  # not needed really, but including because getopts expects it
+        cmd = f"{self.config_data['cmd_root']}/preprocess/mk_adjlists -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -t {graph_type} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log"
+        self.log(f"Running command: {cmd}\n")
+        if (not self.config_data['dry_run']):
+            st = time.time()
+            os.system(cmd)
+            et = time.time()
+            print(f"Time taken to construct the adjacency list files: {et - st}\n")
 
     def api_insert(self, graph_type):
         pass
@@ -253,16 +284,19 @@ def main():
 
     preprocess = Preprocess(config_data)
     if config_data['preprocess']:
+        time_beg = time.time()
         preprocess.preprocess()
-        preprocess.dump_config()
+        time_end = time.time()
+        print(f"Time taken to preprocess: {time_end - time_beg}\n")
 
     if config_data['insert']:
         if config_data['bulk_insert']:
             preprocess.bulk_insert()
         else:
-            for graph_type in ["std", "ekey", "adj"]:
-                preprocess.init_db(graph_type)
-                preprocess.api_insert(graph_type)
+            pass
+    # for graph_type in ["std", "ekey", "adj"]:
+    # preprocess.init_db(graph_type)
+    # preprocess.api_insert(graph_type)
 
 
 if __name__ == "__main__":
