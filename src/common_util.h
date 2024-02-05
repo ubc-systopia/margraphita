@@ -45,13 +45,6 @@ class CommonUtil
 
     static void check_graph_params(const graph_opts &params);
 
-    static char *pack_int_vector_wti(WT_SESSION *session,
-                                     std::vector<node_id_t> to_pack,
-                                     size_t *size);
-    //    static std::vector<node_id_t> unpack_int_vector_wti(WT_SESSION
-    //    *session,
-    //                                                        size_t size,
-    //                                                        char *packed_str);
 
     static void log_msg(std::string_view message,
                         std::string_view file,
@@ -256,10 +249,8 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
 
     size_t size;
     WT_ITEM item;
-    char *buf =
-        CommonUtil::pack_int_vector_wti(session, to_insert.edgelist, &size);
-    item.data = buf;
-    item.size = size;
+    item.data = to_insert.edgelist.data();
+    item.size = to_insert.edgelist.size() * sizeof(node_id_t);
 
     cursor->set_value(cursor, to_insert.degree, &item);
 
