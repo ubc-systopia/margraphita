@@ -52,6 +52,8 @@ class Preprocess:
                f"_{self.config_data['dataset_name']} -a {self.config_data['db_dir']} -s {self.config_data['dataset_name']} -o -d -l {graph_type} -e -f {self.config_data['log_dir']}")
         if self.config_data['read_optimized']:
             cmd += " -r"
+        if self.config_data['weighted']:
+            cmd += " -w"
         self.log(f"Initializing DB: {cmd}\n")
         if not self.config_data['dry_run']:
             os.system(cmd)
@@ -125,13 +127,14 @@ class Preprocess:
               "| awk '{sum += $1} END {print sum}'"
 
         self.log(f"Running command: {cmd}\n")
-        st = time.time()
-        found_edges = int(check_output(cmd, shell=True).split()[0])
-        et = time.time()
-        print(f"Time taken to count the edges: {et - st}\n")
-        self.config_data['num_edges'] = found_edges
-        self.log(f"The graph has {found_edges} edges")
-        print("Found edges: " + str(found_edges))
+        if (not self.config_data['dry_run']):
+            st = time.time()
+            found_edges = int(check_output(cmd, shell=True).split()[0])
+            et = time.time()
+            print(f"Time taken to count the edges: {et - st}\n")
+            self.config_data['num_edges'] = found_edges
+            self.log(f"The graph has {found_edges} edges")
+            print("Found edges: " + str(found_edges))
 
         ##############################
         # compute num_nodes from the graph
@@ -260,6 +263,9 @@ def main():
                         help="dry run")
     parser.add_argument("-o", "--read_optimized", action='store_true', default=True,
                         help="read optimized")
+    parser.add_argument("-c", "--cleanup", action='store_true', default=False,
+                        help="cleanup any intermediate files, default is False")
+    parser.add_argument("-w", "--weighted", action='store_true', default=False, help="weighted graph")
 
     # check that there are some arguments passed
     assert len(sys.argv) > 1, "No arguments passed"
@@ -310,16 +316,17 @@ def main():
         preprocess.preprocess()
         time_end = time.time()
         print(f"Time taken to preprocess: {time_end - time_beg}\n")
-        preprocess.cleanup()
+        if config_data['cleanup']:
+            preprocess.cleanup()
 
     if config_data['insert']:
         if config_data['bulk_insert']:
             preprocess.bulk_insert()
         else:
             pass
-    # for graph_type in ["std", "ekey", "adj"]:
-    # preprocess.init_db(graph_type)
-    # preprocess.api_insert(graph_type)
+    for graph_type in ["std", "ekey", "adj"]:
+        preprocess.init_db(graph_type)
+        # preprocess.api_insert(graph_type)
 
 
 if __name__ == "__main__":

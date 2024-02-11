@@ -327,8 +327,9 @@ time_info insert_node(int _tid)
             try
             {
                 WT_ITEM item;
-                item.data = CommonUtil::pack_int_vector_wti(
-                    adj_sess, in_adjlist.at(to_insert.id), &item.size);
+                item.data = in_adjlist.at(to_insert.id).data();
+                item.size =
+                    in_adjlist.at(to_insert.id).size() * sizeof(node_id_t);
                 adj_incur->set_value(adj_incur, to_insert.in_degree, &item);
             }
             catch (const std::out_of_range &oor)
@@ -340,8 +341,9 @@ time_info insert_node(int _tid)
             try
             {
                 WT_ITEM item;
-                item.data = CommonUtil::pack_int_vector_wti(
-                    adj_sess, out_adjlist.at(to_insert.id), &item.size);
+                item.data = out_adjlist.at(to_insert.id).data();
+                item.size =
+                    out_adjlist.at(to_insert.id).size() * sizeof(node_id_t);
                 adj_outcur->set_value(adj_outcur, to_insert.out_degree, &item);
             }
             catch (const std::out_of_range &oor)

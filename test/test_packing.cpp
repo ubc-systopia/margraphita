@@ -192,7 +192,7 @@ int main()
     session->create(session,"table:world","key_format=i,value_format=u,columns=(src,dst)");
     session->open_cursor(session, "table:world", NULL, NULL, &cursor);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 5000; i++)
     {
         cursor->set_key(cursor, i);
         WT_ITEM item;
@@ -202,7 +202,25 @@ int main()
         cursor->set_value(cursor, &item);
         cursor->insert(cursor);
     }
-
+    WT_CURSOR *cursor1;
+    session->create(session,
+                    "table:world1",
+                    "key_format=i,value_format=u,columns=(src,dst)");
+    session->open_cursor(session, "table:world1", NULL, NULL, &cursor1);
+    std::vector<int> tempo;
+    for (int i = 0; i < 5000; i++)
+    {
+        cursor1->set_key(cursor1, i);
+        WT_ITEM item;
+        std::vector<int> vec = {i + 1, i + 2, i + 3, i + 4, i + 5};
+        char *pack_buf = pack_int_vector_wti(session, vec, &size);
+        item.data = pack_buf;
+        item.size = size;
+        cursor1->set_value(cursor1, &item);
+        cursor1->insert(cursor1);
+        delete pack_buf;
+    }
+    cursor1->close(cursor1);
     cursor->reset(cursor);
     std::vector<int> temp;
     int i=0;

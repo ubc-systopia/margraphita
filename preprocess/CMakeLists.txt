@@ -16,9 +16,10 @@ target_include_directories(bulk_insert PRIVATE ${PMAP})
 target_link_libraries(bulk_insert PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
 
 # ###################################################################################
-#add_executable(bulk_insert_low_mem bulk_insert_low_mem.cpp reader.h)
-#target_include_directories(bulk_insert_low_mem PRIVATE ${PMAP})
-#target_link_libraries(bulk_insert_low_mem PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
+add_executable(bulk_insert_low_mem bulk_insert_low_mem.cpp reader.h
+        bulk_insert_low_mem.h)
+# target_include_directories(bulk_insert_low_mem PRIVATE)
+target_link_libraries(bulk_insert_low_mem PUBLIC ${NAME_LIB} graph_utils)
 #
 ## ###################################################################################
 #add_executable(dense_vertexranges dense_vertexranges_set.cpp)
