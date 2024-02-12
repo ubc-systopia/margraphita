@@ -151,7 +151,6 @@ class StdOutCursor : public OutCursor
     void next(adjlist *found) override
     {
         node_id_t temp_src, temp_dst;
-        int res = 0;
 
         if (!has_next)
         {

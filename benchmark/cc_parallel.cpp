@@ -68,7 +68,7 @@ pvector<node_id_t> connected_components(GraphEngine& graph_engine,
         for (int i = 0; i < thread_num; i++)
         {
             GraphBase* graph = graph_engine.create_graph_handle();
-            adjlist found = {0};
+            adjlist found;
 
             OutCursor* out_cursor = graph->get_outnbd_iter();
             out_cursor->set_key_range(graph_engine.get_key_range(i));
@@ -125,14 +125,11 @@ int main(int argc, char* argv[])
     opts.stat_log = cc_cli.get_logdir() + "/" + opts.db_name;
 
     const int THREAD_NUM = 8;
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-
     int num_trials = cc_cli.get_num_trials();
 
     Times t;
     t.start();
-    GraphEngine graphEngine(engine_opts);
+    GraphEngine graphEngine(THREAD_NUM, opts);
     graphEngine.calculate_thread_offsets();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;

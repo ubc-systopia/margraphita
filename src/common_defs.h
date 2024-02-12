@@ -56,30 +56,15 @@ typedef enum GraphType
     EList,
 } GraphType;
 
-static std::string get_type_str(GraphType type)
-{
-    switch (type)
-    {
-        case GraphType::Std:
-            return "std";
-        case GraphType::Adj:
-            return "adj";
-        case GraphType::EKey:
-            return "ekey";
-        default:
-            return "unknown";
-    }
-}
-
 struct graph_opts
 {
-    bool create_new = true;
-    bool read_optimize = true;
-    bool is_directed = true;
+    bool create_new = false;
+    bool read_optimize = false;
+    bool is_directed = false;
     bool is_weighted = false;
     std::string db_name;
     std::string db_dir;
-    bool optimize_create;  // directs when the index should be created
+    bool optimize_create = false;  // directs when the index should be created
     std::string conn_config;
     std::string stat_log;
     GraphType type;

@@ -78,6 +78,7 @@ FetchContent_MakeAvailable(fmt)
 #find_package(fmt)
 find_package(Boost COMPONENTS serialization REQUIRED)
 
+
 # find_package(Boost)
 if(Boost_FOUND)
   message(STATUS "Boost_INCLUDE_DIRS: ${Boost_INCLUDE_DIRS}")
@@ -113,8 +114,8 @@ add_subdirectory(utils)
 add_subdirectory(test)
 
 ## Benchmarks executables
-#add_subdirectory(benchmark)
-#
+add_subdirectory(benchmark)
+
 ## Preprocess executables
 add_subdirectory(preprocess)
 

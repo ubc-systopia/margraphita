@@ -1,33 +1,18 @@
-#include <math.h>
-#include <stdio.h>
 #include <times.h>
-#include <unistd.h>
 
-#include <algorithm>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
 #include <cassert>
+#include <cstdio>
 #include <deque>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <random>
 #include <set>
 #include <sstream>
 #include <vector>
-
-#include "adj_list.h"
-#include "benchmark_definitions.h"
-#include "command_line.h"
-#include "common_util.h"
-#include "edgekey.h"
-#include "graph_engine.h"
-#include "graph_exception.h"
-#include "platform_atomics.h"
-#include "standard_graph.h"
-#include "times.h"
 
 class CSR
 {
@@ -194,7 +179,7 @@ class CSR
 
 bool exists_file(const char *name)
 {
-    ifstream f(name);
+    std::ifstream f(name);
     return f.good();
 }
 

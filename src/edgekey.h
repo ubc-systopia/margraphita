@@ -9,10 +9,7 @@ using namespace std;
 
 class EkeyInCursor : public InCursor
 {
-    node_id_t curr_node, curr_edge_dst;
-    bool more_edges = true;
-    WT_CURSOR *node_ptr = nullptr;
-
+    node_id_t curr_node{};
     // This accepts a dst_src_cursor
    public:
     /**
@@ -67,8 +64,7 @@ class EkeyInCursor : public InCursor
     {
         node_id_t src;
         node_id_t dst;
-        edge curr_edge;
-        int res = 0;
+        // edge curr_edge;
 
         if (!has_next)
         {
@@ -89,7 +85,7 @@ class EkeyInCursor : public InCursor
         }
 
         // now advance till we hit another dst
-        while (res = cursor->next(cursor) == 0)
+        while (cursor->next(cursor) == 0)
         {
             CommonUtil::ekey_get_key(cursor, &dst, &src);
             if (dst == curr_node)
@@ -117,9 +113,8 @@ class EkeyInCursor : public InCursor
 class EkeyOutCursor : public OutCursor
 {
    private:
-    bool data_remaining = true;
     // bool is_weighted = false;
-    node_id_t curr_node;
+    node_id_t curr_node{};
 
    public:
     EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
@@ -213,7 +208,6 @@ class EkeyNodeCursor : public NodeCursor
     {
         keys = _keys;
         int status;
-        node_id_t temp1, temp2;
         // set the cursor to the first relevant record in range
         if (keys.start != OutOfBand_ID)
         {
@@ -283,7 +277,7 @@ class EkeyNodeCursor : public NodeCursor
 class EkeyEdgeCursor : public EdgeCursor
 {
    private:
-    bool at_node = true;  // initial state always points here
+    // bool at_node = true;  // initial state always points here
    public:
     EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
 

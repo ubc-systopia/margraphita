@@ -413,7 +413,7 @@ class AdjList : public GraphBase
     // structure of the graph
 
     WT_CURSOR *node_cursor = nullptr;
-    [[maybe_unused]] WT_CURSOR *random_node_cursor = nullptr;
+    WT_CURSOR *random_node_cursor = nullptr;
     WT_CURSOR *edge_cursor = nullptr;
     WT_CURSOR *in_adjlist_cursor = nullptr;
     WT_CURSOR *out_adjlist_cursor = nullptr;

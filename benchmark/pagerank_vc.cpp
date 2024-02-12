@@ -1,20 +1,10 @@
 #include <math.h>
 #include <stdio.h>
-#include <unistd.h>
 
-#include <algorithm>
-#include <cassert>
-#include <deque>
-#include <fstream>
 #include <iostream>
-#include <set>
-#include <vector>
-
-#include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common_util.h"
-#include "edgekey.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
 #include "platform_atomics.h"
@@ -66,7 +56,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
             InCursor* in_cursor = graph->get_innbd_iter();
             in_cursor->set_key_range(graph_engine.get_key_range(i));
 
-            adjlist found = {0};
+            adjlist found;
             in_cursor->next(&found);
 
             while (found.node_id != -1)
@@ -103,16 +93,13 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    graph_opts opts;
-    get_graph_opts(pr_cli, opts);
-    opts.stat_log = pr_cli.get_logdir() + "/" + opts.db_name;
+    cmdline_opts opts = pr_cli.get_parsed_opts();
+    opts.stat_log += "/" + opts.db_name;
 
     const int THREAD_NUM = 8;
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
     Times t;
     t.start();
-    GraphEngine graphEngine(engine_opts);
+    GraphEngine graphEngine(THREAD_NUM, opts);
     graphEngine.calculate_thread_offsets();
     graphEngine.calculate_thread_offsets_edge_partition();
     t.stop();
@@ -120,8 +107,8 @@ int main(int argc, char* argv[])
 
     // Now run PR
     t.start();
-    pvector<ScoreT> score = pagerank(
-        graphEngine, THREAD_NUM, pr_cli.iterations(), pr_cli.tolerance());
+    pvector<ScoreT> score =
+        pagerank(graphEngine, THREAD_NUM, opts.iterations, opts.tolerance);
     t.stop();
     cout << "PR  completed in : " << t.t_micros() << endl;
     double sum = 0;

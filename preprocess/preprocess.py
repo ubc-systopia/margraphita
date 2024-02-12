@@ -37,23 +37,26 @@ class Preprocess:
         return cmd
 
     def build_index_cmd(self, graph_type: str, is_ro: bool):
-        cmd = f"{self.config_data['cmd_root']}/preprocess/init_db -b PR -f {self.config_data['log_dir']}"
-        cmd += f" -m {graph_type}_" + (
-            "rd" if is_ro else "d") + f"_{self.config_data['dataset_name']} -a {self.config_data['db_dir']}"
-        cmd += f" -s {self.config_data['dataset_name']} -d -l {graph_type} -x"
+        db_name = f"{graph_type}_" + (
+            "rd" if self.config_data['read_optimized'] else "d") + f"_{self.config_data['dataset_name']}"
+
+        cmd = f"{self.config_data['cmd_root']}/preprocess/init_db -l {self.config_data['log_dir']}"
+        cmd += f" -m {db_name} -p {self.config_data['db_dir']}"
+        cmd += f" -s {self.config_data['dataset_name']} -d -g {graph_type} -x"
         if is_ro:
             cmd += " -r"
         return cmd
-# -f is for log_dir and stats_dir
 
     def init_db(self, graph_type: str):
-        cmd = (f"{self.config_data['cmd_root']}/preprocess/init_db -n -m {graph_type}_" +
-               ("rd" if self.config_data['read_optimized'] else "d") +
-               f"_{self.config_data['dataset_name']} -a {self.config_data['db_dir']} -s {self.config_data['dataset_name']} -o -d -l {graph_type} -e -f {self.config_data['log_dir']}")
+        db_name = f"{graph_type}_" + (
+            "rd" if self.config_data['read_optimized'] else "d") + f"_{self.config_data['dataset_name']}"
+        cmd = (
+            f"{self.config_data['cmd_root']}/preprocess/init_db -n -m {db_name} -p {self.config_data['db_dir']} -s {self.config_data['dataset_name']} -o -d -g {graph_type} -e -l {self.config_data['log_dir']}")
         if self.config_data['read_optimized']:
             cmd += " -r"
         if self.config_data['weighted']:
             cmd += " -w"
+
         self.log(f"Initializing DB: {cmd}\n")
         if not self.config_data['dry_run']:
             os.system(cmd)
@@ -267,6 +270,7 @@ def main():
                         help="cleanup any intermediate files, default is False")
     parser.add_argument("-w", "--weighted", action='store_true', default=False, help="weighted graph")
 
+
     # check that there are some arguments passed
     assert len(sys.argv) > 1, "No arguments passed"
     args = parser.parse_args()
@@ -311,6 +315,10 @@ def main():
         config_data['cmd_root'] = config_data['STATS_PATH']
 
     preprocess = Preprocess(config_data)
+    for graph_type in ["std", "ekey", "adj"]:
+        preprocess.init_db(graph_type)
+        # preprocess.api_insert(graph_type)
+
     if config_data['preprocess']:
         time_beg = time.time()
         preprocess.preprocess()
@@ -319,14 +327,8 @@ def main():
         if config_data['cleanup']:
             preprocess.cleanup()
 
-    if config_data['insert']:
-        if config_data['bulk_insert']:
-            preprocess.bulk_insert()
-        else:
-            pass
-    for graph_type in ["std", "ekey", "adj"]:
-        preprocess.init_db(graph_type)
-        # preprocess.api_insert(graph_type)
+    if config_data['index']:
+        preprocess.create_index()
 
 
 if __name__ == "__main__":
