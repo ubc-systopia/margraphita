@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 #include <iostream>
-#include <unordered_map>
+#include <map>
 #include <utility>
 #include <vector>
 
@@ -27,28 +27,21 @@
 #define PRINT_EDGE_ERROR(src, dst, ret, msg)                        \
     std::cerr << "Error inserting edge (" << (src) << ", " << (dst) \
               << "): " << (msg) << " (" << (ret) << ")" << std::endl;
-#define CHECK(x)                                                         \
-    do                                                                   \
-    {                                                                    \
-        int retval = (x);                                                \
-        if (retval != 0)                                                 \
-        {                                                                \
-            fprintf(stderr,                                              \
-                    "Runtime error: %s returned %d at %s:%d",            \
-                    #x,                                                  \
-                    retval,                                              \
-                    __FILE__,                                            \
-                    __LINE__);                                           \
-            fprintf(stderr, "Error: %s\n", wiredtiger_strerror(retval)); \
-            exit(1); /* or throw or whatever */                          \
-        }                                                                \
-    } while (0)
 
-int space = 0;
+size_t space = 0;
 graph_opts opts;
 int num_per_chunk;
 
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
+
+// typedef enum TableType
+//{
+//     Edge,
+//     Node,
+//     AdjList,
+//     EKey,
+//     Meta
+// } TableType;
 
 typedef struct fgraph_conn_object
 {
@@ -58,6 +51,7 @@ typedef struct fgraph_conn_object
     WT_CURSOR *e_cur = nullptr;
     WT_CURSOR *n_cur = nullptr;
     WT_CURSOR *cur = nullptr;  // adjlist cursor
+    WT_CURSOR *metadata = nullptr;
     std::string adjlistable_name;
 
     fgraph_conn_object(WT_CONNECTION *_conn,
@@ -74,6 +68,21 @@ typedef struct fgraph_conn_object
             std::cerr << "Error opening session: " << wiredtiger_strerror(ret)
                       << std::endl;
             exit(1);
+        }
+        // Open Cursors. If the tabel type is _META, open the metadata cursor
+        // and return.
+        if (type == GraphType::_META)
+        {
+            // open the metadata cursor
+            ret = session->open_cursor(
+                session, "table:metadata", nullptr, nullptr, &metadata);
+            if (ret != 0)
+            {
+                std::cerr << "Error opening cursor: "
+                          << wiredtiger_strerror(ret) << std::endl;
+                exit(1);
+            }
+            return;
         }
         if (is_edge)
         {
@@ -141,6 +150,10 @@ typedef struct fgraph_conn_object
         {
             n_cur->close(n_cur);
         }
+        if (metadata != nullptr)
+        {
+            metadata->close(metadata);
+        }
         if (session != nullptr)
         {
             session->close(session, nullptr);
@@ -148,14 +161,14 @@ typedef struct fgraph_conn_object
     }
 } worker_sessions;
 
-typedef struct _degrees
+typedef struct degrees_
 {
     degree_t in_degree = 0;
     degree_t out_degree = 0;
 } degrees;
 
-std::unordered_map<node_id_t, degrees> node_degrees;
-std::mutex lock_var;
+std::map<node_id_t, degrees> node_degrees;
+// std::mutex lock_var;
 
 int check_cursors(worker_sessions &info)
 {
@@ -248,30 +261,31 @@ int add_node_to_ekey(WT_CURSOR *ekey_cur, const node &node)
     return ret;
 }
 
-void make_connections(graph_opts &opts, const std::string &conn_config)
+void make_connections(graph_opts &_opts, const std::string &conn_config)
 {
     std::string middle;
-    if (opts.read_optimize)
+    if (_opts.read_optimize)
     {
         middle += "r";
     }
-    if (opts.is_directed)
+    if (_opts.is_directed)
     {
         middle += "d";
     }
     // make sure the dataset is a directory, if not, extract the directory name
     // and use it
-    if (opts.dataset.back() != '/')
+    if (_opts.dataset.back() != '/')
     {
-        size_t found = opts.dataset.find_last_of("/\\");
+        size_t found = _opts.dataset.find_last_of("/\\");
         if (found != std::string::npos)
         {
-            opts.dataset = opts.dataset.substr(0, found);
+            _opts.dataset = _opts.dataset.substr(0, found);
         }
     }
-    std::cout << "Dataset: " << opts.dataset << std::endl;
+    std::cout << "Dataset: " << _opts.dataset << std::endl;
 
-    std::string _db_name = opts.db_dir + "/adj_" + middle + "_" + opts.db_name;
+    std::string _db_name =
+        _opts.db_dir + "/adj_" + middle + "_" + _opts.db_name;
     if (wiredtiger_open(_db_name.c_str(),
                         nullptr,
                         const_cast<char *>(conn_config.c_str()),
@@ -281,7 +295,7 @@ void make_connections(graph_opts &opts, const std::string &conn_config)
         exit(1);
     }
     // open ekey connection
-    _db_name = opts.db_dir + "/ekey_" + middle + "_" + opts.db_name;
+    _db_name = _opts.db_dir + "/ekey_" + middle + "_" + _opts.db_name;
     if (wiredtiger_open(_db_name.c_str(),
                         nullptr,
                         const_cast<char *>(conn_config.c_str()),
@@ -291,7 +305,7 @@ void make_connections(graph_opts &opts, const std::string &conn_config)
         exit(1);
     }
 
-    _db_name = opts.db_dir + "/std_" + middle + "_" + opts.db_name;
+    _db_name = _opts.db_dir + "/std_" + middle + "_" + _opts.db_name;
 
     if (wiredtiger_open(_db_name.c_str(),
                         nullptr,
@@ -307,18 +321,18 @@ void make_connections(graph_opts &opts, const std::string &conn_config)
     assert(conn_ekey != nullptr);
 }
 
-void dump_config(const graph_opts &opts, const std::string &conn_config)
+void dump_config(const graph_opts &_opts, const std::string &conn_config)
 {
     // dump the config
     std::cout << "Dumping parameters: " << std::endl;
-    std::cout << "Dataset: " << opts.dataset << std::endl;
-    std::cout << "Read optimized: " << opts.read_optimize << std::endl;
-    std::cout << "Directed: " << opts.is_directed << std::endl;
-    std::cout << "Num edges: " << opts.num_edges << std::endl;
-    std::cout << "Num nodes: " << opts.num_nodes << std::endl;
+    std::cout << "Dataset: " << _opts.dataset << std::endl;
+    std::cout << "Read optimized: " << _opts.read_optimize << std::endl;
+    std::cout << "Directed: " << _opts.is_directed << std::endl;
+    std::cout << "Num edges: " << _opts.num_edges << std::endl;
+    std::cout << "Num nodes: " << _opts.num_nodes << std::endl;
     std::cout << "Num threads: " << NUM_THREADS << std::endl;
-    std::cout << "DB dir: " << opts.db_dir << std::endl;
-    std::cout << "DB name: " << opts.db_name << std::endl;
+    std::cout << "DB dir: " << _opts.db_dir << std::endl;
+    std::cout << "DB name: " << _opts.db_name << std::endl;
     std::cout << "DB config: " << conn_config << std::endl;
 }
 

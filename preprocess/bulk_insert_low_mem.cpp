@@ -15,11 +15,8 @@ void insert_edge_thread(int _tid)
 
     reader::AdjReader adj_reader(filename);
     adjlist adj_list;
-    int line = 0;
     while (adj_reader.get_next_adjlist(adj_list) == 0)
     {
-        int ret;
-        line++;
         // insert into STD: edge table
         add_to_edge_table(std_obj.e_cur, adj_list.node_id, adj_list.edgelist);
         // insert into EKEY: edge key table
@@ -29,8 +26,11 @@ void insert_edge_thread(int _tid)
         add_to_adjlist(adj_obj.cur, adj_list);
 
         // acquire a lock and update the global node_degree
-        std::lock_guard<std::mutex> lock(lock_var);
-        node_degrees[adj_list.node_id].out_degree = adj_list.edgelist.size();
+#pragma omp critical
+        {
+            node_degrees[adj_list.node_id].out_degree =
+                adj_list.edgelist.size();
+        }
 
         adj_list.clear();
     }
@@ -50,21 +50,24 @@ void insert_rev_edge_thread(int _tid)
     adjlist adj_list;
     while (adj_reader.get_next_adjlist(adj_list) == 0)
     {
-        int ret;
         // insert into ADJ: inadjlist table
         add_to_adjlist(adj_obj.cur, adj_list);
         // acquire a lock and update the global node_degree
-        std::lock_guard<std::mutex> lock(lock_var);
-        // check if node_id is already present in the map and update the
-        // in_degree
-        if (node_degrees.find(adj_list.node_id) != node_degrees.end())
+#pragma omp critical
         {
-            node_degrees[adj_list.node_id].in_degree = adj_list.edgelist.size();
-        }
-        else
-        {
-            node_degrees[adj_list.node_id].in_degree = adj_list.edgelist.size();
-            node_degrees[adj_list.node_id].out_degree = 0;
+            // check if node_id is already present in the map and update the
+            // in_degree
+            if (node_degrees.find(adj_list.node_id) != node_degrees.end())
+            {
+                node_degrees[adj_list.node_id].in_degree =
+                    adj_list.edgelist.size();
+            }
+            else
+            {
+                node_degrees[adj_list.node_id].in_degree =
+                    adj_list.edgelist.size();
+                node_degrees[adj_list.node_id].out_degree = 0;
+            }
         }
 
         adj_list.clear();
@@ -77,7 +80,7 @@ void insert_nodes(size_t start, size_t end)
     worker_sessions adj_node_obj(conn_adj, "", GraphType::Adj, false);
     worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey, false);
 
-    for (int key = start; key <= end; ++key)
+    for (auto key = start; key <= end; ++key)
     {
         auto it = node_degrees.find(key);
         if (it != node_degrees.end())
@@ -97,6 +100,23 @@ void insert_nodes(size_t start, size_t end)
     }
 }
 
+void update_metadata(const graph_opts &_opts)
+{
+    //    worker_sessions std_metadata_obj(
+    //        conn_std, "table:metadata", GraphType::_META, false);
+    //    worker_sessions adj_metadata_obj(
+    //        conn_adj, "table:metadata", GraphType::_META, false);
+    //    worker_sessions ekey_metadata_obj(
+    //        conn_ekey, "table:metadata", GraphType::_META, false);
+
+    node_id_t key_min = node_degrees.begin()->first;
+    node_id_t key_max = node_degrees.rbegin()->first;
+    std::cout << "Number of nodes: " << opts.num_nodes << std::endl;
+    std::cout << "Number of edges: " << opts.num_edges << std::endl;
+    std::cout << "Min node id: " << key_min << std::endl;
+    std::cout << "Max node id: " << key_max << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
     InsertOpts params(argc, argv);
@@ -112,13 +132,12 @@ int main(int argc, char *argv[])
         "statistics=(all),statistics_log=(wait=0,on_close=true";
     conn_config += "," + stat_config;
 #endif
+    dump_config(opts, conn_config);
     // open connections to all three dbs
     make_connections(opts, conn_config);
 
     num_per_chunk = (int)(opts.num_edges / NUM_THREADS);
-    //
 
-    dump_config(opts, conn_config);
     std::cout << "dataset: " << opts.dataset << std::endl;
 
     // We first work on the out edges. We will read the edges from the file and
@@ -148,6 +167,9 @@ int main(int argc, char *argv[])
 
         insert_nodes(start, end);
     }
+
+    // update_metadata(opts);
+
     conn_adj->close(conn_adj, nullptr);
     conn_std->close(conn_std, nullptr);
     conn_ekey->close(conn_ekey, nullptr);

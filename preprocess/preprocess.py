@@ -29,11 +29,9 @@ class Preprocess:
         self.logger.write(f"\n###Step{self.cmdcnt}####\n" + message + "\n")
         self.cmdcnt += 1
 
-    def build_bulk_cmd(self, graph_type: str, is_ro: bool):
-        bulk_binary = "bulk_insert"
-        cmd = f"{self.config_data['cmd_root']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -t {graph_type} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log "
-        if is_ro:
-            cmd += " -r"
+    def build_bulk_cmd(self):
+        bulk_binary = "bulk_insert_low_mem"
+        cmd = f"{self.config_data['cmd_root']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{bulk_binary}.log"
         return cmd
 
     def build_index_cmd(self, graph_type: str, is_ro: bool):
@@ -62,22 +60,15 @@ class Preprocess:
             os.system(cmd)
 
     def bulk_insert(self):
-        for graph_type in ['std', 'ekey', 'adj']:
-            for is_ro in [True, False]:
-                self.log("Bulk Inserting " + graph_type + " graph")
-                # directed, read_optimized, bulk insert
-                name_str = f"{graph_type}_" + \
-                    ("rd" if is_ro else "d") + \
-                    f"_{self.config_data['dataset_name']}"
-                self.log(f"Bulk Inserting {name_str}\n")
-                bulk_cmd = self.build_bulk_cmd(graph_type, is_ro)
+        self.log("Bulk Inserting graph")
+        bulk_cmd = self.build_bulk_cmd()
 
-                self.log(f"Command: {bulk_cmd}\n")
-                start = time.perf_counter()
-                if not self.config_data['dry_run']:
-                    os.system(bulk_cmd)
-                stop = time.perf_counter()
-                self.log(f"Time: {stop - start}\n")
+        self.log(f"Command: {bulk_cmd}\n")
+        start = time.perf_counter()
+        if not self.config_data['dry_run']:
+            os.system(bulk_cmd)
+        stop = time.perf_counter()
+        self.log(f"Time: {stop - start}\n")
 
     def create_index(self):
         self.log("Creating indices")
@@ -317,7 +308,6 @@ def main():
     preprocess = Preprocess(config_data)
     for graph_type in ["std", "ekey", "adj"]:
         preprocess.init_db(graph_type)
-        # preprocess.api_insert(graph_type)
 
     if config_data['preprocess']:
         time_beg = time.time()
@@ -326,6 +316,10 @@ def main():
         print(f"Time taken to preprocess: {time_end - time_beg}\n")
         if config_data['cleanup']:
             preprocess.cleanup()
+
+    if config_data['bulk_insert']:
+        print("Bulk inserting")
+        preprocess.bulk_insert()
 
     if config_data['index']:
         preprocess.create_index()
