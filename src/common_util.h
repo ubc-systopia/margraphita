@@ -2,8 +2,6 @@
 #define BASE_COMMON
 
 #include <wiredtiger.h>
-
-#include <bitset>
 #include <cassert>
 #include <cstdarg>
 #include <cstdio>
@@ -18,7 +16,6 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 
 #include "common_defs.h"

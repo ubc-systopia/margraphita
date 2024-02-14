@@ -4,13 +4,10 @@
 #include "adj_list.h"
 #include "common_util.h"
 #include "edgekey.h"
-// #include "edgelist.h"
 #include "graph.h"
 #include "graph_exception.h"
 #include "lock.h"
 #include "standard_graph.h"
-
-using namespace std;
 
 class GraphEngine
 {

@@ -6,14 +6,31 @@
 #define MAKE_EKEY(x) ((x) + 1)
 #define OG_KEY(x) ((x)-1)
 
-// These are the string constants
-const std::string METADATA = "metadata";
-const std::string DB_NAME = "db_name";
-const std::string DB_DIR = "db_dir";
-const std::string IS_WEIGHTED = "is_weighted";
-const std::string READ_OPTIMIZE = "read_optimize";
-const std::string IS_DIRECTED = "is_directed";
+// These are the constants
+typedef enum MetadataKey
+{
+    db_name,
+    db_dir,
+    is_weighted,
+    read_optimize,
+    is_directed,
+    num_nodes,
+    num_edges,
+    max_node_id,
+    min_node_id
+} MetadataKey;
 
+const std::string MetadataKeyNames[9] = {"db_name",
+                                         "db_dir",
+                                         "is_weighted",
+                                         "read_optimize",
+                                         "is_directed",
+                                         "num_nodes",
+                                         "num_edges",
+                                         "max_node_id",
+                                         "min_node_id"};
+
+const std::string METADATA = "metadata";
 // Read Optimize columns
 const std::string IN_DEGREE = "in_degree";
 const std::string OUT_DEGREE = "out_degree";
@@ -54,6 +71,7 @@ typedef enum GraphType
     Adj,
     EKey,
     EList,
+    META
 } GraphType;
 
 struct graph_opts
@@ -68,8 +86,8 @@ struct graph_opts
     std::string conn_config;
     std::string stat_log;
     GraphType type;
-    double num_nodes;
-    double num_edges;
+    node_id_t num_nodes;
+    uint64_t num_edges;  // we can have > 4B edges
     std::string dataset;
     int num_threads = 1;
     ~graph_opts() = default;

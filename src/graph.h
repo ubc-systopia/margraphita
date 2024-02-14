@@ -22,10 +22,11 @@ class GraphBase
     //    virtual ~GraphBase() { CommonUtil::close_connection(this->connection);
     //    }
 
-    static void insert_metadata(std::string key,
+    static void insert_metadata(int key,
                                 const char *value,
-                                WT_CURSOR *metadata_cursor);  // ✅ check if pvt
-    std::string get_metadata(std::string key, WT_CURSOR *metadata_cursor);
+                                size_t size,
+                                WT_CURSOR *cursor);
+    void get_metadata(int key, WT_ITEM &item, WT_CURSOR *metadata_cursor);
     virtual node get_node(node_id_t node_id) = 0;
     virtual node get_random_node() = 0;
     static void create_metadata_table(
@@ -58,7 +59,7 @@ class GraphBase
     virtual NodeCursor *get_node_iter() = 0;
     virtual EdgeCursor *get_edge_iter() = 0;
 
-    void set_locks(LockSet *locks_ptr);
+    // void set_locks(LockSet *locks_ptr);
 
     void close();
     uint32_t get_num_nodes();
@@ -79,17 +80,17 @@ class GraphBase
 
     [[maybe_unused]] WT_CONNECTION *get_db_conn() { return this->connection; }
     [[maybe_unused]] WT_SESSION *get_db_session() { return this->session; }
-    static int _get_table_cursor(std::string table,
+    static int _get_table_cursor(const std::string &table,
                                  WT_CURSOR **cursor,
                                  WT_SESSION *session,
                                  bool is_random,
                                  bool prevent_overwrite);
-    int _get_index_cursor(std::string table_name,
-                          std::string idx_name,
-                          std::string projection,
+    int _get_index_cursor(const std::string &table_name,
+                          const std::string &idx_name,
+                          const std::string &projection,
                           WT_CURSOR **cursor);
     [[maybe_unused]] void _restore_from_db();
-    [[maybe_unused]] void _restore_from_db(std::string db_name);
+    [[maybe_unused]] void _restore_from_db(const std::string &db_name);
 
     virtual void close_all_cursors() = 0;
 };
