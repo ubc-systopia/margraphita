@@ -202,7 +202,6 @@ class CmdLineBase
                 opts.conn_config = std::string(opt_arg);
                 break;
             case 'h':
-            default:
                 print_help();
                 break;
         }
@@ -316,6 +315,8 @@ class PageRankOpts : public CmdLineApp
         : CmdLineApp(argc, argv)
     {
         argstr_ += "i:t:";
+        opts.tolerance = _tolerance;
+        opts.iterations = _iters;
         add_help_message(
             'i',
             "i",
@@ -326,8 +327,6 @@ class PageRankOpts : public CmdLineApp
             "tolerance",
             "the tolerance to use for terminating PR. Defaults to " +
                 std::to_string(opts.tolerance));
-        opts.tolerance = _tolerance;
-        opts.iterations = _iters;
     }
 
     void handle_args(signed char opt, char *opt_arg) override

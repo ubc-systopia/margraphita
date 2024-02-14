@@ -1,6 +1,8 @@
 #include "bulk_insert_low_mem.h"
 
 #include <omp.h>
+
+#include <charconv>
 void insert_edge_thread(int _tid)
 {
     int tid = _tid;
@@ -102,19 +104,39 @@ void insert_nodes(size_t start, size_t end)
 
 void update_metadata(const graph_opts &_opts)
 {
-    //    worker_sessions std_metadata_obj(
-    //        conn_std, "table:metadata", GraphType::_META, false);
-    //    worker_sessions adj_metadata_obj(
-    //        conn_adj, "table:metadata", GraphType::_META, false);
-    //    worker_sessions ekey_metadata_obj(
-    //        conn_ekey, "table:metadata", GraphType::_META, false);
+    worker_sessions std_metadata_obj(
+        conn_std, "table:metadata", GraphType::META, false);
+    worker_sessions adj_metadata_obj(
+        conn_adj, "table:metadata", GraphType::META, false);
+    worker_sessions ekey_metadata_obj(
+        conn_ekey, "table:metadata", GraphType::META, false);
 
     node_id_t key_min = node_degrees.begin()->first;
     node_id_t key_max = node_degrees.rbegin()->first;
-    std::cout << "Number of nodes: " << opts.num_nodes << std::endl;
-    std::cout << "Number of edges: " << opts.num_edges << std::endl;
+    std::cout << "Number of nodes: " << std::fixed << opts.num_nodes
+              << std::endl;
+    std::cout << "Number of edges: " << std::fixed << opts.num_edges
+              << std::endl;
     std::cout << "Min node id: " << key_min << std::endl;
     std::cout << "Max node id: " << key_max << std::endl;
+
+    // Key min
+    std::string val_temp = std::to_string(key_min);
+    std_metadata_obj.metadata->set_key(std_metadata_obj.metadata,
+                                       "min_node_id");
+    std_metadata_obj.metadata->set_value(std_metadata_obj.metadata,
+                                         val_temp.c_str());
+    std_metadata_obj.metadata->insert(std_metadata_obj.metadata);
+
+    // Key max
+    val_temp = std::to_string(key_max);
+    std_metadata_obj.metadata->set_key(std_metadata_obj.metadata,
+                                       "max_node_id");
+    std_metadata_obj.metadata->set_value(std_metadata_obj.metadata,
+                                         val_temp.c_str());
+    std_metadata_obj.metadata->insert(std_metadata_obj.metadata);
+
+    // Number of nodes
 }
 
 int main(int argc, char *argv[])
@@ -168,7 +190,7 @@ int main(int argc, char *argv[])
         insert_nodes(start, end);
     }
 
-    // update_metadata(opts);
+    update_metadata(opts);
 
     conn_adj->close(conn_adj, nullptr);
     conn_std->close(conn_std, nullptr);

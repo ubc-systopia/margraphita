@@ -69,9 +69,9 @@ typedef struct fgraph_conn_object
                       << std::endl;
             exit(1);
         }
-        // Open Cursors. If the tabel type is _META, open the metadata cursor
+        // Open Cursors. If the tabel type is META, open the metadata cursor
         // and return.
-        if (type == GraphType::_META)
+        if (type == GraphType::META)
         {
             // open the metadata cursor
             ret = session->open_cursor(
