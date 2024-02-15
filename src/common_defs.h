@@ -56,7 +56,9 @@ const std::string IN_ADJLIST = "adjlistin";
 const std::string node_count = "nNodes";
 const std::string edge_count = "nEdges";
 
-typedef int32_t node_id_t;
+typedef uint32_t node_id_t;
+typedef uint32_t
+    edge_id_t;  // Make this uint64_t if you want to support more than 4B edges
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
 
@@ -95,7 +97,7 @@ struct graph_opts
 
 typedef struct node
 {
-    node_id_t id = -1;  // node ID
+    node_id_t id = 0;  // node ID
     degree_t in_degree = 0;
     degree_t out_degree = 0;
 
@@ -103,7 +105,7 @@ typedef struct node
 
 typedef struct edge
 {
-    int32_t id = 0;
+    edge_id_t id = 0;
     node_id_t src_id = 0;
     node_id_t dst_id = 0;
     edgeweight_t edge_weight = 0;
@@ -130,8 +132,8 @@ typedef struct key_range
 
 typedef struct edge_range
 {
-    key_pair start;
-    key_pair end;
+    key_pair start{};
+    key_pair end{};
     edge_range() : start(), end() {}
     edge_range(key_pair a, key_pair b) : start(a), end(b) {}
 } edge_range;

@@ -11,13 +11,8 @@
 #include "reader.h"
 
 #define NUM_THREADS 16
-double num_edges;
-double num_nodes;
 std::string dataset;
-int read_optimized = 0;
-int is_directed = 1;
 int num_per_chunk;
-std::string type_opt;
 
 std::unordered_map<int, std::pair<adjlist,adjlist>> conflicts;
 

@@ -698,7 +698,7 @@ std::vector<node> AdjList::get_nodes()
  */
 node AdjList::get_node(node_id_t node_id)
 {
-    node found = {-1};
+    node found = {};
     CommonUtil::set_key(node_cursor, node_id);
     int ret = node_cursor->search(node_cursor);
     if (ret == 0)
@@ -742,7 +742,7 @@ std::vector<edge> AdjList::get_edges()
  */
 edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {-1, -1, -1, -1};
+    edge found = {};
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     int ret = edge_cursor->search(edge_cursor);
     if (ret == 0)
@@ -1300,39 +1300,33 @@ int AdjList::delete_related_edges_and_adjlists(node_id_t node_id,
 
 OutCursor *AdjList::get_outnbd_iter()
 {
-    uint64_t num_nodes = this->get_num_nodes();
     OutCursor *toReturn =
         new AdjOutCursor(get_new_out_adjlist_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range(
-        {-1, static_cast<node_id_t>((int64_t)num_nodes - 1)});
+    toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
     return toReturn;
 }
 
 InCursor *AdjList::get_innbd_iter()
 {
-    uint32_t num_nodes = this->get_num_nodes();
     InCursor *toReturn = new AdjInCursor(get_new_in_adjlist_cursor(), session);
-    toReturn->set_num_nodes(num_nodes);
-    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
+    toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
     return toReturn;
 }
 
 NodeCursor *AdjList::get_node_iter()
 {
-    uint32_t num_nodes = this->get_num_nodes();
+    node_id_t num_nodes = this->get_num_nodes();
     NodeCursor *toReturn = new AdjNodeCursor(get_new_node_cursor(), session);
-    toReturn->set_key_range({-1, static_cast<node_id_t>(num_nodes - 1)});
+    toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
     return toReturn;
 }
 
 EdgeCursor *AdjList::get_edge_iter()
 {
-    uint32_t num_nodes = this->get_num_nodes();
     EdgeCursor *toReturn = new AdjEdgeCursor(get_new_edge_cursor(), session);
     edge_range range;
-    range.start = key_pair(-1, -1);
-    range.end = key_pair(num_nodes - 1, num_nodes - 1);
+    range.start = key_pair(UINT32_MAX, UINT32_MAX);
+    range.end = key_pair(UINT32_MAX, UINT32_MAX);
     toReturn->set_key_range(range);
     return toReturn;
 }
@@ -1464,7 +1458,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     }
     else
     {
-        found.id = -1;
+        found.id = UINT32_MAX;
     }
     return found;
 }
@@ -1482,7 +1476,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     }
     else
     {
-        found = {-1, -1, -1, -1};
+        found = {.src_id = UINT32_MAX, .dst_id = UINT32_MAX};
     }
     return found;
 }

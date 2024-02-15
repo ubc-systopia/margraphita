@@ -304,7 +304,7 @@ bool StandardGraph::has_edge(node_id_t src_id, node_id_t dst_id)
 
 edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
 {
-    edge found = {-1, -1, -1, -1};
+    edge found = {};
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     int ret = edge_cursor->search(edge_cursor);
     if (ret == 0)
@@ -333,7 +333,7 @@ int StandardGraph::update_edge_weight(node_id_t src,
 
 node StandardGraph::get_node(node_id_t node_id)
 {
-    node found = {-1};
+    node found = {};
     CommonUtil::set_key(node_cursor, node_id);
     int ret = node_cursor->search(node_cursor);
     if (ret == 0)
@@ -950,7 +950,7 @@ std::vector<edge> StandardGraph::get_edges()
     vector<edge> edges;
     while (edge_cursor->next(edge_cursor) == 0)
     {
-        edge found = {-1, -1, -1, -1};
+        edge found = {};
         CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
         if (opts.is_weighted)
         {
@@ -981,7 +981,7 @@ std::vector<edge> StandardGraph::get_out_edges(node_id_t node_id)
     CommonUtil::set_key(src_index_cursor, node_id);
     if (src_index_cursor->search(src_index_cursor) == 0)
     {
-        edge found = {-1, -1, -1};
+        edge found = {};
         CommonUtil::read_from_edge_idx(src_index_cursor, &found);
         edges.push_back(found);
         while (src_index_cursor->next(src_index_cursor) == 0)
@@ -1068,7 +1068,8 @@ vector<edge> StandardGraph::get_in_edges(node_id_t node_id)
     CommonUtil::set_key(dst_index_cursor, node_id);
     if (dst_index_cursor->search(dst_index_cursor) == 0)
     {
-        edge found = {-1, -1, -1};
+        edge found = {};
+
         CommonUtil::read_from_edge_idx(dst_index_cursor, &found);
         edges.push_back(found);
         while (dst_index_cursor->next(dst_index_cursor) == 0)
@@ -1243,7 +1244,7 @@ WT_CURSOR *StandardGraph::get_new_dst_idx_cursor()
 OutCursor *StandardGraph::get_outnbd_iter()
 {
     OutCursor *toReturn = new StdOutCursor(get_new_edge_cursor(), session);
-    key_range range = {0, 0};
+    key_range range = {UINT32_MAX, UINT32_MAX};
     toReturn->set_key_range(range);
     return toReturn;
 }
@@ -1251,21 +1252,21 @@ OutCursor *StandardGraph::get_outnbd_iter()
 InCursor *StandardGraph::get_innbd_iter()
 {
     InCursor *toReturn = new StdInCursor(get_new_dst_idx_cursor(), session);
-    toReturn->set_key_range({0, 0});
+    toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
     return toReturn;
 }
 
 NodeCursor *StandardGraph::get_node_iter()
 {
     NodeCursor *to_return = new StdNodeCursor(get_new_node_cursor(), session);
-    to_return->set_key_range({-1,-1});
+    to_return->set_key_range({UINT32_MAX, UINT32_MAX});
     return to_return;
 }
 
 EdgeCursor *StandardGraph::get_edge_iter()
 {
     EdgeCursor *toreturn = new StdEdgeCursor(get_new_edge_cursor(), session);
-    edge_range range = {{-1,-1}, {-1,-1}};
+    edge_range range = {{UINT32_MAX, UINT32_MAX}, {UINT32_MAX, UINT32_MAX}};
     toreturn->set_key_range(range);
     return toreturn;
 }

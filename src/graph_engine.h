@@ -272,7 +272,7 @@ void GraphEngine::calculate_thread_offsets_edge_partition(
         node_id_t curr_partition = 1;
         if (i == thread_max - 1)
         {
-            last = {num_nodes, -1};
+            last = {num_nodes, UINT32_MAX};
         }
         else
         {
@@ -317,12 +317,25 @@ void GraphEngine::calculate_thread_offsets(
         node_offset += num_nodes / thread_max;
     }
 
-    for (auto x : node_ranges)
+    for (int i = 0; i < node_ranges.size() - 1; i++)
     {
-        key_pair first = {x.start, 0}, last = {x.end + 1, -1};
+        key_pair first = {node_ranges[i].start, 0},
+                 last = {node_ranges[i].end, node_ranges[i].start + 1};
         edge_range er(first, last);
         edge_offsets.push_back(er);
     }
+    key_pair first = {node_ranges[node_ranges.size() - 1].start, 0},
+             last = {node_ranges[node_ranges.size() - 1].end, num_nodes};
+    edge_range er(first, last);
+    edge_offsets.push_back(er);
+    //    for (auto x : node_ranges)
+    //    {
+    //        key_pair first = {x.start, 0}, last = {
+    //                                           x.end + 1,
+    //                                       };
+    //        edge_range er(first, last);
+    //        edge_offsets.push_back(er);
+    //    }
 }
 
 // void GraphEngine::calculate_thread_offsets_edge_partition_better(

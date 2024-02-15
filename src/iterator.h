@@ -2,6 +2,8 @@
 #define ITERATOR_H
 #include <wiredtiger.h>
 
+#include <iostream>
+
 #include "common_defs.h"
 /**
  * @brief The following are iterator definitions.
@@ -43,17 +45,17 @@ class OutCursor : public table_iterator
    protected:
     key_range
         keys{};  // keyrange because out_nbd is defined for a node id range
-    int num_nodes{};
+    node_id_t num_nodes{};
 
    public:
     OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
     {
         init(cur, sess);
-        keys = {-1, -1};  // default key range
+        keys = {UINT32_MAX, UINT32_MAX};  // default key range
     }
 
     virtual void set_key_range(key_range _keys) = 0;
-    void set_num_nodes(int num) { num_nodes = num; }
+    void set_num_nodes(uint32_t num) { num_nodes = num; }
 
     virtual void next(adjlist *found) = 0;
     virtual void next(adjlist *found, node_id_t key) = 0;
@@ -63,18 +65,18 @@ class InCursor : public table_iterator
 {
    protected:
     key_range keys{};
-    int num_nodes{};
+    node_id_t num_nodes{};
 
    public:
     InCursor(WT_CURSOR *cur, WT_SESSION *sess)
     {
         init(cur, sess);
-        keys = {-1, -1};
+        keys = {UINT32_MAX, UINT32_MAX};
     }
 
     //! DELETE THIS LIKE IN OUTCURSOR
     virtual void set_key_range(key_range _keys) = 0;
-    void set_num_nodes(int num) { num_nodes = num; }
+    void set_num_nodes(node_id_t num) { num_nodes = num; }
 
     virtual void next(adjlist *found) = 0;
     virtual void next(adjlist *found, node_id_t key) = 0;
@@ -89,7 +91,7 @@ class NodeCursor : public table_iterator
     NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
     {
         init(node_cur, sess);
-        keys = {-1, -1};
+        keys = {UINT32_MAX, UINT32_MAX};
     }
 
     /**
@@ -119,8 +121,8 @@ class EdgeCursor : public table_iterator
     EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
     {
         init(composite_edge_cur, sess);
-        start_edge = {-1, -1};
-        end_edge = {-1, -1};
+        start_edge = {UINT32_MAX, UINT32_MAX};
+        end_edge = {UINT32_MAX, UINT32_MAX};
     }
 
 //    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess, bool get_weight)

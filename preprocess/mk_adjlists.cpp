@@ -27,7 +27,6 @@ int main (int argc, char** argv)
     std::cout << "Read Optimized: " << opts.read_optimize << std::endl;
     std::cout << "Is Directed: " << opts.is_directed << std::endl;
     std::cout << "Num Per Chunk: " << num_per_chunk << std::endl;
-    std::cout << "Type Opt: " << type_opt << std::endl;
     std::cout << "Num Threads: " << NUM_THREADS << std::endl;
     std::cout << "dbname: " << opts.db_name << std::endl;
 
