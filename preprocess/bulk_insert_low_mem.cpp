@@ -76,68 +76,81 @@ void insert_rev_edge_thread(int _tid)
     }
 }
 
-void insert_nodes(size_t start, size_t end)
+void insert_nodes()
 {
     worker_sessions std_node_obj(conn_std, "", GraphType::Std, false);
     worker_sessions adj_node_obj(conn_adj, "", GraphType::Adj, false);
     worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey, false);
-
-    for (auto key = start; key <= end; ++key)
+    int count = 0;
+    // iterate over the node_degrees and insert into the node table
+for ( auto it = node_degrees.begin(); it != node_degrees.end(); it++)
     {
-        auto it = node_degrees.find(key);
-        if (it != node_degrees.end())
-        {
-            // Process the element
-            node to_insert;
-            to_insert.id = key;
-            to_insert.in_degree = it->second.in_degree;
-            to_insert.out_degree = it->second.out_degree;
-            // insert into STD: node table
-            add_to_node_table(std_node_obj.n_cur, to_insert);
-            // insert into EKEY: node table
-            add_node_to_ekey(ekey_node_obj.e_cur, to_insert);
-            // insert into ADJ: node table
-            add_to_node_table(adj_node_obj.n_cur, to_insert);
-        }
+        node to_insert;
+        to_insert.id = it->first;
+        to_insert.in_degree = it->second.in_degree;
+        to_insert.out_degree = it->second.out_degree;
+        // insert into STD: node table
+        add_to_node_table(std_node_obj.n_cur, to_insert);
+        // insert into EKEY: node table
+        add_node_to_ekey(ekey_node_obj.e_cur, to_insert);
+        // insert into ADJ: node table
+        add_to_node_table(adj_node_obj.n_cur, to_insert);
+        count++;
     }
+     std::cout << "inserted " << count << " nodes" << std::endl;
+}
+
+void dump_mdata(int key, WT_CURSOR *cursor)
+{
+    cursor->set_key(cursor, key);
+    cursor->search(cursor);
+    WT_ITEM item;
+    cursor->get_value(cursor, &item);
+    std::cout << "Key: " << key << " Value: " << *(node_id_t *)item.data << std::endl;
 }
 
 void update_metadata(const graph_opts &_opts)
 {
-    worker_sessions std_metadata_obj(
-        conn_std, "table:metadata", GraphType::META, false);
-    worker_sessions adj_metadata_obj(
-        conn_adj, "table:metadata", GraphType::META, false);
-    worker_sessions ekey_metadata_obj(
-        conn_ekey, "table:metadata", GraphType::META, false);
-
     node_id_t key_min = node_degrees.begin()->first;
     node_id_t key_max = node_degrees.rbegin()->first;
-    std::cout << "Number of nodes: " << std::fixed << opts.num_nodes
+    std::cout << "Number of nodes: " << _opts.num_nodes
               << std::endl;
-    std::cout << "Number of edges: " << std::fixed << opts.num_edges
+    std::cout << "Cout of node_degrees: " << node_degrees.size()
               << std::endl;
+    // std::cout << "Number of nodes: " << _opts.num_nodes
+    //           << std::endl;
+    std::cout << "Number of edges: " << _opts.num_edges
+              << std::endl;
+
+
     std::cout << "Min node id: " << key_min << std::endl;
     std::cout << "Max node id: " << key_max << std::endl;
-
-    // Key min
-    std::string val_temp = std::to_string(key_min);
-    std_metadata_obj.metadata->set_key(std_metadata_obj.metadata,
-                                       "min_node_id");
-    std_metadata_obj.metadata->set_value(std_metadata_obj.metadata,
-                                         val_temp.c_str());
-    std_metadata_obj.metadata->insert(std_metadata_obj.metadata);
-
-    // Key max
-    val_temp = std::to_string(key_max);
-    std_metadata_obj.metadata->set_key(std_metadata_obj.metadata,
-                                       "max_node_id");
-    std_metadata_obj.metadata->set_value(std_metadata_obj.metadata,
-                                         val_temp.c_str());
-    std_metadata_obj.metadata->insert(std_metadata_obj.metadata);
-
-    // Number of nodes
+    
+    for (auto conn : {conn_std, conn_adj, conn_ekey})
+    {
+        worker_sessions obj(conn, "table:metadata", GraphType::META, false);
+        WT_CURSOR *cursor = obj.metadata;
+        // Key min
+        add_metadata(MetadataKey::min_node_id, (char*)&key_min, sizeof(key_min), cursor);
+        // Key max
+        add_metadata(MetadataKey::max_node_id, (char*)&key_max, sizeof(key_max), cursor);
+        // Number of nodes
+        add_metadata(MetadataKey::num_nodes, (char*)&opts.num_nodes, sizeof(opts.num_nodes), cursor);
+        // Number of edges
+        add_metadata(MetadataKey::num_edges, (char*)&opts.num_edges, sizeof(opts.num_edges), cursor);
+    }
+    for (auto conn : {conn_std, conn_adj, conn_ekey})
+    {
+        worker_sessions obj(conn, "table:metadata", GraphType::META, false);
+        WT_CURSOR *cursor = obj.metadata;
+        dump_mdata(MetadataKey::min_node_id, cursor);
+        dump_mdata(MetadataKey::max_node_id, cursor);
+        dump_mdata(MetadataKey::num_nodes, cursor);
+        dump_mdata(MetadataKey::num_edges, cursor);
+    }
 }
+
+
 
 int main(int argc, char *argv[])
 {
@@ -177,18 +190,9 @@ int main(int argc, char *argv[])
     }
 
     // insert nodes into the node table
-    const size_t totalKeys = node_degrees.size();
-    const size_t keysPerThread =
-        (totalKeys + NUM_THREADS - 1) / NUM_THREADS;  // Ceiling division
 
-#pragma omp parallel num_threads(NUM_THREADS)
-    {
-        int tid = omp_get_thread_num();
-        size_t start = tid * keysPerThread;
-        size_t end = std::min((tid + 1) * keysPerThread - 1, totalKeys - 1);
-
-        insert_nodes(start, end);
-    }
+    insert_nodes();
+    
 
     update_metadata(opts);
 

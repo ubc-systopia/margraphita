@@ -130,6 +130,8 @@ typedef struct key_range
     key_range(node_id_t a, node_id_t b) : start(a), end(b) {}
 } key_range;
 
+typedef key_range node_range;
+
 typedef struct edge_range
 {
     key_pair start{};

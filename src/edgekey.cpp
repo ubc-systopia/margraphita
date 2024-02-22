@@ -1467,7 +1467,6 @@ WT_CURSOR *EdgeKey::get_new_dst_src_idx_cursor()
 OutCursor *EdgeKey::get_outnbd_iter()
 {
     OutCursor *toReturn = new EkeyOutCursor(get_new_edge_cursor(), session);
-    toReturn->set_key_range({OutOfBand_ID, OutOfBand_ID});
     return toReturn;
 }
 
@@ -1476,7 +1475,6 @@ InCursor *EdgeKey::get_innbd_iter()
     //    uint64_t num_nodes = this->get_num_nodes();
     InCursor *toReturn =
         new EkeyInCursor(get_new_dst_src_idx_cursor(), session);
-    //toReturn->set_key_range({0, 0});
 
     return toReturn;
 }
@@ -1485,15 +1483,12 @@ NodeCursor *EdgeKey::get_node_iter()
 {
     NodeCursor *toReturn =
         new EkeyNodeCursor(get_new_dst_src_idx_cursor(), session);
-    toReturn->set_key_range({OutOfBand_ID, OutOfBand_ID});
     return toReturn;
 }
 
 EdgeCursor *EdgeKey::get_edge_iter()
 {
     EdgeCursor *toReturn = new EkeyEdgeCursor(get_new_edge_cursor(), session);
-    edge_range rng;
-    toReturn->set_key_range(rng);
     return toReturn;
 }
 

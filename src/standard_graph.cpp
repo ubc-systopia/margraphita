@@ -82,7 +82,8 @@ void StandardGraph::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 
 void StandardGraph::init_cursors()
 {
-    int ret =
+    try{
+        int ret =
         _get_table_cursor(METADATA, &metadata_cursor, session, false, false);
     if (ret != 0)
     {
@@ -126,6 +127,16 @@ void StandardGraph::init_cursors()
         throw GraphException("Could not get an SRC_DST_INDEX cursor: " +
                              string(wiredtiger_strerror(ret)));
     }
+    }catch (GraphException &e){
+        CommonUtil::close_cursor(metadata_cursor);
+        CommonUtil::close_cursor(node_cursor);
+        CommonUtil::close_cursor(edge_cursor);
+        session->close(session, nullptr);
+        connection->close(connection, nullptr);
+        std::cerr << e.what() << std::endl;
+        exit(1);
+    }
+    
 }
 /**
  * @brief Creates the indices not required for adding nodes/edges.
@@ -1258,7 +1269,9 @@ InCursor *StandardGraph::get_innbd_iter()
 
 NodeCursor *StandardGraph::get_node_iter()
 {
-    NodeCursor *to_return = new StdNodeCursor(get_new_node_cursor(), session);
+    WT_CURSOR *new_node_cursor = get_new_node_cursor();
+    assert(new_node_cursor != nullptr);
+    NodeCursor *to_return = new StdNodeCursor(new_node_cursor, session);
     to_return->set_key_range({UINT32_MAX, UINT32_MAX});
     return to_return;
 }

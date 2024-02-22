@@ -132,9 +132,9 @@ void test_get_edge(EdgeKey &graph)
 
     // Now get a non-existent edge
     found = graph.get_edge(222, 333);
-    assert(found.src_id == -1);
-    assert(found.dst_id == -1);
-    assert(found.edge_weight == -1);
+    assert(found.src_id == 0);
+    assert(found.dst_id == 0);
+    assert(found.edge_weight == 0);
 }
 
 void test_get_edges(EdgeKey &graph)
@@ -290,7 +290,7 @@ void test_delete_node(EdgeKey &graph, bool is_directed)
 
     // Delete node2 and verify it was actually deleted
     graph.delete_node(SampleGraph::node2.id);
-    CommonUtil::set_key(e_cur, SampleGraph::node2.id, -1);
+    CommonUtil::set_key(e_cur, SampleGraph::node2.id, OutOfBand_ID);
     int ret = e_cur->search(e_cur);
     assert(ret != 0);
 
@@ -350,7 +350,7 @@ void test_InCursor(EdgeKey &graph)
     in_cursor->reset();
 
     // testing next() with a key range set
-    fprintf(stderr, "\n ---- \ndumping node 1:\n");
+    fprintf(stderr, "\n ---- now testing with a range (3,6) set :\n");
 
     in_cursor->set_key_range(key_range{3, 6});
     found.clear();
@@ -380,7 +380,7 @@ void test_OutCursor(EdgeKey &graph)
     out_cursor->reset();
 
     // testing next() with a key range set
-    fprintf(stderr, "\n ---- \ndumping node 1:\n");
+    fprintf(stderr, "\n ---- now testing with a range (3,6) set:\n");
 
     out_cursor->set_key_range({3, 6});
     found.clear();
@@ -440,7 +440,7 @@ void test_EdgeCursor(EdgeKey &graph)
     int dstIdList[] = {3, 7, 6, 8, 7};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != -1)
+    while (found.src_id != UINT32_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);

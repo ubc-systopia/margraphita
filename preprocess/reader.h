@@ -173,6 +173,7 @@ class AdjReader
             std::istringstream iss(line);
             if (iss >> adj.node_id)
             {
+                iss >> adj.degree;
                 node_id_t n;
                 while (iss >> n)
                 {
@@ -189,7 +190,7 @@ class AdjReader
                 std::cerr << "Error reading from file" << std::endl;
                 return -1;
             }
-            adj.degree = adj.edgelist.size();
+            //adj.degree = adj.edgelist.size();n
             return 0;
         }
         else

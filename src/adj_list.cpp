@@ -625,7 +625,7 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
         }
         adjlist in_edges;
         in_edges.node_id = node_id;
-        CommonUtil::record_to_adjlist(session, in_adjlist_cursor, &in_edges);
+        CommonUtil::record_to_adjlist(in_adjlist_cursor, &in_edges);
         in_adjlist_cursor->reset(in_adjlist_cursor);
         return in_edges.degree;
     }
@@ -664,7 +664,7 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
         }
         adjlist out_edges;
         out_edges.node_id = node_id;
-        CommonUtil::record_to_adjlist(session, out_adjlist_cursor, &out_edges);
+        CommonUtil::record_to_adjlist(out_adjlist_cursor, &out_edges);
         out_adjlist_cursor->reset(out_adjlist_cursor);
         return out_edges.degree;
     }
@@ -1105,7 +1105,7 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
                              " in the AdjList");
     }
 
-    CommonUtil::record_to_adjlist(session, cursor, &adj_list);
+    CommonUtil::record_to_adjlist(cursor, &adj_list);
     cursor->reset(cursor);
     return adj_list.edgelist;
 }
@@ -1125,9 +1125,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
     }
     adjlist found = adjlist();
     found.node_id = node_id;
-    CommonUtil::record_to_adjlist(session,
-                                  cursor,
-                                  &found);  //<-- This works just fine.
+    CommonUtil::record_to_adjlist(cursor, &found);  //<-- This works just fine.
     found.edgelist.emplace_back(
         to_insert);  // this needs to be converted first.
     found.degree += 1;
@@ -1162,7 +1160,7 @@ int AdjList::delete_from_adjlists(WT_CURSOR *cursor,
 
     adjlist found;
     found.node_id = node_id;
-    CommonUtil::record_to_adjlist(session, cursor, &found);
+    CommonUtil::record_to_adjlist(cursor, &found);
     for (size_t i = 0; i < found.edgelist.size(); i++)
     {
         if (found.edgelist.at(i) == to_delete)
@@ -1315,7 +1313,6 @@ InCursor *AdjList::get_innbd_iter()
 
 NodeCursor *AdjList::get_node_iter()
 {
-    node_id_t num_nodes = this->get_num_nodes();
     NodeCursor *toReturn = new AdjNodeCursor(get_new_node_cursor(), session);
     toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
     return toReturn;
@@ -1515,7 +1512,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     {
         adjlist found;
         in_adjlist_cursor->get_key(in_adjlist_cursor, &found.node_id);
-        CommonUtil::record_to_adjlist(session, in_adjlist_cursor, &found);
+        CommonUtil::record_to_adjlist(in_adjlist_cursor, &found);
         CommonUtil::dump_adjlist(found);
     }
 
@@ -1527,7 +1524,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     {
         adjlist found;
         out_adjlist_cursor->get_key(out_adjlist_cursor, &found.node_id);
-        CommonUtil::record_to_adjlist(session, out_adjlist_cursor, &found);
+        CommonUtil::record_to_adjlist(out_adjlist_cursor, &found);
         CommonUtil::dump_adjlist(found);
     }
 }

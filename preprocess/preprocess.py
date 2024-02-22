@@ -16,7 +16,8 @@ class Preprocess:
         self.logger = open(self.log_file, "w")
         self.date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         log_entry = "Path:" + \
-                    self.config_data['graph_path'] + "\nDate: " + self.date + "\n"
+                    self.config_data['graph_path'] + \
+            "\nDate: " + self.date + "\n"
         if ('scale' in self.config_data):
             log_entry += "Scale: " + str(self.config_data['scale']) + "\n"
         self.logger.write(log_entry)
@@ -84,7 +85,6 @@ class Preprocess:
         for key, value in self.config_data.items():
             print(key + ":" + str(value) + "\n")
 
-
     def preprocess(self):
         ##############################
         # sort the graph
@@ -103,7 +103,8 @@ class Preprocess:
         ##############################
         # Split the graph into NUM_THREADS files
         ##############################
-        self.log(f"Splitting the graph into NUM_THREAD({self.config_data['num_threads']}) files")
+        self.log(
+            f"Splitting the graph into NUM_THREAD({self.config_data['num_threads']}) files")
         split_cmd = f"split --number=l/{self.config_data['num_threads']} {self.config_data['sorted_graph']} {self.config_data['output_dir']}/{self.config_data['dataset_name']}_"
         self.log(f"Running split command: {split_cmd}\n")
         if (not self.config_data['dry_run']):
@@ -134,7 +135,9 @@ class Preprocess:
         # compute num_nodes from the graph
         ##############################
         self.log("Constructing the nodes file")
-        cmd = f"ls {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a* | parallel awk -f nodes.awk " + "{}" + f" | sort -u -n >  {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
+        cmd = f"ls {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a* | parallel awk -f nodes.awk " + \
+            "{}" + \
+            f" | sort -u -n >  {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
         print(cmd)
         self.log(f"Running command: {cmd}\n")
         if (not self.config_data['dry_run']):
@@ -185,7 +188,8 @@ class Preprocess:
         ##############################
         # Split the reverse graph into NUM_THREADS files
         ##############################
-        self.log(f"Splitting the graph into NUM_THREAD({self.config_data['num_threads']}) files")
+        self.log(
+            f"Splitting the graph into NUM_THREAD({self.config_data['num_threads']}) files")
         split_cmd = f"split --number=l/{self.config_data['num_threads']} {self.config_data['reverse_graph']} {self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse_"
         self.log(f"Running split command: {split_cmd}\n")
         if (not self.config_data['dry_run']):
@@ -205,7 +209,8 @@ class Preprocess:
             st = time.time()
             os.system(cmd)
             et = time.time()
-            print(f"Time taken to construct the adjacency list files: {et - st}\n")
+            print(
+                f"Time taken to construct the adjacency list files: {et - st}\n")
 
         self.log("Preprocessing complete")
 
@@ -242,11 +247,11 @@ def main():
     parser.add_argument("-e", "--num_edges", type=int, help="number of edges")
     parser.add_argument("-d", "--db_dir", type=str, help="DB directory")
     parser.add_argument("-p", "--preprocess", action='store_true',
-                        default=True, help="preprocess graphs")
+                        default=False, help="preprocess graphs")
     parser.add_argument("-x", "--index", action='store_true',
                         default=False, help="create index")
     parser.add_argument("-i", "--insert", action='store_true',
-                        default=True, help="insert the graph. Bulk insert if -b is specified")
+                        default=False, help="insert the graph. Bulk insert if -b is specified")
     parser.add_argument("-b", "--bulk_insert", action='store_true',
                         default=False, help="bulk insert")
     parser.add_argument("-m", "--num_threads", type=int,
@@ -259,8 +264,8 @@ def main():
                         help="read optimized")
     parser.add_argument("-c", "--cleanup", action='store_true', default=False,
                         help="cleanup any intermediate files, default is False")
-    parser.add_argument("-w", "--weighted", action='store_true', default=False, help="weighted graph")
-
+    parser.add_argument("-w", "--weighted", action='store_true',
+                        default=False, help="weighted graph")
 
     # check that there are some arguments passed
     assert len(sys.argv) > 1, "No arguments passed"

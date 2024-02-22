@@ -22,7 +22,11 @@ class AdjInCursor : public InCursor
     void setAllNodes(bool allNodes) { all_nodes = allNodes; }
 
    public:
-    AdjInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
+    AdjInCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void set_key_range(key_range _key) override
     {
@@ -82,7 +86,7 @@ class AdjInCursor : public InCursor
                 return;
             }
 
-            CommonUtil::record_to_adjlist(session, cursor, found);
+            CommonUtil::record_to_adjlist(cursor, found);
             found->node_id = curr_key;
 
             if (cursor->next(cursor) != 0)
@@ -101,7 +105,11 @@ class AdjOutCursor : public OutCursor
     bool all_nodes = false;
 
    public:
-    AdjOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
+    AdjOutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
     void setAllNodes(bool allNodes) { all_nodes = allNodes; }
 
     // use key_pair to define start and end keys.
@@ -162,7 +170,7 @@ class AdjOutCursor : public OutCursor
                 return;
             }
 
-            CommonUtil::record_to_adjlist(session, cursor, found);
+            CommonUtil::record_to_adjlist(cursor, found);
             found->node_id = curr_key;
 
             if (cursor->next(cursor) != 0)
@@ -178,7 +186,11 @@ class AdjOutCursor : public OutCursor
 class AdjNodeCursor : public NodeCursor
 {
    public:
-    AdjNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
+    AdjNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void set_key_range(key_range _keys) override
     {
@@ -282,7 +294,11 @@ class AdjNodeCursor : public NodeCursor
 class AdjEdgeCursor : public EdgeCursor
 {
    public:
-    AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
+    AdjEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void set_key_range(edge_range range) override
     {

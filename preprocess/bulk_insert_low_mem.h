@@ -321,6 +321,30 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
     assert(conn_ekey != nullptr);
 }
 
+/**
+ * @brief This private function inserts metadata values into the metadata
+ * table. The fields are self explanatory.
+ *
+ */
+void add_metadata(const int key,
+                                const char *value,
+                                size_t size,
+                                WT_CURSOR *cursor)
+{
+    cursor->set_key(cursor, key);
+    WT_ITEM item;
+    item.data = value;
+    item.size = size;
+    cursor->set_value(cursor, &item);
+    int ret = cursor->insert(cursor);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Failed to insert metadata for the key %d", key);
+        fprintf(stderr, "Error: %s\n", wiredtiger_strerror(ret));
+        exit(-1);
+    }
+}
+
 void dump_config(const graph_opts &_opts, const std::string &conn_config)
 {
     // dump the config

@@ -27,6 +27,7 @@ class GraphBase
                                 size_t size,
                                 WT_CURSOR *cursor);
     void get_metadata(int key, WT_ITEM &item, WT_CURSOR *metadata_cursor);
+    void dump_meta_data();
     virtual node get_node(node_id_t node_id) = 0;
     virtual node get_random_node() = 0;
     static void create_metadata_table(
@@ -62,10 +63,10 @@ class GraphBase
     // void set_locks(LockSet *locks_ptr);
 
     void close();
-    uint32_t get_num_nodes();
-    uint64_t get_num_edges();
-    void set_num_nodes(uint64_t num_nodes, WT_CURSOR *cursor);
-    void set_num_edges(uint64_t num_edges, WT_CURSOR *cursor);
+    node_id_t get_num_nodes();
+    edge_id_t get_num_edges();
+    void set_num_nodes(node_id_t num_nodes, WT_CURSOR *cursor);
+    void set_num_edges(edge_id_t num_edges, WT_CURSOR *cursor);
     [[nodiscard]] std::string get_db_name() const { return opts.db_name; };
 
    protected:

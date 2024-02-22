@@ -159,6 +159,41 @@ void GraphBase::get_metadata(const int key, WT_ITEM &item, WT_CURSOR *cursor)
     }
 }
 
+void GraphBase::dump_meta_data()
+{
+    WT_CURSOR *cursor;
+    _get_table_cursor(METADATA, &cursor, session, false, false);
+    int key;
+    WT_ITEM item;
+    while (cursor->next(cursor) == 0)
+    {
+        cursor->get_key(cursor, &key);
+        cursor->get_value(cursor, &item);
+        std::cout <<"metadata item: " << MetadataKeyNames[key] << "\t size: "<<item.size << "\n";
+        if(key == MetadataKey::num_nodes)
+        {
+            node_id_t num_nodes = *(node_id_t *)item.data;
+            std::cout << "num_nodes: " << num_nodes << "\n";
+        }
+        if(key == MetadataKey::num_edges)
+        {
+            edge_id_t num_edges = *(edge_id_t *)item.data;
+            std::cout << "num_edges: " << num_edges << "\n";
+        }
+        if(key == MetadataKey::max_node_id)
+        {
+            node_id_t max_node_id = *(node_id_t *)item.data;
+            std::cout << "max_node_id: " << max_node_id << "\n";
+        }
+        if(key == MetadataKey::min_node_id)
+        {
+            node_id_t min_node_id = *(node_id_t *)item.data;
+            std::cout << "min_node_id: " << min_node_id<< "\n";
+        }
+    }
+    cursor->close(cursor);
+}
+
 /**
  * @brief This is the generic function to get a cursor on the table
  *
@@ -329,7 +364,7 @@ int GraphBase::_get_index_cursor(const std::string &table_name,
     return 0;
 }
 
-void GraphBase::set_num_nodes(uint64_t num_nodes, WT_CURSOR *metadata_cur)
+void GraphBase::set_num_nodes(node_id_t num_nodes, WT_CURSOR *metadata_cur)
 {
     insert_metadata(MetadataKey::num_nodes,
                     (char *)&num_nodes,
@@ -337,22 +372,23 @@ void GraphBase::set_num_nodes(uint64_t num_nodes, WT_CURSOR *metadata_cur)
                     metadata_cur);
 }
 
-void GraphBase::set_num_edges(uint64_t num_edges, WT_CURSOR *metadata_cur)
+void GraphBase::set_num_edges(edge_id_t num_edges, WT_CURSOR *metadata_cur)
 {
     insert_metadata(MetadataKey::num_edges,
                     (char *)&num_edges,
-                    sizeof(uint64_t),
+                    sizeof(edge_id_t),
                     metadata_cur);
 }
 
-uint32_t GraphBase::get_num_nodes()
+node_id_t GraphBase::get_num_nodes()
 {
     WT_ITEM item;
     get_metadata(MetadataKey::num_nodes, item, metadata_cursor);
-    return *(uint32_t *)item.data;
+    node_id_t num_nodes = *(node_id_t *)item.data;
+    return num_nodes;
 }
 
-uint64_t GraphBase::get_num_edges()
+edge_id_t GraphBase::get_num_edges()
 {
     WT_ITEM item;
     get_metadata(MetadataKey::num_edges, item, metadata_cursor);

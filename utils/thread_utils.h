@@ -24,7 +24,7 @@
  */
 void calculate_thread_offsets(int thread_max,
                               node_id_t num_nodes,
-                              node_id_t num_edges,
+                              edge_id_t num_edges,
                               std::vector<key_range> &node_ranges,
                               std::vector<edge_range> &edge_offsets,
                               GraphType type)

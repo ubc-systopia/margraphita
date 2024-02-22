@@ -86,9 +86,7 @@ class CommonUtil
     static int adjlist_to_record(WT_SESSION *session,
                                  WT_CURSOR *cursor,
                                  const adjlist &to_insert);
-    static void record_to_adjlist(WT_SESSION *session,
-                                  WT_CURSOR *cursor,
-                                  adjlist *found);
+    static void record_to_adjlist(WT_CURSOR *cursor, adjlist *found);
 
     static void ekey_set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
     static int ekey_get_key(WT_CURSOR *cursor,
@@ -270,9 +268,7 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
  * @param cursor the cursor set to the record which needs to be read
  * @return adjlist the found adjlist struct.
  */
-inline void CommonUtil::record_to_adjlist(WT_SESSION *session,
-                                          WT_CURSOR *cursor,
-                                          adjlist *found)
+inline void CommonUtil::record_to_adjlist(WT_CURSOR *cursor, adjlist *found)
 {
     int32_t degree;
     WT_ITEM item;

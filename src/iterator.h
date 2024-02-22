@@ -17,15 +17,9 @@ class table_iterator
     WT_SESSION *session = nullptr;
     bool is_first = true;
     bool has_next = true;
-    void init(WT_CURSOR *cursor_, WT_SESSION *sess_)
-    {
-        cursor = cursor_;
-        session = sess_;
-    }
 
    public:
-    //    virtual void ekey_set_key(
-    //        node_id_t key) = 0;  //{ CommonUtil::ekey_set_key(cursor, key); }
+    table_iterator() = default;
     [[nodiscard]] bool has_more() const { return has_next; };
     virtual void reset()
     {
@@ -43,17 +37,12 @@ class table_iterator
 class OutCursor : public table_iterator
 {
    protected:
-    key_range
-        keys{};  // keyrange because out_nbd is defined for a node id range
+    key_range keys{};
+    // keyrange because out_nbd is defined for a node id range
     node_id_t num_nodes{};
 
    public:
-    OutCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {UINT32_MAX, UINT32_MAX};  // default key range
-    }
-
+    OutCursor() = default;
     virtual void set_key_range(key_range _keys) = 0;
     void set_num_nodes(uint32_t num) { num_nodes = num; }
 
@@ -68,11 +57,7 @@ class InCursor : public table_iterator
     node_id_t num_nodes{};
 
    public:
-    InCursor(WT_CURSOR *cur, WT_SESSION *sess)
-    {
-        init(cur, sess);
-        keys = {UINT32_MAX, UINT32_MAX};
-    }
+    InCursor() = default;
 
     //! DELETE THIS LIKE IN OUTCURSOR
     virtual void set_key_range(key_range _keys) = 0;
@@ -88,11 +73,7 @@ class NodeCursor : public table_iterator
     key_range keys{};
 
    public:
-    NodeCursor(WT_CURSOR *node_cur, WT_SESSION *sess)
-    {
-        init(node_cur, sess);
-        keys = {UINT32_MAX, UINT32_MAX};
-    }
+    NodeCursor() = default;
 
     /**
      * @brief Set the key range object
@@ -108,6 +89,11 @@ class NodeCursor : public table_iterator
 
     virtual void next(node *found) = 0;
     virtual void next(node *found, node_id_t key) = 0;
+    void close()
+    {
+        cursor->close(cursor);
+        // session->close(session, nullptr);
+    }
 };
 
 class EdgeCursor : public table_iterator
@@ -118,27 +104,21 @@ class EdgeCursor : public table_iterator
     bool get_weight = true;
 
    public:
-    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess)
-    {
-        init(composite_edge_cur, sess);
-        start_edge = {UINT32_MAX, UINT32_MAX};
-        end_edge = {UINT32_MAX, UINT32_MAX};
-    }
-
-//    EdgeCursor(WT_CURSOR *composite_edge_cur, WT_SESSION *sess, bool get_weight)
-//    {
-//        init(composite_edge_cur, sess);
-//        start_edge = {-1, -1};
-//        end_edge = {-1, -1};
-//        this->get_weight = get_weight;
-//    } // for edgekey
-//    //! This is not necessary.
-
-    // Overwrites ekey_set_key(int key) implementation in table_iterator
-    //    void ekey_set_key(int key) = delete;
-
+    EdgeCursor() = default;
     virtual void set_key_range(edge_range range) = 0;
 
     virtual void next(edge *found) = 0;
+    void close()
+    {
+        cursor->close(cursor);
+        // session->close(session, nullptr);
+    }
+
+    void dump_range()
+    {
+        std::cout << "start: " << start_edge.src_id << " " << start_edge.dst_id
+                  << " end: " << end_edge.src_id << " " << end_edge.dst_id
+                  << std::endl;
+    }
 };
 #endif

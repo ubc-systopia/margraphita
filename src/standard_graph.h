@@ -28,7 +28,11 @@ class StdInCursor : public InCursor
      * the node table
      */
 
-    StdInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
+    StdInCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void no_next(adjlist *found)
     {
@@ -113,7 +117,11 @@ class StdOutCursor : public OutCursor
     bool more_edges = true;
 
    public:
-    StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
+    StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void no_next(adjlist *found)
     {
@@ -187,7 +195,11 @@ class StdOutCursor : public OutCursor
 class StdNodeCursor : public NodeCursor
 {
    public:
-    StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
+    StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void set_key_range(key_range _keys) override
     {
@@ -212,6 +224,7 @@ class StdNodeCursor : public NodeCursor
         else
         {
             // Advances the cursor to the first position in the table.
+            cursor->reset(cursor);
             if (cursor->next(cursor) != 0)
             {
                 this->has_next = false;
@@ -255,7 +268,11 @@ class StdNodeCursor : public NodeCursor
 class StdEdgeCursor : public EdgeCursor
 {
    public:
-    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
+    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void set_key_range(edge_range range) override
     {
@@ -287,9 +304,9 @@ class StdEdgeCursor : public EdgeCursor
             }
         }
         // //dump the set key
-        // node_id_t src,dst;
-        // CommonUtil::get_key(cursor, &src, &dst);
-        // std::cout<<"set key: "<<src<<" "<<dst<<std::endl;
+        node_id_t src, dst;
+        CommonUtil::get_key(cursor, &src, &dst);
+        std::cout << "set key: " << src << " " << dst << std::endl;
     }
 
     void no_next(edge *found)
