@@ -55,3 +55,8 @@ set_source_files_properties( "${PATH_TEST}/array_test.cpp" PROPERTIES COMPILE_FL
 ADD_EXECUTABLE(test_bulk_load "${PATH_TEST}/test_bulk_load.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_bulk_load PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_bulk_load PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+#add test_pvector
+ADD_EXECUTABLE(test_pvector "${PATH_TEST}/pvector_test.cpp")
+INCLUDE_DIRECTORIES(test_pvector PRIVATE ${PATH_INCLUDE} ${UTILS} ${ITTAPI_INCLUDE_DIR} ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_pvector PUBLIC ${NAME_LIB})

@@ -38,8 +38,11 @@ class InsertOpts
     std::vector<std::string> help_strings_;
 
     std::string db_name;
-    graph_opts opts{
-        .create_new = true, .is_weighted = false, .optimize_create = true};
+    graph_opts opts{.create_new = true,
+                    .read_optimize = true,
+                    .is_directed = true,
+                    .is_weighted = false,
+                    .optimize_create = true};
     enum GraphType graph_type
     {
     };

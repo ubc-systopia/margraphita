@@ -28,7 +28,11 @@ class StdInCursor : public InCursor
      * the node table
      */
 
-    StdInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
+    StdInCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void no_next(adjlist *found)
     {
@@ -41,7 +45,7 @@ class StdInCursor : public InCursor
     void set_key_range(key_range _keys) override
     {
         keys = _keys;
-        if (_keys.end == -1 || _keys.end == 0)
+        if (_keys.end == 0)
         {
             keys.end = INT32_MAX;
         }
@@ -74,7 +78,7 @@ class StdInCursor : public InCursor
 
         CommonUtil::get_val_idx(cursor, &src, &dst);
 
-        if (keys.end != -1 && dst > keys.end)
+        if (keys.end != UINT32_MAX && dst > keys.end)
         {
             goto no_next;
         }
@@ -98,11 +102,10 @@ class StdInCursor : public InCursor
         return;
 
     no_next:
-        found->degree = -1;
+        found->degree = UINT32_MAX;
         found->edgelist.clear();
-        found->node_id = -1;
+        found->node_id = UINT32_MAX;
         has_next = false;
-        return;
     }
 
     void next(adjlist *found, node_id_t key) override {}
@@ -114,7 +117,11 @@ class StdOutCursor : public OutCursor
     bool more_edges = true;
 
    public:
-    StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
+    StdOutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void no_next(adjlist *found)
     {
@@ -127,13 +134,13 @@ class StdOutCursor : public OutCursor
     void set_key_range(key_range _keys) override
     {
         keys = _keys;
-        if (_keys.end == -1 || _keys.end == 0)
+        if (_keys.end == 0)
         {
             keys.end = INT32_MAX;
         }
 
         CommonUtil::set_key(
-            cursor, keys.start, -1);  // set the key to the start of the range
+            cursor, keys.start, 0);  // set the key to the start of the range
         int status;
         cursor->search_near(cursor, &status);
         if (status < 0)
@@ -151,7 +158,6 @@ class StdOutCursor : public OutCursor
     void next(adjlist *found) override
     {
         node_id_t temp_src, temp_dst;
-        int res = 0;
 
         if (!has_next)
         {
@@ -189,7 +195,11 @@ class StdOutCursor : public OutCursor
 class StdNodeCursor : public NodeCursor
 {
    public:
-    StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
+    StdNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void set_key_range(key_range _keys) override
     {
@@ -197,7 +207,7 @@ class StdNodeCursor : public NodeCursor
         is_first = false;
 
         // Advances the cursor to the first valid record in range
-        if (keys.start != -1)
+        if (keys.start != UINT32_MAX)
         {
             int status;
             CommonUtil::set_key(cursor, keys.start);
@@ -214,6 +224,7 @@ class StdNodeCursor : public NodeCursor
         else
         {
             // Advances the cursor to the first position in the table.
+            cursor->reset(cursor);
             if (cursor->next(cursor) != 0)
             {
                 this->has_next = false;
@@ -222,9 +233,9 @@ class StdNodeCursor : public NodeCursor
     }
     void no_next(node *found)
     {
-        found->id = -1;
-        found->in_degree = -1;
-        found->out_degree = -1;
+        found->id = UINT32_MAX;
+        found->in_degree = UINT32_MAX;
+        found->out_degree = UINT32_MAX;
         has_next = false;
     }
 
@@ -239,7 +250,7 @@ class StdNodeCursor : public NodeCursor
         }
 
         CommonUtil::get_key(cursor, &found->id);
-        if (keys.end != -1 &&
+        if (keys.end != UINT32_MAX &&
             found->id > keys.end)  // gone beyond the end of range
         {
             no_next(found);
@@ -257,7 +268,11 @@ class StdNodeCursor : public NodeCursor
 class StdEdgeCursor : public EdgeCursor
 {
    public:
-    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
+    StdEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+    }
 
     void set_key_range(edge_range range) override
     {
@@ -266,7 +281,7 @@ class StdEdgeCursor : public EdgeCursor
         is_first = false;
 
         // Advances the cursor to the first valid record in range
-        if (start_edge.src_id != -1 && start_edge.dst_id != -1)
+        if (start_edge.src_id != UINT32_MAX && start_edge.dst_id != UINT32_MAX)
         {
             int status;
             CommonUtil::set_key(cursor, start_edge.src_id, start_edge.dst_id);
@@ -289,16 +304,16 @@ class StdEdgeCursor : public EdgeCursor
             }
         }
         // //dump the set key
-        // node_id_t src,dst;
-        // CommonUtil::get_key(cursor, &src, &dst);
-        // std::cout<<"set key: "<<src<<" "<<dst<<std::endl;
+        node_id_t src, dst;
+        CommonUtil::get_key(cursor, &src, &dst);
+        std::cout << "set key: " << src << " " << dst << std::endl;
     }
 
     void no_next(edge *found)
     {
-        found->src_id = -1;
-        found->dst_id = -1;
-        found->edge_weight = -1;
+        found->src_id = UINT32_MAX;
+        found->dst_id = UINT32_MAX;
+        found->edge_weight = UINT32_MAX;
         has_next = false;
     }
 

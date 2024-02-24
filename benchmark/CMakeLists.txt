@@ -13,8 +13,8 @@ target_link_libraries(pagerank PUBLIC ${NAME_LIB} graph_utils)
 add_executable(pr_iter_map pagerank_iter_map.cpp)
 target_link_libraries(pr_iter_map PUBLIC ${NAME_LIB} graph_utils)
 
-add_executable(pr_ec pagerank_ec.cpp)
-target_link_libraries(pr_ec PUBLIC ${NAME_LIB} graph_utils)
+#add_executable(pr_ec pagerank_ec.cpp)
+#target_link_libraries(pr_ec PUBLIC ${NAME_LIB} graph_utils)
 
 add_executable(pr_vc pagerank_vc.cpp)
 target_link_libraries(pr_vc PUBLIC ${NAME_LIB} graph_utils)
@@ -39,30 +39,28 @@ target_link_libraries(tc_iter PUBLIC ${NAME_LIB} graph_utils)
 add_executable(pr_iter_getout pr_iter_getout.cpp)
 target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 
-add_executable(pack_test pack_test.cpp)
-target_link_libraries(pack_test PUBLIC ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 
 # add_executable(pr_iter_parallel pr_iter_parallel.cpp)
 # target_link_libraries(pr_iter_parallel PUBLIC ${NAME_LIB} graph_utils)
-add_executable(cc cc.cpp)
-target_link_libraries(cc PUBLIC ${NAME_LIB} graph_utils)
-
-add_executable(cc_parallel cc_parallel.cpp)
-target_link_libraries(cc_parallel PUBLIC ${NAME_LIB} graph_utils)
-
-add_executable(cc_parallel_ec cc_parallel_ec.cpp)
-target_link_libraries(cc_parallel_ec PUBLIC ${NAME_LIB} graph_utils)
-
-add_executable(sssp sssp.cpp)
-target_link_libraries(sssp PUBLIC ${NAME_LIB} graph_utils)
-
-add_executable(iteration_vc iteration_vc.cpp)
-target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} graph_utils)
-
-add_executable(iteration_ec iteration_ec.cpp)
-target_link_libraries(iteration_ec PUBLIC ${NAME_LIB} graph_utils)
+#add_executable(cc cc.cpp)
+#target_link_libraries(cc PUBLIC ${NAME_LIB} graph_utils)
+#
+#add_executable(cc_parallel cc_parallel.cpp)
+#target_link_libraries(cc_parallel PUBLIC ${NAME_LIB} graph_utils)
+#
+#add_executable(cc_parallel_ec cc_parallel_ec.cpp)
+#target_link_libraries(cc_parallel_ec PUBLIC ${NAME_LIB} graph_utils)
+#
+#add_executable(sssp sssp.cpp)
+#target_link_libraries(sssp PUBLIC ${NAME_LIB} graph_utils)
+#
+#add_executable(iteration_vc iteration_vc.cpp)
+#target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} graph_utils)
+#
+#add_executable(iteration_ec iteration_ec.cpp)
+#target_link_libraries(iteration_ec PUBLIC ${NAME_LIB} graph_utils)
 
 # add_executable(bc bc.cpp)
 # target_link_libraries(bc PUBLIC ${NAME_LIB} graph_utils)

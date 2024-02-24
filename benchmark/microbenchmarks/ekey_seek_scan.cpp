@@ -16,16 +16,6 @@
 #include "edgekey.h"
 #include "graph_engine.h"
 
-class Ekey_SeekScan_Test : public GraphEngine
-{
-   public:
-    explicit Ekey_SeekScan_Test(graph_engine_opts engine_opts)
-        : GraphEngine(std::move(engine_opts))
-    {
-    }
-    WT_CONNECTION *public_get_connection() { return get_connection(); }
-};
-
 struct time_result
 {
     long double time_seek;
@@ -178,10 +168,8 @@ int main(int argc, char *argv[])
         opts.stat_log = "./";
     }
 
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-    Ekey_SeekScan_Test myEngine(engine_opts);
-    WT_CONNECTION *conn = myEngine.public_get_connection();
+    GraphEngine myEngine(THREAD_NUM, opts);
+    WT_CONNECTION *conn = myEngine.get_connection();
     WT_SESSION *session;
     if (CommonUtil::open_session(conn, &session) != 0)
     {

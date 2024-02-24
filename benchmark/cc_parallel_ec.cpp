@@ -107,14 +107,11 @@ int main(int argc, char* argv[])
     opts.stat_log = cc_cli.get_logdir() + "/" + opts.db_name;
 
     const int THREAD_NUM = 8;
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-
     int num_trials = cc_cli.get_num_trials();
 
     Times t;
     t.start();
-    GraphEngine graphEngine(engine_opts);
+    GraphEngine graphEngine(THREAD_NUM, opts);
     graphEngine.calculate_thread_offsets();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;

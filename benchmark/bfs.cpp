@@ -29,7 +29,7 @@ template <typename Graph>
 bfs_info *bfs(Graph &graph, node_id_t src)
 {
     Times timer;
-    bfs_info *info = new bfs_info(0);
+    auto *info = new bfs_info(0);
     timer.start();
     for (int i = 0; i < 10; i++)
     {
@@ -91,30 +91,27 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    graph_opts opts;
-    get_graph_opts(bfs_cli, opts);
-    opts.stat_log = bfs_cli.get_logdir() + "/" + opts.db_name;
+    cmdline_opts opts = bfs_cli.get_parsed_opts();
+    opts.stat_log += "/" + opts.db_name;
 
     const int THREAD_NUM = 1;
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
 
     Times timer;
     timer.start();
-    GraphEngine graphEngine(engine_opts);
+    GraphEngine graphEngine(THREAD_NUM, opts);
     GraphBase *graph = graphEngine.create_graph_handle();
     timer.stop();
     std::cout << "Graph loaded in " << timer.t_micros() << std::endl;
 
     // do 10 runs with random starting nodes and run 10 trial per each
     // random node
-    int num_trials = bfs_cli.get_num_trials();
+
 #ifdef STAT
     num_trials = 1;  // We want only one run with stats collection
 #endif
-    for (int i = 0; i < num_trials; i++)
+    for (int i = 0; i < opts.num_trials; i++)
     {
-        node_id_t start_vertex = bfs_cli.start_vertex();
+        node_id_t start_vertex = opts.start_vertex;
         if (start_vertex == -1)
         {
             start_vertex = find_random_start(graph);
@@ -128,7 +125,7 @@ int main(int argc, char *argv[])
                        start_vertex,
                        bfs_run,
                        time_from_outside,
-                       bfs_cli.get_logdir());
+                       opts.stat_log);
     }
     graph->close();
     graphEngine.close_graph();

@@ -15,15 +15,6 @@
 #include "edgekey.h"
 #include "graph_engine.h"
 
-class Std_SeekScan_Test : public GraphEngine
-{
-   public:
-    explicit Std_SeekScan_Test(graph_engine_opts engine_opts)
-        : GraphEngine(std::move(engine_opts))
-    {
-    }
-    WT_CONNECTION *public_get_connection() { return get_connection(); }
-};
 
 struct time_result
 {
@@ -177,17 +168,14 @@ int main(int argc, char *argv[])
         opts.stat_log = "./";
     }
 
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-    Std_SeekScan_Test myEngine(engine_opts);
-    WT_CONNECTION *conn = myEngine.public_get_connection();
+    GraphEngine myEngine(THREAD_NUM, opts);
+    WT_CONNECTION *conn = myEngine.get_connection();
     WT_SESSION *session;
     if (CommonUtil::open_session(conn, &session) != 0)
     {
         throw GraphException("Cannot open session");
     }
     StandardGraph graph(opts, conn);
-    graph.init_cursors();
 
     profile_wt_std(graphfile, session, num_random_samples, graph);
 }

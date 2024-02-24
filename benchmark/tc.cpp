@@ -1,24 +1,13 @@
-#include <math.h>
-#include <stdio.h>
-#include <unistd.h>
 
-#include <algorithm>
-#include <cassert>
 #include <deque>
-#include <fstream>
 #include <iostream>
 #include <set>
 #include <vector>
-
-#include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
-#include "common_util.h"
 #include "csv_log.h"
 #include "edgekey.h"
 #include "graph_engine.h"
-#include "graph_exception.h"
-#include "standard_graph.h"
 #include "times.h"
 
 /**
@@ -33,8 +22,8 @@ std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
     std::sort(A.begin(), A.end(), id_compare);
     std::sort(B.begin(), B.end(), id_compare);
     std::vector<node_id_t> ABintersection;
-    std::vector<node_id_t>::iterator A_iter = A.begin();
-    std::vector<node_id_t>::iterator B_iter = B.begin();
+    auto A_iter = A.begin();
+    auto B_iter = B.begin();
 
     while (A_iter != std::end(A) && B_iter != std::end(B))
     {
@@ -57,9 +46,9 @@ std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
 }
 
 template <typename Graph>
-int64_t trust_tc(Graph &graph)
+size_t trust_tc(Graph &graph)
 {
-    int64_t count = 0;
+    size_t count = 0;
     vector<node> nodes = graph->get_nodes();
     for (node u : nodes)
     {
@@ -114,26 +103,21 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    graph_opts opts;
-    get_graph_opts(tc_cli, opts);
-    opts.stat_log = tc_cli.get_logdir() + "/" + opts.db_name;
+    cmdline_opts opts = tc_cli.get_parsed_opts();
+    opts.stat_log += "/" + opts.db_name;
 
     const int THREAD_NUM = 1;
-    GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
-                                               .opts = opts};
-
-    int num_trials = tc_cli.get_num_trials();
 
     Times t;
     t.start();
-    GraphEngine graphEngine(engine_opts);
+    GraphEngine graphEngine(THREAD_NUM, opts);
     GraphBase *graph = graphEngine.create_graph_handle();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 
-    for (int i = 0; i < num_trials; i++)
+    for (int i = 0; i < opts.num_trials; i++)
     {
-        tc_info info(0);
+        tc_info info;
         // Count Trust Triangles
         t.start();
         info.trust_count = trust_tc(graph);
@@ -155,7 +139,7 @@ int main(int argc, char *argv[])
         std::cout << "Cycle Triangles count = " << info.cycle_count
                   << std::endl;
 
-        print_csv_info(opts.db_name, info, tc_cli.get_logdir());
+        print_csv_info(opts.db_name, info, opts.stat_log);
     }
     graph->close();
     graphEngine.close_graph();

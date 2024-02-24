@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(0, &mask);
-    int result = sched_setaffinity(0, sizeof(mask), &mask);
+    sched_setaffinity(0, sizeof(mask), &mask);
 
     std::cout << "Running Iteration" << std::endl;
     CmdLineApp iter_cli(argc, argv);
@@ -45,24 +45,13 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    graph_opts opts;
-
-    opts.create_new = iter_cli.is_create_new();
-    opts.is_directed = iter_cli.is_directed();
-    opts.read_optimize = iter_cli.is_read_optimize();
-    opts.is_weighted = iter_cli.is_weighted();
-    opts.optimize_create = iter_cli.is_create_optimized();
-    opts.db_name = iter_cli.get_db_name();  //${type}_rd_${ds}
-    opts.db_dir = iter_cli.get_db_path();
-    std::string iter_log = iter_cli.get_logdir();  //$RESULT/$bmark
-    opts.stat_log = iter_log + "/" + opts.db_name;
-    opts.conn_config = "cache_size=10GB";  // tc_cli.get_conn_config();
-    opts.type = iter_cli.get_graph_type();
+    cmdline_opts opts = iter_cli.get_parsed_opts();
+    opts.stat_log = opts.stat_log + "/" + opts.db_name;
+    opts.conn_config = "cache_size=10GB";
 
     const int THREAD_NUM = 4;
     GraphEngine myEngine(THREAD_NUM, opts);
 
-    int num_trials = iter_cli.get_num_trials();
     EdgeCursor* edge_cursor;
     OutCursor* out_cursor;
     node_id_t counter1 = 0;
@@ -70,7 +59,7 @@ int main(int argc, char* argv[])
 
     Times t;
     edge e = {0};
-    adjlist adj = {0};
+    adjlist adj;
     std::ofstream stat_file;
     std::string stat_file_name = opts.stat_log + "/adj_ekey_microbenchmark";
 #ifdef DEBUG
@@ -102,7 +91,7 @@ int main(int argc, char* argv[])
         for (int i = 0; i < HUB_COUNT; i++)
         {
             edge e{.src_id = 1, .dst_id = i + 2};
-            int err = graphHub->add_edge(e, false);
+            graphHub->add_edge(e, false);
             if (i % 1000 == 0)
             {
                 cout << "Percentage finished:" << i / 1000 << '\n';

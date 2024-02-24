@@ -9,10 +9,7 @@ using namespace std;
 
 class EkeyInCursor : public InCursor
 {
-    node_id_t curr_node, curr_edge_dst;
-    bool more_edges = true;
-    WT_CURSOR *node_ptr = nullptr;
-
+    node_id_t curr_node{};
     // This accepts a dst_src_cursor
    public:
     /**
@@ -21,7 +18,12 @@ class EkeyInCursor : public InCursor
      * @param sess A session object to which the cursor belongs. Used to open
      * the node cursor.
      */
-    EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess) : InCursor(cur, sess) {}
+    EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+        set_key_range({OutOfBand_ID, UINT32_MAX});
+    }
     /** This is the initializer function for setting the range of valid keys an
      * iterator must operate within. Set the cursor keys and advance the cursor
      * to the first valid position in the range.
@@ -35,7 +37,7 @@ class EkeyInCursor : public InCursor
         keys.start = _keys.start;
         if (_keys.end == OutOfBand_ID)
         {
-            keys.end = INT32_MAX;
+            keys.end = UINT32_MAX;
         }
         else
         {
@@ -43,8 +45,8 @@ class EkeyInCursor : public InCursor
         }
 
         // We need to position this cursor to the first record where dst >
-        // OutOfBand_ID (i.e. 1) and src >= keys.start reversed because (dst,
-        // src)
+        // OutOfBand_ID (i.e. 1) and src >= keys.start
+        // reversed because (dst, src)
         CommonUtil::ekey_set_key(cursor, (OutOfBand_ID + 1), keys.start);
         int status;
         cursor->search_near(cursor, &status);
@@ -59,22 +61,19 @@ class EkeyInCursor : public InCursor
         }
         node_id_t temp_src;
         CommonUtil::ekey_get_key(cursor, &curr_node, &temp_src);
-        std::cout << "curr_node: " << curr_node << " temp_src: " << temp_src
-                  << std::endl;
     }
 
     void next(adjlist *found) final
     {
         node_id_t src;
         node_id_t dst;
-        edge curr_edge;
-        int res = 0;
+        // edge curr_edge;
 
         if (!has_next)
         {
-            found->degree = -1;
+            found->degree = UINT32_MAX;
             found->edgelist.clear();
-            found->node_id = -1;
+            found->node_id = UINT32_MAX;
             has_next = false;
             return;
         }
@@ -89,7 +88,7 @@ class EkeyInCursor : public InCursor
         }
 
         // now advance till we hit another dst
-        while (res = cursor->next(cursor) == 0)
+        while (cursor->next(cursor) == 0)
         {
             CommonUtil::ekey_get_key(cursor, &dst, &src);
             if (dst == curr_node)
@@ -117,19 +116,23 @@ class EkeyInCursor : public InCursor
 class EkeyOutCursor : public OutCursor
 {
    private:
-    bool data_remaining = true;
     // bool is_weighted = false;
-    node_id_t curr_node;
+    node_id_t curr_node{};
 
    public:
-    EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess) : OutCursor(cur, sess) {}
+    EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+        set_key_range({OutOfBand_ID, UINT32_MAX});
+    }
 
     void set_key_range(key_range _keys) override
     {
         keys.start = _keys.start;
         if (_keys.end == OutOfBand_ID)
         {
-            keys.end = INT32_MAX;
+            keys.end = UINT32_MAX;
         }
         else
         {
@@ -160,8 +163,8 @@ class EkeyOutCursor : public OutCursor
 
         if (!has_next)
         {
-            found->node_id = -1;
-            found->degree = -1;
+            found->node_id = UINT32_MAX;
+            found->degree = UINT32_MAX;
             found->edgelist.clear();
             return;
         }
@@ -207,13 +210,17 @@ class EkeyNodeCursor : public NodeCursor
 {
    public:
     // Takes a composite index cursor on (dst, src)
-    EkeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess) : NodeCursor(cur, sess) {}
+    EkeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+        set_key_range({OutOfBand_ID, UINT32_MAX});  // min and max node id
+    }
 
     void set_key_range(key_range _keys) override
     {
         keys = _keys;
         int status;
-        node_id_t temp1, temp2;
         // set the cursor to the first relevant record in range
         if (keys.start != OutOfBand_ID)
         {
@@ -241,9 +248,9 @@ class EkeyNodeCursor : public NodeCursor
 
     void no_next(node *found)
     {
-        found->id = -1;
-        found->in_degree = -1;
-        found->out_degree = -1;
+        found->id = UINT32_MAX;
+        found->in_degree = UINT32_MAX;
+        found->out_degree = UINT32_MAX;
         has_next = false;
     }
 
@@ -283,9 +290,14 @@ class EkeyNodeCursor : public NodeCursor
 class EkeyEdgeCursor : public EdgeCursor
 {
    private:
-    bool at_node = true;  // initial state always points here
+    // bool at_node = true;  // initial state always points here
    public:
-    EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess) : EdgeCursor(cur, sess) {}
+    EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+        set_key_range({{OutOfBand_ID, OutOfBand_ID}, {UINT32_MAX, UINT32_MAX}});
+    }
 
     void set_key_range(edge_range range) override
     {
@@ -293,8 +305,8 @@ class EkeyEdgeCursor : public EdgeCursor
         end_edge = range.end;
 
         // set the cursor to the first relevant record in range
-        if (range.start.src_id != -1 &&
-            range.start.dst_id != -1)  // the range is not empty
+        if (range.start.src_id != OutOfBand_ID &&
+            range.start.dst_id != OutOfBand_ID)  // the range is not empty
         {
             CommonUtil::ekey_set_key(
                 cursor, range.start.src_id, range.start.dst_id);
@@ -311,28 +323,39 @@ class EkeyEdgeCursor : public EdgeCursor
         }
         else  // the range is empty
         {
+            std::cout << "here" << std::endl;
             // Advance the cursor to the first record
             if (cursor->next(cursor) != 0)
             {
                 this->has_next = false;
             }
+            //            node_id_t temp_src, temp_dst;
+            //            CommonUtil::ekey_get_key(cursor, &temp_src,
+            //            &temp_dst); std::cout << "first edge (src,dst): " <<
+            //            temp_src << ", "
+            //                      << temp_dst << std::endl;
         }
+    }
+
+    void no_next(edge *found)
+    {
+        found->src_id = UINT32_MAX;
+        found->dst_id = UINT32_MAX;
+        found->edge_weight = UINT32_MAX;
+        has_next = false;
     }
 
     void next(edge *found) override
     {
         if (!has_next)
         {
-            goto no_next;
-        }
-
-        if (cursor->next(cursor) != 0)
-        {
-            goto no_next;
+            no_next(found);
+            return;
         }
 
         while (true)
         {
+            CommonUtil::ekey_get_key(cursor, &found->src_id, &found->dst_id);
             if (found->dst_id != OutOfBand_ID)
             {
                 break;  // found an edge
@@ -341,33 +364,34 @@ class EkeyEdgeCursor : public EdgeCursor
             {
                 if (cursor->next(cursor) != 0)
                 {
-                    goto no_next;
+                    no_next(found);
+                    return;
                 }  // advance to the next edge
             }
         }
 
         // If end_edge is set
-        if (end_edge.src_id != -1)
+        if (end_edge.src_id != UINT32_MAX)
         {
             // If found > end edge
             if (!(found->src_id < end_edge.src_id ||
                   ((found->src_id == end_edge.src_id) &&
                    (found->dst_id <= end_edge.dst_id))))
             {
-                goto no_next;
+                no_next(found);
+                return;
             }
         }
         if (get_weight)
         {
             CommonUtil::record_to_edge_ekey(cursor, found);
         }
-        return;
 
-    no_next:
-        found->src_id = -1;
-        found->dst_id = -1;
-        found->edge_weight = -1;
-        has_next = false;
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+            return;
+        }
     }
 };
 

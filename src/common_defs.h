@@ -6,14 +6,31 @@
 #define MAKE_EKEY(x) ((x) + 1)
 #define OG_KEY(x) ((x)-1)
 
-// These are the string constants
-const std::string METADATA = "metadata";
-const std::string DB_NAME = "db_name";
-const std::string DB_DIR = "db_dir";
-const std::string IS_WEIGHTED = "is_weighted";
-const std::string READ_OPTIMIZE = "read_optimize";
-const std::string IS_DIRECTED = "is_directed";
+// These are the constants
+typedef enum MetadataKey
+{
+    db_name,
+    db_dir,
+    is_weighted,
+    read_optimize,
+    is_directed,
+    num_nodes,
+    num_edges,
+    max_node_id,
+    min_node_id
+} MetadataKey;
 
+const std::string MetadataKeyNames[9] = {"db_name",
+                                         "db_dir",
+                                         "is_weighted",
+                                         "read_optimize",
+                                         "is_directed",
+                                         "num_nodes",
+                                         "num_edges",
+                                         "max_node_id",
+                                         "min_node_id"};
+
+const std::string METADATA = "metadata";
 // Read Optimize columns
 const std::string IN_DEGREE = "in_degree";
 const std::string OUT_DEGREE = "out_degree";
@@ -39,7 +56,9 @@ const std::string IN_ADJLIST = "adjlistin";
 const std::string node_count = "nNodes";
 const std::string edge_count = "nEdges";
 
-typedef int32_t node_id_t;
+typedef uint32_t node_id_t;
+typedef uint32_t
+    edge_id_t;  // Make this uint64_t if you want to support more than 4B edges
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
 
@@ -54,37 +73,23 @@ typedef enum GraphType
     Adj,
     EKey,
     EList,
+    META
 } GraphType;
-
-static std::string get_type_str(GraphType type)
-{
-    switch (type)
-    {
-        case GraphType::Std:
-            return "std";
-        case GraphType::Adj:
-            return "adj";
-        case GraphType::EKey:
-            return "ekey";
-        default:
-            return "unknown";
-    }
-}
 
 struct graph_opts
 {
-    bool create_new = true;
-    bool read_optimize = true;
-    bool is_directed = true;
+    bool create_new = false;
+    bool read_optimize = false;
+    bool is_directed = false;
     bool is_weighted = false;
     std::string db_name;
     std::string db_dir;
-    bool optimize_create;  // directs when the index should be created
+    bool optimize_create = false;  // directs when the index should be created
     std::string conn_config;
     std::string stat_log;
     GraphType type;
-    double num_nodes;
-    double num_edges;
+    node_id_t num_nodes;
+    uint64_t num_edges;  // we can have > 4B edges
     std::string dataset;
     int num_threads = 1;
     ~graph_opts() = default;
@@ -92,7 +97,7 @@ struct graph_opts
 
 typedef struct node
 {
-    node_id_t id = -1;  // node ID
+    node_id_t id = 0;  // node ID
     degree_t in_degree = 0;
     degree_t out_degree = 0;
 
@@ -100,7 +105,7 @@ typedef struct node
 
 typedef struct edge
 {
-    int32_t id = 0;
+    edge_id_t id = 0;
     node_id_t src_id = 0;
     node_id_t dst_id = 0;
     edgeweight_t edge_weight = 0;
@@ -125,10 +130,12 @@ typedef struct key_range
     key_range(node_id_t a, node_id_t b) : start(a), end(b) {}
 } key_range;
 
+typedef key_range node_range;
+
 typedef struct edge_range
 {
-    key_pair start;
-    key_pair end;
+    key_pair start{};
+    key_pair end{};
     edge_range() : start(), end() {}
     edge_range(key_pair a, key_pair b) : start(a), end(b) {}
 } edge_range;

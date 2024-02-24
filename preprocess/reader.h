@@ -1,11 +1,5 @@
 #ifndef READER_H
 #define READER_H
-// #include <boost/archive/binary_iarchive.hpp>
-// #include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/serialization/utility.hpp>
-#include <boost/serialization/vector.hpp>
 #include <fstream>
 #include <iostream>
 #include <mutex>
@@ -48,10 +42,19 @@ class EdgeReader
         num_per_chunk = _num;
 
         std::ios::sync_with_stdio(false);
-        edge_file = std::ifstream(_filename, std::ifstream::in);
-        adj_file =
-            std::ofstream((_filename + "_" + adj_type), std::ios::binary);
+        edge_file = std::ifstream(filename, std::ifstream::in);
 
+        std::string dirname = filename.substr(0, filename.find_last_of('/'));
+        // strip the filename of anything after_
+        std::string::size_type pos = filename.find_last_of('_');
+        if (pos != std::string::npos)
+        {
+            filename = dirname + "/" + adj_type +
+                       filename.substr(pos, filename.size());
+        }
+
+        adj_file = std::ofstream(filename, std::ofstream::out);
+        std::cout << "Filename: " << filename << std::endl;
         if (!edge_file.is_open())
         {
             throw GraphException("** could not open " + filename);
@@ -114,15 +117,15 @@ class EdgeReader
 
     void write_adjlist_to_file()
     {
-        // boost::archive::binary_oarchive oa(adj_file);
-        // boost::archive::text_oarchive oa(adj_file);
-        // oa << node_adj_list.node_id << node_adj_list.edgelist.size()
-        //   << node_adj_list.edgelist;
         adj_file << node_adj_list.node_id << " "
                  << node_adj_list.edgelist.size() << " ";
-        for (auto n : node_adj_list.edgelist)
+        for (int i = 0; i < node_adj_list.edgelist.size(); i++)
         {
-            adj_file << n << " ";
+            adj_file << node_adj_list.edgelist[i];
+            if (i != node_adj_list.edgelist.size() - 1)
+            {
+                adj_file << ",";
+            }
         }
         adj_file << "\n";
     }
@@ -134,38 +137,60 @@ class EdgeReader
         conflict.second = last_conflict;
         return conflict;
     }
+    ~EdgeReader()
+    {
+        edge_file.close();
+        adj_file.close();
+    }
 };
 
 // read from boost archive file
 class AdjReader
 {
    private:
-    std::string filename;
     std::ifstream adj_file;
     int length = 0;
 
 
    public:
-    AdjReader(std::string _filename)
+    explicit AdjReader(const std::string& filename)
     {
-        filename = _filename;
-        adj_file = std::ifstream(_filename, std::ifstream::in);
+        adj_file = std::ifstream(filename, std::ifstream::in);
         if (!adj_file.is_open())
         {
             throw GraphException("Failed to open the adjacency file for " +
                                  filename);
         }
-        adj_file.seekg(0, adj_file.end);
-        length = adj_file.tellg();
-        adj_file.seekg(0, adj_file.beg);
     }
 
-    int get_next_adjlist(std::pair<int, std::vector<node_id_t>>& node_adj_list)
+    // each line has a node id, it's degree, and the list of neighbors, all
+    // separated by spaces getline from file and parse the line
+    int get_next_adjlist(adjlist& adj)
     {
-        if ((adj_file.tellg() < length))
+        std::string line;
+        if (getline(adj_file, line))
         {
-            boost::archive::text_iarchive ia(adj_file);
-            ia >> node_adj_list;
+            std::istringstream iss(line);
+            if (iss >> adj.node_id)
+            {
+                iss >> adj.degree;
+                node_id_t n;
+                while (iss >> n)
+                {
+                    adj.edgelist.push_back(n);
+                    if (iss.peek() == ',')
+                    {
+                        iss.ignore();
+                    }
+                }
+            }
+            else
+            {
+                adj_file.close();
+                std::cerr << "Error reading from file" << std::endl;
+                return -1;
+            }
+            //adj.degree = adj.edgelist.size();n
             return 0;
         }
         else

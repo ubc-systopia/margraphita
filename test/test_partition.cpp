@@ -15,13 +15,13 @@ void test_get_nodes(GraphBase *graph) { INFO(); }
 int main()
 {
     graph_opts opts;
-    opts.create_new = true;
+    opts.create_new = false;
     opts.optimize_create = false;
     opts.is_directed = true;
     opts.read_optimize = true;
     opts.is_weighted = true;
-    opts.db_name = "ekey_rd_s10_e8";
-    opts.db_dir = "./db";
+    opts.db_name = "ekey_rd_cit-Patents/";
+    opts.db_dir = "/home/puneet/db/cit-Patents";
     opts.conn_config = "cache_size=10GB";
     if (const char *env_p = std::getenv("GRAPH_PROJECT_DIR"))
     {
@@ -32,29 +32,23 @@ int main()
         std::cout << "GRAPH_PROJECT_DIR not set. Using CWD" << std::endl;
         opts.stat_log = "./";
     }
-    opts.type = GraphType::Std;
+    opts.type = GraphType::EKey;
 
     const int THREAD_NUM = 8;
 
     GraphEngine myEngine(THREAD_NUM, opts);
-    WT_CONNECTION *conn = myEngine.get_connection();
-    EdgeKey graph(opts, conn);
 
-    std::vector<key_range> node_offsets;
-    std::vector<edge_range> edge_offsets;
-    calculate_thread_offsets(
-        THREAD_NUM, 989, 8192, node_offsets, edge_offsets, opts.type);
+    std::cout << "size of graph engine object " << sizeof(myEngine)
+              << std::endl;
+    GraphBase *graph = myEngine.create_graph_handle();
+    std::cout << "size of graph object " << sizeof(graph) << std::endl;
+    std::cout << "size of std graph object " << sizeof(StandardGraph)
+              << std::endl;
+    std::cout << "size of adj graph object " << sizeof(AdjList) << std::endl;
+    std::cout << "size of ekey graph object " << sizeof(EdgeKey) << std::endl;
+    std::cout << "size of graph opts object " << sizeof(opts) << std::endl;
 
-    for (auto x : node_offsets)
-    {
-        std::cout << "(" << x.start << "," << x.end << ")" << std::endl;
-    }
-    for (auto x : edge_offsets)
-    {
-        std::cout << "(" << x.start.src_id << "," << x.start.dst_id << ")\n";
-        std::cout << "(" << x.end.src_id << "," << x.end.dst_id << ")\n";
-        std::cout << "------------\n";
-    }
-    graph.close();
+    myEngine.calculate_thread_offsets();
+    myEngine.close_graph();
     return 0;
 }

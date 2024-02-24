@@ -2,8 +2,6 @@
 #define BASE_COMMON
 
 #include <wiredtiger.h>
-
-#include <bitset>
 #include <cassert>
 #include <cstdarg>
 #include <cstdio>
@@ -18,7 +16,6 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 
 #include "common_defs.h"
@@ -45,13 +42,6 @@ class CommonUtil
 
     static void check_graph_params(const graph_opts &params);
 
-    static char *pack_int_vector_wti(WT_SESSION *session,
-                                     std::vector<node_id_t> to_pack,
-                                     size_t *size);
-    //    static std::vector<node_id_t> unpack_int_vector_wti(WT_SESSION
-    //    *session,
-    //                                                        size_t size,
-    //                                                        char *packed_str);
 
     static void log_msg(std::string_view message,
                         std::string_view file,
@@ -96,9 +86,7 @@ class CommonUtil
     static int adjlist_to_record(WT_SESSION *session,
                                  WT_CURSOR *cursor,
                                  const adjlist &to_insert);
-    static void record_to_adjlist(WT_SESSION *session,
-                                  WT_CURSOR *cursor,
-                                  adjlist *found);
+    static void record_to_adjlist(WT_CURSOR *cursor, adjlist *found);
 
     static void ekey_set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
     static int ekey_get_key(WT_CURSOR *cursor,
@@ -254,12 +242,9 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
     CommonUtil::set_key(cursor, to_insert.node_id);
     int ret = cursor->search(cursor);  // <-- things fail if I remove this. Why?
 
-    size_t size;
     WT_ITEM item;
-    char *buf =
-        CommonUtil::pack_int_vector_wti(session, to_insert.edgelist, &size);
-    item.data = buf;
-    item.size = size;
+    item.data = to_insert.edgelist.data();
+    item.size = to_insert.edgelist.size() * sizeof(node_id_t);
 
     cursor->set_value(cursor, to_insert.degree, &item);
 
@@ -283,9 +268,7 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
  * @param cursor the cursor set to the record which needs to be read
  * @return adjlist the found adjlist struct.
  */
-inline void CommonUtil::record_to_adjlist(WT_SESSION *session,
-                                          WT_CURSOR *cursor,
-                                          adjlist *found)
+inline void CommonUtil::record_to_adjlist(WT_CURSOR *cursor, adjlist *found)
 {
     int32_t degree;
     WT_ITEM item;
