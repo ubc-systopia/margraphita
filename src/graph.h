@@ -64,6 +64,7 @@ class GraphBase
 
     void close();
     node_id_t get_num_nodes();
+    node_id_t get_max_node_id();
     edge_id_t get_num_edges();
     void set_num_nodes(node_id_t num_nodes, WT_CURSOR *cursor);
     void set_num_edges(edge_id_t num_edges, WT_CURSOR *cursor);

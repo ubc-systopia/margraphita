@@ -7,9 +7,9 @@ template <typename T>
 class mmap_helper
 {
    public:
-    mmap_helper();
+    mmap_helper() : start_ptr(nullptr), length(0) {}
 
-    mmap_helper(size_t N)
+    explicit mmap_helper(size_t N)
     {
         length = sizeof(T) * N;
         start_ptr = (T *)mmap(NULL,
@@ -20,7 +20,7 @@ class mmap_helper
                               0);
         if (start_ptr == MAP_FAILED)
         {
-            perror("mmap failed in cons");
+            perror("Failed to allocate memory for pvector in mmap_helper");
             exit(1);
         }
     }
@@ -51,6 +51,12 @@ class mmap_helper
 
     T *remap(size_t new_length)
     {
+        if (new_length < length)
+        {
+            perror(
+                "new length is less than the current length. Not remapping.");
+            return start_ptr;
+        }
         start_ptr = (T *)mremap(start_ptr, length, new_length, 0);
         if (start_ptr == MAP_FAILED)
         {
@@ -60,9 +66,11 @@ class mmap_helper
         return start_ptr;
     }
 
+    bool is_mapped() { return start_ptr != nullptr; }
+
    private:
-    T *start_ptr;
-    size_t length;
+    T *start_ptr = nullptr;
+    size_t length = 0;
 };
 
 #endif

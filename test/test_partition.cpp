@@ -37,6 +37,17 @@ int main()
     const int THREAD_NUM = 8;
 
     GraphEngine myEngine(THREAD_NUM, opts);
+
+    std::cout << "size of graph engine object " << sizeof(myEngine)
+              << std::endl;
+    GraphBase *graph = myEngine.create_graph_handle();
+    std::cout << "size of graph object " << sizeof(graph) << std::endl;
+    std::cout << "size of std graph object " << sizeof(StandardGraph)
+              << std::endl;
+    std::cout << "size of adj graph object " << sizeof(AdjList) << std::endl;
+    std::cout << "size of ekey graph object " << sizeof(EdgeKey) << std::endl;
+    std::cout << "size of graph opts object " << sizeof(opts) << std::endl;
+
     myEngine.calculate_thread_offsets();
     myEngine.close_graph();
     return 0;

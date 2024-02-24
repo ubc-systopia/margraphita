@@ -21,7 +21,7 @@ struct cmdline_opts : graph_opts
     int num_trials = 16;
     node_id_t start_vertex = -1;
     // pagerank opts
-    double tolerance{};
+    double tolerance = 1e-4;
     int iterations{};
 
     // dump the options

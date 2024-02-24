@@ -32,6 +32,11 @@ class table_iterator
         is_first = true;
         has_next = true;
     }
+    void close()
+    {
+        cursor->close(cursor);
+        // session->close(session, nullptr);
+    }
 };
 
 class OutCursor : public table_iterator
@@ -89,11 +94,6 @@ class NodeCursor : public table_iterator
 
     virtual void next(node *found) = 0;
     virtual void next(node *found, node_id_t key) = 0;
-    void close()
-    {
-        cursor->close(cursor);
-        // session->close(session, nullptr);
-    }
 };
 
 class EdgeCursor : public table_iterator
@@ -108,12 +108,6 @@ class EdgeCursor : public table_iterator
     virtual void set_key_range(edge_range range) = 0;
 
     virtual void next(edge *found) = 0;
-    void close()
-    {
-        cursor->close(cursor);
-        // session->close(session, nullptr);
-    }
-
     void dump_range()
     {
         std::cout << "start: " << start_edge.src_id << " " << start_edge.dst_id

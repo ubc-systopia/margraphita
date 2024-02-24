@@ -232,7 +232,7 @@ int GraphBase::_get_table_cursor(const std::string &table,
 
 void GraphBase::close()
 {
-    int ret = this->connection->close(this->connection, nullptr);
+    int ret = session->close(session, nullptr);
     if (ret != 0)
     {
         throw GraphException("Failed to close the connection");
@@ -386,6 +386,14 @@ node_id_t GraphBase::get_num_nodes()
     get_metadata(MetadataKey::num_nodes, item, metadata_cursor);
     node_id_t num_nodes = *(node_id_t *)item.data;
     return num_nodes;
+}
+
+node_id_t GraphBase::get_max_node_id()
+{
+    WT_ITEM item;
+    get_metadata(MetadataKey::max_node_id, item, metadata_cursor);
+    node_id_t max_node_id = *(node_id_t *)item.data;
+    return max_node_id;
 }
 
 edge_id_t GraphBase::get_num_edges()

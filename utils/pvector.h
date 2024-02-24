@@ -24,10 +24,7 @@ class pvector
    public:
     typedef T_* iterator;
 
-    pvector()
-        : mmap_h(0), start_(nullptr), end_size_(nullptr), end_capacity_(nullptr)
-    {
-    }
+    pvector() = default;
 
     explicit pvector(size_t num_elements) : mmap_h(num_elements)
     {
@@ -57,9 +54,10 @@ class pvector
           end_size_(other.end_size_),
           end_capacity_(other.end_capacity_)
     {
-        other.start_ = nullptr;
         other.end_size_ = nullptr;
         other.end_capacity_ = nullptr;
+        // other.start_ = nullptr;
+        mmap_h.unmap();
     }
 
     // want move assignment
@@ -71,7 +69,7 @@ class pvector
             start_ = other.start_;
             end_size_ = other.end_size_;
             end_capacity_ = other.end_capacity_;
-            other.start_ = nullptr;
+            other.mmap_h.unmap();
             other.end_size_ = nullptr;
             other.end_capacity_ = nullptr;
         }
@@ -92,7 +90,14 @@ class pvector
     // not thread-safe
     void reserve(size_t num_elements)
     {
-        if (num_elements > capacity())
+        if (start_ == nullptr)
+        {
+            mmap_h = mmap_helper<T_>(num_elements);
+            start_ = mmap_h.get_iterator();
+            end_capacity_ = start_ + num_elements;
+            end_size_ = start_;
+        }
+        else if (num_elements > capacity())
         {
             T_* new_range = mmap_h.remap(num_elements);
 #pragma omp parallel for
@@ -159,9 +164,9 @@ class pvector
 
    private:
     mmap_helper<T_> mmap_h;
-    T_* start_;
-    T_* end_size_;
-    T_* end_capacity_;
+    T_* start_ = nullptr;
+    T_* end_size_ = nullptr;
+    T_* end_capacity_ = nullptr;
     static const size_t growth_factor = 2;
 };
 

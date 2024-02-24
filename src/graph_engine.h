@@ -68,7 +68,7 @@ GraphEngine::~GraphEngine()
 
 GraphBase *GraphEngine::create_graph_handle()
 {
-    GraphBase *ptr = nullptr;
+    GraphBase *ptr;
     if (opts.type == GraphType::Std)
     {
         ptr = new StandardGraph(opts, conn);
@@ -81,15 +81,10 @@ GraphBase *GraphEngine::create_graph_handle()
     {
         ptr = new EdgeKey(opts, conn);
     }
-    //    else if (opts.type == GraphType::EList)
-    //    {
-    //        ptr = new UnOrderedEdgeList(opts, conn);
-    //    }
     else
     {
         throw GraphException("Failed to create graph object");
     }
-    //    ptr->set_locks(locks);
     return ptr;
 }
 
@@ -145,21 +140,21 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
 
     NodeCursor *n_cur = graph_stats->get_node_iter();
 
-    // node_id_t node_offset = 0;
-    // // iterate over the cursor, and then assign the node id when the count is
-    // // equal to the per_partition
-    int i = 0;
+    // iterate over the cursor, and then assign the node id when the count is
+    // equal to the per_partition
+    node_id_t i = 0;
     node found;
     n_cur->next(&found);
-    std::cout << found.id << std::endl;
+    //    std::cout << found.id << std::endl;
 
     while (found.id != UINT32_MAX)
     {
         if (i % per_partition_nodes == 0)
         {
             node_ranges.push_back(found.id);
-            std::cout << "Node offset: " << found.id << "at offset " << i
-                      << std::endl;
+            //            std::cout << "Node offset: " << found.id << "at offset
+            //            " << i
+            //                      << std::endl;
         }
         if (i == num_nodes - 1)
         {
@@ -168,14 +163,12 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
         n_cur->next(&found);
         i++;
     }
-    std::cout << "The node boundaries are: " << std::endl;
-    for (auto x : node_ranges)
-    {
-        std::cout << x << std::endl;
-    }
-
-    std::cout << "Number of nodes: " << num_nodes << "\ni is: " << i
-              << std::endl;
+    //    std::cout << "The node boundaries are: " << std::endl;
+    //    for (auto x : node_ranges)
+    //    {
+    //        std::cout << x << std::endl;
+    //    }
+    assert(num_nodes == i);
     n_cur->close();
 }
 
@@ -192,15 +185,16 @@ void GraphEngine::_calculate_thread_offsets_edge(int thread_max,
     edge found_edge;
     e_cur->next(&found_edge);
     edge_id_t i = 0;
-    CommonUtil::dump_edge(found_edge);
+    //    CommonUtil::dump_edge(found_edge);
     while (found_edge.src_id != UINT32_MAX && found_edge.dst_id != UINT32_MAX)
     {
         if (i % per_partition_edge == 0)
         {
             edge_ranges.push_back(found_edge);
-            std::cout << "Edge: " << found_edge.src_id << ","
-                      << found_edge.dst_id << " at offset i: " << i
-                      << std::endl;
+            //            std::cout << "Edge: " << found_edge.src_id << ","
+            //                      << found_edge.dst_id << " at offset i: " <<
+            //                      i
+            //                      << std::endl;
         }
         if (i == num_edges - 1)
         {
@@ -210,11 +204,12 @@ void GraphEngine::_calculate_thread_offsets_edge(int thread_max,
         e_cur->next(&found_edge);
         i++;
     }
-    std::cout << "The edge boundaries are: " << std::endl;
-    for (auto x : edge_ranges)
-    {
-        std::cout << x.src_id << " " << x.dst_id << std::endl;
-    }
+    assert(num_edges == i);
+    //    std::cout << "The edge boundaries are: " << std::endl;
+    //    for (auto x : edge_ranges)
+    //    {
+    //        std::cout << x.src_id << " " << x.dst_id << std::endl;
+    //    }
     e_cur->close();
 }
 void GraphEngine::check_opts_valid()

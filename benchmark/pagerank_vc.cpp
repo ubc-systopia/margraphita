@@ -18,15 +18,13 @@ const float kDamp = 0.85;
 pvector<ScoreT> pagerank(GraphEngine& graph_engine,
                          int thread_num,
                          int max_iters,
+                         node_id_t num_nodes,
+                         node_id_t max_node_id,
                          double epsilon = 0)
 {
-    GraphBase* g = graph_engine.create_graph_handle();
-    node_id_t num_nodes = g->get_num_nodes();
-    g->close();
-
-    pvector<ScoreT> src(num_nodes, 0);
-    pvector<ScoreT> dst(num_nodes, 1 / num_nodes);
-    pvector<node_id_t> deg(num_nodes, 0);
+    pvector<ScoreT> src(max_node_id, 0);
+    pvector<ScoreT> dst(max_node_id, 1 / num_nodes);
+    pvector<node_id_t> deg(max_node_id, 0);
 
 #pragma omp parallel for
     for (int i = 0; i < thread_num; i++)
@@ -43,7 +41,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
             deg[found.id] = found.out_degree;
             node_cursor->next(&found);
         }
-        graph->close();
+        node_cursor->close();
     }
 
     for (int iter = 0; iter < max_iters; iter++)
@@ -76,12 +74,60 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
                 in_cursor->next(&found);
             }
 
-            graph->close();
+            in_cursor->close();
         }
         printf(" %2d    %lf\n", iter, error);
         if (error < epsilon) break;
     }
     return dst;
+}
+
+// Returns k pairs with largest values from list of key-value pairs
+template <typename KeyT, typename ValT>
+std::vector<std::pair<ValT, KeyT>> TopK(
+    const std::vector<std::pair<KeyT, ValT>>& to_sort, size_t k)
+{
+    std::vector<std::pair<ValT, KeyT>> top_k;
+    ValT min_so_far = 0;
+    for (auto kvp : to_sort)
+    {
+        if ((top_k.size() < k) || (kvp.second > min_so_far))
+        {
+            top_k.push_back(std::make_pair(kvp.second, kvp.first));
+            std::sort(top_k.begin(),
+                      top_k.end(),
+                      std::greater<std::pair<ValT, KeyT>>());
+            if (top_k.size() > k) top_k.resize(k);
+            min_so_far = top_k.back().first;
+        }
+    }
+    return top_k;
+}
+
+void print_top_scores(pvector<ScoreT>& score, node_id_t n_nodes, GraphBase* g)
+{
+    std::vector<std::pair<node_id_t, ScoreT>> score_pairs;
+    NodeCursor* node_cursor = g->get_node_iter();
+    node found = {0};
+    node_cursor->next(&found);
+    while (found.id != UINT32_MAX)
+    {
+        score_pairs.emplace_back(found.id, score[found.id]);
+        node_cursor->next(&found);
+    }
+    node_id_t k = 100;
+    vector<pair<ScoreT, node_id_t>> top_k = TopK(score_pairs, k);
+    node_id_t it = 0;
+    std::cout << "Top " << k << " nodes by PageRank:" << std::endl;
+    for (auto kvp : top_k)
+    {
+        it++;
+        if (kvp.first > 1e-4)
+            std::cout << "(" << it << ") " << kvp.second << ":" << kvp.first
+                      << std::endl;
+
+        std::cout << kvp.second << ":" << kvp.first << std::endl;
+    }
 }
 
 int main(int argc, char* argv[])
@@ -101,21 +147,23 @@ int main(int argc, char* argv[])
     t.start();
     GraphEngine graphEngine(THREAD_NUM, opts);
     graphEngine.calculate_thread_offsets();
-    graphEngine.calculate_thread_offsets_edge_partition();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 
+    // get the number of nodes in the graph:
     // Now run PR
     t.start();
-    pvector<ScoreT> score =
-        pagerank(graphEngine, THREAD_NUM, opts.iterations, opts.tolerance);
+    GraphBase* g = graphEngine.create_graph_handle();
+    node_id_t num_nodes = g->get_num_nodes();
+    node_id_t max_node_id = g->get_max_node_id();
+    pvector<ScoreT> score = pagerank(graphEngine,
+                                     THREAD_NUM,
+                                     opts.iterations,
+                                     num_nodes,
+                                     max_node_id,
+                                     opts.tolerance);
     t.stop();
     cout << "PR  completed in : " << t.t_micros() << endl;
-    double sum = 0;
-    for (int i = 0; i < 30399; i++)
-    {
-        if (score[i] != std::numeric_limits<float>::infinity()) sum += score[i];
-    }
-    cout << sum << '\n';
+    // print_top_scores(score, num_nodes, g);
     graphEngine.close_graph();
 }
