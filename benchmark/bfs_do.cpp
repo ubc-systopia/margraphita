@@ -10,7 +10,6 @@
 #include <set>
 #include <vector>
 
-#include "adj_list.h"
 #include "bitmap.h"
 #include "command_line.h"
 #include "common_util.h"

@@ -5,11 +5,13 @@ INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${ITTAPI_INCLUDE_DIR} ${PATH_SRC})
 
 add_executable(adj_ekey_microbenchmark adj_ekey_microbenchmark.cpp)
 target_link_libraries(adj_ekey_microbenchmark PUBLIC ${NAME_LIB} ${ITTAPI_LIB} graph_utils)
-# ###################################################################################
+####################################################################################
+############ PAGE RANK AND FRIENDS  ################################################
+####################################################################################
+
 add_executable(pagerank pagerank.cpp)
 target_link_libraries(pagerank PUBLIC ${NAME_LIB} graph_utils)
 
-# ###################################################################################
 add_executable(pr_iter_map pagerank_iter_map.cpp)
 target_link_libraries(pr_iter_map PUBLIC ${NAME_LIB} graph_utils)
 
@@ -19,9 +21,14 @@ target_link_libraries(pr_iter_map PUBLIC ${NAME_LIB} graph_utils)
 add_executable(pr_vc pagerank_vc.cpp)
 target_link_libraries(pr_vc PUBLIC ${NAME_LIB} graph_utils)
 
-# ###################################################################################
+####################################################################################
+############ BFS : OLD and GAPBS kind  #############################################
+####################################################################################
 add_executable(bfs bfs.cpp)
 target_link_libraries(bfs PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(bfs_parallel bfs_parallel.cpp)
+target_link_libraries(bfs_parallel PUBLIC ${NAME_LIB} graph_utils)
 
 ###################################################################################
 #add_executable(bfs_ec bfs_parallel_ec.cpp)
@@ -74,4 +81,4 @@ target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 # add_executable(bfs_parallel bfs_parallel.cpp)
 # target_link_libraries(bfs_parallel PUBLIC ${NAME_LIB} graph_utils)
 
-add_subdirectory(microbenchmarks)
+# add_subdirectory(microbenchmarks)

@@ -11,6 +11,7 @@
 #include "pvector.h"
 #include "standard_graph.h"
 #include "times.h"
+#include <omp.h>
 
 typedef float ScoreT;
 const float kDamp = 0.85;
@@ -42,6 +43,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
             node_cursor->next(&found);
         }
         node_cursor->close();
+        graph->close();
     }
 
     for (int iter = 0; iter < max_iters; iter++)
@@ -75,6 +77,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
             }
 
             in_cursor->close();
+            graph->close();
         }
         printf(" %2d    %lf\n", iter, error);
         if (error < epsilon) break;
@@ -142,20 +145,21 @@ int main(int argc, char* argv[])
     cmdline_opts opts = pr_cli.get_parsed_opts();
     opts.stat_log += "/" + opts.db_name;
 
-    const int THREAD_NUM = 8;
+    const int THREAD_NUM = omp_get_max_threads();
     Times t;
     t.start();
     GraphEngine graphEngine(THREAD_NUM, opts);
     graphEngine.calculate_thread_offsets();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
-
+    // return 0;
     // get the number of nodes in the graph:
     // Now run PR
     t.start();
     GraphBase* g = graphEngine.create_graph_handle();
     node_id_t num_nodes = g->get_num_nodes();
     node_id_t max_node_id = g->get_max_node_id();
+    g->close();
     pvector<ScoreT> score = pagerank(graphEngine,
                                      THREAD_NUM,
                                      opts.iterations,
@@ -164,6 +168,6 @@ int main(int argc, char* argv[])
                                      opts.tolerance);
     t.stop();
     cout << "PR  completed in : " << t.t_micros() << endl;
-    // print_top_scores(score, num_nodes, g);
+    //print_top_scores(score, num_nodes, g);
     graphEngine.close_graph();
 }

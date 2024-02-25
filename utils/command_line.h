@@ -280,7 +280,7 @@ class CmdLineApp : public CmdLineBase
    public:
     CmdLineApp(int argc, char **argv) : CmdLineBase(argc, argv)
     {
-        argstr_ += "#v:";  // add v: for start_vertex
+        argstr_ += "#:v:";  // add v: for start_vertex
         add_help_message(
             '#',
             "num_trials",
@@ -296,7 +296,7 @@ class CmdLineApp : public CmdLineBase
     {
         switch (opt)
         {
-            case 'c':
+            case '#':
                 opts.num_trials = (int)strtol(opt_arg, nullptr, 0);
                 break;
             case 'v':
