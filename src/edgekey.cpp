@@ -1200,8 +1200,8 @@ std::vector<node_id_t> EdgeKey::get_out_nodes_id(node_id_t node_id)
     }
     else
     {
-        throw GraphException("The node " + to_string(node_id) +
-                             " does not exist in the graph");
+        // throw GraphException("The node " + to_string(node_id) +
+        //" does not exist in the graph");
     }
     e_cur->close(e_cur);
     return out_nodes_id;
