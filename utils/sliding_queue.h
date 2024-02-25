@@ -27,9 +27,9 @@ class SlidingQueue
 {
     mmap_helper<T> mmap_shared;
     T *shared;
-    size_t shared_in;
-    size_t shared_out_start;
-    size_t shared_out_end;
+    size_t shared_in{};
+    size_t shared_out_start{};
+    size_t shared_out_end{};
     friend class QueueBuffer<T>;
 
    public:
@@ -43,7 +43,10 @@ class SlidingQueue
 
     void push_back(T to_add) { shared[shared_in++] = to_add; }
 
-    bool empty() const { return shared_out_start == shared_out_end; }
+    [[nodiscard]] bool empty() const
+    {
+        return shared_out_start == shared_out_end;
+    }
 
     void reset()
     {
@@ -64,7 +67,7 @@ class SlidingQueue
 
     iterator end() const { return shared + shared_out_end; }
 
-    size_t size() const { return end() - begin(); }
+    [[nodiscard]] size_t size() const { return end() - begin(); }
 };
 
 template <typename T>

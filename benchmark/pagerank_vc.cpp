@@ -159,6 +159,7 @@ int main(int argc, char* argv[])
     GraphBase* g = graphEngine.create_graph_handle();
     node_id_t num_nodes = g->get_num_nodes();
     node_id_t max_node_id = g->get_max_node_id();
+    g->close();
     pvector<ScoreT> score = pagerank(graphEngine,
                                      THREAD_NUM,
                                      opts.iterations,
