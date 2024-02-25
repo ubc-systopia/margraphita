@@ -17,10 +17,12 @@
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts
  */
 
+const int THREAD_NUM = omp_get_max_threads();
+
 bool id_compare(node_id_t a, node_id_t b) { return (a < b); }
 
-std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
-                                       std::vector<node_id_t> B)
+std::vector<node_id_t> intersection_id(std::vector<node_id_t> &A,
+                                       std::vector<node_id_t> &B)
 {
     std::sort(A.begin(), A.end(), id_compare);
     std::sort(B.begin(), B.end(), id_compare);
@@ -48,69 +50,87 @@ std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
     return ABintersection;
 }
 
-template <typename Graph>
-size_t trust_tc_iter(Graph &graph)
+int64_t trust_tc_iter(GraphEngine &graph_engine)
 {
-    size_t count = 0;
-    OutCursor *out_cursor = graph->get_outnbd_iter();
-    adjlist found;
-
-    out_cursor->next(&found);
-    while (found.node_id != -1)
+    int64_t count = 0;
+#pragma omp parallel for reduction(+ : count)
+    for (int i = 0; i < THREAD_NUM; i++)
     {
-        std::vector<node_id_t> out_nbrhood = found.edgelist;
-        for (node_id_t node : out_nbrhood)
-        {
-            std::vector<node_id_t> node_out_nbrhood =
-                graph->get_out_nodes_id(node);
-            std::vector<node_id_t> intersect =
-                intersection_id(out_nbrhood, node_out_nbrhood);
-            count += intersect.size();
-        }
+        GraphBase *graph = graph_engine.create_graph_handle();
+        OutCursor *out_cursor = graph->get_outnbd_iter();
+        out_cursor->set_key_range(graph_engine.get_key_range(i));
+        adjlist found;
+
         out_cursor->next(&found);
+        while (found.node_id != -1)
+        {
+            for (auto node : found.edgelist)
+            {
+                std::vector<node_id_t> node_out_nbrhood =
+                    graph->get_out_nodes_id(node);
+                if (node_out_nbrhood.empty())
+                {
+                    continue;
+                }
+                std::vector<node_id_t> intersect =
+                    intersection_id(found.edgelist, node_out_nbrhood);
+                count += (int64_t)(intersect.size());
+            }
+
+            out_cursor->next(&found);
+        }
+        out_cursor->close();
+        graph->close();
     }
 
     return count;
 }
 
-template <typename Graph>
-int64_t cycle_tc_iter(Graph &graph)
+int64_t cycle_tc_iter(GraphEngine &graph_engine)
 {
     int64_t count = 0;
-    InCursor *in_cursor = graph->get_innbd_iter();
-    OutCursor *out_cursor = graph->get_outnbd_iter();
-    adjlist found;
-    adjlist found_out;
-
-    in_cursor->next(&found);
-    out_cursor->next(&found_out);
-
-    while (found.node_id != -1)
+#pragma omp parallel for reduction(+ : count)
+    for (int i = 0; i < THREAD_NUM; i++)
     {
-        std::vector<node_id_t> in_nbrhood = found.edgelist;
-        std::vector<node_id_t> out_nbrhood = found_out.edgelist;
-        for (node_id_t node : out_nbrhood)
+        GraphBase *graph = graph_engine.create_graph_handle();
+        OutCursor *out_cursor = graph->get_outnbd_iter();
+        out_cursor->set_key_range(graph_engine.get_key_range(i));
+        adjlist found;
+        out_cursor->next(&found);
+        while (found.node_id != -1)
         {
-            if (found.node_id < node)
+            if (found.edgelist.empty())
             {
-                std::vector<node_id_t> node_out_nbrhood =
-                    graph->get_out_nodes_id(node);
-                std::vector<node_id_t> intersect =
-                    intersection_id(in_nbrhood, node_out_nbrhood);
-
-                for (node_id_t itsc : intersect)
+                out_cursor->next(&found);
+                continue;
+            }
+            for (auto v : found.edgelist)
+            {
+                if (found.node_id < v)
                 {
-                    if (found.node_id < itsc)
+                    std::vector<node_id_t> v_out_nbrhood =
+                        graph->get_out_nodes_id(v);
+                    if (v_out_nbrhood.empty()) continue;
+
+                    std::vector<node_id_t> u_in_nbrhood =
+                        graph->get_in_nodes_id(found.node_id);
+                    if (u_in_nbrhood.empty()) continue;
+                    std::vector<node_id_t> intersect =
+                        intersection_id(v_out_nbrhood, u_in_nbrhood);
+                    for (auto w : intersect)
                     {
-                        count += 1;
+                        if (found.node_id < w)
+                        {
+                            count += 1;
+                        }
                     }
                 }
             }
+            out_cursor->next(&found);
         }
-        in_cursor->next(&found);
-        out_cursor->next(&found_out);
+        out_cursor->close();
+        graph->close();
     }
-
     return count;
 }
 
@@ -126,24 +146,24 @@ int main(int argc, char *argv[])
     cmdline_opts opts = tc_cli.get_parsed_opts();
     opts.stat_log += "/" + opts.db_name;
 
-    const int THREAD_NUM = 1;
+    std::cout << "THREAD_NUM: " << THREAD_NUM << std::endl;
 
     Times t;
     t.start();
     GraphEngine graphEngine(THREAD_NUM, opts);
-    GraphBase *graph = graphEngine.create_graph_handle();
+    graphEngine.calculate_thread_offsets();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
-
+    opts.num_trials = 1;
     for (int i = 0; i < opts.num_trials; i++)
     {
         tc_info info(0);
         // Count Trust Triangles
         t.start();
-        info.trust_count = trust_tc_iter(graph);
+        info.trust_count = trust_tc_iter(graphEngine);
         t.stop();
 
-        info.trust_time = t.t_micros();
+        info.trust_time = t.t_secs();
         std::cout << "Trust Triangle_Counting_ITER completed in : "
                   << info.trust_time << std::endl;
         std::cout << "Trust Triangles count = " << info.trust_count
@@ -151,9 +171,9 @@ int main(int argc, char *argv[])
 
         // Count Cycle Triangles
         t.start();
-        info.cycle_count = cycle_tc_iter(graph);
+        info.cycle_count = cycle_tc_iter(graphEngine);
         t.stop();
-        info.cycle_time = t.t_micros();
+        info.cycle_time = t.t_secs();
         std::cout << "Cycle TriangleCounting_ITER completed in : "
                   << info.cycle_time << std::endl;
         std::cout << "Cycle Triangles count = " << info.cycle_count
@@ -161,6 +181,5 @@ int main(int argc, char *argv[])
 
         print_csv_info(opts.db_name, info, opts.stat_log);
     }
-    graph->close();
     graphEngine.close_graph();
 }

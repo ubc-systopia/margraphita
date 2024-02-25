@@ -18,7 +18,7 @@ class GraphEngine
     ~GraphEngine();
     GraphBase *create_graph_handle();
     void create_indices();
-    void calculate_thread_offsets();
+    void calculate_thread_offsets(bool make_edge = false);
     key_range get_key_range(int thread_id);
     edge_range get_edge_range(int thread_id);
     void close_graph();
@@ -111,12 +111,13 @@ void GraphEngine::create_indices()
     }
 }
 
-void GraphEngine::calculate_thread_offsets()
+void GraphEngine::calculate_thread_offsets(bool make_edge)
 {
     // Create snapshot here first?
-    GraphBase *graph_stats = this->create_graph_handle();
+    GraphBase *graph_stats = create_graph_handle();
     _calculate_thread_offsets(num_threads, graph_stats);
-    _calculate_thread_offsets_edge(num_threads, graph_stats);
+    if (make_edge) _calculate_thread_offsets_edge(num_threads, graph_stats);
+    graph_stats->close();
 }
 
 /**
@@ -308,11 +309,16 @@ void GraphEngine::close_graph() { close_connection(); }
 key_range GraphEngine::get_key_range(int thread_id)
 {
     key_range to_return{};
+    // assign so that there is no overlap
     to_return.start = node_ranges[thread_id];
     if (thread_id < num_threads - 1)
-        to_return.end = node_ranges[thread_id + 1];
+    {
+        to_return.end = node_ranges[thread_id + 1] - 1;
+    }
     else
+    {
         to_return.end = UINT32_MAX;
+    }
     return to_return;
 }
 

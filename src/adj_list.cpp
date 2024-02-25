@@ -1101,8 +1101,7 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
     ret = cursor->search(cursor);
     if (ret != 0)
     {
-        throw GraphException("Could not find " + std::to_string(node_id) +
-                             " in the AdjList");
+        return {};  // todo: handle this better.
     }
 
     CommonUtil::record_to_adjlist(cursor, &adj_list);

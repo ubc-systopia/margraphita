@@ -34,15 +34,6 @@ int num_per_chunk;
 
 WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
 
-// typedef enum TableType
-//{
-//     Edge,
-//     Node,
-//     AdjList,
-//     EKey,
-//     Meta
-// } TableType;
-
 typedef struct fgraph_conn_object
 {
     GraphType type;

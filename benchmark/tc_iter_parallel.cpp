@@ -22,6 +22,7 @@
 /**
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts
  */
+bool id_compare(node_id_t a, node_id_t b) { return (a < b); }
 
 std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
                                        std::vector<node_id_t> B)
@@ -133,4 +134,55 @@ int64_t cycle_tc_iter_parallel(const GraphEngine& graph_engine, int thread_num)
     }
 
     return count;
+}
+
+int main(int argc, char* argv[])
+{
+    std::cout << "Running TC" << std::endl;
+    CmdLineApp tc_cli(argc, argv);
+    if (!tc_cli.parse_args())
+    {
+        return -1;
+    }
+
+    cmdline_opts opts = tc_cli.get_parsed_opts();
+    opts.stat_log += "/" + opts.db_name;
+
+    const int THREAD_NUM = 1;
+
+    Times t;
+    t.start();
+    GraphEngine graphEngine(THREAD_NUM, opts);
+    GraphBase* graph = graphEngine.create_graph_handle();
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+
+    for (int i = 0; i < opts.num_trials; i++)
+    {
+        tc_info info;
+        // Count Trust Triangles
+        t.start();
+        info.trust_count = trust_tc(graph);
+        t.stop();
+
+        info.trust_time = t.t_micros();
+        std::cout << "Trust TriangleCounting completed in : " << info.trust_time
+                  << std::endl;
+        std::cout << "Trust Triangles count = " << info.trust_count
+                  << std::endl;
+
+        // Count Cycle Triangles
+        t.start();
+        info.cycle_count = cycle_tc(graph);
+        t.stop();
+        info.cycle_time = t.t_micros();
+        std::cout << "Cycle TriangleCounting  completed in : "
+                  << info.cycle_time << std::endl;
+        std::cout << "Cycle Triangles count = " << info.cycle_count
+                  << std::endl;
+
+        print_csv_info(opts.db_name, info, opts.stat_log);
+    }
+    graph->close();
+    graphEngine.close_graph();
 }
