@@ -17,12 +17,12 @@
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts
  */
 
-const int THREAD_NUM = 1;  // omp_get_max_threads();
+const int THREAD_NUM = omp_get_max_threads();
 
 bool id_compare(node_id_t a, node_id_t b) { return (a < b); }
 
-std::vector<node_id_t> intersection_id(std::vector<node_id_t> A,
-                                       std::vector<node_id_t> B)
+std::vector<node_id_t> intersection_id(std::vector<node_id_t> &A,
+                                       std::vector<node_id_t> &B)
 {
     std::sort(A.begin(), A.end(), id_compare);
     std::sort(B.begin(), B.end(), id_compare);
@@ -64,15 +64,19 @@ int64_t trust_tc_iter(GraphEngine &graph_engine)
         out_cursor->next(&found);
         while (found.node_id != -1)
         {
-            std::vector<node_id_t> out_nbrhood = found.edgelist;
-            for (node_id_t node : out_nbrhood)
+            for (auto node : found.edgelist)
             {
                 std::vector<node_id_t> node_out_nbrhood =
                     graph->get_out_nodes_id(node);
+                if (node_out_nbrhood.empty())
+                {
+                    continue;
+                }
                 std::vector<node_id_t> intersect =
-                    intersection_id(out_nbrhood, node_out_nbrhood);
+                    intersection_id(found.edgelist, node_out_nbrhood);
                 count += (int64_t)(intersect.size());
             }
+
             out_cursor->next(&found);
         }
         out_cursor->close();
@@ -89,40 +93,41 @@ int64_t cycle_tc_iter(GraphEngine &graph_engine)
     for (int i = 0; i < THREAD_NUM; i++)
     {
         GraphBase *graph = graph_engine.create_graph_handle();
-        InCursor *in_cursor = graph->get_innbd_iter();
         OutCursor *out_cursor = graph->get_outnbd_iter();
+        out_cursor->set_key_range(graph_engine.get_key_range(i));
         adjlist found;
-        adjlist found_out;
-
-        in_cursor->next(&found);
-        out_cursor->next(&found_out);
-
+        out_cursor->next(&found);
         while (found.node_id != -1)
         {
-            std::vector<node_id_t> in_nbrhood = found.edgelist;
-            std::vector<node_id_t> out_nbrhood = found_out.edgelist;
-            for (node_id_t node : out_nbrhood)
+            if (found.edgelist.empty())
             {
-                if (found.node_id < node)
+                out_cursor->next(&found);
+                continue;
+            }
+            for (auto v : found.edgelist)
+            {
+                if (found.node_id < v)
                 {
-                    std::vector<node_id_t> node_out_nbrhood =
-                        graph->get_out_nodes_id(node);
-                    std::vector<node_id_t> intersect =
-                        intersection_id(in_nbrhood, node_out_nbrhood);
+                    std::vector<node_id_t> v_out_nbrhood =
+                        graph->get_out_nodes_id(v);
+                    if (v_out_nbrhood.empty()) continue;
 
-                    for (node_id_t itsc : intersect)
+                    std::vector<node_id_t> u_in_nbrhood =
+                        graph->get_in_nodes_id(found.node_id);
+                    if (u_in_nbrhood.empty()) continue;
+                    std::vector<node_id_t> intersect =
+                        intersection_id(v_out_nbrhood, u_in_nbrhood);
+                    for (auto w : intersect)
                     {
-                        if (found.node_id < itsc)
+                        if (found.node_id < w)
                         {
                             count += 1;
                         }
                     }
                 }
             }
-            in_cursor->next(&found);
-            out_cursor->next(&found_out);
+            out_cursor->next(&found);
         }
-        in_cursor->close();
         out_cursor->close();
         graph->close();
     }
