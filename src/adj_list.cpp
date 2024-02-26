@@ -706,6 +706,12 @@ node AdjList::get_node(node_id_t node_id)
         CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
         found.id = node_id;
     }
+    else
+    {
+        found.id = UINT32_MAX;
+        found.out_degree = 0;
+        found.in_degree = 0;
+    }
     node_cursor->reset(node_cursor);
     return found;
 }
@@ -753,6 +759,12 @@ edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
         {
             CommonUtil::record_to_edge(edge_cursor, &found);
         }
+    }
+    else
+    {
+        found.src_id = UINT32_MAX;
+        found.dst_id = UINT32_MAX;
+        found.edge_weight = UINT32_MAX;
     }
     edge_cursor->reset(edge_cursor);
     return found;

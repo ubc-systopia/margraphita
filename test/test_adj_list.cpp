@@ -63,7 +63,7 @@ void test_get_node(AdjList graph)
     assert(found.id == 1);
     // now get a node that does not exist
     found = graph.get_node(test_id2);
-    assert(found.id == -1);
+    assert(found.id == UINT32_MAX);
     found = graph.get_random_node();
     CommonUtil::dump_node(found);
 }
@@ -116,9 +116,9 @@ void test_get_edge(AdjList graph)
     // Now get a non-existent edge
     int test_id1 = 222, test_id2 = 333;
     found = graph.get_edge(test_id1, test_id2);
-    assert(found.src_id == -1);
-    assert(found.dst_id == -1);
-    assert(found.edge_weight == -1);
+    assert(found.src_id == UINT32_MAX);
+    assert(found.dst_id == UINT32_MAX);
+    assert(found.edge_weight == UINT32_MAX);
 }
 
 void test_add_edge(AdjList graph, bool is_directed)
@@ -468,14 +468,14 @@ void test_InCursor(AdjList graph)
               << std::endl;
     adjlist found;
     in_cursor->next(&found);
-    while (found.node_id != -1)
+    while (found.node_id != UINT32_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
         in_cursor->next(&found);
     }
     std::cout << "the found.node id is " << found.node_id << std::endl;
-    assert(found.node_id == -1);
+    assert(found.node_id == UINT32_MAX);
     found.clear();
     //    std::cout
     //        << "Printing in-adjlists for nodes with non-null nbd
@@ -484,7 +484,7 @@ void test_InCursor(AdjList graph)
     //    in_cursor->setAllNodes(false);
     //    adjlist found;
     //    in_cursor->next(&found);
-    //    while (found.node_id != -1)
+    //    while (found.node_id != UINT32_MAX)
     //    {
     //        CommonUtil::dump_adjlist(found);
     //        found.clear();
