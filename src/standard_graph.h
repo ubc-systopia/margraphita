@@ -33,6 +33,7 @@ class StdInCursor : public InCursor
         cursor = cur;
         session = sess;
     }
+    ~StdInCursor() override = default;
 
     void no_next(adjlist *found)
     {
@@ -122,6 +123,7 @@ class StdOutCursor : public OutCursor
         cursor = cur;
         session = sess;
     }
+    ~StdOutCursor() override = default;
 
     void no_next(adjlist *found)
     {
@@ -200,6 +202,7 @@ class StdNodeCursor : public NodeCursor
         cursor = cur;
         session = sess;
     }
+    ~StdNodeCursor() override = default;
 
     void set_key_range(key_range _keys) override
     {
@@ -273,6 +276,7 @@ class StdEdgeCursor : public EdgeCursor
         cursor = cur;
         session = sess;
     }
+    ~StdEdgeCursor() override = default;
 
     void set_key_range(edge_range range) override
     {

@@ -19,9 +19,6 @@ class GraphBase
     GraphBase() = default;
     GraphBase(graph_opts &opt_params, WT_CONNECTION *conn);
 
-    //    virtual ~GraphBase() { CommonUtil::close_connection(this->connection);
-    //    }
-
     static void insert_metadata(int key,
                                 const char *value,
                                 size_t size,

@@ -11,7 +11,6 @@
 #include "common_util.h"
 #include "csv_log.h"
 #include "graph_engine.h"
-#include "standard_graph.h"
 #include "times.h"
 /**
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts
@@ -81,6 +80,7 @@ int64_t trust_tc_iter(GraphEngine &graph_engine)
         }
         out_cursor->close();
         graph->close();
+        delete out_cursor;
     }
 
     return count;
@@ -129,7 +129,8 @@ int64_t cycle_tc_iter(GraphEngine &graph_engine)
             out_cursor->next(&found);
         }
         out_cursor->close();
-        graph->close();
+        delete out_cursor;
+        delete graph;
     }
     return count;
 }

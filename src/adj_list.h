@@ -27,6 +27,7 @@ class AdjInCursor : public InCursor
         cursor = cur;
         session = sess;
     }
+    ~AdjInCursor() override = default;
 
     void set_key_range(key_range _key) override
     {
@@ -110,6 +111,7 @@ class AdjOutCursor : public OutCursor
         cursor = cur;
         session = sess;
     }
+    ~AdjOutCursor() override = default;
     void setAllNodes(bool allNodes) { all_nodes = allNodes; }
 
     // use key_pair to define start and end keys.
@@ -191,6 +193,7 @@ class AdjNodeCursor : public NodeCursor
         cursor = cur;
         session = sess;
     }
+    ~AdjNodeCursor() override = default;
 
     void set_key_range(key_range _keys) override
     {
@@ -299,6 +302,7 @@ class AdjEdgeCursor : public EdgeCursor
         cursor = cur;
         session = sess;
     }
+    ~AdjEdgeCursor() override = default;
 
     void set_key_range(edge_range range) override
     {

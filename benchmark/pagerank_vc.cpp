@@ -1,17 +1,15 @@
-#include <math.h>
-#include <stdio.h>
+#include <omp.h>
 
+#include <cmath>
+#include <cstdio>
 #include <iostream>
+
 #include "benchmark_definitions.h"
 #include "command_line.h"
 #include "common_util.h"
 #include "graph_engine.h"
-#include "graph_exception.h"
-#include "platform_atomics.h"
 #include "pvector.h"
-#include "standard_graph.h"
 #include "times.h"
-#include <omp.h>
 
 typedef float ScoreT;
 const float kDamp = 0.85;

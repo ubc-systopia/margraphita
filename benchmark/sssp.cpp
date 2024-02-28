@@ -123,6 +123,5 @@ int main(int argc, char *argv[])
 
     graph->close();
     graphEngine.close_graph();
-
     return 0;
 }

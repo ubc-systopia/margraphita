@@ -327,6 +327,12 @@ edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
             CommonUtil::record_to_edge(edge_cursor, &found);
         }
     }
+    else
+    {
+        found.src_id = UINT32_MAX;
+        found.dst_id = UINT32_MAX;
+        found.edge_weight = UINT32_MAX;
+    }
     edge_cursor->reset(edge_cursor);
     return found;
 }

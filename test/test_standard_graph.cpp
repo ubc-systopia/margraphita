@@ -220,7 +220,7 @@ void test_get_out_edges(StandardGraph &graph)
 
     // Now test for a node that has no out edge
     edges = graph.get_out_edges(test_id2);
-    assert(edges.size() == 0);
+    assert(edges.empty());
 
     // Now try getting out edges for a node that does not exist
     bool assert_fail = false;
@@ -254,8 +254,8 @@ void test_get_out_nodes(StandardGraph &graph)
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(test_id2);
     nodes_id = graph.get_out_nodes_id(test_id2);
-    assert(nodes.size() == 0);
-    assert(nodes_id.size() == 0);
+    assert(nodes.empty());
+    assert(nodes_id.empty());
 
     // test for a node that does not exist
     bool assert_fail = false;
@@ -298,8 +298,8 @@ void test_get_in_nodes(StandardGraph &graph)
     // test for a node that has no in_edge
     nodes = graph.get_in_nodes(4);
     nodes_id = graph.get_in_nodes_id(4);
-    assert(nodes.size() == 0);
-    assert(nodes_id.size() == 0);
+    assert(nodes.empty());
+    assert(nodes_id.empty());
 
     // test for a node that does not exist
     bool assert_fail = false;
@@ -330,7 +330,7 @@ void test_get_in_edges(StandardGraph &graph)
     test_get_nodes(graph);
     // now test for a node that has no in-edge
     edges = graph.get_in_edges(4);
-    assert(edges.size() == 0);
+    assert(edges.empty());
 
     // Now try getting in edges for a node that does not exist.
     bool assert_fail = false;
@@ -381,9 +381,9 @@ void test_get_edges(StandardGraph &graph, bool is_directed)
     // Now get a non-existent edge
     int test_id1 = 222, test_id2 = 333;
     found = graph.get_edge(test_id1, test_id2);
-    assert(found.src_id == -1);
-    assert(found.dst_id == -1);
-    assert(found.edge_weight == -1);
+    assert(found.src_id == UINT32_MAX);
+    assert(found.dst_id == UINT32_MAX);
+    assert(found.edge_weight == UINT32_MAX);
 }
 
 void test_InCursor(StandardGraph &graph)
@@ -392,7 +392,7 @@ void test_InCursor(StandardGraph &graph)
     InCursor *in_cursor = graph.get_innbd_iter();
     adjlist found;
     in_cursor->next(&found);
-    while (found.node_id != -1)
+    while (found.node_id != UINT32_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -406,12 +406,14 @@ void test_InCursor(StandardGraph &graph)
     in_cursor->reset();
     in_cursor->set_key_range(key_range(3, 5));
     in_cursor->next(&found);
-    while (found.node_id != -1)
+    while (found.node_id != UINT32_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
         in_cursor->next(&found);
     }
+    in_cursor->close();
+    delete in_cursor;
 }
 
 void test_OutCursor(StandardGraph &graph)
@@ -420,7 +422,7 @@ void test_OutCursor(StandardGraph &graph)
     OutCursor *out_cursor = graph.get_outnbd_iter();
     adjlist found;
     out_cursor->next(&found);
-    while (found.node_id != -1)
+    while (found.node_id != UINT32_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -432,12 +434,14 @@ void test_OutCursor(StandardGraph &graph)
     out_cursor->reset();
     out_cursor->set_key_range(key_range(3, 5));
     out_cursor->next(&found);
-    while (found.node_id != -1)
+    while (found.node_id != UINT32_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
         out_cursor->next(&found);
     }
+    out_cursor->close();
+    delete out_cursor;
 }
 
 void test_index_cursor(StandardGraph &graph)
@@ -472,13 +476,15 @@ void test_NodeCursor(StandardGraph &graph)
     int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
     int i = 0;
     node_cursor->next(&found);
-    while (found.id != -1)
+    while (found.id != UINT32_MAX)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
         node_cursor->next(&found);
         i++;
     }
+    node_cursor->close();
+    delete node_cursor;
 }
 
 void test_NodeCursor_Range(StandardGraph &graph)
@@ -490,13 +496,15 @@ void test_NodeCursor_Range(StandardGraph &graph)
     int i = 0;
     node_cursor->set_key_range(key_range(3, 6));
     node_cursor->next(&found);
-    while (found.id != -1)
+    while (found.id != UINT32_MAX)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
         node_cursor->next(&found);
         i++;
     }
+    node_cursor->close();
+    delete node_cursor;
 }
 
 void test_EdgeCursor(StandardGraph &graph)
@@ -508,7 +516,7 @@ void test_EdgeCursor(StandardGraph &graph)
     int dstIdList[] = {3, 7, 6, 8, 7};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != -1)
+    while (found.src_id != UINT32_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
@@ -516,6 +524,8 @@ void test_EdgeCursor(StandardGraph &graph)
         edge_cursor->next(&found);
         i++;
     }
+    edge_cursor->close();
+    delete edge_cursor;
 }
 
 void test_EdgeCursor_Range(StandardGraph &graph)
@@ -529,7 +539,7 @@ void test_EdgeCursor_Range(StandardGraph &graph)
     int dstIdList[] = {7, 6, 8};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != -1)
+    while (found.src_id != UINT32_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
@@ -537,6 +547,8 @@ void test_EdgeCursor_Range(StandardGraph &graph)
         edge_cursor->next(&found);
         i++;
     }
+    edge_cursor->close();
+    delete edge_cursor;
 }
 
 int main()
@@ -610,6 +622,5 @@ int main()
 
     // Test std_graph teardown
     tearDown(graph);
-
     return 0;
 }

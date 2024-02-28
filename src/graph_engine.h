@@ -62,8 +62,7 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
 GraphEngine::~GraphEngine()
 {
     delete locks;
-    // This is handled in the GraphBase destructor.
-    //  close_connection();
+    close_connection();
 }
 
 GraphBase *GraphEngine::create_graph_handle()
@@ -295,10 +294,10 @@ void GraphEngine::open_connection()
 void GraphEngine::close_connection()
 {
     // CommonUtil::close_connection(conn);
-    if (conn != NULL)
+    if (conn != nullptr)
     {
-        conn->close(conn, NULL);
-        conn = NULL;
+        conn->close(conn, nullptr);
+        conn = nullptr;
     }
 }
 
