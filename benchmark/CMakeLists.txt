@@ -30,17 +30,29 @@ target_link_libraries(bfs PUBLIC ${NAME_LIB} graph_utils)
 add_executable(bfs_parallel bfs_parallel.cpp)
 target_link_libraries(bfs_parallel PUBLIC ${NAME_LIB} graph_utils)
 
-###################################################################################
 #add_executable(bfs_ec bfs_parallel_ec.cpp)
 #target_link_libraries(bfs_ec PUBLIC ${NAME_LIB} graph_utils)
 
-# ###################################################################################
+####################################################################################
+############ TC (Exact) Single Threaded and Parallel  ##############################
+####################################################################################
 add_executable(tc tc.cpp)
 target_link_libraries(tc PUBLIC ${NAME_LIB} graph_utils)
 
 add_executable(tc_iter tc_iter.cpp)
 target_link_libraries(tc_iter PUBLIC ${NAME_LIB} graph_utils)
 
+####################################################################################
+############ Connected Components OLD & GAPBS kind  ################################
+####################################################################################
+add_executable(cc cc.cpp)
+target_link_libraries(cc PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(cc_parallel cc_parallel.cpp)
+target_link_libraries(cc_parallel PUBLIC ${NAME_LIB} graph_utils)
+
+# add_executable(cc_parallel_ec cc_parallel_ec.cpp)
+# target_link_libraries(cc_parallel_ec PUBLIC ${NAME_LIB} graph_utils)
 # ###################################################################################
 # #TEST
 add_executable(pr_iter_getout pr_iter_getout.cpp)

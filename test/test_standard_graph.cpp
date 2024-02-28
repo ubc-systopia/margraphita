@@ -220,7 +220,7 @@ void test_get_out_edges(StandardGraph &graph)
 
     // Now test for a node that has no out edge
     edges = graph.get_out_edges(test_id2);
-    assert(edges.size() == 0);
+    assert(edges.empty());
 
     // Now try getting out edges for a node that does not exist
     bool assert_fail = false;
@@ -254,8 +254,8 @@ void test_get_out_nodes(StandardGraph &graph)
     // test for a node that has no out-edge
     nodes = graph.get_out_nodes(test_id2);
     nodes_id = graph.get_out_nodes_id(test_id2);
-    assert(nodes.size() == 0);
-    assert(nodes_id.size() == 0);
+    assert(nodes.empty());
+    assert(nodes_id.empty());
 
     // test for a node that does not exist
     bool assert_fail = false;
@@ -298,8 +298,8 @@ void test_get_in_nodes(StandardGraph &graph)
     // test for a node that has no in_edge
     nodes = graph.get_in_nodes(4);
     nodes_id = graph.get_in_nodes_id(4);
-    assert(nodes.size() == 0);
-    assert(nodes_id.size() == 0);
+    assert(nodes.empty());
+    assert(nodes_id.empty());
 
     // test for a node that does not exist
     bool assert_fail = false;
@@ -330,7 +330,7 @@ void test_get_in_edges(StandardGraph &graph)
     test_get_nodes(graph);
     // now test for a node that has no in-edge
     edges = graph.get_in_edges(4);
-    assert(edges.size() == 0);
+    assert(edges.empty());
 
     // Now try getting in edges for a node that does not exist.
     bool assert_fail = false;
@@ -412,6 +412,8 @@ void test_InCursor(StandardGraph &graph)
         found.clear();
         in_cursor->next(&found);
     }
+    in_cursor->close();
+    delete in_cursor;
 }
 
 void test_OutCursor(StandardGraph &graph)
@@ -438,6 +440,8 @@ void test_OutCursor(StandardGraph &graph)
         found.clear();
         out_cursor->next(&found);
     }
+    out_cursor->close();
+    delete out_cursor;
 }
 
 void test_index_cursor(StandardGraph &graph)
@@ -479,6 +483,8 @@ void test_NodeCursor(StandardGraph &graph)
         node_cursor->next(&found);
         i++;
     }
+    node_cursor->close();
+    delete node_cursor;
 }
 
 void test_NodeCursor_Range(StandardGraph &graph)
@@ -497,6 +503,8 @@ void test_NodeCursor_Range(StandardGraph &graph)
         node_cursor->next(&found);
         i++;
     }
+    node_cursor->close();
+    delete node_cursor;
 }
 
 void test_EdgeCursor(StandardGraph &graph)
@@ -516,6 +524,8 @@ void test_EdgeCursor(StandardGraph &graph)
         edge_cursor->next(&found);
         i++;
     }
+    edge_cursor->close();
+    delete edge_cursor;
 }
 
 void test_EdgeCursor_Range(StandardGraph &graph)
@@ -537,6 +547,8 @@ void test_EdgeCursor_Range(StandardGraph &graph)
         edge_cursor->next(&found);
         i++;
     }
+    edge_cursor->close();
+    delete edge_cursor;
 }
 
 int main()
@@ -610,6 +622,5 @@ int main()
 
     // Test std_graph teardown
     tearDown(graph);
-
     return 0;
 }

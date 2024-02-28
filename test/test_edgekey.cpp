@@ -362,6 +362,7 @@ void test_InCursor(EdgeKey &graph)
         found.clear();
         in_cursor->next(&found);
     }
+    delete in_cursor;
 }
 
 void test_OutCursor(EdgeKey &graph)
@@ -394,6 +395,7 @@ void test_OutCursor(EdgeKey &graph)
         out_cursor->next(&found);
     }
     out_cursor->reset();
+    delete out_cursor;
 }
 
 void test_NodeCursor(EdgeKey &graph)
@@ -411,6 +413,7 @@ void test_NodeCursor(EdgeKey &graph)
         node_cursor->next(&found);
         i++;
     }
+    delete node_cursor;
 }
 
 void test_NodeCursor_Range(EdgeKey &graph)
@@ -429,6 +432,7 @@ void test_NodeCursor_Range(EdgeKey &graph)
         node_cursor->next(&found);
         i++;
     }
+    delete node_cursor;
 }
 
 void test_EdgeCursor(EdgeKey &graph)
@@ -448,6 +452,7 @@ void test_EdgeCursor(EdgeKey &graph)
         edge_cursor->next(&found);
         i++;
     }
+    delete edge_cursor;
 }
 
 void test_EdgeCursor_Range(EdgeKey &graph)
@@ -468,6 +473,7 @@ void test_EdgeCursor_Range(EdgeKey &graph)
         edge_cursor->next(&found);
         i++;
     }
+    delete edge_cursor;
 }
 
 int main()

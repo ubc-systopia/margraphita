@@ -20,6 +20,7 @@ class table_iterator
 
    public:
     table_iterator() = default;
+    virtual ~table_iterator() = default;
     [[nodiscard]] bool has_more() const { return has_next; };
     virtual void reset()
     {
@@ -48,6 +49,7 @@ class OutCursor : public table_iterator
 
    public:
     OutCursor() = default;
+    ~OutCursor() override = default;
     virtual void set_key_range(key_range _keys) = 0;
     void set_num_nodes(uint32_t num) { num_nodes = num; }
 
@@ -63,7 +65,7 @@ class InCursor : public table_iterator
 
    public:
     InCursor() = default;
-
+    ~InCursor() override = default;
     //! DELETE THIS LIKE IN OUTCURSOR
     virtual void set_key_range(key_range _keys) = 0;
     void set_num_nodes(node_id_t num) { num_nodes = num; }
@@ -79,6 +81,7 @@ class NodeCursor : public table_iterator
 
    public:
     NodeCursor() = default;
+    ~NodeCursor() override = default;
 
     /**
      * @brief Set the key range object
@@ -105,10 +108,11 @@ class EdgeCursor : public table_iterator
 
    public:
     EdgeCursor() = default;
+    ~EdgeCursor() override = default;
     virtual void set_key_range(edge_range range) = 0;
 
     virtual void next(edge *found) = 0;
-    void dump_range()
+    void dump_range() const
     {
         std::cout << "start: " << start_edge.src_id << " " << start_edge.dst_id
                   << " end: " << end_edge.src_id << " " << end_edge.dst_id

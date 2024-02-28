@@ -24,6 +24,7 @@ class EkeyInCursor : public InCursor
         session = sess;
         set_key_range({OutOfBand_ID, UINT32_MAX});
     }
+    ~EkeyInCursor() override = default;
     /** This is the initializer function for setting the range of valid keys an
      * iterator must operate within. Set the cursor keys and advance the cursor
      * to the first valid position in the range.
@@ -126,7 +127,7 @@ class EkeyOutCursor : public OutCursor
         session = sess;
         set_key_range({OutOfBand_ID, UINT32_MAX});
     }
-
+    ~EkeyOutCursor() override = default;
     void set_key_range(key_range _keys) override
     {
         keys.start = _keys.start;
@@ -216,6 +217,7 @@ class EkeyNodeCursor : public NodeCursor
         session = sess;
         set_key_range({OutOfBand_ID, UINT32_MAX});  // min and max node id
     }
+    ~EkeyNodeCursor() override = default;
 
     void set_key_range(key_range _keys) override
     {
@@ -298,6 +300,7 @@ class EkeyEdgeCursor : public EdgeCursor
         session = sess;
         set_key_range({{OutOfBand_ID, OutOfBand_ID}, {UINT32_MAX, UINT32_MAX}});
     }
+    ~EkeyEdgeCursor() override = default;
 
     void set_key_range(edge_range range) override
     {
