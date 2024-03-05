@@ -33,8 +33,8 @@ class InsertOpts
     int argc_;
     char **argv_;
     std::string argstr_ =
-        "d:p:l:e:n:f:t:rum:";  //! Construct this after you
-                               //! finish the rest of this thing
+        "d:p:l:e:n:f:t:rum:w";  //! Construct this after you
+                                //! finish the rest of this thing
     std::vector<std::string> help_strings_;
 
     std::string db_name;
@@ -76,6 +76,7 @@ class InsertOpts
         add_help_message('r', "ropt", "Make the WT database read optimized");
         add_help_message('u', "undirected", "The graph is undirected");
         add_help_message('m', "mt", "number of threads to use");
+        add_help_message('w', "weighted", "The graph is weighted");
     }
 
     bool virtual parse_args()
@@ -140,6 +141,9 @@ class InsertOpts
             case 'm':
                 std::cout << opt << " " << optarg << std::endl;
                 opts.num_threads = static_cast<int>(strtod(optarg, nullptr));
+                break;
+            case 'w':
+                opts.is_weighted = true;
                 break;
             case ':':
             /* missing option argument */

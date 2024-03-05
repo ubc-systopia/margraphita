@@ -1,9 +1,6 @@
 #include "bulk_insert_low_mem.h"
 
-#include <omp.h>
-
-#include <charconv>
-void insert_edge_thread(int _tid)
+void insert_edge_thread(int _tid, bool is_weighted = false)
 {
     int tid = _tid;
     std::string filename = opts.dataset + "/out_";
@@ -20,11 +17,13 @@ void insert_edge_thread(int _tid)
     while (adj_reader.get_next_adjlist(adj_list) == 0)
     {
         // insert into STD: edge table
-        add_to_edge_table(std_obj.e_cur, adj_list.node_id, adj_list.edgelist);
-        // insert into EKEY: edge key table
-        add_to_edgekey(ekey_obj.e_cur, adj_list.node_id, adj_list.edgelist);
-        // insert into ADJ: edge and adjlist out tables
-        add_to_edge_table(adj_obj.e_cur, adj_list.node_id, adj_list.edgelist);
+        add_to_edge_table(
+            std_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
+        add_to_edgekey(
+            ekey_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
+        add_to_edge_table(
+            adj_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
+
         add_to_adjlist(adj_obj.cur, adj_list);
 
         // acquire a lock and update the global node_degree
@@ -167,20 +166,21 @@ int main(int argc, char *argv[])
         "statistics=(all),statistics_log=(wait=0,on_close=true";
     conn_config += "," + stat_config;
 #endif
-    dump_config(opts, conn_config);
+
     // open connections to all three dbs
     make_connections(opts, conn_config);
 
     num_per_chunk = (int)(opts.num_edges / NUM_THREADS);
-
+    dump_config(opts, conn_config);
     std::cout << "dataset: " << opts.dataset << std::endl;
-
+    
     // We first work on the out edges. We will read the edges from the file and
     // insert them into the edge table and the adjlist table
+    std::cout << "weighted? " << opts.is_weighted << std::endl;
 #pragma omp parallel for num_threads(NUM_THREADS)
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        insert_edge_thread(i);
+        insert_edge_thread(i, opts.is_weighted);
     }
 
 #pragma omp parallel for num_threads(NUM_THREADS)
