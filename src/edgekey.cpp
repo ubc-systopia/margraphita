@@ -170,6 +170,61 @@ node EdgeKey::get_random_node()
     }
     return rando;
 }
+void EdgeKey::get_random_node_ids(vector<node_id_t> &ids, int num_nodes)
+{
+    int count = 0, waste = 0;
+    int ret = 0;
+    if (random_cursor == nullptr)
+    {
+        ret =
+            _get_table_cursor(EDGE_TABLE, &random_cursor, session, true, true);
+    }
+    if (ret != 0)
+    {
+        throw GraphException("Could not get a random cursor to the node table");
+    }
+
+    random_cursor->next(random_cursor);
+    do
+    {
+        node_id_t src, dst;
+        uint32_t in_deg, out_deg;
+        ret = CommonUtil::ekey_get_key(random_cursor, &src, &dst);
+        if (ret != 0)
+        {
+            break;
+        }
+        if (dst == OutOfBand_ID)
+        {
+            std::cout << "Random starting vertex: " << src << std::endl;
+            random_cursor->get_value(random_cursor, &in_deg, &out_deg);
+            if (out_deg > 0)
+            {
+                ids.emplace_back(src);
+                count++;
+            }
+
+            if (count == num_nodes) break;
+        }
+        else
+        {
+            waste++;
+        }
+        ret = random_cursor->next(random_cursor);
+        if (ret != 0)
+        {
+            random_cursor->reset(random_cursor);
+            random_cursor->next(random_cursor);
+        }
+    } while (count < num_nodes);
+    if (ret != 0)
+    {
+        throw GraphException("Issue with random cursor iteration:" +
+                             string(wiredtiger_strerror(ret)));
+    }
+    std::cout << "wasted iterations: " << waste << std::endl;
+    std::cout << "ids size: " << ids.size() << std::endl;
+}
 
 /**
  * @brief This function adds a node to the edge table.

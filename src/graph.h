@@ -27,6 +27,8 @@ class GraphBase
     void dump_meta_data();
     virtual node get_node(node_id_t node_id) = 0;
     virtual node get_random_node() = 0;
+    virtual void get_random_node_ids(std::vector<node_id_t> &randoms,
+                                     int count) = 0;
     static void create_metadata_table(
         graph_opts &opts,
         WT_CONNECTION *conn);  // Used during first-time init of DB

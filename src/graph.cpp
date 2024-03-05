@@ -211,21 +211,18 @@ int GraphBase::_get_table_cursor(const std::string &table,
                                  bool is_random,
                                  bool prevent_overwrite)
 {
-    std::string table_name = "table:" + table;
-    std::string config;
-    if (is_random)
+    char config[256];
+    snprintf(config,
+             sizeof(config),
+             "next_random=%s,overwrite=%s",
+             is_random ? "true" : "false",
+             prevent_overwrite ? "false" : "true");
+    char table_name[256];
+    snprintf(table_name, sizeof(table_name), "table:%s", table.c_str());
+    if (session->open_cursor(session, table_name, nullptr, config, cursor) != 0)
     {
-        config += "next_random=true,";
-    }
-    if (prevent_overwrite)
-    {
-        config += "overwrite=false,";
-    }
-    if (session->open_cursor(
-            session, table_name.c_str(), nullptr, config.c_str(), cursor) != 0)
-    {
-        throw GraphException("Failed to open the cursor on the table " +
-                             table_name);
+        throw GraphException("Failed to open a cursor on the " + table +
+                             " table");
     }
     return 0;
 }
