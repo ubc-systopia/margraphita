@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
     Times t;
     t.start();
     GraphEngine graphEngine(THREAD_NUM, opts);
-    graphEngine.calculate_thread_offsets(true);
+    graphEngine.calculate_thread_offsets();
 
     GraphBase* graph = graphEngine.create_graph_handle();
     node_id_t numNodes = graph->get_num_nodes();
@@ -176,8 +176,8 @@ int main(int argc, char* argv[])
         t.stop();
         std::cout << "CC took " << t.t_secs() << " s" << std::endl;
         total_seconds += t.t_secs();
-        print_comp_to_file(result);
-        if (i == 0) PrintCompStats(graph, result, numNodes, maxNodeID);
+        if (i == 0 && opts.print_stats == true)
+            PrintCompStats(graph, result, numNodes, maxNodeID);
     }
     std::cout << "Average CC took " << total_seconds / opts.num_trials << " s"
               << std::endl;
