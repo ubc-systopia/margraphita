@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <map>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -170,6 +171,26 @@ int check_cursors(worker_sessions &info)
     return 0;
 }
 
+// Overwrites existing weights with random from [1,255]
+int *InsertWeights(size_t n)
+{
+    // Set up random number generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> distribution(0, 255);
+
+    // Allocate memory for the array
+    int *randomArray = new int[n];
+
+    // Fill the array with random values
+    for (int i = 0; i < n; ++i)
+    {
+        randomArray[i] = distribution(gen);
+    }
+
+    return randomArray;
+}
+
 int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
 {
     CommonUtil::set_key(adjcur, adj.node_id);
@@ -189,39 +210,57 @@ int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
 
 int add_to_edge_table(WT_CURSOR *cur,
                       const node_id_t node_id,
-                      const std::vector<node_id_t> &edgelist)
+                      const std::vector<node_id_t> &edgelist,
+                      bool is_weighted = false)
 {
-    // std::cout << edgelist.size() << std::endl;
+    int *weight = InsertWeights(edgelist.size());
+
+    int i = 0;
     for (node_id_t dst : edgelist)
     {
         CommonUtil::set_key(cur, node_id, dst);
-        cur->set_value(cur, 0);
+        if (is_weighted)
+            cur->set_value(cur, weight[i], OutOfBand_Val);
+        else
+            cur->set_value(cur, 0, OutOfBand_Val);
         int ret = cur->insert(cur);
         if (ret != 0)
         {
             PRINT_EDGE_ERROR(node_id, dst, ret, wiredtiger_strerror(ret))
+            delete[] weight;
             return ret;
         }
+        i++;
     }
+    delete[] weight;
     return 0;
 }
 
 int add_to_edgekey(WT_CURSOR *ekey_cur,
                    const node_id_t node_id,
-                   const std::vector<node_id_t> &edgelist)
+                   const std::vector<node_id_t> &edgelist,
+                   bool is_weighted = false)
 {
     node_id_t src = node_id;
-    for (node_id_t dst : edgelist)
+    int *weight = InsertWeights(edgelist.size());
+    for (int i = 0; i < edgelist.size(); i++)
     {
-        CommonUtil::set_key(ekey_cur, src, dst);
-        ekey_cur->set_value(ekey_cur, 0, OutOfBand_Val);
+        CommonUtil::set_key(ekey_cur, src, edgelist[i]);
+        if (is_weighted)
+            ekey_cur->set_value(ekey_cur, weight[i], OutOfBand_Val);
+        else
+            ekey_cur->set_value(ekey_cur, 0, OutOfBand_Val);
+
         int ret = ekey_cur->insert(ekey_cur);
         if (ret != 0)
         {
-            PRINT_EDGE_ERROR(node_id, dst, ret, wiredtiger_strerror(ret))
+            PRINT_EDGE_ERROR(
+                node_id, edgelist[i], ret, wiredtiger_strerror(ret))
+            delete[] weight;
             return ret;
         }
     }
+    delete[] weight;
     return 0;
 }
 
@@ -343,6 +382,7 @@ void dump_config(const graph_opts &_opts, const std::string &conn_config)
     std::cout << "Dataset: " << _opts.dataset << std::endl;
     std::cout << "Read optimized: " << _opts.read_optimize << std::endl;
     std::cout << "Directed: " << _opts.is_directed << std::endl;
+    std::cout << "Weighted: " << _opts.is_weighted << std::endl;
     std::cout << "Num edges: " << _opts.num_edges << std::endl;
     std::cout << "Num nodes: " << _opts.num_nodes << std::endl;
     std::cout << "Num threads: " << NUM_THREADS << std::endl;

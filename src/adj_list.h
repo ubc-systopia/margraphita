@@ -389,6 +389,7 @@ class AdjList : public GraphBase
     node get_node(node_id_t node_id) override;
     int delete_node(node_id_t node_id) override;
     node get_random_node() override;
+    void get_random_node_ids(std::vector<node_id_t> &nodes, int count) override;
     degree_t get_in_degree(node_id_t node_id) override;
     degree_t get_out_degree(node_id_t node_id) override;
     std::vector<node> get_nodes() override;

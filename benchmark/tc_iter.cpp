@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
     graphEngine.calculate_thread_offsets();
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;
-    opts.num_trials = 1;
+    long double total_time_cycle = 0, total_time_trust = 0;
     for (int i = 0; i < opts.num_trials; i++)
     {
         tc_info info(0);
@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
         t.stop();
 
         info.trust_time = t.t_secs();
+        total_time_trust += info.trust_time;
         std::cout << "Trust Triangle_Counting_ITER completed in : "
                   << info.trust_time << std::endl;
         std::cout << "Trust Triangles count = " << info.trust_count
@@ -175,6 +176,7 @@ int main(int argc, char *argv[])
         info.cycle_count = cycle_tc_iter(graphEngine);
         t.stop();
         info.cycle_time = t.t_secs();
+        total_time_cycle += info.cycle_time;
         std::cout << "Cycle TriangleCounting_ITER completed in : "
                   << info.cycle_time << std::endl;
         std::cout << "Cycle Triangles count = " << info.cycle_count
@@ -182,5 +184,9 @@ int main(int argc, char *argv[])
 
         print_csv_info(opts.db_name, info, opts.stat_log);
     }
+    std::cout << "Average time Trust: " << total_time_trust / opts.num_trials
+              << std::endl;
+    std::cout << "Average time Cycle: " << total_time_cycle / opts.num_trials
+              << std::endl;
     graphEngine.close_graph();
 }

@@ -23,6 +23,9 @@ struct cmdline_opts : graph_opts
     // pagerank opts
     double tolerance = 1e-4;
     int iterations{};
+    bool print_stats = false;
+    // SSSP options
+    edgeweight_t delta_value = 1;
 
     // dump the options
     void print_config(const std::string &filename)
@@ -60,9 +63,9 @@ class CmdLineBase
     char **argv_;
 
     std::string argstr_ =
-        "p:m:g:"         // required args
-        "s:nordwl:hz:";  //! Construct this after you finish the
-                         //! rest of this thing
+        "p:m:g:"          // required args
+        "s:nordwl:hz:a";  //! Construct this after you finish the
+                          //! rest of this thing
     std::vector<std::string> help_strings_;
     cmdline_opts opts;
 
@@ -100,8 +103,9 @@ class CmdLineBase
                          "set to match the DB name if not provided.");
         add_help_message(
             'n', "create_new", "(Optional) Create a new DB (default = false");
-        add_help_message('o',
-                         "create_optimized",
+        add_help_message(
+            'o',
+            "create_optimized",
             "(Optional) If set, then indices are not created while "
             "inserting. Default = false.");
         add_help_message(
@@ -122,6 +126,10 @@ class CmdLineBase
                          "conn_config",
                          "(Optional) Provide a WT connection config string to "
                          "the open_conn call");
+        add_help_message(
+            'a',
+            "print_stats",
+            "(Optional) Print stats after running the app. Default = false");
 
         if (argc_ == 1)
         {
@@ -200,6 +208,9 @@ class CmdLineBase
                 break;
             case 'z':
                 opts.conn_config = std::string(opt_arg);
+                break;
+            case 'a':
+                opts.print_stats = true;
                 break;
             case 'h':
                 print_help();
@@ -286,8 +297,9 @@ class CmdLineApp : public CmdLineBase
             "num_trials",
             "(Optional) Number of trials for each benchmark. Defaults to " +
                 std::to_string(opts.num_trials));
-        add_help_message('v',
-                         "v",
+        add_help_message(
+            'v',
+            "start_vertex",
             "(Optional) Starting vertex id. If not provided, then a random "
             "vertex is picked. ");
     }
@@ -338,6 +350,33 @@ class PageRankOpts : public CmdLineApp
                 break;
             case 't':
                 opts.tolerance = std::stod(opt_arg);
+                break;
+            default:
+                CmdLineApp::handle_args(opt, opt_arg);
+        }
+    }
+};
+
+class SSSPOpts : public CmdLineApp
+{
+   public:
+    SSSPOpts(int argc, char **argv, edgeweight_t _delta)
+        : CmdLineApp(argc, argv)
+    {
+        argstr_ += "D:";
+        opts.delta_value = _delta;
+        add_help_message('D',
+                         "delta",
+                         "The delta value to use for SSSP. Defaults to " +
+                             std::to_string(opts.delta_value));
+    }
+
+    void handle_args(signed char opt, char *opt_arg) override
+    {
+        switch (opt)
+        {
+            case 'D':
+                opts.delta_value = std::stoi(opt_arg);
                 break;
             default:
                 CmdLineApp::handle_args(opt, opt_arg);

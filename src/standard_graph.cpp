@@ -384,6 +384,36 @@ node StandardGraph::get_random_node()
     return found;
 }
 
+void StandardGraph::get_random_node_ids(std::vector<node_id_t> &ids,
+                                        int num_ids)
+{
+    int ret = 0;
+    if (this->random_node_cursor == nullptr)
+    {
+        _get_table_cursor(
+            NODE_TABLE, &random_node_cursor, session, true, false);
+    }
+    int count = 0;
+    while (count < num_ids)
+    {
+        ret = this->random_node_cursor->next(random_node_cursor);
+        if (ret != 0)
+        {
+            throw GraphException("next() call failed on random_node cursor" +
+                                 string(wiredtiger_strerror(ret)));
+        }
+        node found;
+        CommonUtil::get_key(random_node_cursor, &found.id);
+        CommonUtil::record_to_node(
+            this->random_node_cursor, &found, opts.read_optimize);
+        if (found.out_degree > 0)
+            ids.push_back(found.id);
+        else
+            continue;
+        count++;
+    }
+}
+
 /**
  * @brief This function is used to delete a node and all its edges.
  *

@@ -532,21 +532,49 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 node AdjList::get_random_node()
 {
     node found = {0};
-    WT_CURSOR *cursor;
-    int ret = _get_table_cursor(NODE_TABLE, &cursor, session, true, false);
+    WT_CURSOR *random_cursor = nullptr;
+    int ret =
+        _get_table_cursor(NODE_TABLE, &random_cursor, session, true, false);
     if (ret != 0)
     {
         throw GraphException("could not get a random cursor to the node table");
     }
-    ret = cursor->next(cursor);
+    ret = random_cursor->next(random_cursor);
     if (ret != 0)
     {
         throw GraphException("Could not seek a random node in the table");
     }
 
-    CommonUtil::record_to_node(cursor, &found, opts.read_optimize);
-    CommonUtil::get_key(cursor, &found.id);
+    CommonUtil::record_to_node(random_cursor, &found, opts.read_optimize);
+    CommonUtil::get_key(random_cursor, &found.id);
     return found;
+}
+
+void AdjList::get_random_node_ids(std::vector<node_id_t> &randoms, int count)
+{
+    WT_CURSOR *random_cursor = nullptr;
+    int ret =
+        _get_table_cursor(NODE_TABLE, &random_cursor, session, true, false);
+    if (ret != 0)
+    {
+        throw GraphException("could not get a random cursor to the node table");
+    }
+    node found = {0};
+    int _count = 0;
+    while (random_cursor->next(random_cursor) == 0)
+    {
+        CommonUtil::get_key(random_cursor, &found.id);
+        CommonUtil::record_to_node(random_cursor, &found, opts.read_optimize);
+        if (found.out_degree > 0)
+        {
+            randoms.push_back(found.id);
+            _count++;
+        }
+        if (_count == count)
+        {
+            break;
+        }
+    }
 }
 
 /**

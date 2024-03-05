@@ -53,6 +53,25 @@ target_link_libraries(cc_parallel PUBLIC ${NAME_LIB} graph_utils)
 
 # add_executable(cc_parallel_ec cc_parallel_ec.cpp)
 # target_link_libraries(cc_parallel_ec PUBLIC ${NAME_LIB} graph_utils)
+
+####################################################################################
+############ SSSP (GAPBS)  #########################################################
+####################################################################################
+add_executable(sssp sssp.cpp)
+target_link_libraries(sssp PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(sssp_parallel sssp_parallel.cpp)
+target_link_libraries(sssp_parallel PUBLIC ${NAME_LIB} graph_utils)
+
+####################################################################################
+############ Betweenness Centrality (GAPBS)  #######################################
+####################################################################################
+# add_executable(bc bc.cpp)
+# target_link_libraries(bc PUBLIC ${NAME_LIB} graph_utils)
+
+# add_executable(bc_parallel bc_parallel.cpp)
+# target_link_libraries(bc_parallel PUBLIC ${NAME_LIB} graph_utils)
+
 # ###################################################################################
 # #TEST
 add_executable(pr_iter_getout pr_iter_getout.cpp)
@@ -72,8 +91,7 @@ target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 #add_executable(cc_parallel_ec cc_parallel_ec.cpp)
 #target_link_libraries(cc_parallel_ec PUBLIC ${NAME_LIB} graph_utils)
 #
-#add_executable(sssp sssp.cpp)
-#target_link_libraries(sssp PUBLIC ${NAME_LIB} graph_utils)
+
 #
 #add_executable(iteration_vc iteration_vc.cpp)
 #target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} graph_utils)
@@ -81,11 +99,7 @@ target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 #add_executable(iteration_ec iteration_ec.cpp)
 #target_link_libraries(iteration_ec PUBLIC ${NAME_LIB} graph_utils)
 
-# add_executable(bc bc.cpp)
-# target_link_libraries(bc PUBLIC ${NAME_LIB} graph_utils)
 
-# add_executable(bc_parallel bc_parallel.cpp)
-# target_link_libraries(bc_parallel PUBLIC ${NAME_LIB} graph_utils)
 
 # add_executable(tc_iter_parallel tc_iter_parallel.cpp)
 # target_link_libraries(tc_iter_parallel PUBLIC ${NAME_LIB} graph_utils)
