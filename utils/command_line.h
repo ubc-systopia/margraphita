@@ -22,7 +22,7 @@ struct cmdline_opts : graph_opts
     node_id_t start_vertex = -1;
     // pagerank opts
     double tolerance = 1e-4;
-    int iterations{};
+    int iterations = 1;
     bool print_stats = false;
     // SSSP options
     edgeweight_t delta_value = 1;

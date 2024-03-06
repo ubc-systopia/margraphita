@@ -69,8 +69,8 @@ target_link_libraries(sssp_parallel PUBLIC ${NAME_LIB} graph_utils)
 # add_executable(bc bc.cpp)
 # target_link_libraries(bc PUBLIC ${NAME_LIB} graph_utils)
 
-# add_executable(bc_parallel bc_parallel.cpp)
-# target_link_libraries(bc_parallel PUBLIC ${NAME_LIB} graph_utils)
+add_executable(bc_parallel bc_parallel.cpp)
+target_link_libraries(bc_parallel PUBLIC ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 # #TEST
