@@ -16,6 +16,7 @@
 #include "common_util.h"
 #include "csv_log.h"
 #include "graph_engine.h"
+#include "omp.h"
 #include "times.h"
 
 /**

@@ -10,6 +10,7 @@
 #include "csv_log.h"
 #include "edgekey.h"
 #include "graph_engine.h"
+#include "omp.h"
 #include "pvector.h"
 #include "times.h"
 

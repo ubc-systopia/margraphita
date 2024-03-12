@@ -7,6 +7,7 @@
 #include "command_line.h"
 #include "csv_log.h"
 #include "graph_engine.h"
+#include "omp.h"
 #include "platform_atomics.h"
 #include "pvector.h"
 #include "times.h"

@@ -11,6 +11,7 @@
 #include "common_util.h"
 #include "csv_log.h"
 #include "graph_engine.h"
+#include "omp.h"
 #include "times.h"
 /**
  * This runs the Triangle Counting on the graph -- both Trust and Cycle counts

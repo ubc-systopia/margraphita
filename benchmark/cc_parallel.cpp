@@ -7,6 +7,7 @@
 #include "command_line.h"
 #include "common_util.h"
 #include "graph_engine.h"
+#include "omp.h"
 #include "pvector.h"
 #include "times.h"
 /*

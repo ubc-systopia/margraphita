@@ -7,6 +7,7 @@
 #include "command_line.h"
 #include "csv_log.h"
 #include "graph_engine.h"
+#include "omp.h"
 #include "platform_atomics.h"
 #include "pvector.h"
 #include "sliding_queue.h"
@@ -207,10 +208,6 @@ void print_top_scores(GraphBase *g,
     for (auto kvp : top_k)
     {
         it++;
-        if (kvp.first > 1e-4)
-            std::cout << "(" << it << ") " << kvp.second << ":" << kvp.first
-                      << std::endl;
-
         std::cout << kvp.second << ":" << kvp.first << std::endl;
     }
 }
