@@ -11,6 +11,9 @@
 #include "graph_exception.h"
 using namespace std;
 
+std::atomic<node_id_t> GraphBase::local_nnodes(0);
+std::atomic<edge_id_t> GraphBase::local_nedges(0);
+
 GraphBase::GraphBase(graph_opts &opt_params, WT_CONNECTION *conn)
 {
     opts = opt_params;
@@ -229,6 +232,7 @@ int GraphBase::_get_table_cursor(const std::string &table,
 
 void GraphBase::close()
 {
+    sync_metadata();
     int ret = session->close(session, nullptr);
     if (ret != 0)
     {
@@ -361,71 +365,42 @@ int GraphBase::_get_index_cursor(const std::string &table_name,
     return 0;
 }
 
-void GraphBase::set_num_nodes(node_id_t num_nodes, WT_CURSOR *metadata_cur)
+void GraphBase::sync_metadata()
 {
+    node_id_t temp = GraphBase::get_num_nodes();
     insert_metadata(MetadataKey::num_nodes,
-                    (char *)&num_nodes,
+                    (char *)&temp,
                     sizeof(node_id_t),
-                    metadata_cur);
-}
-
-void GraphBase::set_num_edges(edge_id_t num_edges, WT_CURSOR *metadata_cur)
-{
+                    metadata_cursor);
+    temp = GraphBase::get_num_edges();
     insert_metadata(MetadataKey::num_edges,
-                    (char *)&num_edges,
+                    (char *)&temp,
                     sizeof(edge_id_t),
-                    metadata_cur);
+                    metadata_cursor);
+
+    auto max_node = get_max_node_id();
+    insert_metadata(MetadataKey::max_node_id,
+                    (char *)&max_node,
+                    sizeof(node_id_t),
+                    metadata_cursor);
+
+    auto min_node = get_min_node_id();
+    insert_metadata(MetadataKey::min_node_id,
+                    (char *)&min_node,
+                    sizeof(node_id_t),
+                    metadata_cursor);
+
+    dump_meta_data();
 }
 
-node_id_t GraphBase::get_num_nodes()
+node_id_t GraphBase::get_num_nodes() { return GraphBase::local_nnodes.load(); };
+void GraphBase::increment_nodes(int increment)
 {
-    WT_ITEM item;
-    get_metadata(MetadataKey::num_nodes, item, metadata_cursor);
-    node_id_t num_nodes = *(node_id_t *)item.data;
-    return num_nodes;
+    GraphBase::local_nnodes += increment;
 }
 
-node_id_t GraphBase::get_max_node_id()
+edge_id_t GraphBase::get_num_edges() { return GraphBase::local_nedges.load(); };
+void GraphBase::increment_edges(int increment)
 {
-    WT_ITEM item;
-    get_metadata(MetadataKey::max_node_id, item, metadata_cursor);
-    node_id_t max_node_id = *(node_id_t *)item.data;
-    return max_node_id;
+    GraphBase::local_nedges += increment;
 }
-
-edge_id_t GraphBase::get_num_edges()
-{
-    WT_ITEM item;
-    get_metadata(MetadataKey::num_edges, item, metadata_cursor);
-    return *(uint64_t *)item.data;
-}
-
-// void GraphBase::set_locks(LockSet *locks_ptr) { locks = locks_ptr; }
-
-// void GraphBase::add_to_nnodes(int amnt)
-// {
-//     if (locks != nullptr)
-//     {
-//         omp_set_lock(locks->get_node_num_lock());
-//         set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
-//         omp_unset_lock(locks->get_node_num_lock());
-//     }
-//     else
-//     {
-//         set_num_nodes(get_num_nodes() + amnt, this->metadata_cursor);
-//     }
-// }
-
-// void GraphBase::add_to_nedges(int amnt)
-// {
-//     if (locks != nullptr)
-//     {
-//         omp_set_lock(locks->get_edge_num_lock());
-//         set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
-//         omp_unset_lock(locks->get_edge_num_lock());
-//     }
-//     else
-//     {
-//         set_num_edges(get_num_edges() + amnt, this->metadata_cursor);
-//     }
-//}

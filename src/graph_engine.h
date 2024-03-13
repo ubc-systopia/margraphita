@@ -8,7 +8,6 @@
 #include "edgekey.h"
 #include "graph.h"
 #include "graph_exception.h"
-#include "lock.h"
 #include "standard_graph.h"
 
 class GraphEngine
@@ -28,7 +27,6 @@ class GraphEngine
     WT_CONNECTION *conn = nullptr;
     std::vector<node_id_t> node_ranges;
     std::vector<edge> edge_ranges;
-    LockSet *locks;
     int num_threads;
     graph_opts opts;
     node_id_t last_node_id;
@@ -48,7 +46,6 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
     num_threads = _num_threads;
     // init with the engine_opts passed as args without copying
     opts = engine_opts;
-    locks = new LockSet();
     if (opts.create_new)
     {
         create_new_graph();
@@ -61,7 +58,6 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
 
 GraphEngine::~GraphEngine()
 {
-    delete locks;
     close_connection();
 }
 

@@ -3,6 +3,7 @@
 #include <wiredtiger.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cstring>
 #include <iostream>
@@ -11,7 +12,6 @@
 
 #include "common_util.h"
 #include "graph_exception.h"
-#include "lock.h"
 
 class GraphBase
 {
@@ -62,22 +62,24 @@ class GraphBase
     // void set_locks(LockSet *locks_ptr);
 
     void close();
-    node_id_t get_num_nodes();
-    node_id_t get_max_node_id();
-    edge_id_t get_num_edges();
-    void set_num_nodes(node_id_t num_nodes, WT_CURSOR *cursor);
-    void set_num_edges(edge_id_t num_edges, WT_CURSOR *cursor);
+    virtual node_id_t get_max_node_id() = 0;
+    virtual node_id_t get_min_node_id() = 0;
+
+    static node_id_t get_num_nodes();
+    static edge_id_t get_num_edges();
+    static void increment_nodes(int increment);
+    static void increment_edges(int increment);
+
     [[nodiscard]] std::string get_db_name() const { return opts.db_name; };
 
    protected:
     graph_opts opts;
-    int local_nnodes = 0;
-    int local_nedges = 0;
     WT_CONNECTION *connection = nullptr;
     WT_SESSION *session = nullptr;
-    LockSet *locks = nullptr;
-
     WT_CURSOR *metadata_cursor = nullptr;
+
+    static std::atomic<node_id_t> local_nnodes;
+    static std::atomic<edge_id_t> local_nedges;
 
     [[maybe_unused]] WT_CONNECTION *get_db_conn() { return this->connection; }
     [[maybe_unused]] WT_SESSION *get_db_session() { return this->session; }
@@ -92,7 +94,8 @@ class GraphBase
                           WT_CURSOR **cursor);
     [[maybe_unused]] void _restore_from_db();
     [[maybe_unused]] void _restore_from_db(const std::string &db_name);
-
+    [[maybe_unused]] void sync_metadata();
     virtual void close_all_cursors() = 0;
 };
+
 #endif

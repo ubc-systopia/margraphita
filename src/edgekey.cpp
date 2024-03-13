@@ -72,7 +72,7 @@ void EdgeKey::create_indices(WT_SESSION *sess)
 void EdgeKey::init_cursors()
 {
     int ret =
-        _get_table_cursor(METADATA, &metadata_cursor, session, false, true);
+        _get_table_cursor(METADATA, &metadata_cursor, session, false, false);
     if (ret != 0)
     {
         throw GraphException("Could not get a cursor to the metadata table:" +
@@ -271,7 +271,7 @@ int EdgeKey::add_node(node to_insert)
                                  " into the edge table");
     }
     session->commit_transaction(session, nullptr);
-    // add_to_nnodes(1);
+    GraphBase::increment_nodes(1);
     return 0;
 }
 
@@ -346,8 +346,8 @@ int EdgeKey::delete_node(node_id_t node_id)
     session->commit_transaction(session, nullptr);
     if (ret != 0) return ret;
 
-    // add_to_nedges(num_edges_to_add);
-    // add_to_nnodes(-1);
+    GraphBase::increment_edges(num_edges_to_add);
+    GraphBase::increment_nodes(-1);
     return 0;
 }
 
@@ -725,8 +725,8 @@ int EdgeKey::add_edge(edge to_insert, bool is_bulk)
     }
 
     session->commit_transaction(session, nullptr);
-    // add_to_nedges(num_edges_to_add);
-    // add_to_nnodes(num_nodes_to_add);
+    GraphBase::increment_edges(num_edges_to_add);
+    GraphBase::increment_nodes(num_nodes_to_add);
     return 0;
 }
 
@@ -869,7 +869,7 @@ int EdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)  // TODO
         }
     }
     session->commit_transaction(session, nullptr);
-    // add_to_nedges(num_edges_to_add);
+    GraphBase::increment_edges(num_edges_to_add);
     return 0;
 }
 
@@ -1581,4 +1581,39 @@ WT_CURSOR *EdgeKey::get_new_edge_cursor()
     }
 
     return new_edge_cursor;
+}
+
+node_id_t EdgeKey::get_min_node_id()
+{
+    WT_CURSOR *cursor = get_new_edge_cursor();
+    node_id_t src, dst;
+    int ret = cursor->next(cursor);
+    if (ret == 0)
+    {
+        CommonUtil::ekey_get_key(cursor, &src, &dst);
+        assert(dst == OutOfBand_ID);
+    }
+    else
+    {
+        throw GraphException("Could not get the minimum node ID");
+    }
+    cursor->close(cursor);
+    return src;
+}
+
+node_id_t EdgeKey::get_max_node_id()
+{
+    WT_CURSOR *cursor = get_new_edge_cursor();
+    node_id_t src, dst;
+    int ret = cursor->prev(cursor);
+    if (ret == 0)
+    {
+        CommonUtil::ekey_get_key(cursor, &src, &dst);
+    }
+    else
+    {
+        throw GraphException("Could not get the maximum node ID");
+    }
+    cursor->close(cursor);
+    return src;
 }

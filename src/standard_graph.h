@@ -385,6 +385,9 @@ class StandardGraph : public GraphBase
     std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) override;
     void get_nodes(vector<node> &nodes);
 
+    node_id_t get_max_node_id() override;
+    node_id_t get_min_node_id() override;
+    
     OutCursor *get_outnbd_iter() override;
     InCursor *get_innbd_iter() override;
     NodeCursor *get_node_iter() override;

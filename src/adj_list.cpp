@@ -210,7 +210,7 @@ int AdjList::add_node(node to_insert)
         return ret;
     }
     session->commit_transaction(session, nullptr);
-    // add_to_nnodes(1);
+    GraphBase::increment_nodes(1);
     return ret;
 }
 
@@ -307,7 +307,7 @@ void AdjList::add_node(node_id_t to_insert,
     add_adjlist(in_adjlist_cursor, to_insert, inlist);
     add_adjlist(out_adjlist_cursor, to_insert, outlist);
 
-    // add_to_nnodes(1);
+    GraphBase::increment_nodes(1);
 }
 
 /**
@@ -520,11 +520,11 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         }
     }
     session->commit_transaction(session, nullptr);
-    // add_to_nnodes(num_nodes_added);
-    // add_to_nedges(1);
+    GraphBase::increment_nodes(num_nodes_added);
+    GraphBase::increment_edges(1);
     if (!opts.is_directed)
     {
-        // add_to_nedges(1);
+        GraphBase::increment_edges(1);
     }
     return ret;
 }
@@ -614,8 +614,8 @@ int AdjList::delete_node(node_id_t node_id)
         return ret;
     }
     session->commit_transaction(session, nullptr);
-    // add_to_nnodes(-1);
-    // add_to_nedges(-num_deleted_edges);
+    GraphBase::increment_nodes(-1);
+    GraphBase::increment_edges(-num_deleted_edges);
     return ret;
 }
 
@@ -1085,10 +1085,10 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
         }
     }
     session->commit_transaction(session, nullptr);
-    // add_to_nedges(-1);
+    GraphBase::increment_edges(-1);
     if (!opts.is_directed)
     {
-        // add_to_nedges(-1);
+        GraphBase::increment_edges(-1);
     }
     return ret;
 }
@@ -1780,4 +1780,28 @@ int AdjList::error_check_remove_txn(int return_val)
             session->rollback_transaction(session, nullptr);
     }
     return return_val;
+}
+
+node_id_t AdjList::get_max_node_id()
+{
+    WT_CURSOR *cursor = get_new_node_cursor();
+    node_id_t to_return = 0;
+    assert(cursor != nullptr);
+    cursor->prev(cursor);
+    CommonUtil::get_key(cursor, &to_return);
+    std::cout << "Max node id: " << to_return << std::endl;
+    cursor->close(cursor);
+    return to_return;
+}
+
+node_id_t AdjList::get_min_node_id()
+{
+    WT_CURSOR *cursor = get_new_node_cursor();
+    node_id_t to_return = 0;
+    assert(cursor != nullptr);
+    cursor->next(cursor);
+    CommonUtil::get_key(cursor, &to_return);
+    std::cout << "Min node id: " << to_return << std::endl;
+    cursor->close(cursor);
+    return to_return;
 }

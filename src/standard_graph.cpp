@@ -261,7 +261,7 @@ int StandardGraph::add_node(node to_insert)
     }
 
     session->commit_transaction(session, nullptr);
-    //    add_to_nnodes(1);
+    GraphBase::increment_nodes(1);
     return 0;
 }
 
@@ -491,8 +491,8 @@ int StandardGraph::delete_node(node_id_t node_id)
     }
 
     session->commit_transaction(session, nullptr);
-    //    add_to_nedges(num_edges_to_add);
-    //    add_to_nnodes(num_nodes_to_add);
+    GraphBase::increment_edges(num_edges_to_add);
+    GraphBase::increment_nodes(num_nodes_to_add);
 
     return 0;
 }
@@ -756,8 +756,8 @@ int StandardGraph::add_edge(edge to_insert, bool is_bulk)
     }
 
     session->commit_transaction(session, nullptr);
-    //    add_to_nedges(num_edges_to_add);
-    //    add_to_nnodes(num_nodes_to_add);
+    GraphBase::increment_nodes(num_nodes_to_add);
+    GraphBase::increment_edges(num_edges_to_add);
     return 0;
 }
 
@@ -963,7 +963,7 @@ int StandardGraph::delete_edge(node_id_t src_id, node_id_t dst_id)
         }
     }
     session->commit_transaction(session, nullptr);
-    //    add_to_nedges(num_edges_to_add);
+    GraphBase::increment_edges(num_edges_to_add);
     return 0;
 }
 
@@ -1344,6 +1344,29 @@ vector<edge> StandardGraph::test_cursor_iter(node_id_t node_id)
         }
     }
     return edges;
+}
+
+node_id_t StandardGraph::get_max_node_id()
+{
+    WT_CURSOR *cursor = get_new_node_cursor();
+    assert(cursor != nullptr);
+    node_id_t to_return = 0;
+    cursor->prev(cursor);
+    CommonUtil::get_key(cursor, &to_return);
+    std::cout << "Max node id is " << to_return << std::endl;
+    cursor->close(cursor);
+    return to_return;
+}
+
+node_id_t StandardGraph::get_min_node_id()
+{
+    WT_CURSOR *cursor = get_new_node_cursor();
+    node_id_t to_return = 0;
+    cursor->next(cursor);
+    CommonUtil::get_key(cursor, &to_return);
+    cursor->close(cursor);
+    std::cout << "Min node id is " << to_return << std::endl;
+    return to_return;
 }
 
 void StandardGraph::close_all_cursors()
