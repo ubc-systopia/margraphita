@@ -105,7 +105,7 @@ void test_add_edge(EdgeKey &graph, bool is_directed, bool is_weighted)
 
     // //Now check if the adjlists were updated
     WT_CURSOR *e_cur = graph.get_edge_cursor();
-    CommonUtil::set_key(e_cur, 5, OutOfBand_ID);
+    CommonUtil::ekey_set_key(e_cur, 5, OutOfBand_ID);
     assert(e_cur->search(e_cur) == 0);
     assert(graph.get_out_degree(5) == 1);
     assert(graph.get_in_degree(6) == 1);
@@ -290,23 +290,23 @@ void test_delete_node(EdgeKey &graph, bool is_directed)
 
     // Delete node2 and verify it was actually deleted
     graph.delete_node(SampleGraph::node2.id);
-    CommonUtil::set_key(e_cur, SampleGraph::node2.id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(e_cur, SampleGraph::node2.id, OutOfBand_ID);
     int ret = e_cur->search(e_cur);
     assert(ret != 0);
 
     // check that edge(2,3) is deleted
-    CommonUtil::set_key(e_cur, 2, 3);
+    CommonUtil::ekey_set_key(e_cur, 2, 3);
     assert(e_cur->search(e_cur) != 0);
     // check that edge(1,2) is deleted
-    CommonUtil::set_key(e_cur, 1, 2);
+    CommonUtil::ekey_set_key(e_cur, 1, 2);
     assert(e_cur->search(e_cur) != 0);
 
     // Now delete the reverse edges for undirected graph
     if (is_directed)
     {
-        CommonUtil::set_key(e_cur, 3, 2);
+        CommonUtil::ekey_set_key(e_cur, 3, 2);
         assert(e_cur->search(e_cur) != 0);
-        CommonUtil::set_key(e_cur, 2, 1);
+        CommonUtil::ekey_set_key(e_cur, 2, 1);
         assert(e_cur->search(e_cur) != 0);
     }
     // Verify that the in and out degrees of node 1 and 3 got updated
