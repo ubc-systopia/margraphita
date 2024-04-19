@@ -112,7 +112,7 @@ void GraphEngine::calculate_thread_offsets(bool make_edge)
     GraphBase *graph_stats = create_graph_handle();
     _calculate_thread_offsets(num_threads, graph_stats);
     if (make_edge) _calculate_thread_offsets_edge(num_threads, graph_stats);
-    graph_stats->close();
+    graph_stats->close(false);
 }
 
 /**

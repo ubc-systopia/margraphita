@@ -8,7 +8,7 @@
 
 #define INFO() fprintf(stderr, "Now running: %s\n", __FUNCTION__);
 
-void tearDown(GraphBase *graph) { graph->close(); }
+void tearDown(GraphBase *graph) { graph->close(true); }
 
 void test_get_nodes(GraphBase *graph) { INFO(); }
 

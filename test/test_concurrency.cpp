@@ -38,7 +38,7 @@ int main()
     GraphBase* graph = myEngine.create_graph_handle();
     graph->add_node(node{.id = 0});
     graph->add_node(node{.id = 100});
-    graph->close();
+    graph->close(true);
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)
     {
@@ -67,7 +67,7 @@ int main()
             ret = -1;
             while (ret != 0) ret = graph->add_edge(edge{5, 8}, false);
         }
-        graph->close();
+        graph->close(true);
     }
 
     GraphBase* report = myEngine.create_graph_handle();
