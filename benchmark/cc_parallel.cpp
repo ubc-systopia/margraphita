@@ -78,7 +78,7 @@ pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
             }
             out_nbd_cur->close();
             delete out_nbd_cur;
-            graph->close();
+            graph->close(false);
         }
 #pragma omp parallel for
         for (node_id_t n = 0; n < maxNodeID; n++)
@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
     GraphBase* graph = graphEngine.create_graph_handle();
     node_id_t numNodes = graph->get_num_nodes();
     node_id_t maxNodeID = graph->get_max_node_id();
-    graph->close();
+    graph->close(false);
 
     t.stop();
     std::cout << "Graph loaded in " << t.t_micros() << std::endl;

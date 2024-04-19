@@ -612,7 +612,7 @@ void test_EdgeCursor_Range(AdjList graph)
     edge_cursor->close();
     delete edge_cursor;
 }
-void tearDown(AdjList &graph) { graph.close(); }
+void tearDown(AdjList &graph) { graph.close(true); }
 
 int main()
 {

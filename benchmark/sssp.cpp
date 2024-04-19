@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
     std::cout << "Average time taken for " << opts.num_trials
               << " trials: " << total_time / opts.num_trials << std::endl;
 
-    graph->close();
+    graph->close(false);
     graphEngine.close_graph();
     return 0;
 }

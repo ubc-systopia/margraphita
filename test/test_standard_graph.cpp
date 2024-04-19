@@ -54,7 +54,7 @@ void create_init_nodes(StandardGraph &graph, bool is_directed)
     assert(edge_cnt == SampleGraph::test_edges.size());
 }
 
-void tearDown(StandardGraph &graph) { graph.close(); }
+void tearDown(StandardGraph &graph) { graph.close(true); }
 
 void test_node_add(StandardGraph &graph, bool read_optimize)
 {

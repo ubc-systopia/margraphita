@@ -332,7 +332,7 @@ void test_get_in_and_out_degree(EdgeKey &graph)
     assert(outdeg == 3);
 }
 
-void tearDown(EdgeKey &graph) { graph.close(); }
+void tearDown(EdgeKey &graph) { graph.close(true); }
 
 void test_InCursor(EdgeKey &graph)
 {

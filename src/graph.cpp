@@ -230,9 +230,9 @@ int GraphBase::_get_table_cursor(const std::string &table,
     return 0;
 }
 
-void GraphBase::close()
+void GraphBase::close(bool synchronize)
 {
-    sync_metadata();
+    if (synchronize) sync_metadata();
     int ret = session->close(session, nullptr);
     if (ret != 0)
     {
@@ -276,10 +276,12 @@ void GraphBase::_restore_from_db()
         else if (key == MetadataKey::num_nodes)
         {
             this->opts.num_nodes = *((node_id_t *)item.data);
+            GraphBase::local_nnodes.store(this->opts.num_nodes);
         }
         else if (key == MetadataKey::num_edges)
         {
             this->opts.num_edges = *((uint64_t *)item.data);
+            GraphBase::local_nedges.store(this->opts.num_edges);
         }
     }
 }
@@ -326,10 +328,12 @@ void GraphBase::_restore_from_db(const std::string &db_name)
         else if (key == MetadataKey::num_nodes)
         {
             this->opts.num_nodes = *((node_id_t *)item.data);
+            GraphBase::local_nnodes.store(this->opts.num_nodes);
         }
         else if (key == MetadataKey::num_edges)
         {
             this->opts.num_edges = *((uint64_t *)item.data);
+            GraphBase::local_nedges.store(this->opts.num_edges);
         }
     }
 }

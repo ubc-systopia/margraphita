@@ -81,7 +81,7 @@ int64_t BUStep(GraphEngine *graph_engine,
             }
             in_cursor->next(&found);
         }
-        graph->close();
+        graph->close(false);
     }
 
     return awake_count;
@@ -113,7 +113,7 @@ int64_t TDStep(GraphEngine *graph_engine,
                     }
                 }
             }
-            graph->close();
+            graph->close(false);
         }
         lqueue.flush();
     }
@@ -152,7 +152,7 @@ void BitmapToQueue(GraphEngine *graph_engine,
                 if (bm.get_bit(found.id)) lqueue.push_back(found.id);
                 node_cursor->next(&found);
             }
-            graph->close();
+            graph->close(false);
         }
         lqueue.flush();
     }
@@ -181,7 +181,7 @@ pvector<NodeID> InitParent(GraphEngine *graph_engine,
                                    : -1;
             node_cursor->next(&found);
         }
-        graph->close();
+        graph->close(false);
     }
     return parent;
 }
@@ -264,7 +264,7 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
     for (node_id_t n = 0; n < num_nodes; n++)
         if (parent[n] < -1) parent[n] = -1;
 
-    graph_stat->close();
+    graph_stat->close(false);
     return parent;
 }
 
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
     node_id_t num_nodes = g->get_num_nodes();
     node_id_t max_node_id = g->get_max_node_id();
     node source = g->get_random_node();
-    g->close();
+    g->close(false);
     DOBFS(&graphEngine, source.id, num_nodes, max_node_id, THREAD_NUM, 15, 18);
     t.stop();
     std::cout << "BFS completed in " << t.t_micros() << std::endl;
