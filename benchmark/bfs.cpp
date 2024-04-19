@@ -127,6 +127,6 @@ int main(int argc, char *argv[])
                        time_from_outside,
                        opts.stat_log);
     }
-    graph->close();
+    graph->close(false);
     graphEngine.close_graph();
 }

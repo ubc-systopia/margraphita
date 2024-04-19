@@ -61,7 +61,7 @@ class GraphBase
 
     // void set_locks(LockSet *locks_ptr);
 
-    void close();
+    void close(bool synchronize = false);
     virtual node_id_t get_max_node_id() = 0;
     virtual node_id_t get_min_node_id() = 0;
 

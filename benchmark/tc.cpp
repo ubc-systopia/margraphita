@@ -141,6 +141,6 @@ int main(int argc, char *argv[])
 
         print_csv_info(opts.db_name, info, opts.stat_log);
     }
-    graph->close();
+    graph->close(false);
     graphEngine.close_graph();
 }

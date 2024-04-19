@@ -138,6 +138,6 @@ int main(int argc, char *argv[])
     pagerank(*graph, opts, opts.iterations, opts.tolerance, opts.stat_log);
     t.stop();
     cout << "PR  completed in : " << t.t_micros() << endl;
-    graph->close();
+    graph->close(false);
     graphEngine.close_graph();
 }

@@ -129,7 +129,7 @@ pvector<edgeweight_t> DeltaStep(GraphEngine &graph_engine,
         {
             cout << "took " << iter << " iterations" << endl;
         }
-        graph->close();
+        graph->close(false);
     }
     return dist;
 }
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
 
     node_id_t maxNodeID = graph->get_max_node_id();
     node_id_t num_edges = graph->get_num_edges();
-    graph->close();
+    graph->close(false);
 
     long double total_time = 0;
     sssp_info info(0);

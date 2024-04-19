@@ -80,7 +80,7 @@ int64_t trust_tc_iter(GraphEngine &graph_engine)
             out_cursor->next(&found);
         }
         out_cursor->close();
-        graph->close();
+        graph->close(false);
         delete out_cursor;
     }
 
