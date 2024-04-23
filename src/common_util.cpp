@@ -115,8 +115,9 @@ int CommonUtil::open_connection(const char *db_name,
     {
         _config += ",";
     }
-    _config += "statistics=(all),statistics_log=(wait=0,on_close=true,path=" +
-               log_dir + ")";
+    _config +=
+        "statistics=(all),statistics_log=(wait=0,on_close=true,path=" + logdir +
+        ")";
 #endif
     if (!_config.empty())
     {
