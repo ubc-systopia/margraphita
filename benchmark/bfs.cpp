@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     // random node
 
 #ifdef STAT
-    num_trials = 1;  // We want only one run with stats collection
+    opts.num_trials = 1;  // We want only one run with stats collection
 #endif
     for (int i = 0; i < opts.num_trials; i++)
     {
