@@ -245,7 +245,7 @@ int add_to_edgekey(WT_CURSOR *ekey_cur,
     int *weight = InsertWeights(edgelist.size());
     for (int i = 0; i < edgelist.size(); i++)
     {
-        CommonUtil::set_key(ekey_cur, src, edgelist[i]);
+        CommonUtil::ekey_set_key(ekey_cur, src, edgelist[i]);
         if (is_weighted)
             ekey_cur->set_value(ekey_cur, weight[i], OutOfBand_Val);
         else
@@ -279,7 +279,7 @@ int add_to_node_table(WT_CURSOR *cur, const node &node)
 }
 int add_node_to_ekey(WT_CURSOR *ekey_cur, const node &node)
 {
-    CommonUtil::set_key(ekey_cur, node.id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(ekey_cur, node.id, OutOfBand_ID);
     ekey_cur->set_value(ekey_cur, node.in_degree, node.out_degree);
     int ret = ekey_cur->insert(ekey_cur);
     if (ret != 0)
@@ -289,6 +289,37 @@ int add_node_to_ekey(WT_CURSOR *ekey_cur, const node &node)
         return ret;
     }
     return ret;
+}
+
+void debug_print_edges(WT_CURSOR *cur,
+                       GraphType type,
+                       const std::string &filename)
+{
+    cur->reset(cur);
+    // open filename for writing
+    std::ofstream file;
+    file.open(filename);
+
+    while (cur->next(cur) == 0)
+    {
+        node_id_t src, dst;
+        int val1, val2;
+        if (type == GraphType::EKey)
+        {
+            CommonUtil::ekey_get_key(cur, &src, &dst);
+            cur->get_value(cur, &val1, &val2);
+            file << "Edge: (" << src << ", " << dst << ") val1: " << val1
+                 << ", val2: " << val2 << std::endl;
+        }
+        else
+        {
+            CommonUtil::get_key(cur, &src, &dst);
+            cur->get_value(cur, &val1);
+            file << "Edge: (" << src << ", " << dst << ") weight: " << val1
+                 << std::endl;
+        }
+    }
+    file.close();
 }
 
 void make_connections(graph_opts &_opts, const std::string &conn_config)

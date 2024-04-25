@@ -127,6 +127,7 @@ int64_t cycle_tc_iter(GraphEngine &graph_engine)
                     }
                 }
             }
+            found.clear();
             out_cursor->next(&found);
         }
         out_cursor->close();

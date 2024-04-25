@@ -1353,7 +1353,7 @@ node_id_t StandardGraph::get_max_node_id()
     node_id_t to_return = 0;
     cursor->prev(cursor);
     CommonUtil::get_key(cursor, &to_return);
-    std::cout << "Max node id is " << to_return << std::endl;
+    //    std::cout << "Max node id is " << to_return << std::endl;
     cursor->close(cursor);
     return to_return;
 }

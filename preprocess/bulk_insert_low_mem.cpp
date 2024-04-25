@@ -75,6 +75,12 @@ void insert_rev_edge_thread(int _tid)
     }
 }
 
+void debug_dump_edges()
+{
+    worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey);
+    debug_print_edges(ekey_node_obj.e_cur, GraphType::EKey, "ekey_edges");
+}
+
 void insert_nodes()
 {
     worker_sessions std_node_obj(conn_std, "", GraphType::Std, false);
@@ -192,7 +198,7 @@ int main(int argc, char *argv[])
     // insert nodes into the node table
 
     insert_nodes();
-    
+    debug_dump_edges();
 
     update_metadata(opts);
 
