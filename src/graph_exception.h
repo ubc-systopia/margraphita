@@ -6,6 +6,8 @@
 
 // Shamelessly copied from https://stackoverflow.com/a/8152888
 
+#define GRAPH_API_PANIC -9
+
 class GraphException : public std::exception
 {
    public:

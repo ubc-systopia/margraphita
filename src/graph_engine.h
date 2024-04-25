@@ -6,6 +6,7 @@
 #include "adj_list.h"
 #include "common_util.h"
 #include "edgekey.h"
+#include "edgekey_split.h"
 #include "graph.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
@@ -263,10 +264,10 @@ void GraphEngine::create_new_graph()
     {
         EdgeKey::create_wt_tables(opts, conn);
     }
-    //    else if (opts.type == GraphType::EList)
-    //    {
-    //        UnOrderedEdgeList::create_wt_tables(opts, conn);
-    //    }
+    else if (opts.type == GraphType::SplitEKey)
+    {
+        SplitEdgeKey::create_wt_tables(opts, conn);
+    }
     else
     {
         throw GraphException("Failed to create graph object");
