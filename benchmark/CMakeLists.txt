@@ -93,8 +93,8 @@ target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 #
 
 #
-#add_executable(iteration_vc iteration_vc.cpp)
-#target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} graph_utils)
+add_executable(iteration_vc iteration_vc.cpp)
+target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} ${ITTAPI_LIB} graph_utils)
 #
 #add_executable(iteration_ec iteration_ec.cpp)
 #target_link_libraries(iteration_ec PUBLIC ${NAME_LIB} graph_utils)
