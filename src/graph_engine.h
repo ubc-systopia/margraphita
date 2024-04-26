@@ -195,6 +195,7 @@ void GraphEngine::_calculate_thread_offsets_edge(int thread_max,
         if (i == num_edges - 1)
         {
             edge_ranges.push_back(found_edge);
+            i++;
             break;
         }
         e_cur->next(&found_edge);
