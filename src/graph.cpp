@@ -398,6 +398,12 @@ void GraphBase::sync_metadata()
 }
 
 node_id_t GraphBase::get_num_nodes() { return GraphBase::local_nnodes.load(); };
+
+/**
+ * This function is used to increment the number of nodes local to a connection.
+ * Updates are atomic but NOT transactional.
+ * @param increment
+ */
 void GraphBase::increment_nodes(int increment)
 {
     GraphBase::local_nnodes += increment;

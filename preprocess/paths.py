@@ -16,14 +16,28 @@ class ConfigReader:
         try:
             project_dir = config_data['GRAPH_PROJECT_DIR']
             project_dir = os.path.join("/home", os.getlogin(), project_dir)
-            print("Using GRAPH_PROJECT_DIR as set - ${GRAPH_PROJECT_DIR}")
+            config_data['GRAPH_PROJECT_DIR'] = project_dir
+            print(
+                f"Using GRAPH_PROJECT_DIR as set - {config_data['GRAPH_PROJECT_DIR']}")
         except KeyError:
             print("Please set GRAPH_PROJECT_DIR as the path to the margraphita repo in the build/config.json file.")
             exit(1)
 
         try:
+            db_dir = config_data['DB_DIR']
+            db_dir = os.path.join("/home", os.getlogin(), db_dir)
+            config_data['DB_DIR'] = db_dir
+            print(f"Using DB_DIR as set - {config_data['DB_DIR']}")
+        except KeyError:
+            print(
+                "Please set DB_DIR as the relative path from your $HOME directory in build/config.json")
+            exit(1)
+
+        try:
             kron_gen_name = config_data['KRON_GEN_PATH']
+            print(f"\n\n{kron_gen_name}\n\n")
             kron_gen_name = os.path.join("/home", os.getlogin(), kron_gen_name)
+            config_data['KRON_GEN_PATH'] = kron_gen_name
             if "PaRMAT" in kron_gen_name:
                 print("Using PaRMAT as the Kronecker generator")
             elif "smooth_kron" in kron_gen_name:

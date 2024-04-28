@@ -54,14 +54,22 @@ class SplitEdgeKey : public GraphBase
    private:
     // Cursors
     WT_CURSOR *out_edge_cursor = nullptr;
+
+   public:
+    WT_CURSOR *get_out_edge_cursor() const { return out_edge_cursor; }
+    WT_CURSOR *get_random_node_cursor() const { return random_node_cursor; }
+    WT_CURSOR *get_in_edge_cursor() const { return in_edge_cursor; }
+    WT_CURSOR *get_node_index_cursor() const { return dst_src_idx_cursor; }
+
+   private:
     WT_CURSOR *random_node_cursor = nullptr;
     WT_CURSOR *in_edge_cursor = nullptr;
-    //    WT_CURSOR *node_cursor = nullptr;
+    WT_CURSOR *dst_src_idx_cursor = nullptr;
 
     // internal methods
     [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
     int delete_node_and_related_edges(node_id_t node_id, int *num_edges_to_del);
-    int update_node_degree(node_id_t node_id, degree_t indeg, degree_t outdeg);
+    int update_node_degree(node_id_t node_id, int in_change, int out_change);
     int add_edge_only(edge to_insert);
     int add_node_txn(node to_insert);
     int error_check_add_edge(int ret);
