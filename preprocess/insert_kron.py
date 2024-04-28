@@ -113,7 +113,7 @@ def main():
             print("is bulk: " + str(args.bulk)
                   + " \nindex: " + str(args.index)
                   + " \npreprocess: " + str(args.preprocess))
-            for graph_type in ["std", "ekey", "adj"]:
+            for graph_type in ["std", "ekey", "adj", "split_ekey"]:
                 preprocess_obj.init_db(graph_type)
             if (args.preprocess):
                 time_beg = time.time()
@@ -123,7 +123,6 @@ def main():
             if (args.bulk):
                 preprocess_obj.bulk_insert()
             if (args.index):
-                print("ehere")
                 preprocess_obj.create_index()
             preprocess_obj.log(
                 "Finished inserting " + dataset_name + "\n-------------------\n")
@@ -146,7 +145,7 @@ def main():
     #     print("is bulk: " + str(args.bulk)
     #           + " \nindex: " + str(args.index)
     #             + " \npreprocess: " + str(args.preprocess))
-    #     for graph_type in ["std", "ekey", "adj"]:
+    #     for graph_type in ["std", "ekey", "adj", "split_ekey"]:
     #         preprocess_obj.init_db(graph_type)
     #     if (args.preprocess):
     #         time_beg = time.time()

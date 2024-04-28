@@ -33,7 +33,7 @@ size_t space = 0;
 graph_opts opts;
 int num_per_chunk;
 
-WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
+WT_CONNECTION *conn_std, *conn_adj, *conn_ekey, *conn_split_ekey;
 
 typedef struct fgraph_conn_object
 {
@@ -42,7 +42,7 @@ typedef struct fgraph_conn_object
     WT_SESSION *session = nullptr;
     WT_CURSOR *e_cur = nullptr;
     WT_CURSOR *n_cur = nullptr;
-    WT_CURSOR *cur = nullptr;  // adjlist cursor
+    WT_CURSOR *cur = nullptr;  // adjlist cursor or split edgekey table cursors
     WT_CURSOR *metadata = nullptr;
     std::string adjlistable_name;
 
@@ -61,7 +61,7 @@ typedef struct fgraph_conn_object
                       << std::endl;
             exit(1);
         }
-        // Open Cursors. If the tabel type is META, open the metadata cursor
+        // Open Cursors. If the table type is META, open the metadata cursor
         // and return.
         if (type == GraphType::META)
         {
@@ -78,6 +78,21 @@ typedef struct fgraph_conn_object
         }
         if (is_edge)
         {
+            if (type == GraphType::SplitEKey)
+            {
+                ret = session->open_cursor(session,
+                                           adjlistable_name.c_str(),
+                                           nullptr,
+                                           nullptr,
+                                           &e_cur);
+                if (ret != 0)
+                {
+                    std::cerr << "Error opening cursor to " << adjlistable_name
+                              << ": " << wiredtiger_strerror(ret) << std::endl;
+                    exit(1);
+                }
+                return;
+            }
             ret = session->open_cursor(
                 session, "table:edge", nullptr, nullptr, &e_cur);
             if (ret != 0)
@@ -101,10 +116,12 @@ typedef struct fgraph_conn_object
         }
         else  // We are inserting a node.
         {
-            if (type == GraphType::EKey)
+            if (type == GraphType::EKey || type == GraphType::SplitEKey)
             {
+                std::string table_name = "table:edge";
+                if (type == GraphType::SplitEKey) table_name += "_in";
                 ret = session->open_cursor(
-                    session, "table:edge", nullptr, nullptr, &e_cur);
+                    session, table_name.c_str(), nullptr, nullptr, &e_cur);
                 if (ret != 0)
                 {
                     std::cerr
@@ -366,6 +383,18 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
         exit(1);
     }
 
+    // open split ekey connection
+    // open ekey connection
+    _db_name = _opts.db_dir + "/split_ekey_" + middle + "_" + _opts.db_name;
+    if (wiredtiger_open(_db_name.c_str(),
+                        nullptr,
+                        const_cast<char *>(conn_config.c_str()),
+                        &conn_split_ekey) != 0)
+    {
+        std::cout << "Could not open the DB: " << _db_name;
+        exit(1);
+    }
+
     _db_name = _opts.db_dir + "/std_" + middle + "_" + _opts.db_name;
 
     if (wiredtiger_open(_db_name.c_str(),
@@ -380,6 +409,7 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
     assert(conn_adj != nullptr);
     assert(conn_std != nullptr);
     assert(conn_ekey != nullptr);
+    assert(conn_split_ekey != nullptr);
 }
 
 /**

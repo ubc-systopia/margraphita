@@ -77,15 +77,15 @@ class Preprocess:
         self.log(f"Time: {stop - start}\n")
 
     def create_index(self):
-        print("herer")
         self.log("Creating indices")
-        for graph_type in ["std", "ekey"]:
-            for is_ro in [True, False]:
-                index_cmd = self.build_index_cmd(graph_type, is_ro)
-                self.log(f"Creating index: {index_cmd}\n")
-                print(index_cmd)
-                if (not self.config_data['dry_run']):
-                    os.system(index_cmd)
+        is_ro = True
+        for graph_type in ["std", "ekey", "split_ekey"]:
+            # for is_ro in [True, False]:
+            index_cmd = self.build_index_cmd(graph_type, is_ro)
+            self.log(f"Creating index: {index_cmd}\n")
+            print(index_cmd)
+            if (not self.config_data['dry_run']):
+                os.system(index_cmd)
 
     def dump_config(self):
         # dump the config data
@@ -318,7 +318,7 @@ def main():
         config_data['cmd_root'] = config_data['STATS_PATH']
 
     preprocess = Preprocess(config_data)
-    for graph_type in ["std", "ekey", "adj"]:
+    for graph_type in ["std", "ekey", "adj", "split_ekey"]:
         preprocess.init_db(graph_type)
 
     if config_data['preprocess']:
