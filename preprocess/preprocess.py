@@ -12,8 +12,10 @@ class Preprocess:
         print("Preprocessing the graph")
         self.config_data = config_data
         self.cmdcnt = 0
-        self.log_file = os.path.join(config_data['log_dir'], "insert.log")
+        self.log_file = f"{config_data['dataset_name']}_insert.log"
+        self.log_file = os.path.join(config_data['log_dir'], self.log_file)
         self.logger = open(self.log_file, "w")
+        print(f"Log file: {self.log_file}" + "\n")
         self.date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         log_entry = "Path:" + \
                     self.config_data['graph_path'] + \
@@ -28,6 +30,7 @@ class Preprocess:
 
     def log(self, message: str):
         self.logger.write(f"\n###Step{self.cmdcnt}####\n" + message + "\n")
+        self.logger.flush()
         self.cmdcnt += 1
 
     def build_bulk_cmd(self):
@@ -74,11 +77,13 @@ class Preprocess:
         self.log(f"Time: {stop - start}\n")
 
     def create_index(self):
+        print("herer")
         self.log("Creating indices")
         for graph_type in ["std", "ekey"]:
             for is_ro in [True, False]:
                 index_cmd = self.build_index_cmd(graph_type, is_ro)
                 self.log(f"Creating index: {index_cmd}\n")
+                print(index_cmd)
                 if (not self.config_data['dry_run']):
                     os.system(index_cmd)
 
@@ -132,6 +137,7 @@ class Preprocess:
             self.config_data['num_edges'] = found_edges
             self.log(f"The graph has {found_edges} edges")
             print("Found edges: " + str(found_edges))
+            self.num_edges = found_edges
 
         ##############################
         # compute num_nodes from the graph
@@ -155,6 +161,7 @@ class Preprocess:
         self.config_data['num_nodes'] = found_nodes
         self.log(f"Counting the number of nodes {found_nodes}")
         print("Found nodes: " + str(found_nodes))
+        self.num_nodes = found_nodes
 
         ##################################
         # reverse the graph
@@ -256,8 +263,6 @@ def main():
                         default=False, help="bulk insert")
     parser.add_argument("-m", "--num_threads", type=int,
                         help="number of threads", default=16)
-    parser.add_argument("-a", "--num_partitions", type=int,
-                        help="number of partitions", default=16)
     parser.add_argument("-s", "--dry_run", action='store_true', default=False,
                         help="dry run")
     parser.add_argument("-o", "--read_optimized", action='store_true', default=True,
@@ -266,6 +271,8 @@ def main():
                         help="cleanup any intermediate files, default is False")
     parser.add_argument("-w", "--weighted", action='store_true',
                         default=False, help="weighted graph")
+    parser.add_argument("-h", "--help", action='store_true',
+                        default=False, help="show this help message and exit")
 
     # check that there are some arguments passed
     assert len(sys.argv) > 1, "No arguments passed"
