@@ -88,7 +88,7 @@ void insert_nodes()
     worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey, false);
     int count = 0;
     // iterate over the node_degrees and insert into the node table
-for ( auto it = node_degrees.begin(); it != node_degrees.end(); it++)
+    for (auto it = node_degrees.begin(); it != node_degrees.end(); it++)
     {
         node to_insert;
         to_insert.id = it->first;
@@ -102,7 +102,7 @@ for ( auto it = node_degrees.begin(); it != node_degrees.end(); it++)
         add_to_node_table(adj_node_obj.n_cur, to_insert);
         count++;
     }
-     std::cout << "inserted " << count << " nodes" << std::endl;
+    std::cout << "inserted " << count << " nodes" << std::endl;
 }
 
 void dump_mdata(int key, WT_CURSOR *cursor)
@@ -111,38 +111,47 @@ void dump_mdata(int key, WT_CURSOR *cursor)
     cursor->search(cursor);
     WT_ITEM item;
     cursor->get_value(cursor, &item);
-    std::cout << "Key: " << key << " Value: " << *(node_id_t *)item.data << std::endl;
+    std::cout << "Key: " << key << " Value: " << *(node_id_t *)item.data
+              << std::endl;
 }
 
 void update_metadata(const graph_opts &_opts)
 {
     node_id_t key_min = node_degrees.begin()->first;
     node_id_t key_max = node_degrees.rbegin()->first;
-    std::cout << "Number of nodes: " << _opts.num_nodes
-              << std::endl;
-    std::cout << "Cout of node_degrees: " << node_degrees.size()
-              << std::endl;
+    std::cout << "Number of nodes: " << _opts.num_nodes << std::endl;
+    std::cout << "Cout of node_degrees: " << node_degrees.size() << std::endl;
     // std::cout << "Number of nodes: " << _opts.num_nodes
     //           << std::endl;
-    std::cout << "Number of edges: " << _opts.num_edges
-              << std::endl;
-
+    std::cout << "Number of edges: " << _opts.num_edges << std::endl;
 
     std::cout << "Min node id: " << key_min << std::endl;
     std::cout << "Max node id: " << key_max << std::endl;
-    
+
     for (auto conn : {conn_std, conn_adj, conn_ekey})
     {
         worker_sessions obj(conn, "table:metadata", GraphType::META, false);
         WT_CURSOR *cursor = obj.metadata;
         // Key min
-        add_metadata(MetadataKey::min_node_id, (char*)&key_min, sizeof(key_min), cursor);
+        add_metadata(MetadataKey::min_node_id,
+                     (char *)&key_min,
+                     sizeof(key_min),
+                     cursor);
         // Key max
-        add_metadata(MetadataKey::max_node_id, (char*)&key_max, sizeof(key_max), cursor);
+        add_metadata(MetadataKey::max_node_id,
+                     (char *)&key_max,
+                     sizeof(key_max),
+                     cursor);
         // Number of nodes
-        add_metadata(MetadataKey::num_nodes, (char*)&opts.num_nodes, sizeof(opts.num_nodes), cursor);
+        add_metadata(MetadataKey::num_nodes,
+                     (char *)&opts.num_nodes,
+                     sizeof(opts.num_nodes),
+                     cursor);
         // Number of edges
-        add_metadata(MetadataKey::num_edges, (char*)&opts.num_edges, sizeof(opts.num_edges), cursor);
+        add_metadata(MetadataKey::num_edges,
+                     (char *)&opts.num_edges,
+                     sizeof(opts.num_edges),
+                     cursor);
     }
     for (auto conn : {conn_std, conn_adj, conn_ekey})
     {
@@ -154,8 +163,6 @@ void update_metadata(const graph_opts &_opts)
         dump_mdata(MetadataKey::num_edges, cursor);
     }
 }
-
-
 
 int main(int argc, char *argv[])
 {
@@ -179,7 +186,7 @@ int main(int argc, char *argv[])
     num_per_chunk = (int)(opts.num_edges / NUM_THREADS);
     dump_config(opts, conn_config);
     std::cout << "dataset: " << opts.dataset << std::endl;
-    
+
     // We first work on the out edges. We will read the edges from the file and
     // insert them into the edge table and the adjlist table
     std::cout << "weighted? " << opts.is_weighted << std::endl;
@@ -198,7 +205,7 @@ int main(int argc, char *argv[])
     // insert nodes into the node table
 
     insert_nodes();
-    debug_dump_edges();
+    // debug_dump_edges();
 
     update_metadata(opts);
 
