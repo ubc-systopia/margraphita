@@ -51,11 +51,6 @@ class SplitEdgeKey : public GraphBase
     // internal cursor operations:
     void init_cursors();  // todo <-- implement this
 
-   private:
-    // Cursors
-    WT_CURSOR *out_edge_cursor = nullptr;
-
-   public:
     [[nodiscard]] WT_CURSOR *get_out_edge_cursor() const
     {
         return out_edge_cursor;
@@ -77,7 +72,10 @@ class SplitEdgeKey : public GraphBase
     }
     WT_CURSOR *get_new_node_index_cursor();
 
+    static void create_indices(WT_SESSION *session);
+
    private:
+    WT_CURSOR *out_edge_cursor = nullptr;
     WT_CURSOR *random_node_cursor = nullptr;
     WT_CURSOR *in_edge_cursor = nullptr;
     WT_CURSOR *dst_src_idx_cursor = nullptr;
@@ -96,6 +94,7 @@ class SplitEdgeKey : public GraphBase
         out_edge_cursor->close(out_edge_cursor);
         random_node_cursor->close(random_node_cursor);
         in_edge_cursor->close(in_edge_cursor);
+        dst_src_idx_cursor->close(dst_src_idx_cursor);
     }
 };
 

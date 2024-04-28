@@ -51,15 +51,7 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 
     if (!opts.optimize_create)
     {
-        // Index on (DST,SRC) columns of the edge table
-        // Used for adjacency neighbourhood iterators
-        std::string idx_name = "index:" + OUT_EDGES + ":" + DST_SRC_INDEX;
-        std::string idx_conf = "columns=(" + DST + "," + SRC + ")";
-        if (sess->create(sess, idx_name.c_str(), idx_conf.c_str()) != 0)
-        {
-            throw GraphException(
-                "Failed to create DST_SRC_INDEX on the out-edge table");
-        }
+        create_indices(sess);
     }
 
     sess->close(sess, nullptr);
@@ -861,8 +853,40 @@ int SplitEdgeKey::error_check_insert_txn(int return_val)
     }
 }
 
-node_id_t SplitEdgeKey::get_min_node_id() { return 0; }
-node_id_t SplitEdgeKey::get_max_node_id() { return 0; }
+node_id_t SplitEdgeKey::get_min_node_id()
+{
+    WT_CURSOR *cursor = get_new_out_cursor();
+    node_id_t src, dst;
+    int ret = cursor->next(cursor);
+    if (ret == 0)
+    {
+        CommonUtil::ekey_get_key(cursor, &src, &dst);
+        assert(dst == OutOfBand_ID);
+    }
+    else
+    {
+        throw GraphException("Could not get the minimum node ID");
+    }
+    cursor->close(cursor);
+    return src;
+}
+
+node_id_t SplitEdgeKey::get_max_node_id()
+{
+    WT_CURSOR *cursor = get_new_out_cursor();
+    node_id_t src, dst;
+    int ret = cursor->prev(cursor);
+    if (ret == 0)
+    {
+        CommonUtil::ekey_get_key(cursor, &src, &dst);
+    }
+    else
+    {
+        throw GraphException("Could not get the maximum node ID");
+    }
+    cursor->close(cursor);
+    return src;
+}
 
 int SplitEdgeKey::delete_node(node_id_t node_id)
 {
@@ -1066,4 +1090,17 @@ WT_CURSOR *SplitEdgeKey::get_new_node_index_cursor()
     }
 
     return new_dst_src_idx_cursor;
+}
+void SplitEdgeKey::create_indices(WT_SESSION *session)
+{
+    std::string idx_name, idx_conf;
+    // Index on (DST,SRC) columns of the edge table
+    // Used for adjacency neighbourhood iterators
+    idx_name = "index:" + OUT_EDGES + ":" + DST_SRC_INDEX;
+    idx_conf = "columns=(" + DST + "," + SRC + ")";
+    if (session->create(session, idx_name.c_str(), idx_conf.c_str()) != 0)
+    {
+        throw GraphException(
+            "Failed to create DST_SRC_INDEX on the edge table");
+    }
 }
