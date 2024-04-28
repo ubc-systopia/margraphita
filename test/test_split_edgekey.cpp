@@ -8,7 +8,7 @@
 #define delim "--------------"
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
 
-void create_init_nodes(EdgeKey &graph, bool is_directed)
+void create_init_nodes(SplitEdgeKey &graph, bool is_directed)
 {
     INFO()
     if (!is_directed)
@@ -23,15 +23,14 @@ void create_init_nodes(EdgeKey &graph, bool is_directed)
     {
         graph.add_node(n);
     }
-
     for (edge x : SampleGraph::test_edges)
     {
         graph.add_edge(x, false);
-        edge_cnt++;
+        //        edge_cnt++;
     }
 }
 
-void test_get_node(EdgeKey &graph)
+void test_get_node(SplitEdgeKey &graph)
 {
     INFO()
     node found = graph.get_node(SampleGraph::node1.id);
@@ -44,7 +43,7 @@ void test_get_node(EdgeKey &graph)
     CommonUtil::dump_node(found);
 }
 
-void test_node_add(EdgeKey &graph, bool read_optimize)
+void test_node_add(SplitEdgeKey &graph, bool read_optimize)
 {
     INFO()
     node new_node = {.id = 11, .in_degree = 0, .out_degree = 0};
@@ -58,7 +57,7 @@ void test_node_add(EdgeKey &graph, bool read_optimize)
     }
 }
 
-void test_get_nodes(EdgeKey &graph)
+void test_get_nodes(SplitEdgeKey &graph)
 {
     INFO()
     for (node x : graph.get_nodes())
@@ -67,7 +66,7 @@ void test_get_nodes(EdgeKey &graph)
     }
 }
 
-void test_get_random_nodes(EdgeKey &graph)
+void test_get_random_nodes(SplitEdgeKey &graph)
 {
     INFO()
     fprintf(stderr, "Random node:\n");
@@ -75,7 +74,7 @@ void test_get_random_nodes(EdgeKey &graph)
     CommonUtil::dump_node(graph.get_random_node());
 }
 
-void test_add_edge(EdgeKey &graph, bool is_directed, bool is_weighted)
+void test_add_edge(SplitEdgeKey &graph, bool is_directed, bool is_weighted)
 {
     INFO()
     edge to_insert = {
@@ -104,7 +103,7 @@ void test_add_edge(EdgeKey &graph, bool is_directed, bool is_weighted)
     assert(got.id == 6);
 
     // //Now check if the adjlists were updated
-    WT_CURSOR *e_cur = graph.get_edge_cursor();
+    WT_CURSOR *e_cur = graph.get_out_edge_cursor();
     CommonUtil::ekey_set_key(e_cur, 5, OutOfBand_ID);
     assert(e_cur->search(e_cur) == 0);
     assert(graph.get_out_degree(5) == 1);
@@ -122,7 +121,7 @@ void test_add_edge(EdgeKey &graph, bool is_directed, bool is_weighted)
     }
 }
 
-void test_get_edge(EdgeKey &graph)
+void test_get_edge(SplitEdgeKey &graph)
 {
     INFO()
     edge found =
@@ -137,7 +136,7 @@ void test_get_edge(EdgeKey &graph)
     assert(found.edge_weight == 0);
 }
 
-void test_get_edges(EdgeKey &graph)
+void test_get_edges(SplitEdgeKey &graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_edges();
@@ -147,10 +146,14 @@ void test_get_edges(EdgeKey &graph)
     }
 }
 
-void test_get_out_edges(EdgeKey &graph)
+void test_get_out_edges(SplitEdgeKey &graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_out_edges(1);
+    for (auto e : edges)
+    {
+        CommonUtil::dump_edge(e);
+    }
     assert(edges.size() == 3);
     // compare edge0
     assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
@@ -180,7 +183,7 @@ void test_get_out_edges(EdgeKey &graph)
     assert(assert_fail);
 }
 
-void test_get_out_nodes(EdgeKey &graph)
+void test_get_out_nodes(SplitEdgeKey &graph)
 {
     INFO()
     std::vector<node> nodes = graph.get_out_nodes(1);
@@ -213,11 +216,10 @@ void test_get_out_nodes(EdgeKey &graph)
     assert(assert_fail);
 }
 
-void test_get_in_edges(EdgeKey &graph)
+void test_get_in_edges(SplitEdgeKey &graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_in_edges(3);
-
     for (auto e : edges)
     {
         CommonUtil::dump_edge(e);
@@ -248,7 +250,7 @@ void test_get_in_edges(EdgeKey &graph)
     assert(assert_fail);
 }
 
-void test_get_in_nodes(EdgeKey &graph)
+void test_get_in_nodes(SplitEdgeKey &graph)
 {
     INFO()
     std::vector<node> nodes = graph.get_in_nodes(3);
@@ -281,10 +283,20 @@ void test_get_in_nodes(EdgeKey &graph)
     assert(assert_fail);
 }
 
-void test_delete_node(EdgeKey &graph, bool is_directed)
+void test_get_in_and_out_degree(SplitEdgeKey &graph)
 {
     INFO()
-    WT_CURSOR *e_cur = graph.get_edge_cursor();
+    degree_t indeg, outdeg;
+    indeg = graph.get_in_degree(3);
+    outdeg = graph.get_out_degree(1);
+    assert(indeg == 2);
+    assert(outdeg == 3);
+}
+
+void test_delete_node(SplitEdgeKey &graph, bool is_directed)
+{
+    INFO()
+    WT_CURSOR *e_cur = graph.get_out_edge_cursor();
     // Verify node2 exists
     assert(graph.has_node(SampleGraph::node2.id) == true);
 
@@ -312,7 +324,9 @@ void test_delete_node(EdgeKey &graph, bool is_directed)
     // Verify that the in and out degrees of node 1 and 3 got updated
     if (is_directed)
     {
+        // std::cout << graph.get_out_degree(SampleGraph::node1.id)<< std::endl;
         assert(graph.get_out_degree(SampleGraph::node1.id) == 2);
+        // std::cout << graph.get_in_degree(SampleGraph::node3.id) <<std::endl;
         assert(graph.get_in_degree(SampleGraph::node3.id) == 1);
     }
     else
@@ -322,50 +336,48 @@ void test_delete_node(EdgeKey &graph, bool is_directed)
     }
 }
 
-void test_get_in_and_out_degree(EdgeKey &graph)
+void test_EdgeCursor(SplitEdgeKey &graph)
 {
     INFO()
-    degree_t indeg, outdeg;
-    indeg = graph.get_in_degree(3);
-    outdeg = graph.get_out_degree(1);
-    assert(indeg == 2);
-    assert(outdeg == 3);
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge found;
+    int srcIdList[] = {1, 1, 5, 7, 8};
+    int dstIdList[] = {3, 7, 6, 8, 7};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != UINT32_MAX)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
+    }
+    delete edge_cursor;
 }
 
-void tearDown(EdgeKey &graph) { graph.close(true); }
-
-void test_InCursor(EdgeKey &graph)
+void test_EdgeCursor_Range(SplitEdgeKey &graph)
 {
     INFO()
-    InCursor *in_cursor = graph.get_innbd_iter();
-    in_cursor->set_key_range(key_range{0, 0});
-    adjlist found;
-    in_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    edge found;
+    int srcIdList[] = {1, 5, 7};
+    int dstIdList[] = {7, 6, 8};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != UINT32_MAX)
     {
-        CommonUtil::dump_adjlist(found);
-        found.clear();
-        in_cursor->next(&found);
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
     }
-    in_cursor->reset();
-
-    // testing next() with a key range set
-    fprintf(stderr, "\n ---- now testing with a range (3,6) set :\n");
-
-    in_cursor->set_key_range(key_range{3, 6});
-    found.clear();
-    in_cursor->next(&found);
-
-    while (found.node_id != UINT32_MAX)
-    {
-        CommonUtil::dump_adjlist(found);
-        found.clear();
-        in_cursor->next(&found);
-    }
-    delete in_cursor;
+    delete edge_cursor;
 }
 
-void test_OutCursor(EdgeKey &graph)
+void test_OutCursor(SplitEdgeKey &graph)
 {
     INFO()
     OutCursor *out_cursor = graph.get_outnbd_iter();
@@ -398,7 +410,7 @@ void test_OutCursor(EdgeKey &graph)
     delete out_cursor;
 }
 
-void test_NodeCursor(EdgeKey &graph)
+void test_NodeCursor(SplitEdgeKey &graph)
 {
     INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
@@ -416,7 +428,7 @@ void test_NodeCursor(EdgeKey &graph)
     delete node_cursor;
 }
 
-void test_NodeCursor_Range(EdgeKey &graph)
+void test_NodeCursor_Range(SplitEdgeKey &graph)
 {
     INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
@@ -434,47 +446,38 @@ void test_NodeCursor_Range(EdgeKey &graph)
     }
     delete node_cursor;
 }
-
-void test_EdgeCursor(EdgeKey &graph)
+void test_InCursor(SplitEdgeKey &graph)
 {
     INFO()
-    EdgeCursor *edge_cursor = graph.get_edge_iter();
-    edge found;
-    int srcIdList[] = {1, 1, 5, 7, 8};
-    int dstIdList[] = {3, 7, 6, 8, 7};
-    int i = 0;
-    edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    InCursor *in_cursor = graph.get_innbd_iter();
+    in_cursor->set_key_range(key_range{0, 0});
+    adjlist found;
+    in_cursor->next(&found);
+    while (found.node_id != UINT32_MAX)
     {
-        assert(found.src_id == srcIdList[i]);
-        assert(found.dst_id == dstIdList[i]);
-        CommonUtil::dump_edge(found);
-        edge_cursor->next(&found);
-        i++;
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        in_cursor->next(&found);
     }
-    delete edge_cursor;
+    in_cursor->reset();
+
+    // testing next() with a key range set
+    fprintf(stderr, "\n ---- now testing with a range (3,6) set :\n");
+
+    in_cursor->set_key_range(key_range{3, 6});
+    found.clear();
+    in_cursor->next(&found);
+
+    while (found.node_id != UINT32_MAX)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        in_cursor->next(&found);
+    }
+    delete in_cursor;
 }
 
-void test_EdgeCursor_Range(EdgeKey &graph)
-{
-    INFO()
-    EdgeCursor *edge_cursor = graph.get_edge_iter();
-    edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
-    edge found;
-    int srcIdList[] = {1, 5, 7};
-    int dstIdList[] = {7, 6, 8};
-    int i = 0;
-    edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
-    {
-        assert(found.src_id == srcIdList[i]);
-        assert(found.dst_id == dstIdList[i]);
-        CommonUtil::dump_edge(found);
-        edge_cursor->next(&found);
-        i++;
-    }
-    delete edge_cursor;
-}
+void tearDown(SplitEdgeKey &graph) { graph.close(true); }
 
 int main()
 {
@@ -485,8 +488,8 @@ int main()
     opts.is_directed = true;
     opts.read_optimize = true;
     opts.is_weighted = true;
-    opts.type = GraphType::EKey;
-    opts.db_name = "test_eKey";
+    opts.type = GraphType::SplitEKey;
+    opts.db_name = "test_split_edgekey";
     opts.db_dir = "./db";
     opts.conn_config = "cache_size=10GB";
     if (const char *env_p = std::getenv("GRAPH_PROJECT_DIR"))
@@ -501,7 +504,7 @@ int main()
 
     GraphEngine myEngine(THREAD_NUM, opts);
     WT_CONNECTION *conn = myEngine.get_connection();
-    EdgeKey graph(opts, conn);
+    SplitEdgeKey graph(opts, conn);
 
     create_init_nodes(graph, opts.is_directed);
     test_get_node(graph);
@@ -517,16 +520,16 @@ int main()
 
     test_get_in_nodes(graph);
     test_get_in_and_out_degree(graph);
-
     test_delete_node(graph, opts.is_directed);
     test_get_edges(graph);
     test_EdgeCursor(graph);
     test_EdgeCursor_Range(graph);
     test_InCursor(graph);
-    //! TODO: test_InCursor_Range(graph);
+    //    //! TODO: test_InCursor_Range(graph);
     test_OutCursor(graph);
     test_NodeCursor(graph);
     test_NodeCursor_Range(graph);
 
     tearDown(graph);
+    return 0;
 }

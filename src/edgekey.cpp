@@ -938,7 +938,7 @@ std::vector<node> EdgeKey::get_nodes()
         nodes.push_back(n);
     } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0);
 
-    edge_cursor->reset(edge_cursor);
+    dst_src_idx_cursor->reset(dst_src_idx_cursor);
     return nodes;
 }
 

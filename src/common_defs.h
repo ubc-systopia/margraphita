@@ -53,6 +53,9 @@ const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
 // specific to AdjList implementation
 const std::string OUT_ADJLIST = "adjlistout";
 const std::string IN_ADJLIST = "adjlistin";
+// specific to EdgeKeySplit implementation
+const std::string OUT_EDGES = "edge_out";
+const std::string IN_EDGES = "edge_in";
 const std::string node_count = "nNodes";
 const std::string edge_count = "nEdges";
 
@@ -72,7 +75,7 @@ typedef enum GraphType
     Std,
     Adj,
     EKey,
-    EList,
+    SplitEKey,
     META
 } GraphType;
 
