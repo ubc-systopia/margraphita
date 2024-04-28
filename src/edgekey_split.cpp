@@ -904,7 +904,19 @@ int SplitEdgeKey::delete_node(node_id_t node_id)
     }
     return 0;
 }
-WT_CURSOR *SplitEdgeKey::get_metadata_cursor() { return nullptr; }
+WT_CURSOR *SplitEdgeKey::get_metadata_cursor()
+{
+    if (metadata_cursor == nullptr)
+    {
+        int ret =
+            _get_table_cursor(METADATA, &metadata_cursor, session, false, true);
+        if (ret != 0)
+        {
+            throw GraphException("Could not get a metadata cursor");
+        }
+    }
+    return metadata_cursor;
+}
 int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
                                                 int *num_edges_to_add)
 {
@@ -928,13 +940,20 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
     while (out_edge_cursor->next(out_edge_cursor) == 0)
     {
         CommonUtil::ekey_get_key(out_edge_cursor, &src, &dst);
-        std::cout << "@877 src: " << src << " dst: " << dst << std::endl;
         if (src != node_id)
         {
             break;
         }
         // Delete the edge OUTGOING FROM the deleted node
         ret = out_edge_cursor->remove(out_edge_cursor);
+        if (ret != 0)
+        {
+            session->rollback_transaction(session, nullptr);
+            return ret;  // panic
+        }
+        // delete the reverse edge
+        CommonUtil::ekey_set_key(in_edge_cursor, dst, src);
+        ret = in_edge_cursor->remove(in_edge_cursor);
         if (ret != 0)
         {
             session->rollback_transaction(session, nullptr);
