@@ -97,10 +97,10 @@ void GraphEngine::create_indices()
     {
         EdgeKey::create_indices(sess);
     }
-    //    else if (opts.type == GraphType::EList)
-    //    {
-    //        UnOrderedEdgeList::create_indices(sess);
-    //    }
+    else if (opts.type == GraphType::SplitEKey)
+    {
+        SplitEdgeKey::create_indices(sess);
+    }
     else
     {
         throw GraphException("Failed to create graph object");
