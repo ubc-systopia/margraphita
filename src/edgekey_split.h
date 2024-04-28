@@ -56,10 +56,26 @@ class SplitEdgeKey : public GraphBase
     WT_CURSOR *out_edge_cursor = nullptr;
 
    public:
-    WT_CURSOR *get_out_edge_cursor() const { return out_edge_cursor; }
-    WT_CURSOR *get_random_node_cursor() const { return random_node_cursor; }
-    WT_CURSOR *get_in_edge_cursor() const { return in_edge_cursor; }
-    WT_CURSOR *get_node_index_cursor() const { return dst_src_idx_cursor; }
+    [[nodiscard]] WT_CURSOR *get_out_edge_cursor() const
+    {
+        return out_edge_cursor;
+    }
+    WT_CURSOR *get_new_out_cursor();
+
+    [[nodiscard]] WT_CURSOR *get_random_node_cursor() const
+    {
+        return random_node_cursor;
+    }
+    [[nodiscard]] WT_CURSOR *get_in_edge_cursor() const
+    {
+        return in_edge_cursor;
+    }
+    WT_CURSOR *get_new_in_cursor();
+    [[nodiscard]] WT_CURSOR *get_node_index_cursor() const
+    {
+        return dst_src_idx_cursor;
+    }
+    WT_CURSOR *get_new_node_index_cursor();
 
    private:
     WT_CURSOR *random_node_cursor = nullptr;
@@ -85,106 +101,368 @@ class SplitEdgeKey : public GraphBase
 
 class SplitEkeyInCursor : public InCursor
 {
-   public:
-    SplitEkeyInCursor(WT_CURSOR *cursor, node_id_t node_id)
-        : cursor(cursor), node_id(node_id)
-    {
-        cursor->set_key(cursor, node_id);
-        cursor->search(cursor);
-    }
-
-    void next(adjlist *nbd) override
-    {
-        WT_ITEM item;
-        cursor->get_value(cursor, &item);
-        *nbd = *(adjlist *)item.data;
-        cursor->next(cursor);
-    }
-
-    void reset() override
-    {
-        cursor->set_key(cursor, node_id);
-        cursor->search(cursor);
-    }
-
    private:
-    WT_CURSOR *cursor;
-    node_id_t node_id;
+    // bool is_weighted = false;
+    node_id_t curr_node{};
+
+   public:
+    SplitEkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+        set_key_range({OutOfBand_ID, UINT32_MAX});
+    }
+    ~SplitEkeyInCursor() override = default;
+
+    void set_key_range(key_range _keys) override
+    {
+        keys.start = _keys.start;
+        if (_keys.end == OutOfBand_ID)
+        {
+            keys.end = UINT32_MAX;
+        }
+        else
+        {
+            keys.end = _keys.end;
+        }
+
+        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID);
+        // Advance the cursor to the first record >= start
+
+        int status;
+        cursor->search_near(cursor, &status);
+        if (status <= 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+        node_id_t temp_dst;
+        CommonUtil::ekey_get_key(cursor, &curr_node, &temp_dst);
+    }
+
+    void next(adjlist *found) override
+    {
+        node_id_t src, dst;
+
+        if (!has_next)
+        {
+            found->node_id = UINT32_MAX;
+            found->degree = UINT32_MAX;
+            found->edgelist.clear();
+            return;
+        }
+
+        // get edge
+        CommonUtil::ekey_get_key(cursor, &dst, &src);
+        if (src == OutOfBand_ID) curr_node = dst;
+        while (cursor->next(cursor) == 0)
+        {
+            CommonUtil::ekey_get_key(cursor, &dst, &src);
+            found->node_id = curr_node;
+            if (dst == curr_node && src != OutOfBand_ID)
+            {
+                found->edgelist.push_back(src);
+                found->degree++;
+            }
+            else
+            {
+                curr_node = dst;
+                if (found->degree == 0) continue;  // don't return empty nodes
+                if (curr_node > keys.end)
+                {
+                    has_next = false;
+                    return;
+                }
+                return;
+            }
+        }
+        // found->node_id = src;
+        found->node_id = -1;
+        has_next = false;
+    }
+
+    void next(adjlist *found, node_id_t key) override {}
 };
 
 class SplitEKeyOutCursor : public OutCursor
 {
-   public:
-    SplitEKeyOutCursor(WT_CURSOR *cursor, node_id_t node_id)
-        : cursor(cursor), node_id(node_id)
-    {
-        cursor->set_key(cursor, node_id);
-        cursor->search(cursor);
-    }
-
-    void next(adjlist *nbd) override
-    {
-        WT_ITEM item;
-        cursor->get_value(cursor, &item);
-        *nbd = *(adjlist *)item.data;
-        cursor->next(cursor);
-    }
-
-    void reset() override
-    {
-        cursor->set_key(cursor, node_id);
-        cursor->search(cursor);
-    }
-
    private:
-    WT_CURSOR *cursor;
-    node_id_t node_id;
+    // bool is_weighted = false;
+    node_id_t curr_node{};
+
+   public:
+    SplitEKeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    {
+        cursor = cur;
+        session = sess;
+        set_key_range({OutOfBand_ID, UINT32_MAX});
+    }
+    ~SplitEKeyOutCursor() override = default;
+    void set_key_range(key_range _keys) override
+    {
+        keys.start = _keys.start;
+        if (_keys.end == OutOfBand_ID)
+        {
+            keys.end = UINT32_MAX;
+        }
+        else
+        {
+            keys.end = _keys.end;
+        }
+
+        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID);
+        // Advance the cursor to the first record >= start
+
+        int status;
+        cursor->search_near(cursor, &status);
+        if (status < 0)
+        {
+            // Advances the cursor
+            if (cursor->next(cursor) != 0)
+            {
+                has_next = false;
+                return;
+            }
+        }
+        node_id_t temp_dst;
+        CommonUtil::ekey_get_key(cursor, &curr_node, &temp_dst);
+    }
+
+    void next(adjlist *found) override
+    {
+        node_id_t src, dst;
+
+        if (!has_next)
+        {
+            found->node_id = UINT32_MAX;
+            found->degree = UINT32_MAX;
+            found->edgelist.clear();
+            return;
+        }
+
+        // get edge
+        CommonUtil::ekey_get_key(cursor, &src, &dst);
+        if (dst == OutOfBand_ID) curr_node = src;
+        while (cursor->next(cursor) == 0)
+        {
+            CommonUtil::ekey_get_key(cursor, &src, &dst);
+            found->node_id = curr_node;
+            if (src == curr_node && dst != OutOfBand_ID)
+            {
+                found->edgelist.push_back(dst);
+                found->degree++;
+            }
+            else
+            {
+                curr_node = src;
+                if (found->degree == 0) continue;  // don't return empty nodes
+                if (curr_node > keys.end)
+                {
+                    has_next = false;
+                    return;
+                }
+                return;
+            }
+        }
+        // found->node_id = src;
+        found->node_id = -1;
+        has_next = false;
+    }
+
+    void next(adjlist *found, node_id_t key) override {}
 };
 
 class SplitEKeyNodeCursor : public NodeCursor
 {
    public:
-    SplitEKeyNodeCursor(WT_CURSOR *cursor, node_id_t num_nodes)
-        : cursor(cursor), num_nodes(num_nodes)
+    // Takes a composite index cursor on (dst, src)
+    SplitEKeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
     {
-        cursor->set_key(cursor, 0);
-        cursor->search(cursor);
+        cursor = cur;
+        session = sess;
+        set_key_range({OutOfBand_ID, UINT32_MAX});  // min and max node id
+    }
+    ~SplitEKeyNodeCursor() override = default;
+
+    void set_key_range(key_range _keys) override
+    {
+        keys = _keys;
+        int status;
+        // set the cursor to the first relevant record in range
+        if (keys.start != OutOfBand_ID)
+        {
+            CommonUtil::ekey_set_key(cursor, OutOfBand_ID, keys.start);
+            // flipped because (dst, src)
+            cursor->search_near(cursor, &status);
+            if (status < 0)
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    this->has_next = false;
+                }
+            }
+        }
+        else
+        {
+            // Advance the cursor to the first record
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+        }
+    }
+
+    void no_next(node *found)
+    {
+        found->id = UINT32_MAX;
+        found->in_degree = UINT32_MAX;
+        found->out_degree = UINT32_MAX;
+        has_next = false;
     }
 
     void next(node *found) override
     {
-        WT_ITEM item;
-        cursor->get_value(cursor, &item);
-        *found = *(node *)item.data;
-        cursor->next(cursor);
+        edge curr_edge;
+        if (!has_next)
+        {
+            no_next(found);
+        }
+
+        CommonUtil::ekey_get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
+        found->id = curr_edge.src_id;
+        cursor->get_value(cursor, &found->in_degree, &found->out_degree);
+
+        if (keys.end != OutOfBand_ID && curr_edge.src_id > keys.end)
+        {
+            no_next(found);
+        }
+
+        if (curr_edge.dst_id != OutOfBand_ID)
+        {
+            no_next(found);
+        }
+        int ret = cursor->next(cursor);
+        if (ret != 0)
+        {
+            std::cout << wiredtiger_strerror(ret) << std::endl;
+            has_next = false;
+            return;
+        }
     }
 
-   private:
-    WT_CURSOR *cursor;
-    node_id_t num_nodes;
+    void next(node *found, node_id_t key) override {}
 };
 
-class SplitEdgeKeyEdgeCursor : public EdgeCursor
+class SplitEKeyEdgeCursor : public EdgeCursor
 {
+   private:
+    // bool at_node =true; //initial state
    public:
-    SplitEdgeKeyEdgeCursor(WT_CURSOR *cursor, node_id_t num_edges)
-        : cursor(cursor), num_edges(num_edges)
+    SplitEKeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
     {
-        cursor->set_key(cursor, 0);
-        cursor->search(cursor);
+        cursor = cur;
+        session = sess;
+        set_key_range({{OutOfBand_ID, OutOfBand_ID}, {UINT32_MAX, UINT32_MAX}});
+    }
+    ~SplitEKeyEdgeCursor() override = default;
+
+    void set_key_range(edge_range range) override
+    {
+        start_edge = range.start;
+        end_edge = range.end;
+
+        // set the cursor to the first relevant record in range
+        if (range.start.src_id != OutOfBand_ID &&
+            range.start.dst_id != OutOfBand_ID)  // the range is not empty
+        {
+            CommonUtil::ekey_set_key(
+                cursor, range.start.src_id, range.start.dst_id);
+            int status;
+            cursor->search_near(cursor, &status);
+            if (status < 0)
+            {
+                // Advances the cursor
+                if (cursor->next(cursor) != 0)
+                {
+                    this->has_next = false;
+                }
+            }
+        }
+        else  // the range is empty
+        {
+            std::cout << "here" << std::endl;
+            // Advance the cursor to the first record
+            if (cursor->next(cursor) != 0)
+            {
+                this->has_next = false;
+            }
+            // node_id_t temp_src, temp_dst;
+            // CommonUtil::ekey_get_key(cursor, &temp_src,&temp_dst);
+            // std::cout << "first edge (src,dst): " <<
+            // temp_src << ", " <<temp_dst << std::endl;
+        }
     }
 
+    void no_next(edge *found)
+    {
+        found->src_id = UINT32_MAX;
+        found->dst_id = UINT32_MAX;
+        found->edge_weight = UINT32_MAX;
+        has_next = false;
+    }
     void next(edge *found) override
     {
-        WT_ITEM item;
-        cursor->get_value(cursor, &item);
-        *found = *(edge *)item.data;
-        cursor->next(cursor);
-    }
+        if (!has_next)
+        {
+            no_next(found);
+            return;
+        }
 
-   private:
-    WT_CURSOR *cursor;
-    node_id_t num_edges;
+        while (true)
+        {
+            CommonUtil::ekey_get_key(cursor, &found->src_id, &found->dst_id);
+            if (found->dst_id != OutOfBand_ID)
+            {
+                break;  // found an edge
+            }
+            else
+            {
+                if (cursor->next(cursor) != 0)
+                {
+                    no_next(found);
+                    return;
+                }  // advance to the next edge
+            }
+        }
+
+        // If end_edge is set
+        if (end_edge.src_id != UINT32_MAX)
+        {
+            // If found > end edge
+            if (!(found->src_id < end_edge.src_id ||
+                  ((found->src_id == end_edge.src_id) &&
+                   (found->dst_id <= end_edge.dst_id))))
+            {
+                no_next(found);
+                return;
+            }
+        }
+        if (get_weight)
+        {
+            CommonUtil::record_to_edge_ekey(cursor, found);
+        }
+
+        if (cursor->next(cursor) != 0)
+        {
+            has_next = false;
+            return;
+        }
+    }
 };
 
 #endif

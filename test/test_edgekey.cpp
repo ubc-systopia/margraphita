@@ -217,11 +217,11 @@ void test_get_in_edges(EdgeKey &graph)
 {
     INFO()
     std::vector<edge> edges = graph.get_in_edges(3);
+
     for (auto e : edges)
-        for (auto e : edges)
-        {
-            CommonUtil::dump_edge(e);
-        }
+    {
+        CommonUtil::dump_edge(e);
+    }
     assert(edges.size() == 2);
     // Check edge0
     assert(edges.at(0).src_id == SampleGraph::edge2.src_id);

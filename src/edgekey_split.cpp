@@ -105,24 +105,25 @@ int SplitEdgeKey::add_node(node to_insert)
 {
     session->begin_transaction(session, "isolation=snapshot");
     CommonUtil::ekey_set_key(out_edge_cursor, to_insert.id, OutOfBand_ID);
-    CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id, OutOfBand_ID);
+    // CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id, OutOfBand_ID);
     if (opts.read_optimize)
     {
         out_edge_cursor->set_value(
             out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
-        in_edge_cursor->set_value(
-            in_edge_cursor, to_insert.in_degree, to_insert.out_degree);
+        //        in_edge_cursor->set_value(
+        //            in_edge_cursor, to_insert.in_degree,
+        //            to_insert.out_degree);
     }
     else
     {
         out_edge_cursor->set_value(out_edge_cursor, 0, 0);
-        in_edge_cursor->set_value(in_edge_cursor, 0, 0);
+        //        in_edge_cursor->set_value(in_edge_cursor, 0, 0);
     }
-    auto in_ret =
-        error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor));
+    //    auto in_ret =
+    //        error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor));
     auto out_ret =
         error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor));
-    if (in_ret == 0 & out_ret == 0)
+    if (out_ret == 0)  // & in_ret == 0)
     {
         session->commit_transaction(session, nullptr);
         GraphBase::increment_nodes(1);
@@ -155,19 +156,19 @@ int SplitEdgeKey::add_node_txn(node to_insert)
         return ret;
     }
 
-    // UPDATE IN_EDGE TABLE
-    CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id, OutOfBand_ID);
-    if (opts.read_optimize)
-    {
-        in_edge_cursor->set_value(
-            in_edge_cursor, to_insert.in_degree, to_insert.out_degree);
-    }
-    else
-    {
-        in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_Val);
-    }
-    return out_edge_cursor->insert(
-        out_edge_cursor);  // no need to check -- done in caller.
+    //    // UPDATE IN_EDGE TABLE
+    //    CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id, OutOfBand_ID);
+    //    if (opts.read_optimize)
+    //    {
+    //        in_edge_cursor->set_value(
+    //            in_edge_cursor, to_insert.in_degree, to_insert.out_degree);
+    //    }
+    //    else
+    //    {
+    //        in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_Val);
+    //    }
+    //    return in_edge_cursor->insert(
+    //        in_edge_cursor);  // no need to check -- done in caller.
 }
 
 bool SplitEdgeKey::has_node(node_id_t node_id)
@@ -382,6 +383,7 @@ node SplitEdgeKey::get_random_node()
 }
 degree_t SplitEdgeKey::get_in_degree(node_id_t node_id)
 {
+    degree_t in_deg = 0;
     if (opts.read_optimize)
     {
         CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
@@ -399,27 +401,40 @@ degree_t SplitEdgeKey::get_in_degree(node_id_t node_id)
     else
     {
         CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID);
-        int ret = in_edge_cursor->search(in_edge_cursor);
-        if (ret != 0)
+        int search_exact;  // this can not be 0 because we are not creating
+                           // node_id, 0 entires for nodes in this table.
+        in_edge_cursor->search_near(in_edge_cursor, &search_exact);
+        if (search_exact < 0)
         {
-            in_edge_cursor->reset(in_edge_cursor);
-            throw GraphException("Node with ID " + std::to_string(node_id) +
-                                 " does not exist");
+            // we should call next and see if the next edge is relevant
+            in_edge_cursor->next(in_edge_cursor);
+            node_id_t src, dst;
+            CommonUtil::ekey_get_key(in_edge_cursor, &dst, &src);
+            if (dst != node_id)
+            {
+                in_edge_cursor->reset(in_edge_cursor);
+                return 0;  // no in-edges for this node.
+            }
         }
-        node_id_t src, dst;
-        degree_t in_degree = 0;
-        while (in_edge_cursor->next(in_edge_cursor) != 0)
+        if (search_exact == 0)
         {
+            in_edge_cursor->next(
+                in_edge_cursor);  // to position to the next edge
+        }
+        // Now the case where search_exact >0
+        do
+        {
+            node_id_t src, dst;
             CommonUtil::ekey_get_key(in_edge_cursor, &dst, &src);
             if (dst != node_id)
             {
                 break;  // reached next node
             }
-            in_degree++;
-        }
+            in_deg++;
+        } while (in_edge_cursor->next(in_edge_cursor) == 0);
         in_edge_cursor->reset(in_edge_cursor);
-        return in_degree;
     }
+    return in_deg;
 }
 
 degree_t SplitEdgeKey::get_out_degree(node_id_t node_id)
@@ -469,27 +484,251 @@ degree_t SplitEdgeKey::get_out_degree(node_id_t node_id)
 
 std::vector<edge> SplitEdgeKey::get_out_edges(node_id_t node_id)
 {
-    return std::vector<edge>();
+    std::vector<edge> out_edges;
+    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
+
+    int temp;
+    if (out_edge_cursor->search(out_edge_cursor) == 0)
+    {
+        while (true)
+        {
+            edge found;
+            if (out_edge_cursor->next(out_edge_cursor) != 0) break;
+            CommonUtil::ekey_get_key(
+                out_edge_cursor, &found.src_id, &found.dst_id);
+            if ((found.src_id == node_id) & (found.dst_id != OutOfBand_ID))
+            {
+                out_edge_cursor->get_value(
+                    out_edge_cursor, &found.edge_weight, &temp);
+                out_edges.push_back(found);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
+    }
+    out_edge_cursor->reset(out_edge_cursor);
+    return out_edges;
 }
 std::vector<node> SplitEdgeKey::get_out_nodes(node_id_t node_id)
 {
-    return std::vector<node>();
+    std::vector<node> out_nodes;
+    WT_CURSOR *e_cur;  // need new cursor because we will be using the class
+                       // cursor for get_node
+    if (_get_table_cursor(OUT_EDGES, &e_cur, session, false, true) != 0)
+    {
+        throw GraphException("Could not get a cursor to the OutEdge table");
+    }
+
+    CommonUtil::ekey_set_key(e_cur, node_id, OutOfBand_ID);
+
+    if (e_cur->search(e_cur) == 0)
+    {
+        while (true)
+        {
+            node found;
+            node_id_t src_id, dst_id;
+            if (e_cur->next(e_cur) != 0)
+            {
+                break;
+            }
+            CommonUtil::ekey_get_key(e_cur, &src_id, &dst_id);
+            // if (src_id == MAKE_EKEY(node_id))
+            if (src_id == node_id)
+            {
+                // found = get_node(OG_KEY(dst_id));
+                found = get_node(dst_id);
+                out_nodes.push_back(found);
+                // CommonUtil::dump_node(found);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
+    }
+    e_cur->close(e_cur);
+    return out_nodes;
 }
 std::vector<node_id_t> SplitEdgeKey::get_out_nodes_id(node_id_t node_id)
 {
-    return std::vector<node_id_t>();
+    std::vector<node_id_t> out_nodes_id;
+    WT_CURSOR *e_cur;
+    if (_get_table_cursor(OUT_EDGES, &e_cur, session, false, true) != 0)
+    {
+        throw GraphException("Could not get a cursor to the OutEdge table");
+    }
+    CommonUtil::ekey_set_key(e_cur, node_id, OutOfBand_ID);
+    if (e_cur->search(e_cur) == 0)
+    {
+        while (true)
+        {
+            node_id_t src_id, dst_id;
+            if (e_cur->next(e_cur) != 0)
+            {
+                break;
+            }
+            CommonUtil::ekey_get_key(e_cur, &src_id, &dst_id);
+
+            if (src_id == node_id)
+            {
+                out_nodes_id.push_back(dst_id);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
+    }
+    e_cur->close(e_cur);
+    return out_nodes_id;
 }
 std::vector<edge> SplitEdgeKey::get_in_edges(node_id_t node_id)
 {
-    return std::vector<edge>();
-}
-std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
-{
-    return std::vector<node_id_t>();
+    if (!has_node(node_id))
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
+    }
+    std::vector<edge> in_edges;
+    CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID);
+
+    int temp;
+    int search_exact;
+    in_edge_cursor->search_near(in_edge_cursor, &search_exact);
+    if (search_exact < 0)
+    {
+        // we should call next and see if the next edge is relevant
+        in_edge_cursor->next(in_edge_cursor);
+        node_id_t src, dst;
+        CommonUtil::ekey_get_key(in_edge_cursor, &dst, &src);
+        if (dst != node_id)
+        {
+            in_edge_cursor->reset(in_edge_cursor);
+            return in_edges;  // no in-edges for this node.
+        }
+    }
+    if (search_exact == 0)
+    {
+        in_edge_cursor->next(in_edge_cursor);  // to position to the next edge
+    }
+
+    do
+    {
+        edge found;
+        CommonUtil::ekey_get_key(in_edge_cursor, &found.dst_id, &found.src_id);
+        if ((found.dst_id == node_id) & (found.src_id != OutOfBand_ID))
+        {
+            in_edge_cursor->get_value(
+                in_edge_cursor, &found.edge_weight, &temp);
+            in_edges.push_back(found);
+        }
+        else
+        {
+            break;
+        }
+    } while (in_edge_cursor->next(in_edge_cursor) == 0);
+
+    in_edge_cursor->reset(in_edge_cursor);
+    return in_edges;
 }
 std::vector<node> SplitEdgeKey::get_in_nodes(node_id_t node_id)
 {
-    return std::vector<node>();
+    if (!has_node(node_id))
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
+    }
+    std::vector<node> in_nodes;
+    WT_CURSOR *in_cur;  // need new cursor because we will be using the class
+                        // cursor for get_node
+    if (_get_table_cursor(IN_EDGES, &in_cur, session, false, true) != 0)
+    {
+        throw GraphException("Could not get a cursor to the OutEdge table");
+    }
+    int search_exact;
+    CommonUtil::ekey_set_key(in_cur, node_id, OutOfBand_ID);
+    in_cur->search_near(in_cur, &search_exact);
+    if (search_exact <= 0)
+    {
+        in_cur->next(in_cur);  // position to the first in-edge of the node
+    }
+
+    do
+    {
+        node found;
+        node_id_t src_id, dst_id;
+        CommonUtil::ekey_get_key(in_cur, &dst_id, &src_id);
+        std::cout << "src_id: " << src_id << " dst_id: " << dst_id << std::endl;
+        if (dst_id == node_id)
+        {
+            found = get_node(src_id);
+            in_nodes.push_back(found);
+            CommonUtil::dump_node(found);
+        }
+        else
+        {
+            break;
+        }
+    } while (in_cur->next(in_cur) == 0);
+    in_cur->close(in_cur);
+    return in_nodes;
+}
+
+std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
+{
+    if (!has_node(node_id))
+    {
+        throw GraphException("The node " + to_string(node_id) +
+                             " does not exist in the graph");
+    }
+    std::vector<node_id_t> in_nodes_id;
+    WT_CURSOR *in_cur;
+    if (_get_table_cursor(IN_EDGES, &in_cur, session, false, true) != 0)
+    {
+        throw GraphException("Could not get a cursor to the OutEdge table");
+    }
+    int search_exact;
+    CommonUtil::ekey_set_key(in_cur, node_id, OutOfBand_ID);
+    in_cur->search_near(in_cur, &search_exact);
+    if (search_exact <= 0)
+    {
+        in_cur->next(in_cur);  // position to the first in-edge of the node
+    }
+
+    do
+    {
+        node_id_t src_id, dst_id;
+        CommonUtil::ekey_get_key(in_cur, &dst_id, &src_id);
+
+        if (dst_id == node_id)
+        {
+            in_nodes_id.push_back(src_id);
+        }
+        else
+        {
+            break;
+        }
+    } while (in_cur->next(in_cur) == 0);
+
+    in_cur->close(in_cur);
+    return in_nodes_id;
 }
 /**
  * @brief This function accepts a node_id and two integers, in_change and
@@ -508,39 +747,45 @@ int SplitEdgeKey::update_node_degree(node_id_t node_id,
     // remember to do both the in and out edge tables
     // no transaction needed
     degree_t in, out;
-    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
-    if (out_edge_cursor->search(out_edge_cursor) == 0)
+    //    WT_CURSOR *in_cursor = get_new_in_cursor();
+    WT_CURSOR *out_cursor = get_new_out_cursor();
+    CommonUtil::ekey_set_key(out_cursor, node_id, OutOfBand_ID);
+    if (out_cursor->search(out_cursor) == 0)
     {
-        out_edge_cursor->get_value(out_edge_cursor, &in, &out);
-        out_edge_cursor->set_value(
-            out_edge_cursor, in + in_change, out + out_change);
-        out_edge_cursor->update(out_edge_cursor);
+        out_cursor->get_value(out_cursor, &in, &out);
+        out_cursor->set_value(out_cursor, in + in_change, out + out_change);
+        out_cursor->update(out_cursor);
     }
     else
     {
         return 1;
     }
-    out_edge_cursor->reset(out_edge_cursor);
-
-    CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID);
-    if (in_edge_cursor->search(in_edge_cursor) == 0)
-    {
-        in_edge_cursor->get_value(in_edge_cursor, &in, &out);
-        in_edge_cursor->set_value(
-            in_edge_cursor, in + in_change, out + out_change);
-        in_edge_cursor->update(in_edge_cursor);
-    }
-    else
-    {
-        return 1;
-    }
-    in_edge_cursor->reset(in_edge_cursor);
+    out_cursor->close(out_cursor);
     return 0;
 }
-OutCursor *SplitEdgeKey::get_outnbd_iter() { return nullptr; }
-InCursor *SplitEdgeKey::get_innbd_iter() { return nullptr; }
-NodeCursor *SplitEdgeKey::get_node_iter() { return nullptr; }
-EdgeCursor *SplitEdgeKey::get_edge_iter() { return nullptr; }
+OutCursor *SplitEdgeKey::get_outnbd_iter()
+{
+    OutCursor *toReturn = new SplitEKeyOutCursor(get_new_out_cursor(), session);
+    return toReturn;
+}
+InCursor *SplitEdgeKey::get_innbd_iter()
+{
+    InCursor *toReturn = new SplitEkeyInCursor(get_new_in_cursor(), session);
+
+    return toReturn;
+}
+NodeCursor *SplitEdgeKey::get_node_iter()
+{
+    NodeCursor *toReturn =
+        new SplitEKeyNodeCursor(get_new_node_index_cursor(), session);
+    return toReturn;
+}
+EdgeCursor *SplitEdgeKey::get_edge_iter()
+{
+    EdgeCursor *toReturn =
+        new SplitEKeyEdgeCursor(get_new_out_cursor(), session);
+    return toReturn;
+}
 void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
                                        int num_nodes)
 {
@@ -648,39 +893,32 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
         session->rollback_transaction(session, nullptr);
         return 1;
     }
-    // We have now successfully found the node in the edge table
-    // Now we duplicate the cursor and iterate over the edges till we hit the
-    // next node (or the end of the table) such that the found node id >
-    // provided node id.
-    WT_CURSOR *out_del_cursor, *in_del_cursor;
-    CommonUtil::dup_cursor(session, out_edge_cursor, &out_del_cursor);
-    CommonUtil::dup_cursor(session, in_edge_cursor, &in_del_cursor);
-    while (out_del_cursor->next(out_del_cursor) == 0)
+
+    ret = out_edge_cursor->remove(out_edge_cursor);
+    if (ret != 0)
     {
-        CommonUtil::ekey_get_key(out_del_cursor, &src, &dst);
+        session->rollback_transaction(session, nullptr);
+        return ret;
+    }
+
+    while (out_edge_cursor->next(out_edge_cursor) == 0)
+    {
+        CommonUtil::ekey_get_key(out_edge_cursor, &src, &dst);
+        std::cout << "@877 src: " << src << " dst: " << dst << std::endl;
         if (src != node_id)
         {
             break;
         }
         // Delete the edge OUTGOING FROM the deleted node
-        ret = out_del_cursor->remove(out_del_cursor);
+        ret = out_edge_cursor->remove(out_edge_cursor);
         if (ret != 0)
         {
             session->rollback_transaction(session, nullptr);
             return ret;  // panic
         }
 
-        // Now delete the corresponding edge in the in_edge table
-        CommonUtil::ekey_set_key(in_del_cursor, dst, node_id);
-        ret = in_del_cursor->remove(in_del_cursor);
-        if (ret != 0)
-        {
-            session->rollback_transaction(session, nullptr);
-            return ret;
-        }
         // We have successfully deleted the edge
         *num_edges_to_add -= 1;  // we have effectively only removed one edge
-        node temp = get_node(dst);
         ret = update_node_degree(
             dst, -1, 0);  // dst node's indegree in out_edge table
         if (ret != 0)
@@ -689,8 +927,72 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
             return ret;
         }
     }
-    out_del_cursor->close(out_del_cursor);
-    in_del_cursor->close(in_del_cursor);
+    out_edge_cursor->reset(out_edge_cursor);
+
+    // we now do the same for in-edges table
+    CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID);
+    if (in_edge_cursor->search(in_edge_cursor) == 0)
+    {
+        ret = in_edge_cursor->remove(in_edge_cursor);
+        if (ret != 0)
+        {
+            session->rollback_transaction(session, nullptr);
+            return ret;
+        }
+    }
+
+    while (in_edge_cursor->next(in_edge_cursor) == 0)
+    {
+        CommonUtil::ekey_get_key(in_edge_cursor, &dst, &src);
+        std::cout << "@917 dst: " << dst << " src: " << src << std::endl;
+        if (dst != node_id)
+        {
+            break;
+        }
+        // Delete the edge OUTGOING FROM the deleted node
+        ret = in_edge_cursor->remove(in_edge_cursor);
+        if (ret != 0)
+        {
+            session->rollback_transaction(session, nullptr);
+            return ret;  // panic
+        }
+        // decrement the node_degree of the src node
+        ret = update_node_degree(
+            src, 0, -1);  // src node's outdegree in in_edge table
+        if (ret != 0)
+        {
+            session->rollback_transaction(session, nullptr);
+            return ret;
+        }
+    }
+    in_edge_cursor->reset(in_edge_cursor);
+
+    // We now need to remove the src->node_id edges from the out_edge table,
+    // using an index
+    WT_CURSOR *idx_cursor = get_node_index_cursor();
+    CommonUtil::ekey_set_key(idx_cursor, node_id, OutOfBand_ID);
+    int search_near;
+    idx_cursor->search_near(idx_cursor, &search_near);
+    if (search_near < 0)
+    {
+        idx_cursor->next(idx_cursor);
+    }
+    do
+    {
+        CommonUtil::ekey_get_key(idx_cursor, &dst, &src);
+        if (dst != node_id)
+        {
+            break;
+        }
+        // Delete the edge OUTGOING FROM the deleted node
+        CommonUtil::ekey_set_key(out_edge_cursor, src, node_id);
+        ret = out_edge_cursor->remove(out_edge_cursor);
+        if (ret != 0)
+        {
+            session->rollback_transaction(session, nullptr);
+            return ret;  // panic
+        }
+    } while (idx_cursor->next(idx_cursor) == 0);
 
     return 0;
 }
@@ -731,3 +1033,37 @@ int SplitEdgeKey::add_edge_only(edge to_insert)
 }
 int SplitEdgeKey::error_check_add_edge(int ret) { return 0; }
 int SplitEdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id) { return 0; }
+
+WT_CURSOR *SplitEdgeKey::get_new_out_cursor()
+{
+    WT_CURSOR *new_out_cursor = nullptr;
+    if (_get_table_cursor(OUT_EDGES, &new_out_cursor, session, false, true) !=
+        0)
+    {
+        throw GraphException("Could not get a cursor to the OutEdge table");
+    }
+    return new_out_cursor;
+}
+WT_CURSOR *SplitEdgeKey::get_new_in_cursor()
+{
+    WT_CURSOR *new_in_cursor = nullptr;
+    if (_get_table_cursor(IN_EDGES, &new_in_cursor, session, false, true) != 0)
+    {
+        throw GraphException("Could not get a cursor to the In-Edge table");
+    }
+
+    return new_in_cursor;
+}
+
+WT_CURSOR *SplitEdgeKey::get_new_node_index_cursor()
+{
+    WT_CURSOR *new_dst_src_idx_cursor = nullptr;
+    string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
+    if (_get_index_cursor(
+            OUT_EDGES, DST_SRC_INDEX, projection, &new_dst_src_idx_cursor) != 0)
+    {
+        throw GraphException("Could not get a cursor to DST_SRC_INDEX");
+    }
+
+    return new_dst_src_idx_cursor;
+}

@@ -121,6 +121,364 @@ void test_add_edge(SplitEdgeKey &graph, bool is_directed, bool is_weighted)
     }
 }
 
+void test_get_edge(SplitEdgeKey &graph)
+{
+    INFO()
+    edge found =
+        graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
+    assert(found.src_id == SampleGraph::edge1.src_id);
+    assert(found.dst_id == SampleGraph::edge1.dst_id);
+
+    // Now get a non-existent edge
+    found = graph.get_edge(222, 333);
+    assert(found.src_id == 0);
+    assert(found.dst_id == 0);
+    assert(found.edge_weight == 0);
+}
+
+void test_get_edges(SplitEdgeKey &graph)
+{
+    INFO()
+    std::vector<edge> edges = graph.get_edges();
+    for (auto e : edges)
+    {
+        CommonUtil::dump_edge(e);
+    }
+}
+
+void test_get_out_edges(SplitEdgeKey &graph)
+{
+    INFO()
+    std::vector<edge> edges = graph.get_out_edges(1);
+    for (auto e : edges)
+    {
+        CommonUtil::dump_edge(e);
+    }
+    assert(edges.size() == 3);
+    // compare edge0
+    assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
+    assert(edges.at(0).dst_id == SampleGraph::edge1.dst_id);
+    // compare edge1
+    assert(edges.at(1).src_id == SampleGraph::edge2.src_id);
+    assert(edges.at(1).dst_id == SampleGraph::edge2.dst_id);
+
+    assert(edges.at(2).src_id == SampleGraph::edge4.src_id);
+    assert(edges.at(2).dst_id == SampleGraph::edge4.dst_id);
+
+    // Now test for a node that has no out edge
+    edges = graph.get_out_edges(4);
+    assert(edges.empty());
+
+    // Now try getting out edges for a node that does not exist
+    bool assert_fail = false;
+    try
+    {
+        edges = graph.get_out_edges(1500);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_out_nodes(SplitEdgeKey &graph)
+{
+    INFO()
+    std::vector<node> nodes = graph.get_out_nodes(1);
+    std::vector<node_id_t> nodes_id = graph.get_out_nodes_id(1);
+    assert(nodes.size() == 3);
+    assert(nodes_id.size() == 3);
+    assert(nodes.at(0).id == SampleGraph::node2.id);  // edge(1->2)
+    assert(nodes.at(0).id == nodes_id.at(0));
+    assert(nodes.at(1).id == SampleGraph::node3.id);  // edge(1->3)
+    assert(nodes.at(1).id == nodes_id.at(1));
+    assert(nodes.at(2).id == SampleGraph::node7.id);  // edge(1->7)
+    assert(nodes.at(2).id == nodes_id.at(2));
+    // test for a node that has no out-edge
+    nodes = graph.get_out_nodes(4);
+    nodes_id = graph.get_out_nodes_id(4);
+    assert(nodes.empty());
+    assert(nodes_id.empty());
+
+    // test for a node that does not exist
+    bool assert_fail = false;
+    try
+    {
+        nodes = graph.get_out_nodes(1500);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_in_edges(SplitEdgeKey &graph)
+{
+    INFO()
+    std::vector<edge> edges = graph.get_in_edges(3);
+    for (auto e : edges)
+    {
+        CommonUtil::dump_edge(e);
+    }
+    assert(edges.size() == 2);
+    // Check edge0
+    assert(edges.at(0).src_id == SampleGraph::edge2.src_id);
+    assert(edges.at(0).dst_id == SampleGraph::edge2.dst_id);
+    // Check edge1
+    assert(edges.at(1).src_id == SampleGraph::edge3.src_id);
+    assert(edges.at(1).dst_id == SampleGraph::edge3.dst_id);
+
+    // now test for a node that has no in-edge
+    edges = graph.get_in_edges(4);
+    assert(edges.empty());
+
+    // Now try getting in edges for a node that does not exist.
+    bool assert_fail = false;
+    try
+    {
+        edges = graph.get_out_edges(1500);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_in_nodes(SplitEdgeKey &graph)
+{
+    INFO()
+    std::vector<node> nodes = graph.get_in_nodes(3);
+    for (auto n : nodes) CommonUtil::dump_node(n);
+    std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
+    assert(nodes.size() == 2);
+    assert(nodes_id.size() == 2);
+    assert(nodes.at(0).id == SampleGraph::node1.id);
+    assert(nodes.at(0).id == nodes_id.at(0));
+    assert(nodes.at(1).id == SampleGraph::node2.id);
+    assert(nodes.at(1).id == nodes_id.at(1));
+
+    // test for a node that has no in_edge
+    nodes = graph.get_in_nodes(4);
+    nodes_id = graph.get_in_nodes_id(4);
+    assert(nodes.empty());
+    assert(nodes_id.empty());
+
+    // test for a node that does not exist
+    bool assert_fail = false;
+    try
+    {
+        nodes = graph.get_in_nodes(1500);
+    }
+    catch (GraphException &ex)
+    {
+        cout << ex.what() << endl;
+        assert_fail = true;
+    }
+    assert(assert_fail);
+}
+
+void test_get_in_and_out_degree(SplitEdgeKey &graph)
+{
+    INFO()
+    degree_t indeg, outdeg;
+    indeg = graph.get_in_degree(3);
+    outdeg = graph.get_out_degree(1);
+    assert(indeg == 2);
+    assert(outdeg == 3);
+}
+
+void test_delete_node(SplitEdgeKey &graph, bool is_directed)
+{
+    INFO()
+    WT_CURSOR *e_cur = graph.get_out_edge_cursor();
+    // Verify node2 exists
+    assert(graph.has_node(SampleGraph::node2.id) == true);
+
+    // Delete node2 and verify it was actually deleted
+    graph.delete_node(SampleGraph::node2.id);
+    CommonUtil::ekey_set_key(e_cur, SampleGraph::node2.id, OutOfBand_ID);
+    int ret = e_cur->search(e_cur);
+    assert(ret != 0);
+
+    // check that edge(2,3) is deleted
+    CommonUtil::ekey_set_key(e_cur, 2, 3);
+    assert(e_cur->search(e_cur) != 0);
+    // check that edge(1,2) is deleted
+    CommonUtil::ekey_set_key(e_cur, 1, 2);
+    assert(e_cur->search(e_cur) != 0);
+
+    // Now delete the reverse edges for undirected graph
+    if (is_directed)
+    {
+        CommonUtil::ekey_set_key(e_cur, 3, 2);
+        assert(e_cur->search(e_cur) != 0);
+        CommonUtil::ekey_set_key(e_cur, 2, 1);
+        assert(e_cur->search(e_cur) != 0);
+    }
+    // Verify that the in and out degrees of node 1 and 3 got updated
+    if (is_directed)
+    {
+        // std::cout << graph.get_out_degree(SampleGraph::node1.id)<< std::endl;
+        assert(graph.get_out_degree(SampleGraph::node1.id) == 2);
+        // std::cout << graph.get_in_degree(SampleGraph::node3.id) <<std::endl;
+        assert(graph.get_in_degree(SampleGraph::node3.id) == 1);
+    }
+    else
+    {
+        assert(graph.get_in_degree(SampleGraph::node1.id) == 2);
+        assert(graph.get_out_degree(SampleGraph::node3.id) == 1);
+    }
+}
+
+void test_EdgeCursor(SplitEdgeKey &graph)
+{
+    INFO()
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge found;
+    int srcIdList[] = {1, 1, 5, 7, 8};
+    int dstIdList[] = {3, 7, 6, 8, 7};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != UINT32_MAX)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
+    }
+    delete edge_cursor;
+}
+
+void test_EdgeCursor_Range(SplitEdgeKey &graph)
+{
+    INFO()
+    EdgeCursor *edge_cursor = graph.get_edge_iter();
+    edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
+    edge found;
+    int srcIdList[] = {1, 5, 7};
+    int dstIdList[] = {7, 6, 8};
+    int i = 0;
+    edge_cursor->next(&found);
+    while (found.src_id != UINT32_MAX)
+    {
+        assert(found.src_id == srcIdList[i]);
+        assert(found.dst_id == dstIdList[i]);
+        CommonUtil::dump_edge(found);
+        edge_cursor->next(&found);
+        i++;
+    }
+    delete edge_cursor;
+}
+
+void test_OutCursor(SplitEdgeKey &graph)
+{
+    INFO()
+    OutCursor *out_cursor = graph.get_outnbd_iter();
+    out_cursor->set_key_range(key_range{0, 0});
+    adjlist found;
+    out_cursor->next(&found);
+    while (found.node_id != UINT32_MAX)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        out_cursor->next(&found);
+    }
+    out_cursor->reset();
+
+    // testing next() with a key range set
+    fprintf(stderr, "\n ---- now testing with a range (3,6) set:\n");
+
+    out_cursor->set_key_range({3, 6});
+    found.clear();
+    out_cursor->next(&found);
+    CommonUtil::dump_adjlist(found);
+    out_cursor->next(&found);
+    while (found.node_id != UINT32_MAX)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        out_cursor->next(&found);
+    }
+    out_cursor->reset();
+    delete out_cursor;
+}
+
+void test_NodeCursor(SplitEdgeKey &graph)
+{
+    INFO()
+    NodeCursor *node_cursor = graph.get_node_iter();
+    node found = {0, 0, 0};
+    int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 11};
+    int i = 0;
+    node_cursor->next(&found);
+    while (found.id != UINT32_MAX)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor->next(&found);
+        i++;
+    }
+    delete node_cursor;
+}
+
+void test_NodeCursor_Range(SplitEdgeKey &graph)
+{
+    INFO()
+    NodeCursor *node_cursor = graph.get_node_iter();
+    node found;
+    int nodeIdList[] = {3, 4, 5, 6};
+    int i = 0;
+    node_cursor->set_key_range(key_range{3, 6});
+    node_cursor->next(&found);
+    while (found.id != UINT32_MAX)
+    {
+        assert(found.id == nodeIdList[i]);
+        CommonUtil::dump_node(found);
+        node_cursor->next(&found);
+        i++;
+    }
+    delete node_cursor;
+}
+void test_InCursor(SplitEdgeKey &graph)
+{
+    INFO()
+    InCursor *in_cursor = graph.get_innbd_iter();
+    in_cursor->set_key_range(key_range{0, 0});
+    adjlist found;
+    in_cursor->next(&found);
+    while (found.node_id != UINT32_MAX)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        in_cursor->next(&found);
+    }
+    in_cursor->reset();
+
+    // testing next() with a key range set
+    fprintf(stderr, "\n ---- now testing with a range (3,6) set :\n");
+
+    in_cursor->set_key_range(key_range{3, 6});
+    found.clear();
+    in_cursor->next(&found);
+
+    while (found.node_id != UINT32_MAX)
+    {
+        CommonUtil::dump_adjlist(found);
+        found.clear();
+        in_cursor->next(&found);
+    }
+    delete in_cursor;
+}
+
+void tearDown(SplitEdgeKey &graph) { graph.close(true); }
+
 int main()
 {
     const int THREAD_NUM = 1;
@@ -154,7 +512,24 @@ int main()
     test_get_nodes(graph);
     test_get_random_nodes(graph);
     test_add_edge(graph, opts.is_directed, opts.is_weighted);
-    //    test_get_edge(graph);
-    //    test_get_edges(graph);
+    test_get_edge(graph);
+    test_get_edges(graph);
+    test_get_out_edges(graph);
+    test_get_out_nodes(graph);
+    test_get_in_edges(graph);
+
+    test_get_in_nodes(graph);
+    test_get_in_and_out_degree(graph);
+    test_delete_node(graph, opts.is_directed);
+    test_get_edges(graph);
+    test_EdgeCursor(graph);
+    test_EdgeCursor_Range(graph);
+    test_InCursor(graph);
+    //    //! TODO: test_InCursor_Range(graph);
+    test_OutCursor(graph);
+    test_NodeCursor(graph);
+    test_NodeCursor_Range(graph);
+
+    tearDown(graph);
     return 0;
 }
