@@ -47,7 +47,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
     for (int iter = 0; iter < max_iters; iter++)
     {
         double error = 0;
-        // #pragma omp parallel for reduction(+ : error)
+#pragma omp parallel for reduction(+ : error)
         for (int i = 0; i < thread_num; i++)
         {
             GraphBase* graph = graph_engine.create_graph_handle();

@@ -7,7 +7,8 @@ ENV HOME=/root
 SHELL [ "/bin/bash" , "-c" ]
 
 # Install dependencies
-RUN apt-get update && apt-get --no-install-recommends -y install build-essential cmake git libboost-all-dev libomp-dev wget gdb
+RUN apt-get update && apt-get install ca-certificates -y
+RUN apt-get --no-install-recommends -y install build-essential cmake git libboost-all-dev libomp-dev wget gdb autotools-dev autoconf automake libtool 
 
 #Environment variables
 ENV CC=/usr/bin/gcc
@@ -24,4 +25,6 @@ RUN mkdir -p build/release && cd build/release && cmake ../.. && make -j
 
 # #Debug build
 # RUN mkdir -p build/debug && cd build/debug && cmake -DCMAKE_BUILD_TYPE=Debug ../.. && make -j
- 
+
+#check if build is successful
+RUN cd build/release/test && ./test_adj_list

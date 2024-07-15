@@ -57,10 +57,7 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
     }
 }
 
-GraphEngine::~GraphEngine()
-{
-    close_connection();
-}
+GraphEngine::~GraphEngine() { close_connection(); }
 
 GraphBase *GraphEngine::create_graph_handle()
 {
@@ -76,6 +73,10 @@ GraphBase *GraphEngine::create_graph_handle()
     else if (opts.type == GraphType::EKey)
     {
         ptr = new EdgeKey(opts, conn);
+    }
+    else if (opts.type == GraphType::SplitEKey)
+    {
+        ptr = new SplitEdgeKey(opts, conn);
     }
     else
     {
@@ -130,7 +131,7 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
 {
     node_ranges.clear();
     node_id_t num_nodes = graph_stats->get_num_nodes();
-
+    
     node_id_t per_partition_nodes =
         (num_nodes / thread_max) +
         ((num_nodes % thread_max) != 0);  // ceil division

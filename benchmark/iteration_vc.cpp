@@ -50,7 +50,9 @@ int main(int argc, char* argv[])
             adjlist found;
             t.start();
 
+#ifdef DEBUG
             __itt_task_begin(domain, __itt_null, __itt_null, InScan);
+#endif
             OutCursor* out_cursor = graph->get_outnbd_iter();
             out_cursor->set_key_range(graphEngine.get_key_range(id));
             out_cursor->next(&found);
@@ -64,8 +66,9 @@ int main(int argc, char* argv[])
                 found.clear();
                 out_cursor->next(&found);
             }
+#ifdef DEBUG
             __itt_task_end(domain);
-
+#endif
             t.stop();
             info.time_taken = t.t_secs();
             std::cout << "Iteration over out edges completed in : "
@@ -74,7 +77,9 @@ int main(int argc, char* argv[])
 
             found.clear();
             t.start();
+#ifdef DEBUG
             __itt_task_begin(domain, __itt_null, __itt_null, InScan);
+#endif
             InCursor* in_cursor = graph->get_innbd_iter();
             in_cursor->set_key_range(graphEngine.get_key_range(id));
             in_cursor->next(&found);
@@ -88,7 +93,9 @@ int main(int argc, char* argv[])
                 found.clear();
                 in_cursor->next(&found);
             }
+#ifdef DEBUG
             __itt_task_end(domain);
+#endif
             t.stop();
             info.time_taken = t.t_secs();
             std::cout << "Iteration over in edges completed in : "

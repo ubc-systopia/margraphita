@@ -119,7 +119,7 @@ typedef struct fgraph_conn_object
             if (type == GraphType::EKey || type == GraphType::SplitEKey)
             {
                 std::string table_name = "table:edge";
-                if (type == GraphType::SplitEKey) table_name += "_in";
+                if (type == GraphType::SplitEKey) table_name += "_out";
                 ret = session->open_cursor(
                     session, table_name.c_str(), nullptr, nullptr, &e_cur);
                 if (ret != 0)
@@ -418,9 +418,9 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
  *
  */
 void add_metadata(const int key,
-                                const char *value,
-                                size_t size,
-                                WT_CURSOR *cursor)
+                  const char *value,
+                  size_t size,
+                  WT_CURSOR *cursor)
 {
     cursor->set_key(cursor, key);
     WT_ITEM item;
