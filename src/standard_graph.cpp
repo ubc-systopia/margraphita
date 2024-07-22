@@ -329,9 +329,8 @@ edge StandardGraph::get_edge(node_id_t src_id, node_id_t dst_id)
     }
     else
     {
-        found.src_id = UINT32_MAX;
-        found.dst_id = UINT32_MAX;
-        found.edge_weight = UINT32_MAX;
+        found.src_id = OutOfBand_ID_MAX;
+        found.dst_id = OutOfBand_ID_MAX;
     }
     edge_cursor->reset(edge_cursor);
     return found;
@@ -1291,7 +1290,7 @@ WT_CURSOR *StandardGraph::get_new_dst_idx_cursor()
 OutCursor *StandardGraph::get_outnbd_iter()
 {
     OutCursor *toReturn = new StdOutCursor(get_new_edge_cursor(), session);
-    key_range range = {UINT32_MAX, UINT32_MAX};
+    key_range range = {OutOfBand_ID_MAX, OutOfBand_ID_MAX};
     toReturn->set_key_range(range);
     return toReturn;
 }
@@ -1299,7 +1298,7 @@ OutCursor *StandardGraph::get_outnbd_iter()
 InCursor *StandardGraph::get_innbd_iter()
 {
     InCursor *toReturn = new StdInCursor(get_new_dst_idx_cursor(), session);
-    toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
+    toReturn->set_key_range({OutOfBand_ID_MAX, OutOfBand_ID_MAX});
     return toReturn;
 }
 
@@ -1308,14 +1307,15 @@ NodeCursor *StandardGraph::get_node_iter()
     WT_CURSOR *new_node_cursor = get_new_node_cursor();
     assert(new_node_cursor != nullptr);
     NodeCursor *to_return = new StdNodeCursor(new_node_cursor, session);
-    to_return->set_key_range({UINT32_MAX, UINT32_MAX});
+    to_return->set_key_range({OutOfBand_ID_MAX, OutOfBand_ID_MAX});
     return to_return;
 }
 
 EdgeCursor *StandardGraph::get_edge_iter()
 {
     EdgeCursor *toreturn = new StdEdgeCursor(get_new_edge_cursor(), session);
-    edge_range range = {{UINT32_MAX, UINT32_MAX}, {UINT32_MAX, UINT32_MAX}};
+    edge_range range = {{OutOfBand_ID_MAX, OutOfBand_ID_MAX},
+                        {OutOfBand_ID_MAX, OutOfBand_ID_MAX}};
     toreturn->set_key_range(range);
     return toreturn;
 }

@@ -109,23 +109,23 @@ class SplitEkeyInCursor : public InCursor
     {
         cursor = cur;
         session = sess;
-        set_key_range({OutOfBand_ID, UINT32_MAX});
+        set_key_range({OutOfBand_ID_MIN, OutOfBand_ID_MAX});
     }
     ~SplitEkeyInCursor() override = default;
 
     void set_key_range(key_range _keys) override
     {
         keys.start = _keys.start;
-        if (_keys.end == OutOfBand_ID)
+        if (_keys.end == OutOfBand_ID_MIN)
         {
-            keys.end = UINT32_MAX;
+            keys.end = OutOfBand_ID_MAX;
         }
         else
         {
             keys.end = _keys.end;
         }
 
-        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID);
+        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID_MIN);
         // Advance the cursor to the first record >= start
 
         int status;
@@ -149,7 +149,7 @@ class SplitEkeyInCursor : public InCursor
 
         if (!has_next)
         {
-            found->node_id = UINT32_MAX;
+            found->node_id = OutOfBand_ID_MAX;
             found->degree = UINT32_MAX;
             found->edgelist.clear();
             return;
@@ -157,12 +157,12 @@ class SplitEkeyInCursor : public InCursor
 
         // get edge
         CommonUtil::ekey_get_key(cursor, &dst, &src);
-        if (src == OutOfBand_ID) curr_node = dst;
+        if (src == OutOfBand_ID_MIN) curr_node = dst;
         while (cursor->next(cursor) == 0)
         {
             CommonUtil::ekey_get_key(cursor, &dst, &src);
             found->node_id = curr_node;
-            if (dst == curr_node && src != OutOfBand_ID)
+            if (dst == curr_node && src != OutOfBand_ID_MIN)
             {
                 found->edgelist.push_back(src);
                 found->degree++;
@@ -180,7 +180,7 @@ class SplitEkeyInCursor : public InCursor
             }
         }
         // found->node_id = src;
-        found->node_id = -1;
+        found->node_id = OutOfBand_ID_MAX;
         has_next = false;
     }
 
@@ -198,22 +198,22 @@ class SplitEKeyOutCursor : public OutCursor
     {
         cursor = cur;
         session = sess;
-        set_key_range({OutOfBand_ID, UINT32_MAX});
+        set_key_range({OutOfBand_ID_MIN, OutOfBand_ID_MAX});
     }
     ~SplitEKeyOutCursor() override = default;
     void set_key_range(key_range _keys) override
     {
         keys.start = _keys.start;
-        if (_keys.end == OutOfBand_ID)
+        if (_keys.end == OutOfBand_ID_MIN)
         {
-            keys.end = UINT32_MAX;
+            keys.end = OutOfBand_ID_MAX;
         }
         else
         {
             keys.end = _keys.end;
         }
 
-        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID);
+        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID_MIN);
         // Advance the cursor to the first record >= start
 
         int status;
@@ -237,7 +237,7 @@ class SplitEKeyOutCursor : public OutCursor
 
         if (!has_next)
         {
-            found->node_id = UINT32_MAX;
+            found->node_id = OutOfBand_ID_MAX;
             found->degree = UINT32_MAX;
             found->edgelist.clear();
             return;
@@ -245,12 +245,12 @@ class SplitEKeyOutCursor : public OutCursor
 
         // get edge
         CommonUtil::ekey_get_key(cursor, &src, &dst);
-        if (dst == OutOfBand_ID) curr_node = src;
+        if (dst == OutOfBand_ID_MIN) curr_node = src;
         while (cursor->next(cursor) == 0)
         {
             CommonUtil::ekey_get_key(cursor, &src, &dst);
             found->node_id = curr_node;
-            if (src == curr_node && dst != OutOfBand_ID)
+            if (src == curr_node && dst != OutOfBand_ID_MIN)
             {
                 found->edgelist.push_back(dst);
                 found->degree++;
@@ -268,7 +268,7 @@ class SplitEKeyOutCursor : public OutCursor
             }
         }
         // found->node_id = src;
-        found->node_id = -1;
+        found->node_id = OutOfBand_ID_MAX;
         has_next = false;
     }
 
@@ -283,7 +283,8 @@ class SplitEKeyNodeCursor : public NodeCursor
     {
         cursor = cur;
         session = sess;
-        set_key_range({OutOfBand_ID, UINT32_MAX});  // min and max node id
+        set_key_range(
+            {OutOfBand_ID_MIN, OutOfBand_ID_MAX});  // min and max node id
     }
     ~SplitEKeyNodeCursor() override = default;
 
@@ -292,9 +293,9 @@ class SplitEKeyNodeCursor : public NodeCursor
         keys = _keys;
         int status;
         // set the cursor to the first relevant record in range
-        if (keys.start != OutOfBand_ID)
+        if (keys.start != OutOfBand_ID_MIN)
         {
-            CommonUtil::ekey_set_key(cursor, OutOfBand_ID, keys.start);
+            CommonUtil::ekey_set_key(cursor, OutOfBand_ID_MIN, keys.start);
             // flipped because (dst, src)
             cursor->search_near(cursor, &status);
             if (status < 0)
@@ -318,7 +319,7 @@ class SplitEKeyNodeCursor : public NodeCursor
 
     void no_next(node *found)
     {
-        found->id = UINT32_MAX;
+        found->id = OutOfBand_ID_MAX;
         found->in_degree = UINT32_MAX;
         found->out_degree = UINT32_MAX;
         has_next = false;
@@ -336,12 +337,12 @@ class SplitEKeyNodeCursor : public NodeCursor
         found->id = curr_edge.src_id;
         cursor->get_value(cursor, &found->in_degree, &found->out_degree);
 
-        if (keys.end != OutOfBand_ID && curr_edge.src_id > keys.end)
+        if (keys.end != OutOfBand_ID_MIN && curr_edge.src_id > keys.end)
         {
             no_next(found);
         }
 
-        if (curr_edge.dst_id != OutOfBand_ID)
+        if (curr_edge.dst_id != OutOfBand_ID_MIN)
         {
             no_next(found);
         }
@@ -366,7 +367,8 @@ class SplitEKeyEdgeCursor : public EdgeCursor
     {
         cursor = cur;
         session = sess;
-        set_key_range({{OutOfBand_ID, OutOfBand_ID}, {UINT32_MAX, UINT32_MAX}});
+        set_key_range({{OutOfBand_ID_MIN, OutOfBand_ID_MIN},
+                       {OutOfBand_ID_MAX, OutOfBand_ID_MAX}});
     }
     ~SplitEKeyEdgeCursor() override = default;
 
@@ -376,8 +378,8 @@ class SplitEKeyEdgeCursor : public EdgeCursor
         end_edge = range.end;
 
         // set the cursor to the first relevant record in range
-        if (range.start.src_id != OutOfBand_ID &&
-            range.start.dst_id != OutOfBand_ID)  // the range is not empty
+        if (range.start.src_id != OutOfBand_ID_MIN &&
+            range.start.dst_id != OutOfBand_ID_MIN)  // the range is not empty
         {
             CommonUtil::ekey_set_key(
                 cursor, range.start.src_id, range.start.dst_id);
@@ -409,8 +411,8 @@ class SplitEKeyEdgeCursor : public EdgeCursor
 
     void no_next(edge *found)
     {
-        found->src_id = UINT32_MAX;
-        found->dst_id = UINT32_MAX;
+        found->src_id = OutOfBand_ID_MAX;
+        found->dst_id = OutOfBand_ID_MAX;
         found->edge_weight = UINT32_MAX;
         has_next = false;
     }
@@ -425,7 +427,7 @@ class SplitEKeyEdgeCursor : public EdgeCursor
         while (true)
         {
             CommonUtil::ekey_get_key(cursor, &found->src_id, &found->dst_id);
-            if (found->dst_id != OutOfBand_ID)
+            if (found->dst_id != OutOfBand_ID_MIN)
             {
                 break;  // found an edge
             }
@@ -440,7 +442,7 @@ class SplitEKeyEdgeCursor : public EdgeCursor
         }
 
         // If end_edge is set
-        if (end_edge.src_id != UINT32_MAX)
+        if (end_edge.src_id != OutOfBand_ID_MAX)
         {
             // If found > end edge
             if (!(found->src_id < end_edge.src_id ||

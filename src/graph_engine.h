@@ -145,7 +145,7 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
     n_cur->next(&found);
     //    std::cout << found.id << std::endl;
 
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         if (i % per_partition_nodes == 0)
         {
@@ -184,7 +184,8 @@ void GraphEngine::_calculate_thread_offsets_edge(int thread_max,
     e_cur->next(&found_edge);
     edge_id_t i = 0;
     //    CommonUtil::dump_edge(found_edge);
-    while (found_edge.src_id != UINT32_MAX && found_edge.dst_id != UINT32_MAX)
+    while (found_edge.src_id != OutOfBand_ID_MAX &&
+           found_edge.dst_id != OutOfBand_ID_MAX)
     {
         if (i % per_partition_edge == 0)
         {
@@ -315,7 +316,7 @@ key_range GraphEngine::get_key_range(int thread_id)
     }
     else
     {
-        to_return.end = UINT32_MAX;
+        to_return.end = OutOfBand_ID_MAX;
     }
     return to_return;
 }
@@ -332,8 +333,8 @@ edge_range GraphEngine::get_edge_range(int thread_id)
     }
     else
     {
-        to_return.end.src_id = UINT32_MAX;
-        to_return.end.dst_id = UINT32_MAX;
+        to_return.end.src_id = OutOfBand_ID_MAX;
+        to_return.end.dst_id = OutOfBand_ID_MAX;
     }
     return to_return;
 }

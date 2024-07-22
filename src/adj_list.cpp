@@ -736,7 +736,7 @@ node AdjList::get_node(node_id_t node_id)
     }
     else
     {
-        found.id = UINT32_MAX;
+        found.id = OutOfBand_ID_MAX;
         found.out_degree = 0;
         found.in_degree = 0;
     }
@@ -790,9 +790,8 @@ edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
     }
     else
     {
-        found.src_id = UINT32_MAX;
-        found.dst_id = UINT32_MAX;
-        found.edge_weight = UINT32_MAX;
+        found.src_id = OutOfBand_ID_MAX;
+        found.dst_id = OutOfBand_ID_MAX;
     }
     edge_cursor->reset(edge_cursor);
     return found;
@@ -1339,21 +1338,21 @@ OutCursor *AdjList::get_outnbd_iter()
 {
     OutCursor *toReturn =
         new AdjOutCursor(get_new_out_adjlist_cursor(), session);
-    toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
+    toReturn->set_key_range({OutOfBand_ID_MAX, OutOfBand_ID_MAX});
     return toReturn;
 }
 
 InCursor *AdjList::get_innbd_iter()
 {
     InCursor *toReturn = new AdjInCursor(get_new_in_adjlist_cursor(), session);
-    toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
+    toReturn->set_key_range({OutOfBand_ID_MAX, OutOfBand_ID_MAX});
     return toReturn;
 }
 
 NodeCursor *AdjList::get_node_iter()
 {
     NodeCursor *toReturn = new AdjNodeCursor(get_new_node_cursor(), session);
-    toReturn->set_key_range({UINT32_MAX, UINT32_MAX});
+    toReturn->set_key_range({OutOfBand_ID_MAX, OutOfBand_ID_MAX});
     return toReturn;
 }
 
@@ -1361,8 +1360,8 @@ EdgeCursor *AdjList::get_edge_iter()
 {
     EdgeCursor *toReturn = new AdjEdgeCursor(get_new_edge_cursor(), session);
     edge_range range;
-    range.start = key_pair(UINT32_MAX, UINT32_MAX);
-    range.end = key_pair(UINT32_MAX, UINT32_MAX);
+    range.start = key_pair(OutOfBand_ID_MAX, OutOfBand_ID_MAX);
+    range.end = key_pair(OutOfBand_ID_MAX, OutOfBand_ID_MAX);
     toReturn->set_key_range(range);
     return toReturn;
 }
@@ -1494,7 +1493,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     }
     else
     {
-        found.id = UINT32_MAX;
+        found.id = OutOfBand_ID_MAX;
     }
     return found;
 }
@@ -1512,7 +1511,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     }
     else
     {
-        found = {.src_id = UINT32_MAX, .dst_id = UINT32_MAX};
+        found = {.src_id = OutOfBand_ID_MAX, .dst_id = OutOfBand_ID_MAX};
     }
     return found;
 }

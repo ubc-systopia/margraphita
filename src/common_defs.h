@@ -59,16 +59,24 @@ const std::string IN_EDGES = "edge_in";
 const std::string node_count = "nNodes";
 const std::string edge_count = "nEdges";
 
+#ifdef DB64
+typedef uint64_t node_id_t;
+typedef uint64_t edge_id_t;
+#else
 typedef uint32_t node_id_t;
-typedef uint32_t
-    edge_id_t;  // Make this uint64_t if you want to support more than 4B edges
+typedef uint32_t edge_id_t;
+#endif
 typedef int32_t edgeweight_t;
 typedef uint32_t degree_t;
 
 /// @brief EdgeKey specific definitions
-const node_id_t OutOfBand_ID =
+const node_id_t OutOfBand_ID_MIN =
     0;  // Used to be -1. Changed to 0 to avoid issues with unsigned types.
-const degree_t OutOfBand_Val = UINT32_MAX;
+#ifdef DB64
+const node_id_t OutOfBand_ID_MAX = UINT64_MAX;
+#else
+const degree_t OutOfBand_ID_MAX = UINT32_MAX;
+#endif
 
 typedef enum GraphType
 {

@@ -12,14 +12,11 @@
 #include <cassert>  
 
 using namespace std;
-static const char *db_name = "test";
+// static const char *db_name = "test";
 
 static char *pack_int_vector_wti(WT_SESSION *session,
                                  std::vector<int> to_pack,
                                  size_t *size);
-static std::vector<int> unpack_int_vector_wti(WT_SESSION *session,
-                                              size_t size,
-                                              std::string packed_str);
 
 std::vector<int> unpack_int_vector_wti(WT_SESSION *session,
                                        size_t size,
@@ -84,7 +81,7 @@ char *pack_int_vector_wti(WT_SESSION *session,
     item.size = sizeof(int) * to_pack.size();
 
     void *pack_buf = malloc(sizeof(int) * to_pack.size());
-    int ret = wiredtiger_pack_start(session, "u", pack_buf, item.size, &psp);
+    wiredtiger_pack_start(session, "u", pack_buf, item.size, &psp);
 
     wiredtiger_pack_item(psp, &item);
     wiredtiger_pack_close(psp, size);

@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     std::cout << "Graph loaded in " << t.t_secs() << std::endl;
 
     t.start();
-    if (opts.start_vertex == -1)
+    if (opts.start_vertex == OutOfBand_ID_MAX)
     {
         graph->get_random_node_ids(random_nodes, opts.num_trials);
     }

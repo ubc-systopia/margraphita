@@ -93,6 +93,13 @@ endif()
 # ######################################################
 SET(NAME_LIB "GraphAPI")
 
+if (B64)
+  message(STATUS "Using 64 bit vertex ids")
+else ()
+  message(STATUS "Using 32 bit vertex ids")
+endif ()
+
+
 SET(PATH_BUILD "${PROJECT_SOURCE_DIR}/build")
 SET(PATH_INCLUDE "${WT_INSTALL_DIR}/include")
 SET(PATH_LIBRARY "${WT_INSTALL_DIR}/lib")

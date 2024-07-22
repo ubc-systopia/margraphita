@@ -49,7 +49,7 @@ pvector<ScoreT> PageRankPullGS(const GraphEngine& graph_engine,
 
         node_cursor->next(&found);
 
-        while (found.id != -1)
+        while (found.id != OutOfBand_ID_MAX)
         {
             outgoing_contrib[found.id] = init_score / found.out_degree;
             node_cursor->next(&found);
@@ -72,7 +72,7 @@ pvector<ScoreT> PageRankPullGS(const GraphEngine& graph_engine,
 
             in_cursor->next(&found);
 
-            while (found.id != -1)
+            while (found.id != OutOfBand_ID_MAX)
             {
                 ScoreT incoming_total = 0;
                 for (node_id_t v : found.edgelist)

@@ -77,7 +77,7 @@ void pagerank(GraphBase *graph,
         InCursor *in_cursor = graph->get_innbd_iter();
         in_cursor->next(&found);
 
-        while (found.node_id != -1)
+        while (found.node_id != OutOfBand_ID_MAX)
         {
             float sum = 0.0f;
             for (auto in_node : found.edgelist)

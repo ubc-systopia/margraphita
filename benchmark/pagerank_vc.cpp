@@ -35,7 +35,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
         node found = {0};
         node_cursor->next(&found);
 
-        while (found.id != UINT32_MAX)
+        while (found.id != OutOfBand_ID_MAX)
         {
             deg[found.id] = found.out_degree;
             node_cursor->next(&found);
@@ -57,7 +57,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
             adjlist found;
             in_cursor->next(&found);
 
-            while (found.node_id != UINT32_MAX)
+            while (found.node_id != OutOfBand_ID_MAX)
             {
                 ScoreT incoming_total = 0;
                 for (node_id_t v : found.edgelist)
@@ -112,7 +112,7 @@ void print_top_scores(pvector<ScoreT>& score, node_id_t n_nodes, GraphBase* g)
     NodeCursor* node_cursor = g->get_node_iter();
     node found = {0};
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         score_pairs.emplace_back(found.id, score[found.id]);
         node_cursor->next(&found);

@@ -18,7 +18,6 @@ void create_init_nodes(SplitEdgeKey &graph, bool is_directed)
                6);  // checking if directed edges got created and stored in
                     // test_edges
     }
-    int edge_cnt = 1;
     for (node n : SampleGraph::test_nodes)
     {
         graph.add_node(n);
@@ -26,7 +25,6 @@ void create_init_nodes(SplitEdgeKey &graph, bool is_directed)
     for (edge x : SampleGraph::test_edges)
     {
         graph.add_edge(x, false);
-        //        edge_cnt++;
     }
 }
 
@@ -104,7 +102,7 @@ void test_add_edge(SplitEdgeKey &graph, bool is_directed, bool is_weighted)
 
     // //Now check if the adjlists were updated
     WT_CURSOR *e_cur = graph.get_out_edge_cursor();
-    CommonUtil::ekey_set_key(e_cur, 5, OutOfBand_ID);
+    CommonUtil::ekey_set_key(e_cur, 5, OutOfBand_ID_MIN);
     assert(e_cur->search(e_cur) == 0);
     assert(graph.get_out_degree(5) == 1);
     assert(graph.get_in_degree(6) == 1);
@@ -302,7 +300,7 @@ void test_delete_node(SplitEdgeKey &graph, bool is_directed)
 
     // Delete node2 and verify it was actually deleted
     graph.delete_node(SampleGraph::node2.id);
-    CommonUtil::ekey_set_key(e_cur, SampleGraph::node2.id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(e_cur, SampleGraph::node2.id, OutOfBand_ID_MIN);
     int ret = e_cur->search(e_cur);
     assert(ret != 0);
 
@@ -341,11 +339,11 @@ void test_EdgeCursor(SplitEdgeKey &graph)
     INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge found;
-    int srcIdList[] = {1, 1, 5, 7, 8};
-    int dstIdList[] = {3, 7, 6, 8, 7};
+    node_id_t srcIdList[] = {1, 1, 5, 7, 8};
+    node_id_t dstIdList[] = {3, 7, 6, 8, 7};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    while (found.src_id != OutOfBand_ID_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
@@ -362,11 +360,11 @@ void test_EdgeCursor_Range(SplitEdgeKey &graph)
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
     edge found;
-    int srcIdList[] = {1, 5, 7};
-    int dstIdList[] = {7, 6, 8};
+    node_id_t srcIdList[] = {1, 5, 7};
+    node_id_t dstIdList[] = {7, 6, 8};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    while (found.src_id != OutOfBand_ID_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
@@ -384,7 +382,7 @@ void test_OutCursor(SplitEdgeKey &graph)
     out_cursor->set_key_range(key_range{0, 0});
     adjlist found;
     out_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -400,7 +398,7 @@ void test_OutCursor(SplitEdgeKey &graph)
     out_cursor->next(&found);
     CommonUtil::dump_adjlist(found);
     out_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -415,10 +413,10 @@ void test_NodeCursor(SplitEdgeKey &graph)
     INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
     node found = {0, 0, 0};
-    int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 11};
+    node_id_t nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 11};
     int i = 0;
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
@@ -433,11 +431,11 @@ void test_NodeCursor_Range(SplitEdgeKey &graph)
     INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
-    int nodeIdList[] = {3, 4, 5, 6};
+    node_id_t nodeIdList[] = {3, 4, 5, 6};
     int i = 0;
     node_cursor->set_key_range(key_range{3, 6});
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
@@ -453,7 +451,7 @@ void test_InCursor(SplitEdgeKey &graph)
     in_cursor->set_key_range(key_range{0, 0});
     adjlist found;
     in_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -468,7 +466,7 @@ void test_InCursor(SplitEdgeKey &graph)
     found.clear();
     in_cursor->next(&found);
 
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();

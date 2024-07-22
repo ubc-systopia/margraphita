@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
         __itt_task_begin(domain, __itt_null, __itt_null, edgeScan_hub);
 #endif
         edge_cursor->next(&e);
-        while (e.src_id != -1)
+        while (e.src_id != OutOfBand_ID_MAX)
         {
             edge_cursor->next(&e);
             counter1++;
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
         __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan_hub);
 #endif
         out_cursor->next(&adj);
-        while (adj.node_id != -1)
+        while (adj.node_id != OutOfBand_ID_MAX)
         {
             if (opts.type == GraphType::EKey)
             {
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
         __itt_task_begin(domain, __itt_null, __itt_null, edgeScan);
 #endif
         edge_cursor->next(&e);
-        while (e.src_id != -1)
+        while (e.src_id != OutOfBand_ID_MAX)
         {
             edge_cursor->next(&e);
             counter1++;
@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
         __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan);
 #endif
         out_cursor->next(&adj);
-        while (adj.node_id != -1)
+        while (adj.node_id != OutOfBand_ID_MAX)
         {
             for (node_id_t v : adj.edgelist)
             {

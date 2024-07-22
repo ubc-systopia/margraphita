@@ -96,8 +96,8 @@ void SplitEdgeKey::init_cursors()
 int SplitEdgeKey::add_node(node to_insert)
 {
     session->begin_transaction(session, "isolation=snapshot");
-    CommonUtil::ekey_set_key(out_edge_cursor, to_insert.id, OutOfBand_ID);
-    // CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(out_edge_cursor, to_insert.id, OutOfBand_ID_MIN);
+    // CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id, OutOfBand_ID_MIN);
     if (opts.read_optimize)
     {
         out_edge_cursor->set_value(
@@ -132,7 +132,7 @@ int SplitEdgeKey::add_node(node to_insert)
 
 int SplitEdgeKey::add_node_txn(node to_insert)
 {
-    CommonUtil::ekey_set_key(out_edge_cursor, to_insert.id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(out_edge_cursor, to_insert.id, OutOfBand_ID_MIN);
     if (opts.read_optimize)
     {
         out_edge_cursor->set_value(
@@ -140,7 +140,7 @@ int SplitEdgeKey::add_node_txn(node to_insert)
     }
     else
     {
-        out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_Val);
+        out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
     }
     int ret = out_edge_cursor->insert(out_edge_cursor);
     if (ret != 0)
@@ -149,15 +149,15 @@ int SplitEdgeKey::add_node_txn(node to_insert)
     }
 
     //    // UPDATE IN_EDGE TABLE
-    //    CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id, OutOfBand_ID);
-    //    if (opts.read_optimize)
+    //    CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id,
+    //    OutOfBand_ID_MIN);//    if (opts.read_optimize)
     //    {
     //        in_edge_cursor->set_value(
     //            in_edge_cursor, to_insert.in_degree, to_insert.out_degree);
     //    }
     //    else
     //    {
-    //        in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_Val);
+    //        in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_ID_MAX);
     //    }
     //    return in_edge_cursor->insert(
     //        in_edge_cursor);  // no need to check -- done in caller.
@@ -166,7 +166,7 @@ int SplitEdgeKey::add_node_txn(node to_insert)
 bool SplitEdgeKey::has_node(node_id_t node_id)
 {
     int ret;
-    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID_MIN);
     ret = out_edge_cursor->search(out_edge_cursor);
     out_edge_cursor->reset(out_edge_cursor);
     return (ret == 0);
@@ -269,7 +269,8 @@ std::vector<node> SplitEdgeKey::get_nodes()
     std::vector<node> nodes;
 
     int search_exact;
-    CommonUtil::ekey_set_key(dst_src_idx_cursor, OutOfBand_ID, OutOfBand_ID);
+    CommonUtil::ekey_set_key(
+        dst_src_idx_cursor, OutOfBand_ID_MIN, OutOfBand_ID_MIN);
     dst_src_idx_cursor->search_near(dst_src_idx_cursor, &search_exact);
     if (search_exact <= 0)
     {
@@ -283,7 +284,7 @@ std::vector<node> SplitEdgeKey::get_nodes()
     {
         node n;
         CommonUtil::ekey_get_key(dst_src_idx_cursor, &dst, &src);
-        if (dst != OutOfBand_ID) break;
+        if (dst != OutOfBand_ID_MIN) break;
         n.id = src;
         dst_src_idx_cursor->get_value(
             dst_src_idx_cursor, &n.in_degree, &n.out_degree);
@@ -302,7 +303,7 @@ std::vector<edge> SplitEdgeKey::get_edges()
     {
         edge found = {0};
         CommonUtil::ekey_get_key(out_edge_cursor, &found.src_id, &found.dst_id);
-        if (found.dst_id != OutOfBand_ID)
+        if (found.dst_id != OutOfBand_ID_MIN)
         {
             if (opts.is_weighted)
             {
@@ -327,7 +328,7 @@ bool SplitEdgeKey::has_edge(node_id_t src_id, node_id_t dst_id)
 
 node SplitEdgeKey::get_node(node_id_t node_id)
 {
-    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID_MIN);
     node found = {0};
     if (out_edge_cursor->search(out_edge_cursor) == 0)
     {
@@ -359,7 +360,7 @@ node SplitEdgeKey::get_random_node()
         {
             break;
         }
-        if (dst == OutOfBand_ID)
+        if (dst == OutOfBand_ID_MIN)
         {
             rando.id = src;
             CommonUtil::record_to_node_ekey(random_node_cursor, &rando);
@@ -378,7 +379,7 @@ degree_t SplitEdgeKey::get_in_degree(node_id_t node_id)
     degree_t in_deg = 0;
     if (opts.read_optimize)
     {
-        CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
+        CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID_MIN);
         if (out_edge_cursor->search(out_edge_cursor) != 0)
         {
             out_edge_cursor->reset(out_edge_cursor);
@@ -392,7 +393,7 @@ degree_t SplitEdgeKey::get_in_degree(node_id_t node_id)
     }
     else
     {
-        CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID);
+        CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID_MIN);
         int search_exact;  // this can not be 0 because we are not creating
                            // node_id, 0 entires for nodes in this table.
         in_edge_cursor->search_near(in_edge_cursor, &search_exact);
@@ -432,7 +433,7 @@ degree_t SplitEdgeKey::get_in_degree(node_id_t node_id)
 degree_t SplitEdgeKey::get_out_degree(node_id_t node_id)
 {
     degree_t out_deg = 0;
-    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID_MIN);
     int ret = out_edge_cursor->search(out_edge_cursor);
     if (ret == 0)  // The node exists
     {
@@ -460,7 +461,7 @@ degree_t SplitEdgeKey::get_out_degree(node_id_t node_id)
                 {
                     break;
                 }
-            } while (src == node_id && dst != OutOfBand_ID);
+            } while (src == node_id && dst != OutOfBand_ID_MIN);
             out_edge_cursor->reset(out_edge_cursor);
         }
     }
@@ -477,7 +478,7 @@ degree_t SplitEdgeKey::get_out_degree(node_id_t node_id)
 std::vector<edge> SplitEdgeKey::get_out_edges(node_id_t node_id)
 {
     std::vector<edge> out_edges;
-    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID_MIN);
 
     int temp;
     if (out_edge_cursor->search(out_edge_cursor) == 0)
@@ -488,7 +489,7 @@ std::vector<edge> SplitEdgeKey::get_out_edges(node_id_t node_id)
             if (out_edge_cursor->next(out_edge_cursor) != 0) break;
             CommonUtil::ekey_get_key(
                 out_edge_cursor, &found.src_id, &found.dst_id);
-            if ((found.src_id == node_id) & (found.dst_id != OutOfBand_ID))
+            if ((found.src_id == node_id) & (found.dst_id != OutOfBand_ID_MIN))
             {
                 out_edge_cursor->get_value(
                     out_edge_cursor, &found.edge_weight, &temp);
@@ -518,7 +519,7 @@ std::vector<node> SplitEdgeKey::get_out_nodes(node_id_t node_id)
         throw GraphException("Could not get a cursor to the OutEdge table");
     }
 
-    CommonUtil::ekey_set_key(e_cur, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(e_cur, node_id, OutOfBand_ID_MIN);
 
     if (e_cur->search(e_cur) == 0)
     {
@@ -561,7 +562,7 @@ std::vector<node_id_t> SplitEdgeKey::get_out_nodes_id(node_id_t node_id)
     {
         throw GraphException("Could not get a cursor to the OutEdge table");
     }
-    CommonUtil::ekey_set_key(e_cur, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(e_cur, node_id, OutOfBand_ID_MIN);
     if (e_cur->search(e_cur) == 0)
     {
         while (true)
@@ -599,7 +600,7 @@ std::vector<edge> SplitEdgeKey::get_in_edges(node_id_t node_id)
                              " does not exist in the graph");
     }
     std::vector<edge> in_edges;
-    CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID_MIN);
 
     int temp;
     int search_exact;
@@ -625,7 +626,7 @@ std::vector<edge> SplitEdgeKey::get_in_edges(node_id_t node_id)
     {
         edge found;
         CommonUtil::ekey_get_key(in_edge_cursor, &found.dst_id, &found.src_id);
-        if ((found.dst_id == node_id) & (found.src_id != OutOfBand_ID))
+        if ((found.dst_id == node_id) & (found.src_id != OutOfBand_ID_MIN))
         {
             in_edge_cursor->get_value(
                 in_edge_cursor, &found.edge_weight, &temp);
@@ -655,7 +656,7 @@ std::vector<node> SplitEdgeKey::get_in_nodes(node_id_t node_id)
         throw GraphException("Could not get a cursor to the OutEdge table");
     }
     int search_exact;
-    CommonUtil::ekey_set_key(in_cur, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(in_cur, node_id, OutOfBand_ID_MIN);
     in_cur->search_near(in_cur, &search_exact);
     if (search_exact <= 0)
     {
@@ -697,7 +698,7 @@ std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
         throw GraphException("Could not get a cursor to the OutEdge table");
     }
     int search_exact;
-    CommonUtil::ekey_set_key(in_cur, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(in_cur, node_id, OutOfBand_ID_MIN);
     in_cur->search_near(in_cur, &search_exact);
     if (search_exact <= 0)
     {
@@ -741,7 +742,7 @@ int SplitEdgeKey::update_node_degree(node_id_t node_id,
     degree_t in, out;
     //    WT_CURSOR *in_cursor = get_new_in_cursor();
     WT_CURSOR *out_cursor = get_new_out_cursor();
-    CommonUtil::ekey_set_key(out_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(out_cursor, node_id, OutOfBand_ID_MIN);
     if (out_cursor->search(out_cursor) == 0)
     {
         out_cursor->get_value(out_cursor, &in, &out);
@@ -803,7 +804,7 @@ void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
         {
             break;
         }
-        if (dst == OutOfBand_ID)
+        if (dst == OutOfBand_ID_MIN)
         {
             std::cout << "Random starting vertex: " << src << std::endl;
             random_node_cursor->get_value(
@@ -861,7 +862,7 @@ node_id_t SplitEdgeKey::get_min_node_id()
     if (ret == 0)
     {
         CommonUtil::ekey_get_key(cursor, &src, &dst);
-        assert(dst == OutOfBand_ID);
+        assert(dst == OutOfBand_ID_MIN);
     }
     else
     {
@@ -923,7 +924,7 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
     int ret;
     node_id_t src, dst;
 
-    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID_MIN);
     if (out_edge_cursor->search(out_edge_cursor) != 0)
     {
         session->rollback_transaction(session, nullptr);
@@ -973,7 +974,7 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
     out_edge_cursor->reset(out_edge_cursor);
 
     // we now do the same for in-edges table
-    CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID_MIN);
     if (in_edge_cursor->search(in_edge_cursor) == 0)
     {
         ret = in_edge_cursor->remove(in_edge_cursor);
@@ -1013,7 +1014,7 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
     // We now need to remove the src->node_id edges from the out_edge table,
     // using an index
     WT_CURSOR *idx_cursor = get_node_index_cursor();
-    CommonUtil::ekey_set_key(idx_cursor, node_id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(idx_cursor, node_id, OutOfBand_ID_MIN);
     int search_near;
     idx_cursor->search_near(idx_cursor, &search_near);
     if (search_near < 0)
@@ -1048,11 +1049,11 @@ int SplitEdgeKey::add_edge_only(edge to_insert)
     if (opts.is_weighted)
     {
         out_edge_cursor->set_value(
-            out_edge_cursor, to_insert.edge_weight, OutOfBand_Val);
+            out_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
     }
     else
     {
-        out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_Val);
+        out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
     }
 
     int ret = error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor));
@@ -1066,11 +1067,11 @@ int SplitEdgeKey::add_edge_only(edge to_insert)
     if (opts.is_weighted)
     {
         in_edge_cursor->set_value(
-            in_edge_cursor, to_insert.edge_weight, OutOfBand_Val);
+            in_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
     }
     else
     {
-        in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_Val);
+        in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_ID_MAX);
     }
     return error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor));
 }

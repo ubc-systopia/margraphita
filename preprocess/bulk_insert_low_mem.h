@@ -237,9 +237,9 @@ int add_to_edge_table(WT_CURSOR *cur,
     {
         CommonUtil::set_key(cur, node_id, dst);
         if (is_weighted)
-            cur->set_value(cur, weight[i], OutOfBand_Val);
+            cur->set_value(cur, weight[i], OutOfBand_ID_MAX);
         else
-            cur->set_value(cur, 0, OutOfBand_Val);
+            cur->set_value(cur, 0, OutOfBand_ID_MAX);
         int ret = cur->insert(cur);
         if (ret != 0)
         {
@@ -264,9 +264,9 @@ int add_to_edgekey(WT_CURSOR *ekey_cur,
     {
         CommonUtil::ekey_set_key(ekey_cur, src, edgelist[i]);
         if (is_weighted)
-            ekey_cur->set_value(ekey_cur, weight[i], OutOfBand_Val);
+            ekey_cur->set_value(ekey_cur, weight[i], OutOfBand_ID_MAX);
         else
-            ekey_cur->set_value(ekey_cur, 0, OutOfBand_Val);
+            ekey_cur->set_value(ekey_cur, 0, OutOfBand_ID_MAX);
 
         int ret = ekey_cur->insert(ekey_cur);
         if (ret != 0)
@@ -296,7 +296,7 @@ int add_to_node_table(WT_CURSOR *cur, const node &node)
 }
 int add_node_to_ekey(WT_CURSOR *ekey_cur, const node &node)
 {
-    CommonUtil::ekey_set_key(ekey_cur, node.id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(ekey_cur, node.id, OutOfBand_ID_MIN);
     ekey_cur->set_value(ekey_cur, node.in_degree, node.out_degree);
     int ret = ekey_cur->insert(ekey_cur);
     if (ret != 0)

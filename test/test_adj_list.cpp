@@ -63,7 +63,7 @@ void test_get_node(AdjList graph)
     assert(found.id == 1);
     // now get a node that does not exist
     found = graph.get_node(test_id2);
-    assert(found.id == UINT32_MAX);
+    assert(found.id == OutOfBand_ID_MAX);
     found = graph.get_random_node();
     CommonUtil::dump_node(found);
 }
@@ -116,9 +116,9 @@ void test_get_edge(AdjList graph)
     // Now get a non-existent edge
     int test_id1 = 222, test_id2 = 333;
     found = graph.get_edge(test_id1, test_id2);
-    assert(found.src_id == UINT32_MAX);
-    assert(found.dst_id == UINT32_MAX);
-    assert(found.edge_weight == UINT32_MAX);
+    assert(found.src_id == OutOfBand_ID_MAX);
+    assert(found.dst_id == OutOfBand_ID_MAX);
+    assert(found.edge_weight == 0);
 }
 
 void test_add_edge(AdjList graph, bool is_directed)
@@ -468,14 +468,14 @@ void test_InCursor(AdjList graph)
               << std::endl;
     adjlist found;
     in_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
         in_cursor->next(&found);
     }
     std::cout << "the found.node id is " << found.node_id << std::endl;
-    assert(found.node_id == UINT32_MAX);
+    assert(found.node_id == OutOfBand_ID_MAX);
     found.clear();
     //    std::cout
     //        << "Printing in-adjlists for nodes with non-null nbd
@@ -484,7 +484,7 @@ void test_InCursor(AdjList graph)
     //    in_cursor->setAllNodes(false);
     //    adjlist found;
     //    in_cursor->next(&found);
-    //    while (found.node_id != UINT32_MAX)
+    //    while (found.node_id != OutOfBand_ID_MAX)
     //    {
     //        CommonUtil::dump_adjlist(found);
     //        found.clear();
@@ -503,7 +503,7 @@ void test_OutCursor(AdjList graph)
     out_cursor->setAllNodes(true);
     std::cout << "Printing in-adjlists for all nodes (AllNodes=true)\n";
     out_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -516,7 +516,7 @@ void test_OutCursor(AdjList graph)
     std::cout << "Printing in-adjlists for nodes with non-null nbd "
                  "(AllNodes=false)\n";
     out_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -531,12 +531,12 @@ void test_NodeCursor(AdjList &graph)
     INFO();
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
-    int nodeIdList[] = {
+    node_id_t nodeIdList[] = {
         1, 3, 5, 6, 7, 8};  // the list should be {1, 3, 4, 5, 6, 7, 8} if
                             // delete_isolated_node is not called.
     int i = 0;
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         std::cout << "Found node " << found.id << "\tExpected node "
                   << nodeIdList[i] << std::endl;
@@ -554,12 +554,12 @@ void test_NodeCursor_Range(AdjList graph)
     INFO();
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
-    int nodeIdList[] = {3, 5, 6};  // The list should be {3,5,6} if
-                                   // delete_isolated_node is not called.
+    node_id_t nodeIdList[] = {3, 5, 6};  // The list should be {3,5,6} if
+                                         // delete_isolated_node is not called.
     int i = 0;
     node_cursor->set_key_range(key_range{3, 6});
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
@@ -575,11 +575,11 @@ void test_EdgeCursor(AdjList graph)
     INFO();
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge found;
-    int srcIdList[] = {1, 1, 5, 7, 8};
-    int dstIdList[] = {3, 7, 6, 8, 7};
+    node_id_t srcIdList[] = {1, 1, 5, 7, 8};
+    node_id_t dstIdList[] = {3, 7, 6, 8, 7};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    while (found.src_id != OutOfBand_ID_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
@@ -597,11 +597,11 @@ void test_EdgeCursor_Range(AdjList graph)
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
     edge found;
-    int srcIdList[] = {1, 5, 7};
-    int dstIdList[] = {7, 6, 8};
+    node_id_t srcIdList[] = {1, 5, 7};
+    node_id_t dstIdList[] = {7, 6, 8};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    while (found.src_id != OutOfBand_ID_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);

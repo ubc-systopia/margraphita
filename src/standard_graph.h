@@ -39,7 +39,7 @@ class StdInCursor : public InCursor
     {
         found->degree = -1;
         found->edgelist.clear();
-        found->node_id = -1;
+        found->node_id = OutOfBand_ID_MAX;
         has_next = false;
     }
 
@@ -79,7 +79,7 @@ class StdInCursor : public InCursor
 
         CommonUtil::get_val_idx(cursor, &src, &dst);
 
-        if (keys.end != UINT32_MAX && dst > keys.end)
+        if (keys.end != OutOfBand_ID_MAX && dst > keys.end)
         {
             goto no_next;
         }
@@ -103,9 +103,9 @@ class StdInCursor : public InCursor
         return;
 
     no_next:
-        found->degree = UINT32_MAX;
+        found->degree = UINT32_MAX;  // always u32
         found->edgelist.clear();
-        found->node_id = UINT32_MAX;
+        found->node_id = OutOfBand_ID_MAX;
         has_next = false;
     }
 
@@ -129,7 +129,7 @@ class StdOutCursor : public OutCursor
     {
         found->degree = -1;
         found->edgelist.clear();
-        found->node_id = -1;
+        found->node_id = OutOfBand_ID_MAX;
         has_next = false;
     }
 
@@ -210,7 +210,7 @@ class StdNodeCursor : public NodeCursor
         is_first = false;
 
         // Advances the cursor to the first valid record in range
-        if (keys.start != UINT32_MAX)
+        if (keys.start != OutOfBand_ID_MAX)
         {
             int status;
             CommonUtil::set_key(cursor, keys.start);
@@ -236,9 +236,9 @@ class StdNodeCursor : public NodeCursor
     }
     void no_next(node *found)
     {
-        found->id = UINT32_MAX;
-        found->in_degree = UINT32_MAX;
-        found->out_degree = UINT32_MAX;
+        found->id = OutOfBand_ID_MAX;
+        found->in_degree = UINT32_MAX;   // always u32
+        found->out_degree = UINT32_MAX;  // always u32
         has_next = false;
     }
 
@@ -253,7 +253,7 @@ class StdNodeCursor : public NodeCursor
         }
 
         CommonUtil::get_key(cursor, &found->id);
-        if (keys.end != UINT32_MAX &&
+        if (keys.end != OutOfBand_ID_MAX &&
             found->id > keys.end)  // gone beyond the end of range
         {
             no_next(found);
@@ -285,7 +285,8 @@ class StdEdgeCursor : public EdgeCursor
         is_first = false;
 
         // Advances the cursor to the first valid record in range
-        if (start_edge.src_id != UINT32_MAX && start_edge.dst_id != UINT32_MAX)
+        if (start_edge.src_id != OutOfBand_ID_MAX &&
+            start_edge.dst_id != OutOfBand_ID_MAX)
         {
             int status;
             CommonUtil::set_key(cursor, start_edge.src_id, start_edge.dst_id);
@@ -315,9 +316,9 @@ class StdEdgeCursor : public EdgeCursor
 
     void no_next(edge *found)
     {
-        found->src_id = UINT32_MAX;
-        found->dst_id = UINT32_MAX;
-        found->edge_weight = UINT32_MAX;
+        found->src_id = OutOfBand_ID_MAX;
+        found->dst_id = OutOfBand_ID_MAX;
+        found->edge_weight = UINT32_MAX;  // always u32
         has_next = false;
     }
 
@@ -332,7 +333,7 @@ class StdEdgeCursor : public EdgeCursor
         CommonUtil::get_key(cursor, &found->src_id, &found->dst_id);
 
         // If end_edge is set
-        if (end_edge.src_id != -1)
+        if (end_edge.src_id != OutOfBand_ID_MAX)
         {
             // If found > end edge
             if ((found->src_id > end_edge.src_id ||

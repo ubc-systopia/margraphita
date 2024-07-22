@@ -329,8 +329,8 @@ inline void CommonUtil::ekey_set_key(WT_CURSOR *cursor,
                                      node_id_t key1,
                                      node_id_t key2)
 {
-    if (key1 != OutOfBand_ID) key1 = MAKE_EKEY(key1);
-    if (key2 != OutOfBand_ID) key2 = MAKE_EKEY(key2);
+    if (key1 != OutOfBand_ID_MIN) key1 = MAKE_EKEY(key1);
+    if (key2 != OutOfBand_ID_MIN) key2 = MAKE_EKEY(key2);
     CommonUtil::set_key(cursor, key1, key2);
 }
 
@@ -339,8 +339,8 @@ inline int CommonUtil::ekey_get_key(WT_CURSOR *cursor,
                                     node_id_t *key2)
 {
     int ret = CommonUtil::get_key(cursor, key1, key2);
-    if (*key1 != OutOfBand_ID) *key1 = OG_KEY(*key1);
-    if (*key2 != OutOfBand_ID) *key2 = OG_KEY(*key2);
+    if (*key1 != OutOfBand_ID_MIN) *key1 = OG_KEY(*key1);
+    if (*key2 != OutOfBand_ID_MIN) *key2 = OG_KEY(*key2);
     return ret;
 }
 

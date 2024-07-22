@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
             OutCursor* out_cursor = graph->get_outnbd_iter();
             out_cursor->set_key_range(graphEngine.get_key_range(id));
             out_cursor->next(&found);
-            while (found.node_id != -1)
+            while (found.node_id != OutOfBand_ID_MAX)
             {
                 nodes.insert(found.node_id);
                 for (node_id_t v : found.edgelist)
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
             InCursor* in_cursor = graph->get_innbd_iter();
             in_cursor->set_key_range(graphEngine.get_key_range(id));
             in_cursor->next(&found);
-            while (found.node_id != -1)
+            while (found.node_id != OutOfBand_ID_MAX)
             {
                 in_nodes.insert(found.node_id);
                 for (node_id_t v : found.edgelist)

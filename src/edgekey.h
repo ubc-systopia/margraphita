@@ -22,7 +22,7 @@ class EkeyInCursor : public InCursor
     {
         cursor = cur;
         session = sess;
-        set_key_range({OutOfBand_ID, UINT32_MAX});
+        set_key_range({OutOfBand_ID_MIN, OutOfBand_ID_MAX});
     }
     ~EkeyInCursor() override = default;
     /** This is the initializer function for setting the range of valid keys an
@@ -31,14 +31,14 @@ class EkeyInCursor : public InCursor
      *
      * @param _keys : The user can specify a start and end node ID in a
      * `key_range` struct, or it gets initialized to
-     * `{OutOfBand_ID,OutOfBand_ID}`
+     * `{OutOfBand_ID_MIN,OutOfBand_ID_MIN}`
      */
     void set_key_range(key_range _keys) final
     {
         keys.start = _keys.start;
-        if (_keys.end == OutOfBand_ID)
+        if (_keys.end == OutOfBand_ID_MIN)
         {
-            keys.end = UINT32_MAX;
+            keys.end = OutOfBand_ID_MAX;
         }
         else
         {
@@ -46,9 +46,9 @@ class EkeyInCursor : public InCursor
         }
 
         // We need to position this cursor to the first record where dst >
-        // OutOfBand_ID (i.e. 1) and src >= keys.start
+        // OutOfBand_ID_MIN (i.e. 1) and src >= keys.start
         // reversed because (dst, src)
-        CommonUtil::ekey_set_key(cursor, (OutOfBand_ID + 1), keys.start);
+        CommonUtil::ekey_set_key(cursor, (OutOfBand_ID_MIN + 1), keys.start);
         int status;
         cursor->search_near(cursor, &status);
         if (status < 0)
@@ -72,9 +72,9 @@ class EkeyInCursor : public InCursor
 
         if (!has_next)
         {
-            found->degree = UINT32_MAX;
+            found->degree = UINT32_MAX;  // always u32
             found->edgelist.clear();
-            found->node_id = UINT32_MAX;
+            found->node_id = OutOfBand_ID_MAX;
             has_next = false;
             return;
         }
@@ -125,22 +125,22 @@ class EkeyOutCursor : public OutCursor
     {
         cursor = cur;
         session = sess;
-        set_key_range({OutOfBand_ID, UINT32_MAX});
+        set_key_range({OutOfBand_ID_MIN, OutOfBand_ID_MAX});
     }
     ~EkeyOutCursor() override = default;
     void set_key_range(key_range _keys) override
     {
         keys.start = _keys.start;
-        if (_keys.end == OutOfBand_ID)
+        if (_keys.end == OutOfBand_ID_MIN)
         {
-            keys.end = UINT32_MAX;
+            keys.end = OutOfBand_ID_MAX;
         }
         else
         {
             keys.end = _keys.end;
         }
 
-        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID);
+        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID_MIN);
         // Advance the cursor to the first record >= start
 
         int status;
@@ -164,20 +164,20 @@ class EkeyOutCursor : public OutCursor
 
         if (!has_next)
         {
-            found->node_id = UINT32_MAX;
-            found->degree = UINT32_MAX;
+            found->node_id = OutOfBand_ID_MAX;
+            found->degree = UINT32_MAX;  // always u32
             found->edgelist.clear();
             return;
         }
 
         // get edge
         CommonUtil::ekey_get_key(cursor, &src, &dst);
-        if (dst == OutOfBand_ID) curr_node = src;
+        if (dst == OutOfBand_ID_MIN) curr_node = src;
         while (cursor->next(cursor) == 0)
         {
             CommonUtil::ekey_get_key(cursor, &src, &dst);
             found->node_id = curr_node;
-            if (src == curr_node && dst != OutOfBand_ID)
+            if (src == curr_node && dst != OutOfBand_ID_MIN)
             {
                 found->edgelist.push_back(dst);
                 found->degree++;
@@ -195,7 +195,7 @@ class EkeyOutCursor : public OutCursor
             }
         }
         // found->node_id = src;
-        found->node_id = -1;
+        found->node_id = OutOfBand_ID_MAX;
         has_next = false;
     }
 
@@ -215,7 +215,8 @@ class EkeyNodeCursor : public NodeCursor
     {
         cursor = cur;
         session = sess;
-        set_key_range({OutOfBand_ID, UINT32_MAX});  // min and max node id
+        set_key_range(
+            {OutOfBand_ID_MIN, OutOfBand_ID_MAX});  // min and max node id
     }
     ~EkeyNodeCursor() override = default;
 
@@ -224,9 +225,9 @@ class EkeyNodeCursor : public NodeCursor
         keys = _keys;
         int status;
         // set the cursor to the first relevant record in range
-        if (keys.start != OutOfBand_ID)
+        if (keys.start != OutOfBand_ID_MIN)
         {
-            CommonUtil::ekey_set_key(cursor, OutOfBand_ID, keys.start);
+            CommonUtil::ekey_set_key(cursor, OutOfBand_ID_MIN, keys.start);
             // flipped because (dst, src)
             cursor->search_near(cursor, &status);
             if (status < 0)
@@ -250,7 +251,7 @@ class EkeyNodeCursor : public NodeCursor
 
     void no_next(node *found)
     {
-        found->id = UINT32_MAX;
+        found->id = OutOfBand_ID_MAX;
         found->in_degree = UINT32_MAX;
         found->out_degree = UINT32_MAX;
         has_next = false;
@@ -268,12 +269,12 @@ class EkeyNodeCursor : public NodeCursor
         found->id = curr_edge.src_id;
         cursor->get_value(cursor, &found->in_degree, &found->out_degree);
 
-        if (keys.end != OutOfBand_ID && curr_edge.src_id > keys.end)
+        if (keys.end != OutOfBand_ID_MIN && curr_edge.src_id > keys.end)
         {
             no_next(found);
         }
 
-        if (curr_edge.dst_id != OutOfBand_ID)
+        if (curr_edge.dst_id != OutOfBand_ID_MIN)
         {
             no_next(found);
         }
@@ -298,7 +299,8 @@ class EkeyEdgeCursor : public EdgeCursor
     {
         cursor = cur;
         session = sess;
-        set_key_range({{OutOfBand_ID, OutOfBand_ID}, {UINT32_MAX, UINT32_MAX}});
+        set_key_range({{OutOfBand_ID_MIN, OutOfBand_ID_MIN},
+                       {OutOfBand_ID_MAX, OutOfBand_ID_MAX}});
     }
     ~EkeyEdgeCursor() override = default;
 
@@ -308,8 +310,8 @@ class EkeyEdgeCursor : public EdgeCursor
         end_edge = range.end;
 
         // set the cursor to the first relevant record in range
-        if (range.start.src_id != OutOfBand_ID &&
-            range.start.dst_id != OutOfBand_ID)  // the range is not empty
+        if (range.start.src_id != OutOfBand_ID_MIN &&
+            range.start.dst_id != OutOfBand_ID_MIN)  // the range is not empty
         {
             CommonUtil::ekey_set_key(
                 cursor, range.start.src_id, range.start.dst_id);
@@ -342,8 +344,8 @@ class EkeyEdgeCursor : public EdgeCursor
 
     void no_next(edge *found)
     {
-        found->src_id = UINT32_MAX;
-        found->dst_id = UINT32_MAX;
+        found->src_id = OutOfBand_ID_MAX;
+        found->dst_id = OutOfBand_ID_MAX;
         found->edge_weight = UINT32_MAX;
         has_next = false;
     }
@@ -359,7 +361,7 @@ class EkeyEdgeCursor : public EdgeCursor
         while (true)
         {
             CommonUtil::ekey_get_key(cursor, &found->src_id, &found->dst_id);
-            if (found->dst_id != OutOfBand_ID)
+            if (found->dst_id != OutOfBand_ID_MIN)
             {
                 break;  // found an edge
             }
@@ -374,7 +376,7 @@ class EkeyEdgeCursor : public EdgeCursor
         }
 
         // If end_edge is set
-        if (end_edge.src_id != UINT32_MAX)
+        if (end_edge.src_id != OutOfBand_ID_MAX)
         {
             // If found > end edge
             if (!(found->src_id < end_edge.src_id ||

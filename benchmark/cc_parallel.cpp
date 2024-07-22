@@ -61,7 +61,7 @@ pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
 
             adjlist u;  // to keep it consistent with gapbs vars
             out_nbd_cur->next(&u);
-            while (u.node_id != UINT32_MAX)
+            while (u.node_id != OutOfBand_ID_MAX)
             {
                 for (node_id_t v : u.edgelist)
                 {
