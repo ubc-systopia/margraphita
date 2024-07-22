@@ -42,13 +42,15 @@ class ConfigReader:
                 print("Using PaRMAT as the Kronecker generator")
             elif "smooth_kron" in kron_gen_name:
                 print("Using KronGen as the Kronecker generator")
+            elif "gapbs" in kron_gen_name:
+                print("Using GAPBS as the Kronecker generator")
             else:
                 print(
-                    "Please set KRON_GEN_PATH as either PaRMAT or KronGen in the build/config.json file.")
+                    "Please set KRON_GEN_PATH in the build/config.json file.")
                 exit(1)
         except KeyError:
             print(
-                "Please set KRON_GEN_PATH as either PaRMAT or KronGen in the build/config.json file.")
+                "Please set KRON_GEN_PATH in the build/config.json file.")
             exit(1)
 
         try:

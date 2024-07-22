@@ -1,10 +1,7 @@
 from pyexpat import ParserCreate
-import subprocess
 import os
-import getopt
 import sys
 import argparse
-from datetime import datetime
 from preprocess import Preprocess
 from paths import ConfigReader
 from paths import GraphDatasetReader
@@ -81,11 +78,12 @@ def main():
     print("Use API: " + str(args.use_api))
 
     if args.kron:
-        for scale in range(23, 25):
+        sf_list = [26, 28, 30]
+        for scale in sf_list:
             kron_graph_config = config_data
-            n_edges = 8*pow(2, scale)
+            n_edges = 16 * pow(2, scale)
             n_nodes = pow(2, scale)
-            dataset_name = "s" + str(scale) + "_e8"
+            dataset_name = "s" + str(scale) + "_e16"
             graph_directory = os.path.join(
                 kron_graph_config['KRON_GRAPHS_PATH'], dataset_name)
             graph = os.path.join(
@@ -126,41 +124,70 @@ def main():
                 preprocess_obj.create_index()
             preprocess_obj.log(
                 "Finished inserting " + dataset_name + "\n-------------------\n")
+            # check to see if the golden image exists at /drives/hdd_main/golden_images.
+            # if not, then copy it over
+            golden_image = os.path.join(
+                "/drives/hdd_main/golden_images", dataset_name)
+            if not os.path.exists(golden_image):
+                print("Copying golden image")
+                os.makedirs(golden_image, exist_ok=True)
+                os.system(
+                    f"cp -r {kron_graph_config['db_dir']}/* {golden_image}")
+            else:
+                print("Golden image already exists")
+            exit(0)  # done with kron graphs
 
     # To insert graphs that are not Kronecker graphs
     # This can be read from a DB, but for now we just read from a file
-    # dataset_json = GraphDatasetReader("graph_datasets.json").read_config()
-    # for dataset in dataset_json:
-    #     dataset.update(config_data)  # add config to dataset
-    #     dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
-    #     dataset.update(vars(args))  # add args to config
-    #     graph = dataset['graph_path']
-    #     dataset['output_dir'] = os.path.join(
-    #         config_data['DB_DIR'], dataset['dataset_name'])
-    #     if not os.path.exists(dataset['output_dir']):
-    #         os.makedirs(dataset['output_dir'])
-    #     dataset['scale'] = 0
+    dataset_json = GraphDatasetReader("graph_datasets.json").read_config()
+    for dataset in dataset_json:
+        dataset.update(config_data)  # add config to dataset
+        dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
+        dataset.update(vars(args))  # add args to config
+        graph = dataset['graph_path']
+        dataset['output_dir'] = os.path.join(
+            config_data['DB_DIR'], dataset['dataset_name'])
+        dataset['db_dir'] = os.path.join(
+            config_data['DB_DIR'], dataset['dataset_name'])
+        if not os.path.exists(dataset['output_dir']):
+            os.makedirs(dataset['output_dir'])
+        dataset['scale'] = 0
 
-    #     preprocess_obj = Preprocess(dataset)
-    #     print("is bulk: " + str(args.bulk)
-    #           + " \nindex: " + str(args.index)
-    #             + " \npreprocess: " + str(args.preprocess))
-    #     for graph_type in ["std", "ekey", "adj", "split_ekey"]:
-    #         preprocess_obj.init_db(graph_type)
-    #     if (args.preprocess):
-    #         time_beg = time.time()
-    #         preprocess_obj.preprocess()
-    #         time_end = time.time()
-    #         print(f"Time taken to preprocess: {time_end - time_beg}\n")
+        # dump the config struct to a tmp file
+        with open("gotconfig.json", "w") as f:
+            f.write(str(dataset))
 
-    #     if (args.bulk):
-    #         preprocess_obj.bulk_insert()
-    #     if (args.index):
-    #         preprocess_obj.create_index()
-    #     else:
-    #         api_insert(config_data)
-    #     preprocess_obj.log(
-    #         "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
+        preprocess_obj = Preprocess(dataset)
+        print("is bulk: " + str(args.bulk)
+              + " \nindex: " + str(args.index)
+              + " \npreprocess: " + str(args.preprocess))
+        for graph_type in ["adj", "std", "ekey", "split_ekey"]:
+            preprocess_obj.init_db(graph_type)
+        if (args.preprocess):
+            time_beg = time.time()
+            preprocess_obj.preprocess()
+            time_end = time.time()
+            print(f"Time taken to preprocess: {time_end - time_beg}\n")
+
+        if (args.bulk):
+            preprocess_obj.bulk_insert()
+        if (args.index):
+            preprocess_obj.create_index()
+        else:
+            api_insert(config_data)
+        preprocess_obj.log(
+            "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
+        # check to see if the golden image exists at /drives/hdd_main/golden_images.
+        # if not, then copy it over
+        golden_image = os.path.join(
+            "/drives/hdd_main/golden_images", dataset['dataset_name'])
+        if not os.path.exists(golden_image):
+            print("Copying golden image")
+            os.makedirs(golden_image, exist_ok=True)
+            os.system(
+                f"cp -r {dataset['output_dir']}/* {golden_image}")
+        else:
+            print("Golden image already exists")
 
 
 if __name__ == "__main__":
