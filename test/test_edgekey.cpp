@@ -341,7 +341,7 @@ void test_InCursor(EdgeKey &graph)
     in_cursor->set_key_range(key_range{0, 0});
     adjlist found;
     in_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -356,7 +356,7 @@ void test_InCursor(EdgeKey &graph)
     found.clear();
     in_cursor->next(&found);
 
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -372,7 +372,7 @@ void test_OutCursor(EdgeKey &graph)
     out_cursor->set_key_range(key_range{0, 0});
     adjlist found;
     out_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -388,7 +388,7 @@ void test_OutCursor(EdgeKey &graph)
     out_cursor->next(&found);
     CommonUtil::dump_adjlist(found);
     out_cursor->next(&found);
-    while (found.node_id != UINT32_MAX)
+    while (found.node_id != OutOfBand_ID_MAX)
     {
         CommonUtil::dump_adjlist(found);
         found.clear();
@@ -406,7 +406,7 @@ void test_NodeCursor(EdgeKey &graph)
     node_id_t nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 11};
     int i = 0;
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
@@ -425,7 +425,7 @@ void test_NodeCursor_Range(EdgeKey &graph)
     int i = 0;
     node_cursor->set_key_range(key_range{3, 6});
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         assert(found.id == nodeIdList[i]);
         CommonUtil::dump_node(found);
@@ -444,7 +444,8 @@ void test_EdgeCursor(EdgeKey &graph)
     node_id_t dstIdList[] = {3, 7, 6, 8, 7};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    std::cout << "out of band id max:" << OutOfBand_ID_MAX << std::endl;
+    while (found.src_id != OutOfBand_ID_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
@@ -465,7 +466,7 @@ void test_EdgeCursor_Range(EdgeKey &graph)
     node_id_t dstIdList[] = {7, 6, 8};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    while (found.src_id != OutOfBand_ID_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);

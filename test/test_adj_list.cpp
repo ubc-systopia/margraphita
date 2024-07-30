@@ -74,6 +74,11 @@ void test_get_nodes(AdjList graph)
     for (node x : graph.get_nodes())
     {
         CommonUtil::dump_node(x);
+#ifdef B64
+        assert(sizeof(x.id) == 8);
+#else
+        assert(sizeof(x.id) == 4);
+#endif
         if (--n == 0) break;
     }
 }
@@ -146,12 +151,16 @@ void test_add_edge(AdjList graph, bool is_directed)
     assert(got.id == 6);
 
     // Now check if the adjlists were updated
-    //  graph.dump_tables();
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
     CommonUtil::set_key(in_adj_cur, test_id2);
     assert(in_adj_cur->search(in_adj_cur) == 0);
-    in_adj_cur->reset(in_adj_cur);
     std::vector<node_id_t> adjlist = graph.get_adjlist(in_adj_cur, test_id2);
+    std::cout << "Printing in_adjlist for node " << test_id2 << std::endl;
+    for (auto x : adjlist)
+    {
+        std::cout << x << " ";
+    }
+    std::cout << std::endl;
     assert(adjlist.size() == 1);
     if (!is_directed)
     {
@@ -161,6 +170,7 @@ void test_add_edge(AdjList graph, bool is_directed)
         adjlist = graph.get_adjlist(in_adj_cur, test_id2);
         assert(adjlist.size() == 1);
     }
+    in_adj_cur->reset(in_adj_cur);
 
     WT_CURSOR *out_adj_cur = graph.get_out_adjlist_cursor();
     CommonUtil::set_key(out_adj_cur, test_id1);
@@ -583,7 +593,8 @@ void test_EdgeCursor(AdjList graph)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
-        CommonUtil::dump_edge(found);
+        std::cout << found.src_id << " , " << found.dst_id << std::endl;
+        // CommonUtil::dump_edge(found);
         edge_cursor->next(&found);
         i++;
     }
@@ -646,10 +657,10 @@ int main()
     test_get_nodes(graph);
     test_get_node(graph);
     test_add_edge(graph, opts.is_directed);
-    // /*
-    //  test_add_fail should fail if create_new is false
-    //  add_edge->add_to_adjlists assumes no duplicate edges.
-    //  */
+    /*
+     test_add_fail should fail if create_new is false
+     add_edge->add_to_adjlists assumes no duplicate edges.
+     */
     test_get_edge(graph);
     test_get_out_edges(graph);
     test_get_in_edges(graph);

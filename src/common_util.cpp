@@ -207,7 +207,7 @@ void CommonUtil::dump_adjlist(const adjlist &to_print)
     std::cout << "Node ID is: \t" << to_print.node_id << std::endl;
     std::cout << "degree is:\t" << to_print.degree << std::endl;
     std::cout << "Adjacency List is:\t {";
-    for (int n : to_print.edgelist)
+    for (node_id_t n : to_print.edgelist)
     {
         std::cout << n << " ";
     }

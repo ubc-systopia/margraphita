@@ -114,7 +114,11 @@ class CommonUtil
 
 inline void CommonUtil::set_key(WT_CURSOR *cursor, node_id_t key)
 {
+#ifdef B64
+    uint64_t a = __builtin_bswap64(key);
+#else
     uint32_t a = __builtin_bswap32(key);
+#endif
     WT_ITEM k = {.data = &a, .size = sizeof(a)};
     cursor->set_key(cursor, &k);
 }
@@ -123,8 +127,13 @@ inline void CommonUtil::set_key(WT_CURSOR *cursor,
                                 node_id_t key1,
                                 node_id_t key2)
 {
+#ifdef B64
+    uint64_t a = __builtin_bswap64(key1);
+    uint64_t b = __builtin_bswap64(key2);
+#else
     uint32_t a = __builtin_bswap32(key1);
     uint32_t b = __builtin_bswap32(key2);
+#endif
     WT_ITEM k1 = {.data = &a, .size = sizeof(a)};
     WT_ITEM k2 = {.data = &b, .size = sizeof(b)};
     cursor->set_key(cursor, &k1, &k2);
@@ -135,8 +144,14 @@ inline int CommonUtil::get_key(WT_CURSOR *cursor, node_id_t *key)
 {
     WT_ITEM k = {0};
     int ret = cursor->get_key(cursor, &k);
+
+#ifdef B64
+    uint64_t a = *(uint64_t *)k.data;
+    *key = __builtin_bswap64(a);
+#else
     uint32_t a = *(uint32_t *)k.data;
     *key = __builtin_bswap32(a);
+#endif
     return ret;
 }
 
@@ -146,10 +161,18 @@ inline int CommonUtil::get_key(WT_CURSOR *cursor,
 {
     WT_ITEM k1, k2;
     int ret = cursor->get_key(cursor, &k1, &k2);
+
+#ifdef B64
+    uint64_t a = *(uint64_t *)k1.data;
+    uint64_t b = *(uint64_t *)k2.data;
+    *key1 = __builtin_bswap64(a);
+    *key2 = __builtin_bswap64(b);
+#else
     uint32_t a = *(uint32_t *)k1.data;
     uint32_t b = *(uint32_t *)k2.data;
     *key1 = __builtin_bswap32(a);
     *key2 = __builtin_bswap32(b);
+#endif
     return ret;
 }
 
@@ -208,10 +231,18 @@ inline void CommonUtil::read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)
 {
     WT_ITEM src, dst;
     idx_cursor->get_value(idx_cursor, &src, &dst, &e_idx->edge_weight);
+
+#ifdef B64
+    uint64_t src_id = *(uint64_t *)src.data;
+    uint64_t dst_id = *(uint64_t *)dst.data;
+    e_idx->src_id = __builtin_bswap64(src_id);
+    e_idx->dst_id = __builtin_bswap64(dst_id);
+#else
     uint32_t src_id = *(uint32_t *)src.data;
     uint32_t dst_id = *(uint32_t *)dst.data;
     e_idx->src_id = __builtin_bswap32(src_id);
     e_idx->dst_id = __builtin_bswap32(dst_id);
+#endif
 }
 
 inline void CommonUtil::get_val_idx(WT_CURSOR *idx_cursor,
@@ -220,10 +251,17 @@ inline void CommonUtil::get_val_idx(WT_CURSOR *idx_cursor,
 {
     WT_ITEM x, y;
     idx_cursor->get_value(idx_cursor, &x, &y);
+#ifdef B64
+    uint64_t src_id = *(uint64_t *)x.data;
+    uint64_t dst_id = *(uint64_t *)y.data;
+    *a = __builtin_bswap64(src_id);
+    *b = __builtin_bswap64(dst_id);
+#else
     uint32_t src_id = *(uint32_t *)x.data;
     uint32_t dst_id = *(uint32_t *)y.data;
     *a = __builtin_bswap32(src_id);
     *b = __builtin_bswap32(dst_id);
+#endif
 }
 
 /**
@@ -273,10 +311,9 @@ inline void CommonUtil::record_to_adjlist(WT_CURSOR *cursor, adjlist *found)
     int32_t degree;
     WT_ITEM item;
     cursor->get_value(cursor, &degree, &item);
-    found->edgelist.assign((int *)item.data,
-                           (int *)item.data + item.size / sizeof(int));
-    // found->edgelist = CommonUtil::unpack_int_vector_wti(
-    //     session, item.size, (char *)item.data);
+    found->edgelist.assign(
+        (node_id_t *)item.data,
+        (node_id_t *)item.data + item.size / sizeof(node_id_t));
     if (degree == 1 && found->edgelist.empty())
     {
         found->degree = 0;

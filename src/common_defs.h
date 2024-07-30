@@ -59,7 +59,7 @@ const std::string IN_EDGES = "edge_in";
 const std::string node_count = "nNodes";
 const std::string edge_count = "nEdges";
 
-#ifdef DB64
+#ifdef B64
 typedef uint64_t node_id_t;
 typedef uint64_t edge_id_t;
 #else
@@ -72,7 +72,7 @@ typedef uint32_t degree_t;
 /// @brief EdgeKey specific definitions
 const node_id_t OutOfBand_ID_MIN =
     0;  // Used to be -1. Changed to 0 to avoid issues with unsigned types.
-#ifdef DB64
+#ifdef B64
 const node_id_t OutOfBand_ID_MAX = UINT64_MAX;
 #else
 const degree_t OutOfBand_ID_MAX = UINT32_MAX;

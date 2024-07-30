@@ -95,6 +95,7 @@ SET(NAME_LIB "GraphAPI")
 
 if (B64)
   message(STATUS "Using 64 bit vertex ids")
+  add_compile_definitions(B64)
 else ()
   message(STATUS "Using 32 bit vertex ids")
 endif ()
