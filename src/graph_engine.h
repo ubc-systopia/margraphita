@@ -15,6 +15,7 @@ class GraphEngine
 {
    public:
     GraphEngine(int _num_threads, graph_opts &engine_opts);
+    GraphEngine();
     ~GraphEngine();
     GraphBase *create_graph_handle();
     void create_indices();
@@ -28,9 +29,9 @@ class GraphEngine
     WT_CONNECTION *conn = nullptr;
     std::vector<node_id_t> node_ranges;
     std::vector<edge> edge_ranges;
-    int num_threads;
+    int num_threads{};
     graph_opts opts;
-    node_id_t last_node_id;
+    node_id_t last_node_id{};
 
     void check_opts_valid();
     void create_new_graph();
@@ -338,5 +339,6 @@ edge_range GraphEngine::get_edge_range(int thread_id)
     }
     return to_return;
 }
+GraphEngine::GraphEngine() {}
 
 #endif
