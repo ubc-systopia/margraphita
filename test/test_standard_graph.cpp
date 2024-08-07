@@ -43,7 +43,7 @@ void create_init_nodes(StandardGraph &graph, bool is_directed)
     }
 
     std::cout << "Insert Edges Now\n";
-    int edge_cnt = 0;
+    size_t edge_cnt = 0;
     for (edge x : SampleGraph::test_edges)
     {
         std::cout << "Edge (" << x.src_id << " , " << x.dst_id << ")\n";
@@ -383,7 +383,7 @@ void test_get_edges(StandardGraph &graph, bool is_directed)
     found = graph.get_edge(test_id1, test_id2);
     assert(found.src_id == UINT32_MAX);
     assert(found.dst_id == UINT32_MAX);
-    assert(found.edge_weight == UINT32_MAX);
+    assert(found.edge_weight == 0);
 }
 
 void test_InCursor(StandardGraph &graph)
@@ -473,7 +473,7 @@ void test_NodeCursor(StandardGraph &graph)
     INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
-    int nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
+    node_id_t nodeIdList[] = {1, 3, 4, 5, 6, 7, 8};
     int i = 0;
     node_cursor->next(&found);
     while (found.id != UINT32_MAX)
@@ -492,7 +492,7 @@ void test_NodeCursor_Range(StandardGraph &graph)
     INFO()
     NodeCursor *node_cursor = graph.get_node_iter();
     node found;
-    int nodeIdList[] = {3, 4, 5, 6};
+    node_id_t nodeIdList[] = {3, 4, 5, 6};
     int i = 0;
     node_cursor->set_key_range(key_range(3, 6));
     node_cursor->next(&found);
@@ -512,11 +512,11 @@ void test_EdgeCursor(StandardGraph &graph)
     INFO()
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge found;
-    int srcIdList[] = {1, 1, 5, 7, 8};
-    int dstIdList[] = {3, 7, 6, 8, 7};
+    node_id_t srcIdList[] = {1, 1, 5, 7, 8};
+    node_id_t dstIdList[] = {3, 7, 6, 8, 7};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    while (found.src_id != OutOfBand_ID_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);
@@ -535,11 +535,11 @@ void test_EdgeCursor_Range(StandardGraph &graph)
     edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
     
     edge found;
-    int srcIdList[] = {1, 5, 7};
-    int dstIdList[] = {7, 6, 8};
+    node_id_t srcIdList[] = {1, 5, 7};
+    node_id_t dstIdList[] = {7, 6, 8};
     int i = 0;
     edge_cursor->next(&found);
-    while (found.src_id != UINT32_MAX)
+    while (found.src_id != OutOfBand_ID_MAX)
     {
         assert(found.src_id == srcIdList[i]);
         assert(found.dst_id == dstIdList[i]);

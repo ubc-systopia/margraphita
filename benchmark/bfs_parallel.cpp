@@ -64,7 +64,7 @@ int64_t BUStep(GraphEngine *graph_engine,
 
         in_cursor->next(&found);
 
-        while (found.node_id != -1)
+        while (found.node_id != OutOfBand_ID_MAX)
         {
             if (parent[found.node_id] < 0)
             {
@@ -147,7 +147,7 @@ void BitmapToQueue(GraphEngine *graph_engine,
 
             node found = {0};
             node_cursor->next(&found);
-            while (found.id != -1)
+            while (found.id != OutOfBand_ID_MAX)
             {
                 if (bm.get_bit(found.id)) lqueue.push_back(found.id);
                 node_cursor->next(&found);
@@ -174,7 +174,7 @@ pvector<NodeID> InitParent(GraphEngine *graph_engine,
         node_cursor->set_key_range(graph_engine->get_key_range(i));
 
         node_cursor->next(&found);
-        while (found.id != -1)
+        while (found.id != OutOfBand_ID_MAX)
         {
             parent[found.id] = graph->get_out_degree(found.id) != 0
                                    ? -graph->get_out_degree(found.id)

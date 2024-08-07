@@ -196,7 +196,7 @@ void print_top_scores(GraphBase *g,
 
     node found = {0};
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         score_pairs.emplace_back(found.id, scores[found.id]);
         node_cursor->next(&found);

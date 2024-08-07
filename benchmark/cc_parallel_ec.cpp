@@ -73,7 +73,7 @@ pvector<node_id_t> connected_components(GraphEngine& graph_engine,
             EdgeCursor* edge_cursor = graph->get_edge_iter();
             edge_cursor->set_key(graph_engine.get_edge_range(i));
             edge_cursor->next(&found);
-            while (found.src_id != -1)
+            while (found.src_id != OutOfBand_ID_MAX)
             {
                 done &= Link(found.src_id, found.dst_id, labels);
                 edge_cursor->next(&found);

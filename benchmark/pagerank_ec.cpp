@@ -49,7 +49,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
         node_cursor->next(&found);
 
         int count = 0;
-        while (found.id != -1)
+        while (found.id != OutOfBand_ID_MAX)
         {
             deg[found.id] = found.out_degree;
             node_cursor->next(&found);

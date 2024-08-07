@@ -10,7 +10,9 @@ FILE(GLOB SOURCES_LIB "${OMP_INCLUDE_DIR}/omp.h"
         "${PATH_SRC}/adj_list.cpp"
         "${PATH_SRC}/adj_list.h"
         "${PATH_SRC}/edgekey.cpp"
-        "${PATH_SRC}/edgekey.h")
+        "${PATH_SRC}/edgekey.h"
+        "${PATH_SRC}/edgekey_split.cpp"
+        "${PATH_SRC}/edgekey_split.h")
 
 # Create GraphAPI.a (static library)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

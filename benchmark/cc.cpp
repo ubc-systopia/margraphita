@@ -35,7 +35,7 @@ std::vector<node_id_t> connected_components(GraphBase* graph, bool is_directed)
     node_cursor->set_key_range({0, numNodes});
     node found;
     node_cursor->next(&found);
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         if (labels[found.id] == -1)
         {

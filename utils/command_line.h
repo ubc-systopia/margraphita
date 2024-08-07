@@ -94,7 +94,7 @@ class CmdLineBase
                          "graph_type",
                          "(Required) The representation of the graph."
                          "Can be one of "
-                         "adjlist, std, edgekey");
+                         "adjlist, std, ekey, split_ekey");
 
         // Optional opts
         add_help_message('s',
@@ -232,6 +232,10 @@ class CmdLineBase
         else if (strcmp(opt_arg, "ekey") == 0)
         {
             type = GraphType::EKey;
+        }
+        else if (strcmp(opt_arg, "split_ekey") == 0)
+        {
+            type = GraphType::SplitEKey;
         }
         else if (strcmp(opt_arg, "") == 0)
         {

@@ -62,7 +62,7 @@ int64_t trust_tc_iter(GraphEngine &graph_engine)
         adjlist found;
 
         out_cursor->next(&found);
-        while (found.node_id != -1)
+        while (found.node_id != OutOfBand_ID_MAX)
         {
             for (auto node : found.edgelist)
             {
@@ -98,7 +98,7 @@ int64_t cycle_tc_iter(GraphEngine &graph_engine)
         out_cursor->set_key_range(graph_engine.get_key_range(i));
         adjlist found;
         out_cursor->next(&found);
-        while (found.node_id != -1)
+        while (found.node_id != OutOfBand_ID_MAX)
         {
             if (found.edgelist.empty())
             {
@@ -127,6 +127,7 @@ int64_t cycle_tc_iter(GraphEngine &graph_engine)
                     }
                 }
             }
+            found.clear();
             out_cursor->next(&found);
         }
         out_cursor->close();

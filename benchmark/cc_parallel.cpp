@@ -58,8 +58,10 @@ pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
             GraphBase* graph = g.create_graph_handle();
             auto* out_nbd_cur = graph->get_outnbd_iter();
             out_nbd_cur->set_key_range(g.get_key_range(i));
+
             adjlist u;  // to keep it consistent with gapbs vars
-            while (u.node_id != UINT32_MAX)
+            out_nbd_cur->next(&u);
+            while (u.node_id != OutOfBand_ID_MAX)
             {
                 for (node_id_t v : u.edgelist)
                 {
@@ -74,6 +76,7 @@ pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
                         comp[high_comp] = low_comp;
                     }
                 }
+                u.clear();
                 out_nbd_cur->next(&u);
             }
             out_nbd_cur->close();

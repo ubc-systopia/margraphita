@@ -33,7 +33,7 @@ size_t space = 0;
 graph_opts opts;
 int num_per_chunk;
 
-WT_CONNECTION *conn_std, *conn_adj, *conn_ekey;
+WT_CONNECTION *conn_std, *conn_adj, *conn_ekey, *conn_split_ekey;
 
 typedef struct fgraph_conn_object
 {
@@ -42,7 +42,7 @@ typedef struct fgraph_conn_object
     WT_SESSION *session = nullptr;
     WT_CURSOR *e_cur = nullptr;
     WT_CURSOR *n_cur = nullptr;
-    WT_CURSOR *cur = nullptr;  // adjlist cursor
+    WT_CURSOR *cur = nullptr;  // adjlist cursor or split edgekey table cursors
     WT_CURSOR *metadata = nullptr;
     std::string adjlistable_name;
 
@@ -61,7 +61,7 @@ typedef struct fgraph_conn_object
                       << std::endl;
             exit(1);
         }
-        // Open Cursors. If the tabel type is META, open the metadata cursor
+        // Open Cursors. If the table type is META, open the metadata cursor
         // and return.
         if (type == GraphType::META)
         {
@@ -78,6 +78,21 @@ typedef struct fgraph_conn_object
         }
         if (is_edge)
         {
+            if (type == GraphType::SplitEKey)
+            {
+                ret = session->open_cursor(session,
+                                           adjlistable_name.c_str(),
+                                           nullptr,
+                                           nullptr,
+                                           &e_cur);
+                if (ret != 0)
+                {
+                    std::cerr << "Error opening cursor to " << adjlistable_name
+                              << ": " << wiredtiger_strerror(ret) << std::endl;
+                    exit(1);
+                }
+                return;
+            }
             ret = session->open_cursor(
                 session, "table:edge", nullptr, nullptr, &e_cur);
             if (ret != 0)
@@ -101,10 +116,12 @@ typedef struct fgraph_conn_object
         }
         else  // We are inserting a node.
         {
-            if (type == GraphType::EKey)
+            if (type == GraphType::EKey || type == GraphType::SplitEKey)
             {
+                std::string table_name = "table:edge";
+                if (type == GraphType::SplitEKey) table_name += "_out";
                 ret = session->open_cursor(
-                    session, "table:edge", nullptr, nullptr, &e_cur);
+                    session, table_name.c_str(), nullptr, nullptr, &e_cur);
                 if (ret != 0)
                 {
                     std::cerr
@@ -220,9 +237,9 @@ int add_to_edge_table(WT_CURSOR *cur,
     {
         CommonUtil::set_key(cur, node_id, dst);
         if (is_weighted)
-            cur->set_value(cur, weight[i], OutOfBand_Val);
+            cur->set_value(cur, weight[i], OutOfBand_ID_MAX);
         else
-            cur->set_value(cur, 0, OutOfBand_Val);
+            cur->set_value(cur, 0, OutOfBand_ID_MAX);
         int ret = cur->insert(cur);
         if (ret != 0)
         {
@@ -245,11 +262,11 @@ int add_to_edgekey(WT_CURSOR *ekey_cur,
     int *weight = InsertWeights(edgelist.size());
     for (int i = 0; i < edgelist.size(); i++)
     {
-        CommonUtil::set_key(ekey_cur, src, edgelist[i]);
+        CommonUtil::ekey_set_key(ekey_cur, src, edgelist[i]);
         if (is_weighted)
-            ekey_cur->set_value(ekey_cur, weight[i], OutOfBand_Val);
+            ekey_cur->set_value(ekey_cur, weight[i], OutOfBand_ID_MAX);
         else
-            ekey_cur->set_value(ekey_cur, 0, OutOfBand_Val);
+            ekey_cur->set_value(ekey_cur, 0, OutOfBand_ID_MAX);
 
         int ret = ekey_cur->insert(ekey_cur);
         if (ret != 0)
@@ -279,7 +296,7 @@ int add_to_node_table(WT_CURSOR *cur, const node &node)
 }
 int add_node_to_ekey(WT_CURSOR *ekey_cur, const node &node)
 {
-    CommonUtil::set_key(ekey_cur, node.id, OutOfBand_ID);
+    CommonUtil::ekey_set_key(ekey_cur, node.id, OutOfBand_ID_MIN);
     ekey_cur->set_value(ekey_cur, node.in_degree, node.out_degree);
     int ret = ekey_cur->insert(ekey_cur);
     if (ret != 0)
@@ -289,6 +306,37 @@ int add_node_to_ekey(WT_CURSOR *ekey_cur, const node &node)
         return ret;
     }
     return ret;
+}
+
+void debug_print_edges(WT_CURSOR *cur,
+                       GraphType type,
+                       const std::string &filename)
+{
+    cur->reset(cur);
+    // open filename for writing
+    std::ofstream file;
+    file.open(filename);
+
+    while (cur->next(cur) == 0)
+    {
+        node_id_t src, dst;
+        int val1, val2;
+        if (type == GraphType::EKey)
+        {
+            CommonUtil::ekey_get_key(cur, &src, &dst);
+            cur->get_value(cur, &val1, &val2);
+            file << "Edge: (" << src << ", " << dst << ") val1: " << val1
+                 << ", val2: " << val2 << std::endl;
+        }
+        else
+        {
+            CommonUtil::get_key(cur, &src, &dst);
+            cur->get_value(cur, &val1);
+            file << "Edge: (" << src << ", " << dst << ") weight: " << val1
+                 << std::endl;
+        }
+    }
+    file.close();
 }
 
 void make_connections(graph_opts &_opts, const std::string &conn_config)
@@ -335,6 +383,18 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
         exit(1);
     }
 
+    // open split ekey connection
+    // open ekey connection
+    _db_name = _opts.db_dir + "/split_ekey_" + middle + "_" + _opts.db_name;
+    if (wiredtiger_open(_db_name.c_str(),
+                        nullptr,
+                        const_cast<char *>(conn_config.c_str()),
+                        &conn_split_ekey) != 0)
+    {
+        std::cout << "Could not open the DB: " << _db_name;
+        exit(1);
+    }
+
     _db_name = _opts.db_dir + "/std_" + middle + "_" + _opts.db_name;
 
     if (wiredtiger_open(_db_name.c_str(),
@@ -349,6 +409,7 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
     assert(conn_adj != nullptr);
     assert(conn_std != nullptr);
     assert(conn_ekey != nullptr);
+    assert(conn_split_ekey != nullptr);
 }
 
 /**
@@ -357,9 +418,9 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
  *
  */
 void add_metadata(const int key,
-                                const char *value,
-                                size_t size,
-                                WT_CURSOR *cursor)
+                  const char *value,
+                  size_t size,
+                  WT_CURSOR *cursor)
 {
     cursor->set_key(cursor, key);
     WT_ITEM item;

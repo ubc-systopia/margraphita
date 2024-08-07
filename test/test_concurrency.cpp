@@ -54,7 +54,8 @@ int main()
             ret = -1;
             while (ret != 0)
             {
-                ret = graph->add_edge(edge{i, 1}, false);
+                ret =
+                    graph->add_edge(edge{static_cast<edge_id_t>(i), 1}, false);
             }
         }
         else

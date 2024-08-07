@@ -17,10 +17,10 @@ ADD_EXECUTABLE(test_edgekey "${PATH_TEST}/test_edgekey.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_edgekey PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_edgekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
-## Test UNordered EdgeLog
-#ADD_EXECUTABLE(test_elist "${PATH_TEST}/test_uoedgelist.cpp")
-#TARGET_INCLUDE_DIRECTORIES(test_elist PRIVATE ${PATH_SRC})
-#TARGET_LINK_LIBRARIES(test_elist PUBLIC ${NAME_LIB} ${wt_shared_lib})
+# Test Split EdgeKey
+ADD_EXECUTABLE(test_split_ekey "${PATH_TEST}/test_split_edgekey.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_split_ekey PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_split_ekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
 # Test Partitioning
 ADD_EXECUTABLE(test_partition "${PATH_TEST}/test_partition.cpp")

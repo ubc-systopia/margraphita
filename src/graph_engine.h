@@ -6,6 +6,7 @@
 #include "adj_list.h"
 #include "common_util.h"
 #include "edgekey.h"
+#include "edgekey_split.h"
 #include "graph.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
@@ -14,6 +15,7 @@ class GraphEngine
 {
    public:
     GraphEngine(int _num_threads, graph_opts &engine_opts);
+    GraphEngine();
     ~GraphEngine();
     GraphBase *create_graph_handle();
     void create_indices();
@@ -27,9 +29,9 @@ class GraphEngine
     WT_CONNECTION *conn = nullptr;
     std::vector<node_id_t> node_ranges;
     std::vector<edge> edge_ranges;
-    int num_threads;
+    int num_threads{};
     graph_opts opts;
-    node_id_t last_node_id;
+    node_id_t last_node_id{};
 
     void check_opts_valid();
     void create_new_graph();
@@ -56,10 +58,7 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
     }
 }
 
-GraphEngine::~GraphEngine()
-{
-    close_connection();
-}
+GraphEngine::~GraphEngine() { close_connection(); }
 
 GraphBase *GraphEngine::create_graph_handle()
 {
@@ -75,6 +74,10 @@ GraphBase *GraphEngine::create_graph_handle()
     else if (opts.type == GraphType::EKey)
     {
         ptr = new EdgeKey(opts, conn);
+    }
+    else if (opts.type == GraphType::SplitEKey)
+    {
+        ptr = new SplitEdgeKey(opts, conn);
     }
     else
     {
@@ -96,10 +99,10 @@ void GraphEngine::create_indices()
     {
         EdgeKey::create_indices(sess);
     }
-    //    else if (opts.type == GraphType::EList)
-    //    {
-    //        UnOrderedEdgeList::create_indices(sess);
-    //    }
+    else if (opts.type == GraphType::SplitEKey)
+    {
+        SplitEdgeKey::create_indices(sess);
+    }
     else
     {
         throw GraphException("Failed to create graph object");
@@ -129,7 +132,7 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
 {
     node_ranges.clear();
     node_id_t num_nodes = graph_stats->get_num_nodes();
-
+    
     node_id_t per_partition_nodes =
         (num_nodes / thread_max) +
         ((num_nodes % thread_max) != 0);  // ceil division
@@ -143,7 +146,7 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
     n_cur->next(&found);
     //    std::cout << found.id << std::endl;
 
-    while (found.id != UINT32_MAX)
+    while (found.id != OutOfBand_ID_MAX)
     {
         if (i % per_partition_nodes == 0)
         {
@@ -182,7 +185,8 @@ void GraphEngine::_calculate_thread_offsets_edge(int thread_max,
     e_cur->next(&found_edge);
     edge_id_t i = 0;
     //    CommonUtil::dump_edge(found_edge);
-    while (found_edge.src_id != UINT32_MAX && found_edge.dst_id != UINT32_MAX)
+    while (found_edge.src_id != OutOfBand_ID_MAX &&
+           found_edge.dst_id != OutOfBand_ID_MAX)
     {
         if (i % per_partition_edge == 0)
         {
@@ -195,6 +199,7 @@ void GraphEngine::_calculate_thread_offsets_edge(int thread_max,
         if (i == num_edges - 1)
         {
             edge_ranges.push_back(found_edge);
+            i++;
             break;
         }
         e_cur->next(&found_edge);
@@ -263,10 +268,10 @@ void GraphEngine::create_new_graph()
     {
         EdgeKey::create_wt_tables(opts, conn);
     }
-    //    else if (opts.type == GraphType::EList)
-    //    {
-    //        UnOrderedEdgeList::create_wt_tables(opts, conn);
-    //    }
+    else if (opts.type == GraphType::SplitEKey)
+    {
+        SplitEdgeKey::create_wt_tables(opts, conn);
+    }
     else
     {
         throw GraphException("Failed to create graph object");
@@ -312,7 +317,7 @@ key_range GraphEngine::get_key_range(int thread_id)
     }
     else
     {
-        to_return.end = UINT32_MAX;
+        to_return.end = OutOfBand_ID_MAX;
     }
     return to_return;
 }
@@ -329,10 +334,11 @@ edge_range GraphEngine::get_edge_range(int thread_id)
     }
     else
     {
-        to_return.end.src_id = UINT32_MAX;
-        to_return.end.dst_id = UINT32_MAX;
+        to_return.end.src_id = OutOfBand_ID_MAX;
+        to_return.end.dst_id = OutOfBand_ID_MAX;
     }
     return to_return;
 }
+GraphEngine::GraphEngine() {}
 
 #endif

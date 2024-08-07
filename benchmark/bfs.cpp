@@ -18,7 +18,6 @@
 #include "graph_engine.h"
 #include "graph_exception.h"
 #include "standard_graph.h"
-#include "thread_utils.h"
 #include "times.h"
 
 /**

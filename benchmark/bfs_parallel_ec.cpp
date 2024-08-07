@@ -69,7 +69,7 @@ void BFS_EC(GraphEngine *graph_engine,
             edge_cursor->set_key(graph_engine->get_edge_range(i));
             edge_cursor->next(&found);
 
-            while (found.src_id != -1)
+            while (found.src_id != OutOfBand_ID_MAX)
             {
                 // we need to check this edge on the frontier
                 long int old_val = -1;

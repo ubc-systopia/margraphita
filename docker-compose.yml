@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  flexograph:
+    privileged: true
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: flexograph
+    volumes:
+      - /home/puneet/db:/db
+
+volumes:
+  db:
+    driver: local
+    driver_opts:
+      type: none
+      device: /db
+      o: bind

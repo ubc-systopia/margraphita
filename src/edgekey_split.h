@@ -1,39 +1,119 @@
-#ifndef EDGE_KEY
-#define EDGE_KEY
+#ifndef EDGELIST_H
+#define EDGELIST_H
+
+#include <wiredtiger.h>
+
+#include <iostream>
+#include <string>
+#include <unordered_map>
 
 #include "common_util.h"
 #include "graph.h"
 #include "graph_exception.h"
 
-using namespace std;
-
-class EkeyInCursor : public InCursor
+class SplitEdgeKey : public GraphBase
 {
-    node_id_t curr_node{};
-    // This accepts a dst_src_cursor
    public:
-    /**
-     * @brief Construct a new Ekey In Cursor object
-     * @param cur A cursor to the dst_src index
-     * @param sess A session object to which the cursor belongs. Used to open
-     * the node cursor.
-     */
-    EkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    SplitEdgeKey(graph_opts &opt_params,
+                 WT_CONNECTION *connection);  // TODO: merge the 2 constructors
+    static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
+    int add_node(node to_insert) override;
+
+    bool has_node(node_id_t node_id) override;
+    node get_node(node_id_t node_id) override;
+    int delete_node(node_id_t node_id) override;
+    node get_random_node() override;
+    void get_random_node_ids(std::vector<node_id_t> &ids,
+                             int num_nodes) override;
+    degree_t get_in_degree(node_id_t node_id) override;
+    degree_t get_out_degree(node_id_t node_id) override;
+    std::vector<node> get_nodes() override;
+    int add_edge(edge to_insert, bool is_bulk) override;
+    bool has_edge(node_id_t src_id, node_id_t dst_id) override;
+    int delete_edge(node_id_t src_id, node_id_t dst_id) override;
+    edge get_edge(node_id_t src_id, node_id_t dst_id) override;
+    std::vector<edge> get_edges() override;
+    std::vector<edge> get_out_edges(node_id_t node_id) override;
+    std::vector<node> get_out_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) override;
+    std::vector<edge> get_in_edges(node_id_t node_id) override;
+    std::vector<node> get_in_nodes(node_id_t node_id) override;
+    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) override;
+
+    node_id_t get_max_node_id() override;
+    node_id_t get_min_node_id() override;
+
+    OutCursor *get_outnbd_iter() override;
+    InCursor *get_innbd_iter() override;
+    NodeCursor *get_node_iter() override;
+    EdgeCursor *get_edge_iter() override;
+
+    // internal cursor operations:
+    void init_cursors();  // todo <-- implement this
+
+    [[nodiscard]] WT_CURSOR *get_out_edge_cursor() const
+    {
+        return out_edge_cursor;
+    }
+    WT_CURSOR *get_new_out_cursor();
+
+    [[nodiscard]] WT_CURSOR *get_random_node_cursor() const
+    {
+        return random_node_cursor;
+    }
+    [[nodiscard]] WT_CURSOR *get_in_edge_cursor() const
+    {
+        return in_edge_cursor;
+    }
+    WT_CURSOR *get_new_in_cursor();
+    [[nodiscard]] WT_CURSOR *get_node_index_cursor() const
+    {
+        return dst_src_idx_cursor;
+    }
+    WT_CURSOR *get_new_node_index_cursor();
+
+    static void create_indices(WT_SESSION *session);
+
+   private:
+    WT_CURSOR *out_edge_cursor = nullptr;
+    WT_CURSOR *random_node_cursor = nullptr;
+    WT_CURSOR *in_edge_cursor = nullptr;
+    WT_CURSOR *dst_src_idx_cursor = nullptr;
+
+    // internal methods
+    [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
+    int delete_node_and_related_edges(node_id_t node_id, int *num_edges_to_del);
+    int update_node_degree(node_id_t node_id, int in_change, int out_change);
+    int add_edge_only(edge to_insert);
+    int add_node_txn(node to_insert);
+    int error_check_add_edge(int ret);
+    int error_check_insert_txn(int return_val);
+
+    [[maybe_unused]] inline void close_all_cursors() override
+    {
+        out_edge_cursor->close(out_edge_cursor);
+        random_node_cursor->close(random_node_cursor);
+        in_edge_cursor->close(in_edge_cursor);
+        dst_src_idx_cursor->close(dst_src_idx_cursor);
+    }
+};
+
+class SplitEkeyInCursor : public InCursor
+{
+   private:
+    // bool is_weighted = false;
+    node_id_t curr_node{};
+
+   public:
+    SplitEkeyInCursor(WT_CURSOR *cur, WT_SESSION *sess)
     {
         cursor = cur;
         session = sess;
         set_key_range({OutOfBand_ID_MIN, OutOfBand_ID_MAX});
     }
-    ~EkeyInCursor() override = default;
-    /** This is the initializer function for setting the range of valid keys an
-     * iterator must operate within. Set the cursor keys and advance the cursor
-     * to the first valid position in the range.
-     *
-     * @param _keys : The user can specify a start and end node ID in a
-     * `key_range` struct, or it gets initialized to
-     * `{OutOfBand_ID_MIN,OutOfBand_ID_MIN}`
-     */
-    void set_key_range(key_range _keys) final
+    ~SplitEkeyInCursor() override = default;
+
+    void set_key_range(key_range _keys) override
     {
         keys.start = _keys.start;
         if (_keys.end == OutOfBand_ID_MIN)
@@ -45,13 +125,12 @@ class EkeyInCursor : public InCursor
             keys.end = _keys.end;
         }
 
-        // We need to position this cursor to the first record where dst >
-        // OutOfBand_ID_MIN (i.e. 1) and src >= keys.start
-        // reversed because (dst, src)
-        CommonUtil::ekey_set_key(cursor, (OutOfBand_ID_MIN + 1), keys.start);
+        CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID_MIN);
+        // Advance the cursor to the first record >= start
+
         int status;
         cursor->search_near(cursor, &status);
-        if (status < 0)
+        if (status <= 0)
         {
             // Advances the cursor
             if (cursor->next(cursor) != 0)
@@ -60,39 +139,30 @@ class EkeyInCursor : public InCursor
                 return;
             }
         }
-        node_id_t temp_src;
-        CommonUtil::ekey_get_key(cursor, &curr_node, &temp_src);
+        node_id_t temp_dst;
+        CommonUtil::ekey_get_key(cursor, &curr_node, &temp_dst);
     }
 
-    void next(adjlist *found) final
+    void next(adjlist *found) override
     {
-        node_id_t src;
-        node_id_t dst;
-        // edge curr_edge;
+        node_id_t src, dst;
 
         if (!has_next)
         {
-            found->degree = UINT32_MAX;  // always u32
-            found->edgelist.clear();
             found->node_id = OutOfBand_ID_MAX;
-            has_next = false;
+            found->degree = UINT32_MAX;
+            found->edgelist.clear();
             return;
         }
 
         // get edge
         CommonUtil::ekey_get_key(cursor, &dst, &src);
-        found->node_id = dst;
-        if (dst == curr_node)
-        {
-            found->edgelist.push_back(src);
-            found->degree++;
-        }
-
-        // now advance till we hit another dst
+        if (src == OutOfBand_ID_MIN) curr_node = dst;
         while (cursor->next(cursor) == 0)
         {
             CommonUtil::ekey_get_key(cursor, &dst, &src);
-            if (dst == curr_node)
+            found->node_id = curr_node;
+            if (dst == curr_node && src != OutOfBand_ID_MIN)
             {
                 found->edgelist.push_back(src);
                 found->degree++;
@@ -100,6 +170,7 @@ class EkeyInCursor : public InCursor
             else
             {
                 curr_node = dst;
+                if (found->degree == 0) continue;  // don't return empty nodes
                 if (curr_node > keys.end)
                 {
                     has_next = false;
@@ -108,26 +179,28 @@ class EkeyInCursor : public InCursor
                 return;
             }
         }
+        // found->node_id = src;
+        found->node_id = OutOfBand_ID_MAX;
         has_next = false;
     }
 
-    void next(adjlist *found, node_id_t key) final {}
+    void next(adjlist *found, node_id_t key) override {}
 };
 
-class EkeyOutCursor : public OutCursor
+class SplitEKeyOutCursor : public OutCursor
 {
    private:
     // bool is_weighted = false;
     node_id_t curr_node{};
 
    public:
-    EkeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    SplitEKeyOutCursor(WT_CURSOR *cur, WT_SESSION *sess)
     {
         cursor = cur;
         session = sess;
         set_key_range({OutOfBand_ID_MIN, OutOfBand_ID_MAX});
     }
-    ~EkeyOutCursor() override = default;
+    ~SplitEKeyOutCursor() override = default;
     void set_key_range(key_range _keys) override
     {
         keys.start = _keys.start;
@@ -165,7 +238,7 @@ class EkeyOutCursor : public OutCursor
         if (!has_next)
         {
             found->node_id = OutOfBand_ID_MAX;
-            found->degree = UINT32_MAX;  // always u32
+            found->degree = UINT32_MAX;
             found->edgelist.clear();
             return;
         }
@@ -201,24 +274,19 @@ class EkeyOutCursor : public OutCursor
 
     void next(adjlist *found, node_id_t key) override {}
 };
-/**
- * @brief This class is used to iterate over the nodes of a graph.
- * Considering the way we imlpement EdgeKey, this class needs a cursor to the
- * dst index. FIXIT: We need to change this to make it transparent to the user.
- */
 
-class EkeyNodeCursor : public NodeCursor
+class SplitEKeyNodeCursor : public NodeCursor
 {
    public:
     // Takes a composite index cursor on (dst, src)
-    EkeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    SplitEKeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
     {
         cursor = cur;
         session = sess;
         set_key_range(
             {OutOfBand_ID_MIN, OutOfBand_ID_MAX});  // min and max node id
     }
-    ~EkeyNodeCursor() override = default;
+    ~SplitEKeyNodeCursor() override = default;
 
     void set_key_range(key_range _keys) override
     {
@@ -290,19 +358,19 @@ class EkeyNodeCursor : public NodeCursor
     void next(node *found, node_id_t key) override {}
 };
 
-class EkeyEdgeCursor : public EdgeCursor
+class SplitEKeyEdgeCursor : public EdgeCursor
 {
    private:
-    // bool at_node = true;  // initial state always points here
+    // bool at_node =true; //initial state
    public:
-    EkeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+    SplitEKeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
     {
         cursor = cur;
         session = sess;
         set_key_range({{OutOfBand_ID_MIN, OutOfBand_ID_MIN},
                        {OutOfBand_ID_MAX, OutOfBand_ID_MAX}});
     }
-    ~EkeyEdgeCursor() override = default;
+    ~SplitEKeyEdgeCursor() override = default;
 
     void set_key_range(edge_range range) override
     {
@@ -334,11 +402,10 @@ class EkeyEdgeCursor : public EdgeCursor
             {
                 this->has_next = false;
             }
-            //            node_id_t temp_src, temp_dst;
-            //            CommonUtil::ekey_get_key(cursor, &temp_src,
-            //            &temp_dst); std::cout << "first edge (src,dst): " <<
-            //            temp_src << ", "
-            //                      << temp_dst << std::endl;
+            // node_id_t temp_src, temp_dst;
+            // CommonUtil::ekey_get_key(cursor, &temp_src,&temp_dst);
+            // std::cout << "first edge (src,dst): " <<
+            // temp_src << ", " <<temp_dst << std::endl;
         }
     }
 
@@ -349,7 +416,6 @@ class EkeyEdgeCursor : public EdgeCursor
         found->edge_weight = UINT32_MAX;
         has_next = false;
     }
-
     void next(edge *found) override
     {
         if (!has_next)
@@ -400,75 +466,4 @@ class EkeyEdgeCursor : public EdgeCursor
     }
 };
 
-class EdgeKey : public GraphBase
-{
-   public:
-    EdgeKey(graph_opts &opt_params,
-            WT_CONNECTION *conn);  // TODO: merge the 2 constructors
-    static void create_wt_tables(graph_opts &opts, WT_CONNECTION *conn);
-    int add_node(node to_insert) override;
-
-    bool has_node(node_id_t node_id) override;
-    node get_node(node_id_t node_id) override;
-    int delete_node(node_id_t node_id) override;
-    node get_random_node() override;
-    void get_random_node_ids(std::vector<node_id_t> &ids,
-                             int num_nodes) override;
-    degree_t get_in_degree(node_id_t node_id) override;
-    degree_t get_out_degree(node_id_t node_id) override;
-    std::vector<node> get_nodes() override;
-    int add_edge(edge to_insert, bool is_bulk) override;
-    bool has_edge(node_id_t src_id, node_id_t dst_id) override;
-    int delete_edge(node_id_t src_id, node_id_t dst_id) override;
-    edge get_edge(node_id_t src_id, node_id_t dst_id) override;
-    std::vector<edge> get_edges() override;
-    std::vector<edge> get_out_edges(node_id_t node_id) override;
-    std::vector<node> get_out_nodes(node_id_t node_id) override;
-    std::vector<node_id_t> get_out_nodes_id(node_id_t node_id) override;
-    std::vector<edge> get_in_edges(node_id_t node_id) override;
-    std::vector<node> get_in_nodes(node_id_t node_id) override;
-    std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) override;
-
-    node_id_t get_max_node_id() override;
-    node_id_t get_min_node_id() override;
-
-    OutCursor *get_outnbd_iter() override;
-    InCursor *get_innbd_iter() override;
-    NodeCursor *get_node_iter() override;
-    EdgeCursor *get_edge_iter() override;
-
-    // internal cursor operations:
-    void init_cursors();  // todo <-- implement this
-    [[maybe_unused]] WT_CURSOR *get_node_cursor();
-    WT_CURSOR *get_edge_cursor();
-    WT_CURSOR *get_new_edge_cursor();
-    [[maybe_unused]] WT_CURSOR *get_new_node_cursor();
-    [[maybe_unused]] WT_CURSOR *get_new_random_node_cursor();
-    WT_CURSOR *get_dst_src_idx_cursor();
-    WT_CURSOR *get_new_dst_src_idx_cursor();
-    static void create_indices(WT_SESSION *session);
-
-   private:
-    // Cursors
-    WT_CURSOR *edge_cursor = nullptr;
-    // WT_CURSOR *dst_idx_cursor = nullptr;
-    WT_CURSOR *dst_src_idx_cursor = nullptr;
-    WT_CURSOR *random_cursor = nullptr;
-
-    // internal methods
-    [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
-    int delete_node_and_related_edges(node_id_t node_id, int *num_edges_to_del);
-    int update_node_degree(node_id_t node_id, degree_t indeg, degree_t outdeg);
-    int add_edge_only(edge to_insert);
-    int add_node_txn(node to_insert);
-    int error_check_add_edge(int ret);
-
-    [[maybe_unused]] void drop_indices();
-    [[maybe_unused]] inline void close_all_cursors() override
-    {
-        edge_cursor->close(edge_cursor);
-        dst_src_idx_cursor->close(dst_src_idx_cursor);
-        random_cursor->close(random_cursor);
-    }
-};
 #endif
