@@ -434,6 +434,10 @@ class AdjList : public GraphBase
     WT_CURSOR *get_new_in_adjlist_cursor();
     WT_CURSOR *get_new_out_adjlist_cursor();
     WT_CURSOR *get_new_random_outadj_cursor();
+    // making this public because needed for graferee
+    void add_adjlist(WT_CURSOR *cursor,
+                     node_id_t node_id,
+                     std::vector<node_id_t> &list);
 
    private:
     // structure of the graph
@@ -448,9 +452,7 @@ class AdjList : public GraphBase
     [[maybe_unused]] node get_next_node(WT_CURSOR *n_cur);
     [[maybe_unused]] edge get_next_edge(WT_CURSOR *e_cur);
     int add_adjlist(WT_CURSOR *cursor, node_id_t node_id);
-    void add_adjlist(WT_CURSOR *cursor,
-                     node_id_t node_id,
-                     std::vector<node_id_t> &list);
+
     int delete_adjlist(WT_CURSOR *cursor, node_id_t node_id);
     [[maybe_unused]] void delete_node_from_adjlists(node_id_t node_id);
     int add_to_adjlists(WT_CURSOR *cursor,
