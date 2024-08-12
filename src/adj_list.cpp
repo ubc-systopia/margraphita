@@ -411,30 +411,35 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
 
     session->begin_transaction(session, "isolation=snapshot");
 
-    /*****Insert SRC and DST if they don't exist.*****/
-    node src = {0};
-    src.id = to_insert.src_id;
-    if (add_node_in_txn(src))
+    if (!is_bulk_insert)
     {
-        CommonUtil::log_msg(
-            "Failed to add node_id " + std::to_string(to_insert.dst_id),
-            __FILE__,
-            __LINE__);
-        return WT_ROLLBACK;
-    }
-    num_nodes_added++;
+        /*****Insert SRC and DST if they don't exist.*****/
+        node src = {0};
+        src.id = to_insert.src_id;
+        if (add_node_in_txn(src))
+        {
+            CommonUtil::log_msg(
+                "Failed to add node_id " + std::to_string(to_insert.dst_id),
+                __FILE__,
+                __LINE__);
+            session->rollback_transaction(session, nullptr);
+            return WT_ROLLBACK;
+        }
+        num_nodes_added++;
 
-    node dst = {0};
-    dst.id = to_insert.dst_id;
-    if (add_node_in_txn(dst))
-    {
-        CommonUtil::log_msg(
-            "Failed to add node_id " + std::to_string(to_insert.dst_id),
-            __FILE__,
-            __LINE__);
-        return WT_ROLLBACK;
+        node dst = {0};
+        dst.id = to_insert.dst_id;
+        if (add_node_in_txn(dst))
+        {
+            CommonUtil::log_msg(
+                "Failed to add node_id " + std::to_string(to_insert.dst_id),
+                __FILE__,
+                __LINE__);
+            session->rollback_transaction(session, nullptr);
+            return WT_ROLLBACK;
+        }
+        num_nodes_added++;
     }
-    num_nodes_added++;
 
     /***** Insert edge *****/
     CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
@@ -1707,16 +1712,6 @@ int AdjList::error_check_insert_txn(int return_val, bool ignore_duplicate_key)
             session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         case WT_DUPLICATE_KEY:
-            if (!ignore_duplicate_key)
-            {
-                // session->rollback_transaction(session, nullptr);
-                /*Rolling back the transaction here is not necessary if the
-                 * cursor has been opened with overwrite=false. A plain warning
-                 * is enough. */
-                // CommonUtil::log_msg(
-                //     "WT_DUPLICATE_KEY error in insert_txn", __FILE__,
-                //     __LINE__);
-            }
             return WT_DUPLICATE_KEY;
         case WT_NOTFOUND:
             //! Should we roll back the transaction here? This should not
@@ -1725,9 +1720,13 @@ int AdjList::error_check_insert_txn(int return_val, bool ignore_duplicate_key)
                 "WT_NOTFOUND error in insert_txn", __FILE__, __LINE__);
             return WT_NOTFOUND;
         default:
+            CommonUtil::log_msg(
+                "Rolling back transaction in insert_txn" +
+                    std::string(wiredtiger_strerror(return_val)),
+                __FILE__,
+                __LINE__);
             session->rollback_transaction(session, nullptr);
-            throw GraphException("Failed to complete insert action" +
-                                 std::string(wiredtiger_strerror(return_val)));
+            return return_val;
     }
 }
 
@@ -1739,11 +1738,20 @@ int AdjList::error_check_update_txn(int return_val)
             return 0;
         case WT_ROLLBACK:
             session->rollback_transaction(session, nullptr);
+            CommonUtil::log_msg(
+                "Rolling back transaction in update_txn" +
+                    std::string(wiredtiger_strerror(return_val)),
+                __FILE__,
+                __LINE__);
             return WT_ROLLBACK;
         default:
             session->rollback_transaction(session, nullptr);
-            throw GraphException("Failed to complete update action" +
-                                 std::string(wiredtiger_strerror(return_val)));
+            CommonUtil::log_msg(
+                "Failed to complete update action" +
+                    std::string(wiredtiger_strerror(return_val)),
+                __FILE__,
+                __LINE__);
+            return return_val;
     }
 }
 
@@ -1761,8 +1769,12 @@ int AdjList::error_check_read_txn(int return_val)
             return WT_NOTFOUND;
         default:
             session->rollback_transaction(session, nullptr);
-            throw GraphException("Failed to complete read action" +
-                                 std::string(wiredtiger_strerror(return_val)));
+            CommonUtil::log_msg(
+                "Failed to complete read action : " +
+                    std::string(wiredtiger_strerror(return_val)),
+                __FILE__,
+                __LINE__);
+            return return_val;
     }
 }
 
@@ -1774,9 +1786,19 @@ int AdjList::error_check_remove_txn(int return_val)
             return 0;
         case WT_ROLLBACK:
             session->rollback_transaction(session, nullptr);
+            CommonUtil::log_msg(
+                "Rollback in transaction remove : " +
+                    std::string(wiredtiger_strerror(return_val)),
+                __FILE__,
+                __LINE__);
             return WT_ROLLBACK;
         default:
             session->rollback_transaction(session, nullptr);
+            CommonUtil::log_msg(
+                "Rollback in transaction remove : " +
+                    std::string(wiredtiger_strerror(return_val)),
+                __FILE__,
+                __LINE__);
     }
     return return_val;
 }
