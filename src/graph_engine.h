@@ -9,7 +9,7 @@
 #include "edgekey_split.h"
 #include "graph.h"
 #include "graph_exception.h"
-#include "standard_graph.h"
+// #include "standard_graph.h"
 
 class GraphEngine
 {
@@ -63,11 +63,11 @@ GraphEngine::~GraphEngine() { close_connection(); }
 GraphBase *GraphEngine::create_graph_handle()
 {
     GraphBase *ptr;
-    if (opts.type == GraphType::Std)
-    {
-        ptr = new StandardGraph(opts, conn);
-    }
-    else if (opts.type == GraphType::Adj)
+    //    if (opts.type == GraphType::Std)
+    //    {
+    //        ptr = new StandardGraph(opts, conn);
+    //    }
+    if (opts.type == GraphType::Adj)
     {
         ptr = new AdjList(opts, conn);
     }
@@ -91,11 +91,11 @@ void GraphEngine::create_indices()
     WT_SESSION *sess;
     CommonUtil::open_session(conn, &sess);
     // Should enforce other handles are closed here (TODO?)
-    if (opts.type == GraphType::Std)
-    {
-        StandardGraph::create_indices(sess);
-    }
-    else if (opts.type == GraphType::EKey)
+    //    if (opts.type == GraphType::Std)
+    //    {
+    //        StandardGraph::create_indices(sess);
+    //    }
+    if (opts.type == GraphType::EKey)
     {
         EdgeKey::create_indices(sess);
     }
@@ -256,11 +256,11 @@ void GraphEngine::create_new_graph()
         throw GraphException("Cannot open connection to new DB");
     };
 
-    if (opts.type == GraphType::Std)
-    {
-        StandardGraph::create_wt_tables(opts, conn);
-    }
-    else if (opts.type == GraphType::Adj)
+    //    if (opts.type == GraphType::Std)
+    //    {
+    //        StandardGraph::create_wt_tables(opts, conn);
+    //    }
+    if (opts.type == GraphType::Adj)
     {
         AdjList::create_wt_tables(opts, conn);
     }

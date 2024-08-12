@@ -382,7 +382,7 @@ class AdjList : public GraphBase
             WT_CONNECTION *connection);  // TODO: merge the 2 constructors
     static void create_wt_tables(
         graph_opts &opts, WT_CONNECTION *conn);  // Need this to init graph db
-    int add_node(node to_insert) override;
+    int add_node(node to_insert, bool is_bulk = false) override;
     void add_node(node_id_t to_insert,
                   std::vector<node_id_t> &inlist,
                   std::vector<node_id_t> &outlist);

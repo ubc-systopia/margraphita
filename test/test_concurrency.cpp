@@ -36,8 +36,8 @@ int main()
     GraphEngine myEngine(THREAD_NUM, opts);
 
     GraphBase* graph = myEngine.create_graph_handle();
-    graph->add_node(node{.id = 0});
-    graph->add_node(node{.id = 100});
+    graph->add_node(node{.id = 0}, false);
+    graph->add_node(node{.id = 100}, false);
     graph->close(true);
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)
@@ -49,7 +49,7 @@ int main()
             int ret = -1;
             while (ret != 0)
             {
-                ret = graph->add_node(node{.id = 1});
+                ret = graph->add_node(node{.id = 1}, false);
             }
             ret = -1;
             while (ret != 0)

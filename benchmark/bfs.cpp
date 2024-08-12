@@ -1,9 +1,4 @@
-#include <math.h>
-#include <stdio.h>
-#include <unistd.h>
-
 #include <deque>
-#include <fstream>
 #include <iostream>
 #include <list>
 #include <set>
@@ -12,12 +7,8 @@
 #include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
-#include "common_util.h"
 #include "csv_log.h"
-#include "edgekey.h"
 #include "graph_engine.h"
-#include "graph_exception.h"
-#include "standard_graph.h"
 #include "times.h"
 
 /**

@@ -176,7 +176,7 @@ void AdjList::init_cursors()
  * happen with concurrent add_edges/add_nodes)
  * @throws GraphException for other WT errors
  */
-int AdjList::add_node(node to_insert)
+int AdjList::add_node(node to_insert, bool is_bulk)
 {
     session->begin_transaction(session, "isolation=snapshot");
     int ret;
@@ -198,17 +198,21 @@ int AdjList::add_node(node to_insert)
     {
         return ret;
     }
+    //! add a bulk flag here
+    if (!is_bulk)
+    {
+        if ((ret = error_check_insert_txn(
+                 add_adjlist(in_adjlist_cursor, to_insert.id), false)))
+        {
+            return ret;
+        }
+        if ((ret = error_check_insert_txn(
+                 add_adjlist(out_adjlist_cursor, to_insert.id), false)))
+        {
+            return ret;
+        }
+    }
 
-    if ((ret = error_check_insert_txn(
-             add_adjlist(in_adjlist_cursor, to_insert.id), false)))
-    {
-        return ret;
-    }
-    if ((ret = error_check_insert_txn(
-             add_adjlist(out_adjlist_cursor, to_insert.id), false)))
-    {
-        return ret;
-    }
     session->commit_transaction(session, nullptr);
     GraphBase::increment_nodes(1);
     return ret;

@@ -1,27 +1,13 @@
-#include <math.h>
-#include <stdio.h>
 #include <unistd.h>
-
 #include <cassert>
-#include <chrono>
-#include <cstring>
-#include <fstream>
 #include <iostream>
-#include <mutex>
 #include <shared_mutex>
-#include <sstream>
 #include <vector>
-
-#include "adj_list.h"
 #include "benchmark_definitions.h"
 #include "command_line.h"
-#include "common_util.h"
 #include "csv_log.h"
-#include "edgekey.h"
 #include "graph.h"
 #include "graph_engine.h"
-#include "graph_exception.h"
-#include "standard_graph.h"
 #include "times.h"
 
 const float dampness = 0.85;

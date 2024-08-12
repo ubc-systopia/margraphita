@@ -93,7 +93,7 @@ void SplitEdgeKey::init_cursors()
                              string(wiredtiger_strerror(ret)));
     }
 }
-int SplitEdgeKey::add_node(node to_insert)
+int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
 {
     session->begin_transaction(session, "isolation=snapshot");
     CommonUtil::ekey_set_key(out_edge_cursor, to_insert.id, OutOfBand_ID_MIN);
@@ -123,10 +123,13 @@ int SplitEdgeKey::add_node(node to_insert)
     }
     else
     {
-        // FIXME: THIS NEEDS TO BE CHANGED ASAP
-        throw GraphException("Failed to insert a node with ID " +
-                             std::to_string(to_insert.id) +
-                             " into the edge table");
+        session->rollback_transaction(session, nullptr);
+        CommonUtil::log_msg(
+            "Failed to add node " + to_string(to_insert.id) + " to the graph" +
+                " with error: " + string(wiredtiger_strerror(out_ret)),
+            __FILE__,
+            __LINE__);
+        return out_ret;
     }
 }
 

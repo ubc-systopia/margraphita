@@ -32,7 +32,7 @@ class GraphBase
     static void create_metadata_table(
         graph_opts &opts,
         WT_CONNECTION *conn);  // Used during first-time init of DB
-    virtual int add_node(node to_insert) = 0;
+    virtual int add_node(node to_insert, bool is_bulk) = 0;
     virtual bool has_node(node_id_t node_id) = 0;
     virtual int delete_node(node_id_t node_id) = 0;
     virtual int add_edge(edge to_insert, bool is_bulk) = 0;

@@ -232,7 +232,7 @@ void EdgeKey::get_random_node_ids(vector<node_id_t> &ids, int num_nodes)
  *
  * @param to_insert the node to be inserted into the edge table
  */
-int EdgeKey::add_node(node to_insert)
+int EdgeKey::add_node(node to_insert, bool is_bulk)
 {
     // start_add_node:
     session->begin_transaction(session, "isolation=snapshot");

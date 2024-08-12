@@ -4,8 +4,6 @@ FILE(GLOB SOURCES_LIB "${OMP_INCLUDE_DIR}/omp.h"
         "${PATH_SRC}/graph.h"
         "${PATH_SRC}/graph.cpp"
         "${PATH_SRC}/graph_engine.h"
-        "${PATH_SRC}/graph_exception.h"
-        "${PATH_SRC}/standard_graph.cpp"
         "${PATH_SRC}/standard_graph.h"
         "${PATH_SRC}/adj_list.cpp"
         "${PATH_SRC}/adj_list.h"
@@ -13,6 +11,8 @@ FILE(GLOB SOURCES_LIB "${OMP_INCLUDE_DIR}/omp.h"
         "${PATH_SRC}/edgekey.h"
         "${PATH_SRC}/edgekey_split.cpp"
         "${PATH_SRC}/edgekey_split.h")
+#"${PATH_SRC}/graph_exception.h"
+#"${PATH_SRC}/standard_graph.cpp"
 
 # Create GraphAPI.a (static library)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
