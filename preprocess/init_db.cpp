@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     std::filesystem::create_directories(opts.stat_log);
 
     if (opts.conn_config.empty()) opts.conn_config = "cache_size=10GB";
-    opts.print_config(opts.stat_log + "/init_db_config.txt");
+    opts.dump_cmd_config(opts.stat_log + "/init_db_config.txt");
     const int THREAD_NUM = 1;
 
     Times t;

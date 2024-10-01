@@ -1,6 +1,4 @@
 
-#include "graph.h"
-
 #include <wiredtiger.h>
 
 #include <cstring>
@@ -8,6 +6,7 @@
 #include <string>
 
 #include "common_util.h"
+#include "graph.h"
 #include "graph_exception.h"
 using namespace std;
 
@@ -172,26 +171,27 @@ void GraphBase::dump_meta_data()
     {
         cursor->get_key(cursor, &key);
         cursor->get_value(cursor, &item);
-        std::cout <<"metadata item: " << MetadataKeyNames[key] << "\t size: "<<item.size << "\n";
-        if(key == MetadataKey::num_nodes)
+        std::cout << "metadata item: " << MetadataKeyNames[key]
+                  << "\t size: " << item.size << "\n";
+        if (key == MetadataKey::num_nodes)
         {
             node_id_t num_nodes = *(node_id_t *)item.data;
             std::cout << "num_nodes: " << num_nodes << "\n";
         }
-        if(key == MetadataKey::num_edges)
+        if (key == MetadataKey::num_edges)
         {
             edge_id_t num_edges = *(edge_id_t *)item.data;
             std::cout << "num_edges: " << num_edges << "\n";
         }
-        if(key == MetadataKey::max_node_id)
+        if (key == MetadataKey::max_node_id)
         {
             node_id_t max_node_id = *(node_id_t *)item.data;
             std::cout << "max_node_id: " << max_node_id << "\n";
         }
-        if(key == MetadataKey::min_node_id)
+        if (key == MetadataKey::min_node_id)
         {
             node_id_t min_node_id = *(node_id_t *)item.data;
-            std::cout << "min_node_id: " << min_node_id<< "\n";
+            std::cout << "min_node_id: " << min_node_id << "\n";
         }
     }
     cursor->close(cursor);
@@ -222,10 +222,12 @@ int GraphBase::_get_table_cursor(const std::string &table,
              prevent_overwrite ? "false" : "true");
     char table_name[256];
     snprintf(table_name, sizeof(table_name), "table:%s", table.c_str());
-    if (session->open_cursor(session, table_name, nullptr, config, cursor) != 0)
+    int err =
+        session->open_cursor(session, table_name, nullptr, config, cursor);
+    if (err != 0)
     {
         throw GraphException("Failed to open a cursor on the " + table +
-                             " table");
+                             " table\n" + wiredtiger_strerror(err));
     }
     return 0;
 }
@@ -394,7 +396,9 @@ void GraphBase::sync_metadata()
                     sizeof(node_id_t),
                     metadata_cursor);
 
+#ifdef DEBUG
     dump_meta_data();
+#endif
 }
 
 node_id_t GraphBase::get_num_nodes() { return GraphBase::local_nnodes.load(); };

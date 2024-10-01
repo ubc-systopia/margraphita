@@ -48,6 +48,7 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
     num_threads = _num_threads;
     // init with the engine_opts passed as args without copying
     opts = engine_opts;
+    opts.print_config("cmd_config.txt");
     if (opts.create_new)
     {
         create_new_graph();

@@ -448,6 +448,8 @@ class EdgeKey : public GraphBase
     WT_CURSOR *get_new_dst_src_idx_cursor();
     static void create_indices(WT_SESSION *session);
 
+    void dump_table(std::string &table_name, int num_lines);
+
    private:
     // Cursors
     WT_CURSOR *edge_cursor = nullptr;

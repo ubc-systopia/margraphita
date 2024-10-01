@@ -104,6 +104,26 @@ struct graph_opts
     std::string dataset;
     int num_threads = 1;
     ~graph_opts() = default;
+    // dump the options
+    void print_config(const std::string &filename)
+    {
+        std::ofstream out;
+        out.open(filename, std::ios::out);
+        out << "CREATE_NEW: " << create_new << std::endl;
+        out << "READ_OPTIMIZE: " << read_optimize << std::endl;
+        out << "DIRECTED: " << is_directed << std::endl;
+        out << "WEIGHTED: " << is_weighted << std::endl;
+        out << "DB_NAME: " << db_name << std::endl;
+        out << "DB_DIR: " << db_dir << std::endl;
+        out << "OPTIMIZE_CREATE: " << optimize_create << std::endl;
+        out << "CONN_CONFIG: " << conn_config << std::endl;
+        out << "STAT_LOG: " << stat_log << std::endl;
+        out << "GRAPH_TYPE: " << type << std::endl;
+        out << "DATASET: " << dataset << std::endl;
+        out << "NUM_NODES" << num_nodes << std::endl;
+        out << "NUM_EDGES" << num_edges << std::endl;
+        out.close();
+    }
 };
 
 typedef struct node

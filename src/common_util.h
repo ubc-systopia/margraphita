@@ -2,11 +2,13 @@
 #define BASE_COMMON
 
 #include <wiredtiger.h>
+
 #include <cassert>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <map>
 // #ifdef LINUX
@@ -70,10 +72,11 @@ class CommonUtil
 
     static int open_session(WT_CONNECTION *conn, WT_SESSION **session);
     static void check_return(int retval, const std::string &mesg);
-    static void dump_node(node to_print);
-    static void dump_edge(edge to_print);
-    static void dump_adjlist(const adjlist &to_print);
-    [[maybe_unused]] static void dump_edge_index(edge_index to_print);
+    static void dump_node(node to_print, std::ostream &os);
+    static void dump_edge(edge to_print, std::ostream &os);
+    static void dump_adjlist(const adjlist &to_print, std::ostream &os);
+    [[maybe_unused]] static void dump_edge_index(edge_index to_print,
+                                                 std::ostream &os);
 
     static int node_to_record(WT_CURSOR *cursor,
                               node to_insert,
@@ -379,6 +382,48 @@ inline int CommonUtil::ekey_get_key(WT_CURSOR *cursor,
     if (*key1 != OutOfBand_ID_MIN) *key1 = OG_KEY(*key1);
     if (*key2 != OutOfBand_ID_MIN) *key2 = OG_KEY(*key2);
     return ret;
+}
+
+inline void CommonUtil::dump_node(node to_print, std::ostream &os = std::cout)
+{
+    os << "ID is: \t" << to_print.id << std::endl;
+    os << "in_degree is:\t" << to_print.in_degree << std::endl;
+    os << "out_degree is:\t" << to_print.out_degree << "\n\n";
+}
+
+inline void CommonUtil::dump_edge(edge to_print, std::ostream &os = std::cout)
+{
+    os << "SRC id is:\t" << to_print.src_id << std::endl;
+    os << "DST id is:\t" << to_print.dst_id << std::endl;
+    os << "Weight is:\t" << to_print.edge_weight << "\n\n";
+}
+
+inline void CommonUtil::dump_edge_index(edge_index to_print,
+                                        std::ostream &os = std::cout)
+{
+    os << "SRC id is:\t" << to_print.src_id << std::endl;
+    os << "DST id is:\t" << to_print.dst_id << std::endl;
+}
+
+inline void CommonUtil::dump_adjlist(const adjlist &to_print,
+                                     std::ostream &os = std::cout)
+{
+    os << "Node ID is: \t" << to_print.node_id << std::endl;
+    os << "degree is:\t" << to_print.degree << std::endl;
+    os << "Adjacency List is:\t {";
+    for (node_id_t n : to_print.edgelist)
+    {
+        os << n << " ";
+    }
+    os << "}"
+       << "\n\n";
+}
+
+inline void CommonUtil::log_msg(const std::string_view message,
+                                const std::string_view file,
+                                int line)
+{
+    std::cerr << "file: " << file << "@" << line << ": " << message << '\n';
 }
 
 #endif

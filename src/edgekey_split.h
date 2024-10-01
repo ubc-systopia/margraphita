@@ -71,8 +71,8 @@ class SplitEdgeKey : public GraphBase
         return dst_src_idx_cursor;
     }
     WT_CURSOR *get_new_node_index_cursor();
-
     static void create_indices(WT_SESSION *session);
+    void dump_table(std::string &table_name, int num_records);
 
    private:
     WT_CURSOR *out_edge_cursor = nullptr;

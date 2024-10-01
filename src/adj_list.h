@@ -438,6 +438,7 @@ class AdjList : public GraphBase
     void add_adjlist(WT_CURSOR *cursor,
                      node_id_t node_id,
                      std::vector<node_id_t> &list);
+    [[maybe_unused]] void dump_table(std::string &table_name, int limit = 0);
 
    private:
     // structure of the graph
@@ -468,7 +469,6 @@ class AdjList : public GraphBase
                            degree_t indeg,
                            degree_t outdeg);
 
-    [[maybe_unused]] void dump_tables();
     int add_one_node_degree(WT_CURSOR *cursor,
                             node_id_t to_update,
                             bool is_out_degree);

@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     t.stop();
     cout << "Graph loaded in " << t.t_micros() << endl;
 
-    opts.print_config(opts.stat_log + "pr_config");
+    opts.dump_cmd_config(opts.stat_log + "pr_config");
 
     // Now run PR
     t.start();

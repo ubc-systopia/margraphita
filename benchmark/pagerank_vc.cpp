@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
 
     cmdline_opts opts = pr_cli.get_parsed_opts();
     opts.stat_log += "/" + opts.db_name;
-    //    opts.print_config("out");
+    //    opts.dump_cmd_config("out");
     const int THREAD_NUM = omp_get_max_threads();
     Times t;
     t.start();

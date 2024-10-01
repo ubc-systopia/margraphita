@@ -1530,54 +1530,64 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     return found;
 }
 
-[[maybe_unused]] void AdjList::dump_tables()
+[[maybe_unused]] void AdjList::dump_table(std::string &table_name,
+                                          int num_records)
 {
-    cout << "------\n"
-         << "Nodes:\n"
-         << "------\n";
-    while (node_cursor->next(node_cursor) == 0)
+    if (table_name == NODE_TABLE)
     {
-        node found;
-        node_cursor->get_key(node_cursor, &found.id);
-        node_cursor->get_value(
-            node_cursor, &found.in_degree, &found.out_degree);
-        CommonUtil::dump_node(found);
+        std::ofstream outfile("nodes_dump.txt");
+        while (node_cursor->next(node_cursor) == 0 && num_records > 0)
+        {
+            num_records--;
+            node found;
+            CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
+            CommonUtil::get_key(node_cursor, &found.id);
+            CommonUtil::dump_node(found, outfile);
+        }
+        node_cursor->reset(node_cursor);
+        outfile.close();
     }
-
-    // dump all edges:
-    cout << "------\n"
-         << "Edges:\n"
-         << "------\n";
-    while (edge_cursor->next(edge_cursor) == 0)
+    else if (table_name == EDGE_TABLE)
     {
-        edge found;
-        edge_cursor->get_key(edge_cursor, &found.src_id, &found.dst_id);
-        edge_cursor->get_value(edge_cursor, &found.edge_weight);
-        CommonUtil::dump_edge(found);
+        std::ofstream outfile("edges_dump.txt");
+        while (edge_cursor->next(edge_cursor) == 0 && num_records > 0)
+        {
+            edge found;
+            num_records--;
+            CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
+            if (opts.is_weighted)
+            {
+                CommonUtil::record_to_edge(edge_cursor, &found);
+            }
+            CommonUtil::dump_edge(found, outfile);
+        }
+        edge_cursor->reset(edge_cursor);
     }
-
-    // dump in_adjlist:
-    cout << "------\n"
-         << "In Adjlist:\n"
-         << "------\n";
-    while (in_adjlist_cursor->next(in_adjlist_cursor) == 0)
+    else if (table_name == OUT_ADJLIST)
     {
-        adjlist found;
-        in_adjlist_cursor->get_key(in_adjlist_cursor, &found.node_id);
-        CommonUtil::record_to_adjlist(in_adjlist_cursor, &found);
-        CommonUtil::dump_adjlist(found);
+        std::ofstream outfile("outedge_dump.txt");
+        while (out_adjlist_cursor->next(out_adjlist_cursor) == 0 &&
+               num_records > 0)
+        {
+            adjlist found;
+            num_records--;
+            out_adjlist_cursor->get_key(out_adjlist_cursor, &found.node_id);
+            CommonUtil::record_to_adjlist(out_adjlist_cursor, &found);
+            CommonUtil::dump_adjlist(found, outfile);
+        }
     }
-
-    // dump in outadj_list:
-    cout << "------\n"
-         << "Out Adjlist:\n"
-         << "------\n";
-    while (out_adjlist_cursor->next(out_adjlist_cursor) == 0)
+    else if (table_name == IN_ADJLIST)
     {
-        adjlist found;
-        out_adjlist_cursor->get_key(out_adjlist_cursor, &found.node_id);
-        CommonUtil::record_to_adjlist(out_adjlist_cursor, &found);
-        CommonUtil::dump_adjlist(found);
+        std::ofstream outfile("inedge_dump.txt");
+        while (in_adjlist_cursor->next(in_adjlist_cursor) == 0 &&
+               num_records > 0)
+        {
+            adjlist found;
+            num_records--;
+            in_adjlist_cursor->get_key(in_adjlist_cursor, &found.node_id);
+            CommonUtil::record_to_adjlist(in_adjlist_cursor, &found);
+            CommonUtil::dump_adjlist(found, outfile);
+        }
     }
 }
 

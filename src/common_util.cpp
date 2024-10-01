@@ -182,42 +182,4 @@ void CommonUtil::check_return(int retval, const std::string &mesg)
     }
 }
 
-void CommonUtil::dump_node(node to_print)
-{
-    std::cout << "ID is: \t" << to_print.id << std::endl;
-    std::cout << "in_degree is:\t" << to_print.in_degree << std::endl;
-    std::cout << "out_degree is:\t" << to_print.out_degree << "\n\n";
-}
 
-void CommonUtil::dump_edge(edge to_print)
-{
-    std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
-    std::cout << "DST id is:\t" << to_print.dst_id << std::endl;
-    std::cout << "Weight is:\t" << to_print.edge_weight << "\n\n";
-}
-
-[[maybe_unused]] void CommonUtil::dump_edge_index(edge_index to_print)
-{
-    std::cout << "SRC id is:\t" << to_print.src_id << std::endl;
-    std::cout << "DST id is:\t" << to_print.dst_id << "\n\n";
-}
-
-void CommonUtil::dump_adjlist(const adjlist &to_print)
-{
-    std::cout << "Node ID is: \t" << to_print.node_id << std::endl;
-    std::cout << "degree is:\t" << to_print.degree << std::endl;
-    std::cout << "Adjacency List is:\t {";
-    for (node_id_t n : to_print.edgelist)
-    {
-        std::cout << n << " ";
-    }
-    std::cout << "}"
-              << "\n\n";
-}
-
-void CommonUtil::log_msg(const std::string_view message,
-                         const std::string_view file,
-                         int line)
-{
-    std::cerr << "file: " << file << "@" << line << ": " << message << '\n';
-}

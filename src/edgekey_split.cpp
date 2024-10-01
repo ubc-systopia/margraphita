@@ -1127,3 +1127,44 @@ void SplitEdgeKey::create_indices(WT_SESSION *session)
             "Failed to create DST_SRC_INDEX on the edge table");
     }
 }
+
+void SplitEdgeKey::dump_table(string &table_name, int num_records)
+{
+    ofstream out = ofstream("dump_" + table_name + ".txt");
+    if (table_name == IN_EDGES)
+    {
+        while (in_edge_cursor->next(in_edge_cursor) == 0 && num_records > 0)
+        {
+            node_id_t src, dst;
+            CommonUtil::ekey_get_key(in_edge_cursor, &dst, &src);
+            if (dst == OutOfBand_ID_MIN)
+            {
+                out << "NODE ID\t" << src << std::endl;
+            }
+            else
+            {
+                out << "SRC id is:\t" << src << std::endl;
+                out << "DST id is:\t" << dst << std::endl;
+            }
+            num_records--;
+        }
+    }
+    else
+    {
+        while (out_edge_cursor->next(out_edge_cursor) == 0 && num_records > 0)
+        {
+            node_id_t src, dst;
+            CommonUtil::ekey_get_key(out_edge_cursor, &dst, &src);
+            if (dst == OutOfBand_ID_MIN)
+            {
+                out << "NODE ID\t" << src << std::endl;
+            }
+            else
+            {
+                out << "SRC id is:\t" << src << std::endl;
+                out << "DST id is:\t" << dst << std::endl;
+            }
+            num_records--;
+        }
+    }
+}

@@ -1626,3 +1626,19 @@ node_id_t EdgeKey::get_max_node_id()
     cursor->close(cursor);
     return src;
 }
+
+void EdgeKey::dump_table(std::string &table_name, int num_lines)
+{
+    ofstream out = ofstream("dump" + table_name + ".txt");
+    while (edge_cursor->next(edge_cursor) == 0 && num_lines > 0)
+    {
+        edge e;
+        CommonUtil::ekey_get_key(edge_cursor, &e.src_id, &e.dst_id);
+        if (opts.is_weighted)
+        {
+            CommonUtil::record_to_edge_ekey(edge_cursor, &e);
+        }
+        CommonUtil::dump_edge(e, out);
+        num_lines--;
+    }
+}

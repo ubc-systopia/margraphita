@@ -45,3 +45,8 @@ target_link_libraries(init_db PUBLIC ${NAME_LIB} graph_utils)
 add_executable(mk_adjlists mk_adjlists.cpp reader.h mk_adjlists.h)
 target_include_directories(mk_adjlists PRIVATE ${PATH_SRC})
 target_link_libraries(mk_adjlists PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
+
+# ###################################################################################
+add_executable(dump_graph dump_graph.cpp reader.h)
+target_include_directories(dump_graph PRIVATE ${PATH_SRC})
+target_link_libraries(dump_graph PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
