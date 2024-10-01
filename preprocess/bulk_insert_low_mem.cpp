@@ -4,14 +4,17 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
 {
     int tid = _tid;
     std::string filename = opts.dataset + "/out_";
-    char c = (char)(97 + tid);
-    filename.push_back('a');
-    filename.push_back(c);
+    int first_char = tid / 26;
+    int second_char = tid % 26;
+    char c1 = (char)(97 + first_char);
+    char c2 = (char)(97 + second_char);
+    filename.push_back(c1);
+    filename.push_back(c2);
 
     worker_sessions adj_obj(conn_adj, "table:adjlistout", GraphType::Adj);
     worker_sessions split_ekey_out(
         conn_split_ekey, "table:edge_out", GraphType::SplitEKey);
-    worker_sessions std_obj(conn_std, "table:edge", GraphType::Std);
+    // worker_sessions std_obj(conn_std, "table:edge", GraphType::Std);
     worker_sessions ekey_obj(conn_ekey, "table:edge", GraphType::EKey);
 
     reader::AdjReader adj_reader(filename);
@@ -19,8 +22,8 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
     while (adj_reader.get_next_adjlist(adj_list) == 0)
     {
         // insert into STD: edge table
-        add_to_edge_table(
-            std_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
+        // add_to_edge_table(
+        //     std_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
         add_to_edgekey(
             ekey_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
         add_to_edgekey(split_ekey_out.e_cur,
@@ -47,9 +50,12 @@ void insert_rev_edge_thread(int _tid)
 {
     int tid = _tid;
     std::string filename = opts.dataset + "/in_";
-    char c = (char)(97 + tid);
-    filename.push_back('a');
-    filename.push_back(c);
+    int first_char = tid / 26;
+    int second_char = tid % 26;
+    char c1 = (char)(97 + first_char);
+    char c2 = (char)(97 + second_char);
+    filename.push_back(c1);
+    filename.push_back(c2);
 
     worker_sessions adj_obj(conn_adj, "table:adjlistin", GraphType::Adj);
     worker_sessions split_ekey_in(
@@ -93,7 +99,7 @@ void debug_dump_edges()
 
 void insert_nodes()
 {
-    worker_sessions std_node_obj(conn_std, "", GraphType::Std, false);
+    // worker_sessions std_node_obj(conn_std, "", GraphType::Std, false);
     worker_sessions adj_node_obj(conn_adj, "", GraphType::Adj, false);
     worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey, false);
     worker_sessions split_ekey_node_obj(
@@ -107,7 +113,7 @@ void insert_nodes()
         to_insert.in_degree = it->second.in_degree;
         to_insert.out_degree = it->second.out_degree;
         // insert into STD: node table
-        add_to_node_table(std_node_obj.n_cur, to_insert);
+        // add_to_node_table(std_node_obj.n_cur, to_insert);
         // insert into EKEY: node table
         add_node_to_ekey(ekey_node_obj.e_cur, to_insert);
         // insert into SPLIT_EKEY_OUT table for nodes
@@ -142,7 +148,10 @@ void update_metadata(const graph_opts &_opts)
     std::cout << "Min node id: " << key_min << std::endl;
     std::cout << "Max node id: " << key_max << std::endl;
 
-    for (auto conn : {conn_std, conn_adj, conn_ekey, conn_split_ekey})
+    for (auto conn : {conn_adj,
+                      conn_ekey,
+                      conn_split_ekey})  //(auto conn : {conn_std, conn_adj,
+                                         // conn_ekey, conn_split_ekey})
     {
         worker_sessions obj(conn, "table:metadata", GraphType::META, false);
         WT_CURSOR *cursor = obj.metadata;
@@ -167,7 +176,8 @@ void update_metadata(const graph_opts &_opts)
                      sizeof(opts.num_edges),
                      cursor);
     }
-    for (auto conn : {conn_std, conn_adj, conn_ekey})
+    // for (auto conn : {conn_std, conn_adj, conn_ekey})
+    for (auto conn : {conn_adj, conn_ekey, conn_split_ekey})
     {
         worker_sessions obj(conn, "table:metadata", GraphType::META, false);
         WT_CURSOR *cursor = obj.metadata;
@@ -197,21 +207,21 @@ int main(int argc, char *argv[])
     // open connections to all three dbs
     make_connections(opts, conn_config);
 
-    num_per_chunk = (int)(opts.num_edges / NUM_THREADS);
+    num_per_chunk = (int)(opts.num_edges / opts.num_threads);
     dump_config(opts, conn_config);
     std::cout << "dataset: " << opts.dataset << std::endl;
 
     // We first work on the out edges. We will read the edges from the file and
     // insert them into the edge table and the adjlist table
     std::cout << "weighted? " << opts.is_weighted << std::endl;
-#pragma omp parallel for num_threads(NUM_THREADS)
-    for (int i = 0; i < NUM_THREADS; i++)
+#pragma omp parallel for num_threads(opts.num_threads)
+    for (int i = 0; i < opts.num_threads; i++)
     {
         insert_edge_thread(i, opts.is_weighted);
     }
 
-#pragma omp parallel for num_threads(NUM_THREADS)
-    for (int i = 0; i < NUM_THREADS; i++)
+#pragma omp parallel for num_threads(opts.num_threads)
+    for (int i = 0; i < opts.num_threads; i++)
     {
         insert_rev_edge_thread(i);
     }
@@ -224,7 +234,7 @@ int main(int argc, char *argv[])
     update_metadata(opts);
 
     conn_adj->close(conn_adj, nullptr);
-    conn_std->close(conn_std, nullptr);
+    // conn_std->close(conn_std, nullptr);
     conn_ekey->close(conn_ekey, nullptr);
     conn_split_ekey->close(conn_split_ekey, nullptr);
 

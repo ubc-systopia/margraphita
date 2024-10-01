@@ -30,12 +30,12 @@ def main():
 
     parser.add_argument("-p", "--preprocess", action='store_true', default=False,
                         help="preprocess graphs. Default is False")
-    parser.add_argument("-m", "--num_threads", action='store_true', default=16,
+    parser.add_argument("-m", "--num_threads", type=int, default=16,
                         help="Number of threads to use for bulk insertion. This is also the number of partitions that are created for bulk insertion. Default is 16")
     parser.add_argument("-s", "--dry_run", action='store_true', default=False,
                         help="Dry run. Do not perform any operations. Default is False")
-    parser.add_argument("-o", "--read_optimized", action='store_true', default=True,
-                        help="read optimized; default is True")
+    parser.add_argument("-o", "--read_optimized", action='store_true', default=False,
+                        help="read optimized; default is False")
     parser.add_argument("-c", "--cleanup", action='store_true', default=False,
                         help="cleanup any intermediate files, default is False")
     parser.add_argument("-w", "--weighted", action='store_true',
@@ -144,9 +144,13 @@ def main():
         dataset.update(config_data)  # add config to dataset
         dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
         dataset.update(vars(args))  # add args to config
-        graph = dataset['graph_path']
+        # output the graphs in the same directory as the graph
+        dataset['output_dir'] = os.path.dirname(dataset['graph_path'])
         dataset['output_dir'] = os.path.join(
-            config_data['DB_DIR'], dataset['dataset_name'])
+            dataset['output_dir'], "preprocess")
+        print("Output dir: " + dataset['output_dir'])
+        os.makedirs(dataset['output_dir'], exist_ok=True)
+
         dataset['db_dir'] = os.path.join(
             config_data['DB_DIR'], dataset['dataset_name'])
         if not os.path.exists(dataset['output_dir']):
@@ -181,13 +185,9 @@ def main():
         # if not, then copy it over
         golden_image = os.path.join(
             "/drives/hdd_main/golden_images", dataset['dataset_name'])
-        if not os.path.exists(golden_image):
-            print("Copying golden image")
-            os.makedirs(golden_image, exist_ok=True)
-            os.system(
-                f"cp -r {dataset['output_dir']}/* {golden_image}")
-        else:
-            print("Golden image already exists")
+        print("Copying golden image")
+        os.makedirs(golden_image, exist_ok=True)
+        os.system(f"cp -r {dataset['db_dir']}/* {golden_image}")
 
 
 if __name__ == "__main__":

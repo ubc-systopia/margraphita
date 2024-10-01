@@ -35,7 +35,7 @@ class Preprocess:
 
     def build_bulk_cmd(self):
         bulk_binary = "bulk_insert_low_mem"
-        cmd = f"{self.config_data['cmd_root']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{bulk_binary}.log"
+        cmd = f"{self.config_data['cmd_root']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{bulk_binary}.log -m {self.config_data['num_threads']}"
         if self.config_data['weighted']:
             cmd += " -w"
         return cmd
@@ -107,6 +107,26 @@ class Preprocess:
             os.system(sort_cmd)
             et = time.time()
             print(f"Time taken to sort the graph: {et - st}\n")
+
+        ##############################
+        # determine num_edges from the graph
+        ##############################
+        self.log(
+            "Get the number of edges from the graph using awk")
+        # cmd = f"parallel awk -f count.awk ::: {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a*" + \
+        #       "| awk '{sum += $1} END {print sum}'"
+        cmd = f"wc -l {self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
+        self.log(f"Running command: {cmd}\n")
+        if (not self.config_data['dry_run']):
+            st = time.time()
+            found_edges = int(check_output(cmd, shell=True).split()[0])
+            et = time.time()
+            print(f"Time taken to count the edges: {et - st}\n")
+            self.config_data['num_edges'] = found_edges
+            self.log(f"The graph has {found_edges} edges")
+            print("Found edges: " + str(found_edges))
+            self.num_edges = found_edges
+
         ##############################
         # Split the graph into NUM_THREADS files
         ##############################
@@ -121,31 +141,15 @@ class Preprocess:
             print(f"Time taken to split the graph: {et - st}\n")
 
         ##############################
-        # determine num_edges from the graph
-        ##############################
-        self.log(
-            "Get the number of edges from the graph using awk")
-        cmd = f"parallel awk -f count.awk ::: {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a*" + \
-              "| awk '{sum += $1} END {print sum}'"
-
-        self.log(f"Running command: {cmd}\n")
-        if (not self.config_data['dry_run']):
-            st = time.time()
-            found_edges = int(check_output(cmd, shell=True).split()[0])
-            et = time.time()
-            print(f"Time taken to count the edges: {et - st}\n")
-            self.config_data['num_edges'] = found_edges
-            self.log(f"The graph has {found_edges} edges")
-            print("Found edges: " + str(found_edges))
-            self.num_edges = found_edges
-
-        ##############################
         # compute num_nodes from the graph
         ##############################
         self.log("Constructing the nodes file")
-        cmd = f"ls {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a* | parallel awk -f nodes.awk " + \
+        cmd = f"find {self.config_data['output_dir']} -type f -regex '.*/{self.config_data['dataset_name']}_\w\w$' -print | parallel awk -f nodes.awk " + \
             "{}" + \
             f" | sort -u -n >  {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
+        # cmd = f"ls {self.config_data['output_dir']} | grep -E '{self.config_data['dataset_name']}_\w\w$' | parallel awk -f nodes.awk " + \
+        #     "{}" + \
+        #     f" | sort -u -n >  {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
         print(cmd)
         self.log(f"Running command: {cmd}\n")
         if (not self.config_data['dry_run']):
@@ -212,7 +216,7 @@ class Preprocess:
         ##############################
         self.log("Constructing the adjacency list files")
         graph_type = "adj"  # not needed really, but including because getopts expects it
-        cmd = f"{self.config_data['cmd_root']}/preprocess/mk_adjlists -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -t {graph_type} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log"
+        cmd = f"{self.config_data['cmd_root']}/preprocess/mk_adjlists -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -t {graph_type} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log -m {self.config_data['num_threads']}"
         self.log(f"Running command: {cmd}\n")
         if (not self.config_data['dry_run']):
             st = time.time()
@@ -271,11 +275,11 @@ def main():
                         help="cleanup any intermediate files, default is False")
     parser.add_argument("-w", "--weighted", action='store_true',
                         default=False, help="weighted graph")
-    parser.add_argument("-h", "--help", action='store_true',
-                        default=False, help="show this help message and exit")
 
     # check that there are some arguments passed
-    assert len(sys.argv) > 1, "No arguments passed"
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
     args = parser.parse_args()
 
     # check that the graph path is passed

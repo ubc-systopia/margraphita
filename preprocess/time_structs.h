@@ -39,7 +39,7 @@ class InsertOpts
 
     std::string db_name;
     graph_opts opts{.create_new = true,
-                    .read_optimize = true,
+                    .read_optimize = false,
                     .is_directed = true,
                     .is_weighted = false,
                     .optimize_create = true};

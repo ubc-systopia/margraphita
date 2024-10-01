@@ -32,7 +32,7 @@ struct cmdline_opts : graph_opts
     {
         print_config(filename);
         std::ofstream out;
-        out.open(filename, std::ios::out);
+        out.open(filename, std::ios::out | std::ios::app);
         out << "CREATE_INDICES: " << create_indices << std::endl;
         out << "EXIT_ON_CREATE: " << exit_on_create << std::endl;
         out << "NUM_TRIALS: " << num_trials << std::endl;

@@ -18,7 +18,7 @@
 #include "time_structs.h"
 #include "times.h"
 
-#define NUM_THREADS 16
+// #define NUM_THREADS 16
 #define PRINT_ADJ_ERROR(node_id, ret, msg)                                    \
     {                                                                         \
         std::cerr << "Error inserting adjlist for node " << (node_id) << ": " \
@@ -284,7 +284,14 @@ int add_to_edgekey(WT_CURSOR *ekey_cur,
 int add_to_node_table(WT_CURSOR *cur, const node &node)
 {
     CommonUtil::set_key(cur, node.id);
-    cur->set_value(cur, node.in_degree, node.out_degree);
+    if (opts.read_optimize)
+    {
+        cur->set_value(cur, node.in_degree, node.out_degree);
+    }
+    else
+    {
+        cur->set_value(cur, "");
+    }
     int ret = cur->insert(cur);
     if (ret != 0)
     {
@@ -446,7 +453,7 @@ void dump_config(const graph_opts &_opts, const std::string &conn_config)
     std::cout << "Weighted: " << _opts.is_weighted << std::endl;
     std::cout << "Num edges: " << _opts.num_edges << std::endl;
     std::cout << "Num nodes: " << _opts.num_nodes << std::endl;
-    std::cout << "Num threads: " << NUM_THREADS << std::endl;
+    std::cout << "Num threads: " << _opts.num_threads << std::endl;
     std::cout << "DB dir: " << _opts.db_dir << std::endl;
     std::cout << "DB name: " << _opts.db_name << std::endl;
     std::cout << "DB config: " << conn_config << std::endl;
