@@ -26,23 +26,33 @@ class BenchmarkRunner:
         self.log_handle.write(msg + "\n")
 
     def make_pr_cmd(self, binary_name: str, ds: str, graph_type: str):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -g {graph_type} -p {self.config_data['DB_DIR']}/{ds} >> {self.config_data['LOG_DIR']}/{ds}_pr_{graph_type}.log"
+        cmd = f"{binary_name} -m {graph_type}_d_{ds} -g {graph_type} -p {self.config_data['DB_DIR']}/{ds} "
+        cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
+        cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_pr_{graph_type}.log"
         return cmd
 
     def make_bfs_cmd(self, binary_name: str, ds: str, graph_type: str, vert: int):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert}>> {self.config_data['LOG_DIR']}/{ds}_bfs_{graph_type}.log"
+        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
+        cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
+        cmd+= f">> {self.config_data['LOG_DIR']}/{ds}_bfs_{graph_type}.log"
         return cmd
 
     def make_tc_cmd(self, binary_name: str, ds: str, graph_type: str):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} >> {self.config_data['LOG_DIR']}/{ds}_tc_{graph_type}.log"
+        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} "
+        cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
+        cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_tc_{graph_type}.log"
         return cmd
 
     def make_cc_cmd(self, binary_name: str, ds: str, graph_type: str, variant: str):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} >> {self.config_data['LOG_DIR']}/{ds}_cc_{graph_type}.log"
+        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} "
+        cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
+        cmd+= f">> {self.config_data['LOG_DIR']}/{ds}_cc_{graph_type}.log"
         return cmd
 
     def make_sssp_cmd(self, binary_name: str, ds: str, graph_type: str, vert: int):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} >> {self.config_data['LOG_DIR']}/{ds}_sssp_{graph_type}.log"
+        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
+        cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else "" 
+        cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_sssp_{graph_type}.log"
         return cmd
 
     def make_perf_params(self, benchmark: str, ds: str, graph_type: str):
@@ -121,7 +131,7 @@ def main():
         description="Run benchmarks"
     )
     parser.add_argument("--log_dir", type=str, help="log directory")
-    parser.add_argument('-b','--benchmarks', nargs='*', help='Benchmarks to run', default=["pr", "bfs", "tc", "cc", "sssp"])
+    parser.add_argument('-b','--benchmarks', nargs='*', help='Benchmarks to run', default=["pr", "bfs", "tc_iter", "cc", "sssp"])
     parser.add_argument("--dry_run", action='store_true',default=False, help="Dry run")
 
     args = parser.parse_args()
@@ -140,6 +150,12 @@ def main():
         config_data['LOG_DIR'] = args.log_dir
     
     print(f"Log directory: {config_data['LOG_DIR']}")
+
+    #get number of hardware threads available
+    num_threads = int(subprocess.check_output("nproc").decode("utf-8").strip())
+    if num_threads > 100:
+        num_threads+=100 #idk really
+        config_data['config_string'] = f"session_max={num_threads}"
 
     benchmark_runner = BenchmarkRunner(config_data)
 
