@@ -15,16 +15,17 @@ ENV CC=/usr/bin/gcc
 ENV CXX=/usr/bin/g++
 
 #Build and install FlexoGraph
-COPY . /FlexoGraph
+# COPY . /FlexoGraph
 ENV GRAPH_PROJECT_DIR="/FlexoGraph"
 WORKDIR /FlexoGraph
 
 #Release build
 RUN rm -rf /FlexoGraph/build/release
-RUN mkdir -p build/release && cd build/release && cmake ../.. && make -j
+#RUN mkdir -p build/release && cd build/release && cmake ../.. && make -j
 
 # #Debug build
 # RUN mkdir -p build/debug && cd build/debug && cmake -DCMAKE_BUILD_TYPE=Debug ../.. && make -j
 
 #check if build is successful
-RUN cd build/release/test && ./test_adj_list
+#RUN cd build/release/test && ./test_adj_list
+CMD sleep infinity

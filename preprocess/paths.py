@@ -15,7 +15,7 @@ class ConfigReader:
 
         try:
             project_dir = config_data['GRAPH_PROJECT_DIR']
-            project_dir = os.path.join("/home", os.getlogin(), project_dir)
+            # project_dir = os.path.join("/home", os.getlogin(), project_dir)
             config_data['GRAPH_PROJECT_DIR'] = project_dir
             print(
                 f"Using GRAPH_PROJECT_DIR as set - {config_data['GRAPH_PROJECT_DIR']}")
@@ -25,7 +25,7 @@ class ConfigReader:
 
         try:
             db_dir = config_data['DB_DIR']
-            db_dir = os.path.join("/home", os.getlogin(), db_dir)
+            # db_dir = os.path.join("/home", os.getlogin(), db_dir)
             config_data['DB_DIR'] = db_dir
             print(f"Using DB_DIR as set - {config_data['DB_DIR']}")
         except KeyError:
@@ -36,7 +36,7 @@ class ConfigReader:
         try:
             kron_gen_name = config_data['KRON_GEN_PATH']
             print(f"\n\n{kron_gen_name}\n\n")
-            kron_gen_name = os.path.join("/home", os.getlogin(), kron_gen_name)
+            # kron_gen_name = os.path.join("/home", os.getlogin(), kron_gen_name)
             config_data['KRON_GEN_PATH'] = kron_gen_name
             if "PaRMAT" in kron_gen_name:
                 print("Using PaRMAT as the Kronecker generator")

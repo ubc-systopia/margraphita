@@ -82,6 +82,7 @@ int64_t trust_tc_iter(GraphEngine &graph_engine)
         out_cursor->close();
         graph->close(false);
         delete out_cursor;
+        delete graph;
     }
 
     return count;
@@ -131,6 +132,7 @@ int64_t cycle_tc_iter(GraphEngine &graph_engine)
             out_cursor->next(&found);
         }
         out_cursor->close();
+        graph->close(false);
         delete out_cursor;
         delete graph;
     }

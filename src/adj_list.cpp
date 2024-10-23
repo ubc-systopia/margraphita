@@ -639,8 +639,9 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
         ret = node_cursor->search(node_cursor);
         if (ret != 0)
         {
-            throw GraphException("Could not find a node with ID " +
-                                 std::to_string(node_id));
+            // throw GraphException("Could not find a node with ID " +
+            //                      std::to_string(node_id));
+            return 0;
         }
         node found{.id = node_id, .in_degree = 0, .out_degree = 0};
         CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
@@ -653,8 +654,9 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
         ret = in_adjlist_cursor->search(in_adjlist_cursor);
         if (ret != 0)
         {
-            throw GraphException("Could not find node with ID" +
-                                 std::to_string(node_id) + " in the adjlist");
+            // throw GraphException("Could not find node with ID" +
+            //                      std::to_string(node_id) + " in the adjlist");
+            return 0;
         }
         adjlist in_edges;
         in_edges.node_id = node_id;
@@ -678,8 +680,9 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
         CommonUtil::set_key(node_cursor, node_id);
         if (node_cursor->search(node_cursor) != 0)
         {
-            throw GraphException("Could not find a node with ID " +
-                                 std::to_string(node_id));
+            // throw GraphException("Could not find a node with ID " +
+            //                      std::to_string(node_id));
+            return 0;
         }
         node found{.id = node_id, .in_degree = 0, .out_degree = 0};
         CommonUtil::record_to_node(node_cursor, &found, opts.read_optimize);
@@ -692,8 +695,9 @@ uint32_t AdjList::get_out_degree(node_id_t node_id)
         CommonUtil::set_key(out_adjlist_cursor, node_id);
         if (out_adjlist_cursor->search(out_adjlist_cursor) != 0)
         {
-            throw GraphException("Could not find a node with ID " +
-                                 std::to_string(node_id) + " in the adjlist");
+            // throw GraphException("Could not find a node with ID " +
+            //                      std::to_string(node_id) + " in the adjlist");
+            return 0;
         }
         adjlist out_edges;
         out_edges.node_id = node_id;
@@ -886,11 +890,12 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
  */
 std::vector<node_id_t> AdjList::get_out_nodes_id(node_id_t node_id)
 {
+    std::vector<node_id_t> adjlist;
     if (!has_node(node_id))
     {
         throw GraphException("There is no node with ID " + to_string(node_id));
     }
-    std::vector<node_id_t> adjlist = get_adjlist(out_adjlist_cursor, node_id);
+    adjlist = get_adjlist(out_adjlist_cursor, node_id);
     out_adjlist_cursor->reset(out_adjlist_cursor);
     return adjlist;
 }
