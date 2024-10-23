@@ -63,13 +63,9 @@ class ConfigReader:
 
         try:
             log_dir = config_data['LOG_DIR']
-            git_hash_id = subprocess.check_output(
-                ['git', 'rev-parse', '--short', 'HEAD']).strip().decode('ascii')
-            print(f"The commit hash is {git_hash_id}")
-            config_data['log_dir'] = os.path.join(log_dir, git_hash_id)
         except KeyError:
             print("no log directory found. will default to CWD")
-            config_data['log_dir'] = os.path.join(os.getcwd(), git_hash_id)
+            config_data['log_dir'] = os.getcwd()
 
         config_data['PROFILE_PATH'] = os.path.join(
             project_dir, "build", "profile")
