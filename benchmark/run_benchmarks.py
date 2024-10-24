@@ -26,31 +26,31 @@ class BenchmarkRunner:
         self.log_handle.write(msg + "\n")
 
     def make_pr_cmd(self, binary_name: str, ds: str, graph_type: str):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -g {graph_type} -p {self.config_data['DB_DIR']}/{ds} "
+        cmd = f"{binary_name} -m {graph_type}_rd_{ds} -g {graph_type} -p {self.config_data['DB_DIR']}/{ds} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_pr_{graph_type}.log"
         return cmd
 
     def make_bfs_cmd(self, binary_name: str, ds: str, graph_type: str, vert: int):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
+        cmd = f"{binary_name} -m {graph_type}_rd_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f">> {self.config_data['LOG_DIR']}/{ds}_bfs_{graph_type}.log"
         return cmd
 
     def make_tc_cmd(self, binary_name: str, ds: str, graph_type: str):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} "
+        cmd = f"{binary_name} -m {graph_type}_rd_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_tc_{graph_type}.log"
         return cmd
 
     def make_cc_cmd(self, binary_name: str, ds: str, graph_type: str, variant: str):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} "
+        cmd = f"{binary_name} -m {graph_type}_rd_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f">> {self.config_data['LOG_DIR']}/{ds}_cc_{graph_type}.log"
         return cmd
 
     def make_sssp_cmd(self, binary_name: str, ds: str, graph_type: str, vert: int):
-        cmd = f"{binary_name} -m {graph_type}_d_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
+        cmd = f"{binary_name} -m {graph_type}_rd_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else "" 
         cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_sssp_{graph_type}.log"
         return cmd
