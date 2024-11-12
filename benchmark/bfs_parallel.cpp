@@ -42,6 +42,7 @@ them in parent array as negative numbers. Thus the encoding of parent is:
 // node_id_t (uint32_t) one would expect. this is to match the original GAPBS
 // implementation.
 typedef int64_t NodeID;
+bool logging_enabled = true;
 
 int64_t BUStep(GraphEngine *graph_engine,
                pvector<NodeID> &parent,
@@ -57,8 +58,7 @@ int64_t BUStep(GraphEngine *graph_engine,
     {
         GraphBase *graph = graph_engine->create_graph_handle();
         InCursor *in_cursor = graph->get_innbd_iter();
-        adjlist found;
-
+        adjlist found{0, 0};
         in_cursor->set_key_range(graph_engine->get_key_range(i));
 
         in_cursor->next(&found);
@@ -88,24 +88,25 @@ int64_t BUStep(GraphEngine *graph_engine,
 
 int64_t TDStep(GraphEngine *graph_engine,
                pvector<NodeID> &parent,
-               SlidingQueue<NodeID> &queue)
+               SlidingQueue<node_id_t> &queue)
 {
     int64_t scout_count = 0;
 
 #pragma omp parallel
     {
-        QueueBuffer<NodeID> lqueue(queue);
+        QueueBuffer<node_id_t> lqueue(queue);
 #pragma omp for reduction(+ : scout_count) nowait
         for (auto q_iter = queue.begin(); q_iter < queue.end(); q_iter++)
         {
-            NodeID u = *q_iter;
+            node_id_t u = *q_iter;
             GraphBase *graph = graph_engine->create_graph_handle();
             for (node_id_t v : graph->get_out_nodes_id(u))
             {
                 NodeID curr_val = parent[v];
                 if (curr_val < 0)
                 {
-                    if (compare_and_swap(parent[v], curr_val, u))
+                    if (compare_and_swap(
+                            parent[v], curr_val, static_cast<NodeID>(u)))
                     {
                         lqueue.push_back(v);
                         scout_count += -curr_val;
@@ -119,24 +120,24 @@ int64_t TDStep(GraphEngine *graph_engine,
     return scout_count;
 }
 
-void QueueToBitmap(const SlidingQueue<NodeID> &queue, Bitmap &bm)
+void QueueToBitmap(const SlidingQueue<node_id_t> &queue, Bitmap &bm)
 {
 #pragma omp parallel for
     for (auto q_iter = queue.begin(); q_iter < queue.end(); q_iter++)
     {
-        NodeID u = *q_iter;
+        node_id_t u = *q_iter;
         bm.set_bit_atomic(u);
     }
 }
 
 void BitmapToQueue(GraphEngine *graph_engine,
                    const Bitmap &bm,
-                   SlidingQueue<NodeID> &queue,
+                   SlidingQueue<node_id_t> &queue,
                    int thread_num)
 {
 #pragma omp parallel num_threads(thread_num)
     {
-        QueueBuffer<NodeID> lqueue(queue);
+        QueueBuffer<node_id_t> lqueue(queue);
 #pragma omp for nowait
         for (int i = 0; i < thread_num; i++)
         {
@@ -175,9 +176,9 @@ pvector<NodeID> InitParent(GraphEngine *graph_engine,
         node_cursor->next(&found);
         while (found.id != OutOfBand_ID_MAX)
         {
-            parent[found.id] = graph->get_out_degree(found.id) != 0
-                                   ? -graph->get_out_degree(found.id)
-                                   : -1;
+            auto degree = static_cast<int64_t>(graph->get_out_degree(found.id));
+            parent[found.id] = degree != 0 ? -degree : -1;
+
             node_cursor->next(&found);
         }
         graph->close(false);
@@ -198,26 +199,30 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
                       node_id_t max_node_id,
                       int thread_num,
                       int alpha = 15,
-                      int beta = 18)
+                      int beta = 18,
+                      bool verify = false)
 {
+    if (logging_enabled) std::cout << "Source" << source << std::endl;
     GraphBase *graph_stat = graph_engine->create_graph_handle();
     Times t;
     t.start();
     pvector<NodeID> parent = InitParent(graph_engine, max_node_id, thread_num);
     t.stop();
-
-    printf("%5s%23.5Lf\n", "i", t.t_secs());
+    if (logging_enabled) printf("%5s%23.5Lf\n", "i", t.t_secs());
 
     parent[source] = source;
-    SlidingQueue<NodeID> queue(num_nodes);
+    SlidingQueue<node_id_t> queue(num_nodes);
     queue.push_back(source);
     queue.slide_window();
     Bitmap curr(num_nodes);
     curr.reset();
     Bitmap front(num_nodes);
     front.reset();
-    int64_t edges_to_check = graph_stat->get_num_edges();
+    int64_t edges_to_check = GraphBase::get_num_edges();
     int64_t scout_count = graph_stat->get_out_degree(source);
+    std::cout << "source: " << source << "\tscout_count: " << scout_count
+              << "\tedges_to_check: " << edges_to_check << std::endl;
+    queue.dump_stdout();
 
     while (!queue.empty())
     {
@@ -263,6 +268,27 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
     for (node_id_t n = 0; n < num_nodes; n++)
         if (parent[n] < -1) parent[n] = -1;
 
+    if (verify)
+    {
+        int64_t count = 0, n_edges = 0;
+        NodeCursor *node_cursor = graph_stat->get_node_iter();
+        node found = {0};
+
+        node_cursor->next(&found);
+        while (found.id != OutOfBand_ID_MAX)
+        {
+            if (parent[found.id] >= 0)
+            {
+                count++;
+                n_edges += graph_stat->get_out_degree(found.id);
+            }
+            node_cursor->next(&found);
+        }
+
+        std::cout << "BFS finished, Tree has " << count << " nodes and "
+                  << n_edges << "edges" << std::endl;
+    }
+
     graph_stat->close(false);
     return parent;
 }
@@ -289,11 +315,12 @@ int main(int argc, char *argv[])
 
     t.start();
     GraphBase *g = graphEngine.create_graph_handle();
-    node_id_t num_nodes = g->get_num_nodes();
+    node_id_t num_nodes = GraphBase::get_num_nodes();
     node_id_t max_node_id = g->get_max_node_id();
     node source = g->get_random_node();
     g->close(false);
-    DOBFS(&graphEngine, source.id, num_nodes, max_node_id, THREAD_NUM, 15, 18);
+    auto bfs_tree = DOBFS(
+        &graphEngine, source.id, num_nodes, max_node_id, THREAD_NUM, 15, 18);
     t.stop();
     std::cout << "BFS completed in " << t.t_micros() << std::endl;
     graphEngine.close_graph();
