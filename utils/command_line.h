@@ -26,6 +26,8 @@ struct cmdline_opts : graph_opts
     bool print_stats = false;
     // SSSP options
     edgeweight_t delta_value = 1;
+    // Triangle Counting options
+    bool tc_both_algo = false;
 
     // dump the options
     void dump_cmd_config(const std::string &filename)
@@ -368,6 +370,31 @@ class SSSPOpts : public CmdLineApp
         {
             case 'D':
                 opts.delta_value = std::stoi(opt_arg);
+                break;
+            default:
+                CmdLineApp::handle_args(opt, opt_arg);
+        }
+    }
+};
+
+class TCOpts : public CmdLineApp
+{
+   public:
+    TCOpts(int argc, char **argv) : CmdLineApp(argc, argv)
+    {
+        argstr_ += "A";
+        add_help_message(
+            'A',
+            "algo",
+            "Run both the trust and cycle triangle counting algorithms. "
+            "Default: Trust Triangle Counting (false)");
+    }
+    void handle_args(signed char opt, char *opt_arg) override
+    {
+        switch (opt)
+        {
+            case 'A':
+                opts.tc_both_algo = true;
                 break;
             default:
                 CmdLineApp::handle_args(opt, opt_arg);

@@ -43,6 +43,17 @@ class SlidingQueue
 
     void push_back(T to_add) { shared[shared_in++] = to_add; }
 
+    [[nodiscard]] size_t get_num_elements() const
+    {
+        return shared_in - shared_out_start;
+    }
+
+    void dump_stdout() const
+    {
+        for (auto iter = begin(); iter != end(); iter++)
+            std::cout << *iter << std::endl;
+    }
+
     [[nodiscard]] bool empty() const
     {
         return shared_out_start == shared_out_end;

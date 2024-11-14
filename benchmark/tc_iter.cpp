@@ -142,7 +142,7 @@ int64_t cycle_tc_iter(GraphEngine &graph_engine)
 int main(int argc, char *argv[])
 {
     std::cout << "Running TC" << std::endl;
-    CmdLineApp tc_cli(argc, argv);
+    TCOpts tc_cli(argc, argv);
     if (!tc_cli.parse_args())
     {
         return -1;
@@ -176,21 +176,25 @@ int main(int argc, char *argv[])
                   << std::endl;
 
         // Count Cycle Triangles
-        t.start();
-        info.cycle_count = cycle_tc_iter(graphEngine);
-        t.stop();
-        info.cycle_time = t.t_secs();
-        total_time_cycle += info.cycle_time;
-        std::cout << "Cycle TriangleCounting_ITER completed in : "
-                  << info.cycle_time << std::endl;
-        std::cout << "Cycle Triangles count = " << info.cycle_count
-                  << std::endl;
+        if (opts.tc_both_algo)
+        {
+            t.start();
+            info.cycle_count = cycle_tc_iter(graphEngine);
+            t.stop();
+            info.cycle_time = t.t_secs();
+            total_time_cycle += info.cycle_time;
+            std::cout << "Cycle TriangleCounting_ITER completed in : "
+                      << info.cycle_time << std::endl;
+            std::cout << "Cycle Triangles count = " << info.cycle_count
+                      << std::endl;
 
-        print_csv_info(opts.db_name, info, opts.stat_log);
+            print_csv_info(opts.db_name, info, opts.stat_log);
+        }
     }
     std::cout << "Average time Trust: " << total_time_trust / opts.num_trials
               << std::endl;
-    std::cout << "Average time Cycle: " << total_time_cycle / opts.num_trials
-              << std::endl;
+    if (opts.tc_both_algo)
+        std::cout << "Average time Cycle: "
+                  << total_time_cycle / opts.num_trials << std::endl;
     graphEngine.close_graph();
 }

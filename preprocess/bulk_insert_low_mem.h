@@ -380,43 +380,43 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
         exit(1);
     }
     // open ekey connection
-    _db_name = _opts.db_dir + "/ekey_" + middle + "_" + _opts.db_name;
-    if (wiredtiger_open(_db_name.c_str(),
-                        nullptr,
-                        const_cast<char *>(conn_config.c_str()),
-                        &conn_ekey) != 0)
-    {
-        std::cout << "Could not open the DB: " << _db_name;
-        exit(1);
-    }
+    // _db_name = _opts.db_dir + "/ekey_" + middle + "_" + _opts.db_name;
+    // if (wiredtiger_open(_db_name.c_str(),
+    //                     nullptr,
+    //                     const_cast<char *>(conn_config.c_str()),
+    //                     &conn_ekey) != 0)
+    // {
+    //     std::cout << "Could not open the DB: " << _db_name;
+    //     exit(1);
+    // }
 
     // open split ekey connection
     // open ekey connection
-    _db_name = _opts.db_dir + "/split_ekey_" + middle + "_" + _opts.db_name;
-    if (wiredtiger_open(_db_name.c_str(),
-                        nullptr,
-                        const_cast<char *>(conn_config.c_str()),
-                        &conn_split_ekey) != 0)
-    {
-        std::cout << "Could not open the DB: " << _db_name;
-        exit(1);
-    }
+    // _db_name = _opts.db_dir + "/split_ekey_" + middle + "_" + _opts.db_name;
+    // if (wiredtiger_open(_db_name.c_str(),
+    //                     nullptr,
+    //                     const_cast<char *>(conn_config.c_str()),
+    //                     &conn_split_ekey) != 0)
+    // {
+    //     std::cout << "Could not open the DB: " << _db_name;
+    //     exit(1);
+    // }
 
-    _db_name = _opts.db_dir + "/std_" + middle + "_" + _opts.db_name;
+    // _db_name = _opts.db_dir + "/std_" + middle + "_" + _opts.db_name;
 
-    if (wiredtiger_open(_db_name.c_str(),
-                        nullptr,
-                        const_cast<char *>(conn_config.c_str()),
-                        &conn_std) != 0)
-    {
-        std::cout << "Could not open the DB: " << _db_name;
-        exit(1);
-    }
+    // if (wiredtiger_open(_db_name.c_str(),
+    //                     nullptr,
+    //                     const_cast<char *>(conn_config.c_str()),
+    //                     &conn_std) != 0)
+    // {
+    //     std::cout << "Could not open the DB: " << _db_name;
+    //     exit(1);
+    // }
 
     assert(conn_adj != nullptr);
-    assert(conn_std != nullptr);
-    assert(conn_ekey != nullptr);
-    assert(conn_split_ekey != nullptr);
+    // assert(conn_std != nullptr);
+    // assert(conn_ekey != nullptr);
+    // assert(conn_split_ekey != nullptr);
 }
 
 /**

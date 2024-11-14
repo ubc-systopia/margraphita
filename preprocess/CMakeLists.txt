@@ -22,9 +22,9 @@ add_executable(bulk_insert_low_mem bulk_insert_low_mem.cpp reader.h
 target_link_libraries(bulk_insert_low_mem PUBLIC ${NAME_LIB} graph_utils)
 #
 ## ###################################################################################
-#add_executable(dense_vertexranges dense_vertexranges_set.cpp)
-#target_include_directories(dense_vertexranges PRIVATE ${PMAP})
-#target_link_libraries(dense_vertexranges PUBLIC ${NAME_LIB} graph_utils)
+add_executable(dense_vertexranges dense_vertexranges_set.cpp)
+target_include_directories(dense_vertexranges PRIVATE ${PMAP})
+target_link_libraries(dense_vertexranges PUBLIC ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 # add_executable(single_threaded_graphapi_insert single_threaded_graphapi_insert.cpp)

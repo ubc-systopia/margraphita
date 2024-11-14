@@ -12,10 +12,10 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
     filename.push_back(c2);
 
     worker_sessions adj_obj(conn_adj, "table:adjlistout", GraphType::Adj);
-    worker_sessions split_ekey_out(
-        conn_split_ekey, "table:edge_out", GraphType::SplitEKey);
+    // worker_sessions split_ekey_out(
+    // conn_split_ekey, "table:edge_out", GraphType::SplitEKey);
     // worker_sessions std_obj(conn_std, "table:edge", GraphType::Std);
-    worker_sessions ekey_obj(conn_ekey, "table:edge", GraphType::EKey);
+    // worker_sessions ekey_obj(conn_ekey, "table:edge", GraphType::EKey);
 
     reader::AdjReader adj_reader(filename);
     adjlist adj_list;
@@ -24,12 +24,13 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
         // insert into STD: edge table
         // add_to_edge_table(
         //     std_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
-        add_to_edgekey(
-            ekey_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
-        add_to_edgekey(split_ekey_out.e_cur,
-                       adj_list.node_id,
-                       adj_list.edgelist,
-                       is_weighted);
+        // add_to_edgekey(
+        //     ekey_obj.e_cur, adj_list.node_id, adj_list.edgelist,
+        //     is_weighted);
+        // add_to_edgekey(split_ekey_out.e_cur,
+        //    adj_list.node_id,
+        //    adj_list.edgelist,
+        //    is_weighted);
         add_to_edge_table(
             adj_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
 
@@ -58,8 +59,8 @@ void insert_rev_edge_thread(int _tid)
     filename.push_back(c2);
 
     worker_sessions adj_obj(conn_adj, "table:adjlistin", GraphType::Adj);
-    worker_sessions split_ekey_in(
-        conn_split_ekey, "table:edge_in", GraphType::SplitEKey);
+    // worker_sessions split_ekey_in(
+    //     conn_split_ekey, "table:edge_in", GraphType::SplitEKey);
 
     reader::AdjReader adj_reader(filename);
     adjlist adj_list;
@@ -67,8 +68,8 @@ void insert_rev_edge_thread(int _tid)
     {
         // insert into ADJ: inadjlist table
         add_to_adjlist(adj_obj.cur, adj_list);
-        add_to_edgekey(
-            split_ekey_in.e_cur, adj_list.node_id, adj_list.edgelist);
+        // add_to_edgekey(
+        //     split_ekey_in.e_cur, adj_list.node_id, adj_list.edgelist);
         // acquire a lock and update the global node_degree
 #pragma omp critical
         {
@@ -101,9 +102,9 @@ void insert_nodes()
 {
     // worker_sessions std_node_obj(conn_std, "", GraphType::Std, false);
     worker_sessions adj_node_obj(conn_adj, "", GraphType::Adj, false);
-    worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey, false);
-    worker_sessions split_ekey_node_obj(
-        conn_split_ekey, "", GraphType::SplitEKey, false);
+    // worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey, false);
+    // worker_sessions split_ekey_node_obj(
+    //     conn_split_ekey, "", GraphType::SplitEKey, false);
     int count = 0;
     // iterate over the node_degrees and insert into the node table
     for (auto it = node_degrees.begin(); it != node_degrees.end(); it++)
@@ -115,9 +116,9 @@ void insert_nodes()
         // insert into STD: node table
         // add_to_node_table(std_node_obj.n_cur, to_insert);
         // insert into EKEY: node table
-        add_node_to_ekey(ekey_node_obj.e_cur, to_insert);
+        // add_node_to_ekey(ekey_node_obj.e_cur, to_insert);
         // insert into SPLIT_EKEY_OUT table for nodes
-        add_node_to_ekey(split_ekey_node_obj.e_cur, to_insert);
+        // add_node_to_ekey(split_ekey_node_obj.e_cur, to_insert);
         // insert into ADJ: node table
         add_to_node_table(adj_node_obj.n_cur, to_insert);
         count++;
@@ -148,10 +149,11 @@ void update_metadata(const graph_opts &_opts)
     std::cout << "Min node id: " << key_min << std::endl;
     std::cout << "Max node id: " << key_max << std::endl;
 
-    for (auto conn : {conn_adj,
-                      conn_ekey,
-                      conn_split_ekey})  //(auto conn : {conn_std, conn_adj,
-                                         // conn_ekey, conn_split_ekey})
+    for (auto conn :
+         {conn_adj})  //,
+                      // conn_ekey,
+                      // conn_split_ekey})  //(auto conn : {conn_std, conn_adj,
+                      // conn_ekey, conn_split_ekey})
     {
         worker_sessions obj(conn, "table:metadata", GraphType::META, false);
         WT_CURSOR *cursor = obj.metadata;
@@ -177,7 +179,7 @@ void update_metadata(const graph_opts &_opts)
                      cursor);
     }
     // for (auto conn : {conn_std, conn_adj, conn_ekey})
-    for (auto conn : {conn_adj, conn_ekey, conn_split_ekey})
+    for (auto conn : {conn_adj})  //, conn_ekey, conn_split_ekey})
     {
         worker_sessions obj(conn, "table:metadata", GraphType::META, false);
         WT_CURSOR *cursor = obj.metadata;
@@ -235,8 +237,8 @@ int main(int argc, char *argv[])
 
     conn_adj->close(conn_adj, nullptr);
     // conn_std->close(conn_std, nullptr);
-    conn_ekey->close(conn_ekey, nullptr);
-    conn_split_ekey->close(conn_split_ekey, nullptr);
+    // conn_ekey->close(conn_ekey, nullptr);
+    // conn_split_ekey->close(conn_split_ekey, nullptr);
 
     return (EXIT_SUCCESS);
 }

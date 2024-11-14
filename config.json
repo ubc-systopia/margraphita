@@ -3,6 +3,7 @@
     "KRON_GEN_PATH": "scratch/gapbs/converter",
     "KRON_GRAPHS_PATH": "/drives/hdd_main",
     "DB_DIR": "db",
+    "GOLDEN_DIR": "/drives/ssd2/flexograph_rd",
     "LOG_DIR": "/drives/hdd_main/logs",
     "num_threads": 16
 }

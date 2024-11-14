@@ -151,8 +151,12 @@ def main():
         print("Output dir: " + dataset['output_dir'])
         os.makedirs(dataset['output_dir'], exist_ok=True)
 
+        golden_image = os.path.join(
+            dataset['GOLDEN_DIR'], dataset['dataset_name'])
+        os.makedirs(golden_image, exist_ok=True)
         dataset['db_dir'] = os.path.join(
-            config_data['DB_DIR'], dataset['dataset_name'])
+            config_data['GOLDEN_DIR'],  dataset['dataset_name'])
+
         if not os.path.exists(dataset['output_dir']):
             os.makedirs(dataset['output_dir'])
         dataset['scale'] = 0
@@ -165,7 +169,7 @@ def main():
         print("is bulk: " + str(args.bulk)
               + " \nindex: " + str(args.index)
               + " \npreprocess: " + str(args.preprocess))
-        for graph_type in ["adj", "std", "ekey", "split_ekey"]:
+        for graph_type in ["adj"]:  # , "std", "ekey", "split_ekey"]:
             preprocess_obj.init_db(graph_type)
         if (args.preprocess):
             time_beg = time.time()
@@ -181,13 +185,6 @@ def main():
             api_insert(config_data)
         preprocess_obj.log(
             "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
-        # check to see if the golden image exists at /drives/hdd_main/golden_images.
-        # if not, then copy it over
-        golden_image = os.path.join(
-            "/drives/hdd_main/golden_images", dataset['dataset_name'])
-        print("Copying golden image")
-        os.makedirs(golden_image, exist_ok=True)
-        os.system(f"cp -r {dataset['db_dir']}/* {golden_image}")
 
 
 if __name__ == "__main__":

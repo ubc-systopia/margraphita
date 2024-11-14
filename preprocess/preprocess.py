@@ -35,7 +35,7 @@ class Preprocess:
 
     def build_bulk_cmd(self):
         bulk_binary = "bulk_insert_low_mem"
-        cmd = f"{self.config_data['cmd_root']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{bulk_binary}.log -m {self.config_data['num_threads']}"
+        cmd = f"{self.config_data['cmd_root']}/preprocess/{bulk_binary} -d {self.config_data['dataset_name']} -e {self.config_data['num_edges']} -n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{bulk_binary}.log -m {self.config_data['num_threads']} -r"
         if self.config_data['weighted']:
             cmd += " -w"
         return cmd

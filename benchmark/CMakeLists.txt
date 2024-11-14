@@ -42,6 +42,9 @@ target_link_libraries(tc PUBLIC ${NAME_LIB} graph_utils)
 add_executable(tc_iter tc_iter.cpp)
 target_link_libraries(tc_iter PUBLIC ${NAME_LIB} graph_utils)
 
+add_executable(tc_gap tc_gapbs.cpp)
+target_link_libraries(tc_gap PUBLIC ${NAME_LIB} graph_utils)
+
 ####################################################################################
 ############ Connected Components OLD & GAPBS kind  ################################
 ####################################################################################
