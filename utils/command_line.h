@@ -19,7 +19,8 @@ struct cmdline_opts : graph_opts
     bool exit_on_create = false;
     // app opts
     int num_trials = 16;
-    node_id_t start_vertex = -1;
+    node_id_t start_vertex = OutOfBand_ID_MAX;
+    bool verify = false;
     // pagerank opts
     double tolerance = 1e-4;
     int iterations = 1;
@@ -53,8 +54,8 @@ class CmdLineBase
 
     std::string argstr_ =
         "p:m:g:"          // required args
-        "s:nordwl:hz:a";  //! Construct this after you finish the
-                          //! rest of this thing
+        "s:nordwl:hz:aV";  //! Construct this after you finish the
+                           //! rest of this thing
     std::vector<std::string> help_strings_;
     cmdline_opts opts;
 
@@ -119,6 +120,10 @@ class CmdLineBase
             'a',
             "print_stats",
             "(Optional) Print stats after running the app. Default = false");
+        add_help_message('V',
+                         "verify",
+                         "(Optional) Verify the results of the app. Default = "
+                         "false");
 
         if (argc_ == 1)
         {
@@ -200,6 +205,9 @@ class CmdLineBase
                 break;
             case 'a':
                 opts.print_stats = true;
+                break;
+            case 'V':
+                opts.verify = true;
                 break;
             case 'h':
                 print_help();

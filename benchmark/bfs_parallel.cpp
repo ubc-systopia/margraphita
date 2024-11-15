@@ -317,10 +317,17 @@ int main(int argc, char *argv[])
     GraphBase *g = graphEngine.create_graph_handle();
     node_id_t num_nodes = GraphBase::get_num_nodes();
     node_id_t max_node_id = g->get_max_node_id();
-    node source = g->get_random_node();
+    if (opts.start_vertex == OutOfBand_ID_MAX)
+        opts.start_vertex = g->get_random_node().id;
     g->close(false);
-    auto bfs_tree = DOBFS(
-        &graphEngine, source.id, num_nodes, max_node_id, THREAD_NUM, 15, 18);
+    auto bfs_tree = DOBFS(&graphEngine,
+                          opts.start_vertex,
+                          num_nodes,
+                          max_node_id,
+                          THREAD_NUM,
+                          15,
+                          18,
+                          opts.verify);
     t.stop();
     std::cout << "BFS completed in " << t.t_micros() << std::endl;
     graphEngine.close_graph();
