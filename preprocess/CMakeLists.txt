@@ -19,7 +19,7 @@ INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${PATH_SRC} ${Boost_INCLUDE_DIRS})
 add_executable(bulk_insert_low_mem bulk_insert_low_mem.cpp reader.h
         bulk_insert_low_mem.h)
 # target_include_directories(bulk_insert_low_mem PRIVATE)
-target_link_libraries(bulk_insert_low_mem PUBLIC ${NAME_LIB} graph_utils)
+target_link_libraries(bulk_insert_low_mem PUBLIC ${NAME_LIB} graph_utils TBB::tbb)
 #
 ## ###################################################################################
 add_executable(dense_vertexranges dense_vertexranges_set.cpp)

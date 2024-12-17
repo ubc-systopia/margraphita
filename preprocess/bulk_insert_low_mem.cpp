@@ -36,12 +36,7 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
 
         add_to_adjlist(adj_obj.cur, adj_list);
 
-        // acquire a lock and update the global node_degree
-#pragma omp critical
-        {
-            node_degrees[adj_list.node_id].out_degree =
-                adj_list.edgelist.size();
-        }
+        node_degrees[adj_list.node_id].out_degree = adj_list.edgelist.size();
 
         adj_list.clear();
     }
@@ -100,30 +95,38 @@ void debug_dump_edges()
 
 void insert_nodes()
 {
-    // worker_sessions std_node_obj(conn_std, "", GraphType::Std, false);
-    worker_sessions adj_node_obj(conn_adj, "", GraphType::Adj, false);
-    // worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey, false);
-    // worker_sessions split_ekey_node_obj(
-    //     conn_split_ekey, "", GraphType::SplitEKey, false);
-    int count = 0;
-    // iterate over the node_degrees and insert into the node table
-    for (auto it = node_degrees.begin(); it != node_degrees.end(); it++)
-    {
-        node to_insert;
-        to_insert.id = it->first;
-        to_insert.in_degree = it->second.in_degree;
-        to_insert.out_degree = it->second.out_degree;
-        // insert into STD: node table
-        // add_to_node_table(std_node_obj.n_cur, to_insert);
-        // insert into EKEY: node table
-        // add_node_to_ekey(ekey_node_obj.e_cur, to_insert);
-        // insert into SPLIT_EKEY_OUT table for nodes
-        // add_node_to_ekey(split_ekey_node_obj.e_cur, to_insert);
-        // insert into ADJ: node table
-        add_to_node_table(adj_node_obj.n_cur, to_insert);
-        count++;
-    }
-    std::cout << "inserted " << count << " nodes" << std::endl;
+    tbb::parallel_for(
+        node_degrees.range(),
+        [](degree_map ::const_range_type &r)
+        {
+            // worker_sessions std_node_obj(conn_std, "",
+            // GraphType::Std, false);
+            worker_sessions adj_node_obj(conn_adj, "", GraphType::Adj, false);
+            // worker_sessions ekey_node_obj(conn_ekey, "",
+            // GraphType::EKey, false); worker_sessions
+            // split_ekey_node_obj(
+            //     conn_split_ekey, "", GraphType::SplitEKey,
+            //     false);
+            int count = 0;
+            for (auto it = r.begin(); it != r.end(); it++)
+            {
+                // insert into ADJ: node table
+                add_to_node_table(adj_node_obj.n_cur,
+                                  it->first,
+                                  it->second.in_degree,
+                                  it->second.out_degree);
+                // insert into STD: node table
+                // add_to_node_table(std_node_obj.n_cur,
+                // to_insert); insert into EKEY: node table
+                // add_node_to_ekey(ekey_node_obj.e_cur,
+                // to_insert); insert into SPLIT_EKEY_OUT table
+                // for nodes
+                // add_node_to_ekey(split_ekey_node_obj.e_cur,
+                // to_insert);
+                count++;
+            }
+            std::cout << "inserted " << count << " nodes" << std::endl;
+        });
 }
 
 void dump_mdata(int key, WT_CURSOR *cursor)
@@ -138,14 +141,13 @@ void dump_mdata(int key, WT_CURSOR *cursor)
 
 void update_metadata(const graph_opts &_opts)
 {
-    node_id_t key_min = node_degrees.begin()->first;
-    node_id_t key_max = node_degrees.rbegin()->first;
     std::cout << "Number of nodes: " << _opts.num_nodes << std::endl;
     std::cout << "Cout of node_degrees: " << node_degrees.size() << std::endl;
     // std::cout << "Number of nodes: " << _opts.num_nodes
     //           << std::endl;
     std::cout << "Number of edges: " << _opts.num_edges << std::endl;
 
+    auto [key_min, key_max] = get_min_max_key();
     std::cout << "Min node id: " << key_min << std::endl;
     std::cout << "Max node id: " << key_max << std::endl;
 
@@ -216,21 +218,34 @@ int main(int argc, char *argv[])
     // We first work on the out edges. We will read the edges from the file and
     // insert them into the edge table and the adjlist table
     std::cout << "weighted? " << opts.is_weighted << std::endl;
+    Times t;
+    t.start();
 #pragma omp parallel for num_threads(opts.num_threads)
     for (int i = 0; i < opts.num_threads; i++)
     {
         insert_edge_thread(i, opts.is_weighted);
     }
 
+    t.stop();
+    std::cout << "Time taken to insert edges: " << t.t_secs() << "s"
+              << std::endl;
+    t.start();
 #pragma omp parallel for num_threads(opts.num_threads)
     for (int i = 0; i < opts.num_threads; i++)
     {
         insert_rev_edge_thread(i);
     }
-
+    t.stop();
+    std::cout << "Time taken to insert rev edges: " << t.t_secs() << "s"
+              << std::endl;
     // insert nodes into the node table
+    t.start();
 
     insert_nodes();
+
+    t.stop();
+    std::cout << "Time taken to insert nodes: " << t.t_secs() << "s"
+              << std::endl;
     // debug_dump_edges();
 
     update_metadata(opts);

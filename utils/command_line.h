@@ -218,11 +218,7 @@ class CmdLineBase
     GraphType handle_graph_type(char *opt_arg)
     {
         GraphType type;
-        if (strcmp(opt_arg, "std") == 0)
-        {
-            type = GraphType::Std;
-        }
-        else if (strcmp(opt_arg, "adj") == 0)
+        if (strcmp(opt_arg, "adj") == 0)
         {
             type = GraphType::Adj;
         }

@@ -80,7 +80,6 @@ const degree_t OutOfBand_ID_MAX = UINT32_MAX;
 
 typedef enum GraphType
 {
-    Std,
     Adj,
     EKey,
     SplitEKey,

@@ -5,6 +5,9 @@
 #ifndef GRAPHAPI_BULK_INSERT_LOW_MEM_H
 #define GRAPHAPI_BULK_INSERT_LOW_MEM_H
 #include <sys/stat.h>
+#include <tbb/concurrent_map.h>
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_reduce.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -176,8 +179,28 @@ typedef struct degrees_
     degree_t out_degree = 0;
 } degrees;
 
-std::map<node_id_t, degrees> node_degrees;
-// std::mutex lock_var;
+// Using a TBB concurrent map to store the degrees of the nodes.
+typedef tbb::concurrent_map<node_id_t, degrees> degree_map;
+degree_map node_degrees;
+
+std::tuple<node_id_t, node_id_t> get_min_max_key()
+{
+    node_id_t min, max;
+    min = 0;
+    max = OutOfBand_ID_MAX;
+    // Reduction clause for finding the maximum
+    auto it = node_degrees.cbegin();
+    node_id_t key_min = it->first;
+    node_id_t key_max = key_min;
+    while (++it != node_degrees.end())
+    {
+        if (it->first > key_min)
+        {
+            key_max = it->first;
+        }
+    }
+    return {min, max};
+}
 
 int check_cursors(worker_sessions &info)
 {
@@ -281,12 +304,15 @@ int add_to_edgekey(WT_CURSOR *ekey_cur,
     return 0;
 }
 
-int add_to_node_table(WT_CURSOR *cur, const node &node)
+inline int add_to_node_table(WT_CURSOR *cur,
+                             const node_id_t id,
+                             const degree_t in_degree,
+                             const degree_t out_degree)
 {
-    CommonUtil::set_key(cur, node.id);
+    CommonUtil::set_key(cur, id);
     if (opts.read_optimize)
     {
-        cur->set_value(cur, node.in_degree, node.out_degree);
+        cur->set_value(cur, in_degree, out_degree);
     }
     else
     {
@@ -295,12 +321,13 @@ int add_to_node_table(WT_CURSOR *cur, const node &node)
     int ret = cur->insert(cur);
     if (ret != 0)
     {
-        std::cerr << "Error inserting node " << node.id << ": "
+        std::cerr << "Error inserting node " << id << ": "
                   << wiredtiger_strerror(ret) << std::endl;
         return ret;
     }
     return ret;
 }
+
 int add_node_to_ekey(WT_CURSOR *ekey_cur, const node &node)
 {
     CommonUtil::ekey_set_key(ekey_cur, node.id, OutOfBand_ID_MIN);

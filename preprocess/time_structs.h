@@ -158,11 +158,7 @@ class InsertOpts
 
     {
         GraphType type;
-        if (strcmp(opt_arg, "std") == 0)
-        {
-            type = GraphType::Std;
-        }
-        else if (strcmp(opt_arg, "adj") == 0)
+        if (strcmp(opt_arg, "adj") == 0)
         {
             type = GraphType::Adj;
         }
@@ -201,15 +197,16 @@ class InsertOpts
         }
     }
 
-    [[nodiscard]] std::string get_type_str() const
+    [[maybe_unused]] [[nodiscard]] std::string get_type_str() const
     {
-        if (graph_type == GraphType::Std)
-        {
-            return "std";
-        }
-        else if (graph_type == GraphType::EKey)
+        if (graph_type == GraphType::EKey)
         {
             return "ekey";
+        }
+
+        if (graph_type == GraphType::SplitEKey)
+        {
+            return "split_ekey";
         }
 
         else if (graph_type == GraphType::Adj)
