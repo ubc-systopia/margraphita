@@ -24,7 +24,9 @@
 #include "graph_exception.h"
 #include "iterator.h"
 
-// TODO: remove unused functions from this class.
+#define DEBUG_MSG(msg)                                          \
+    std::cerr << "DEBUG: " << msg << " (Function: " << __func__ \
+              << ", Line: " << __LINE__ << ")" << std::endl;
 
 class CommonUtil
 {
@@ -44,10 +46,6 @@ class CommonUtil
 
     static void check_graph_params(const graph_opts &params);
 
-
-    static void log_msg(std::string_view message,
-                        std::string_view file,
-                        int location);
 
     // WT Session and Cursor wrangling operations
     [[maybe_unused]] static int open_cursor(WT_SESSION *session,
@@ -292,11 +290,7 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
     ret = cursor->update(cursor);
     if (ret)
     {
-        CommonUtil::log_msg("Error inserting into adjlist table" +
-                                std::to_string(ret) + " - " +
-                                wiredtiger_strerror(ret),
-                            __FILE__,
-                            __LINE__);
+        DEBUG_MSG("Error inserting into adjlist table" + std::to_string(ret) + " - " + wiredtiger_strerror(ret));
     }
     cursor->reset(cursor);
     return 0;
@@ -417,13 +411,6 @@ inline void CommonUtil::dump_adjlist(const adjlist &to_print,
     }
     os << "}"
        << "\n\n";
-}
-
-inline void CommonUtil::log_msg(const std::string_view message,
-                                const std::string_view file,
-                                int line)
-{
-    std::cerr << "file: " << file << "@" << line << ": " << message << '\n';
 }
 
 #endif

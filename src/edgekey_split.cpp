@@ -124,11 +124,8 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
     else
     {
         session->rollback_transaction(session, nullptr);
-        CommonUtil::log_msg(
-            "Failed to add node " + to_string(to_insert.id) + " to the graph" +
-                " with error: " + string(wiredtiger_strerror(out_ret)),
-            __FILE__,
-            __LINE__);
+        DEBUG_MSG("Failed to add node " + to_string(to_insert.id) + " to the graph" +
+                  " with error: " + string(wiredtiger_strerror(out_ret)));
         return out_ret;
     }
 }

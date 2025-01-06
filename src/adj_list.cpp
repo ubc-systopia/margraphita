@@ -255,12 +255,9 @@ int AdjList::add_node_in_txn(node to_insert)
     {
         if (ret == WT_DUPLICATE_KEY)
         {
-            CommonUtil::log_msg(
-                "Duplicate key in add_node_in_txn. Node " +
-                    to_string(to_insert.id) +
-                    " already exists. : " + wiredtiger_strerror(ret),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Duplicate key in add_node_in_txn. Node " +
+                      to_string(to_insert.id) +
+                      " already exists. : " + wiredtiger_strerror(ret));
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -270,12 +267,9 @@ int AdjList::add_node_in_txn(node to_insert)
     {
         if (ret == WT_DUPLICATE_KEY)
         {
-            CommonUtil::log_msg(
-                "Duplicate key in add_adjlist. An adjlist for node " +
-                    to_string(to_insert.id) +
-                    " already exists. : " + wiredtiger_strerror(ret),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Duplicate key in add_adjlist. An adjlist for node " +
+                      to_string(to_insert.id) +
+                      " already exists. : " + wiredtiger_strerror(ret));
             return 0;  // this is a duplicate key, continue.
         }
         return ret;
@@ -384,10 +378,8 @@ int AdjList::delete_adjlist(WT_CURSOR *cursor, node_id_t node_id)
     ret = error_check_remove_txn(cursor->remove(cursor));
     if (ret)
     {
-        CommonUtil::log_msg("Failed to delete adjlist for node_id " +
-                                std::to_string(node_id) + "; TX rolled back.",
-                            __FILE__,
-                            __LINE__);
+        DEBUG_MSG("Failed to delete adjlist for node_id " +
+                  std::to_string(node_id) + "; TX rolled back.");
         return ret;
     }
     cursor->reset(cursor);
@@ -422,10 +414,8 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         src.id = to_insert.src_id;
         if (add_node_in_txn(src))
         {
-            CommonUtil::log_msg(
-                "Failed to add node_id " + std::to_string(to_insert.dst_id),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Failed to add node_id " +
+                      std::to_string(to_insert.dst_id));
             session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         }
@@ -435,10 +425,8 @@ int AdjList::add_edge(edge to_insert, bool is_bulk_insert)
         dst.id = to_insert.dst_id;
         if (add_node_in_txn(dst))
         {
-            CommonUtil::log_msg(
-                "Failed to add node_id " + std::to_string(to_insert.dst_id),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Failed to add node_id " +
+                      std::to_string(to_insert.dst_id));
             session->rollback_transaction(session, nullptr);
             return WT_ROLLBACK;
         }
@@ -603,10 +591,8 @@ int AdjList::delete_node(node_id_t node_id)
     CommonUtil::set_key(node_cursor, node_id);
     if ((ret = error_check_remove_txn(node_cursor->remove(node_cursor))))
     {
-        CommonUtil::log_msg("Failed to delete node_id " +
-                                std::to_string(node_id) + "; TX rolled back.",
-                            __FILE__,
-                            __LINE__);
+        DEBUG_MSG("Failed to delete node_id " + std::to_string(node_id) +
+                  "; TX rolled back.");
         return ret;
     }
     node_cursor->reset(node_cursor);
@@ -1039,11 +1025,8 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
     {
-        CommonUtil::log_msg("Failed to delete edge ()" +
-                                std::to_string(src_id) + "," +
-                                std::to_string(dst_id) + "); TX rolled back.",
-                            __FILE__,
-                            __LINE__);
+        DEBUG_MSG("Failed to delete edge ()" + std::to_string(src_id) + "," +
+                  std::to_string(dst_id) + "); TX rolled back.");
         return ret;
     }
     // delete (dst_id, src_id) from edge table if undirected
@@ -1052,11 +1035,8 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
         CommonUtil::set_key(edge_cursor, dst_id, src_id);
         if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
         {
-            CommonUtil::log_msg(
-                "Failed to delete edge ()" + std::to_string(dst_id) + "," +
-                    std::to_string(src_id) + "); TX rolled back.",
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Failed to delete edge ()" + std::to_string(dst_id) +
+                      "," + std::to_string(src_id) + "); TX rolled back.");
             return ret;
         }
     }
@@ -1185,11 +1165,8 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
         CommonUtil::adjlist_to_record(session, cursor, found), false);
     if (ret != 0)
     {
-        CommonUtil::log_msg("Could not insert adjlist for " +
-                                std::to_string(node_id) +
-                                "; TX NOT rolled back.",
-                            __FILE__,
-                            __LINE__);
+        DEBUG_MSG("Could not insert adjlist for " + std::to_string(node_id) +
+                  "; TX NOT rolled back.");
     }
     cursor->reset(cursor);
     return ret;
@@ -1660,11 +1637,8 @@ int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
     CommonUtil::set_key(edge_cursor, src_id, dst_id);
     if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
     {
-        CommonUtil::log_msg("Failed to delete edge ()" +
-                                std::to_string(src_id) + "," +
-                                std::to_string(dst_id) + "); TX rolled back.",
-                            __FILE__,
-                            __LINE__);
+        DEBUG_MSG("Failed to delete edge ()" + std::to_string(src_id) + "," +
+                  std::to_string(dst_id) + "); TX rolled back.");
         return ret;
     }
     // delete (dst_id, src_id) from edge table if undirected
@@ -1673,11 +1647,8 @@ int AdjList::delete_edge_in_txn(node_id_t src_id, node_id_t dst_id)
         CommonUtil::set_key(edge_cursor, dst_id, src_id);
         if ((ret = error_check_remove_txn(edge_cursor->remove(edge_cursor))))
         {
-            CommonUtil::log_msg(
-                "Failed to delete edge ()" + std::to_string(dst_id) + "," +
-                    std::to_string(src_id) + "); TX rolled back.",
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Failed to delete edge ()" + std::to_string(dst_id) +
+                      "," + std::to_string(src_id) + "); TX rolled back.");
             return ret;
         }
     }
@@ -1735,15 +1706,11 @@ int AdjList::error_check_insert_txn(int return_val, bool ignore_duplicate_key)
         case WT_NOTFOUND:
             //! Should we roll back the transaction here? This should not
             //! happen.
-            CommonUtil::log_msg(
-                "WT_NOTFOUND error in insert_txn", __FILE__, __LINE__);
+            DEBUG_MSG("WT_NOTFOUND error in insert_txn");
             return WT_NOTFOUND;
         default:
-            CommonUtil::log_msg(
-                "Rolling back transaction in insert_txn" +
-                    std::string(wiredtiger_strerror(return_val)),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Rolling back transaction in insert_txn" +
+                      std::string(wiredtiger_strerror(return_val)));
             session->rollback_transaction(session, nullptr);
             return return_val;
     }
@@ -1757,19 +1724,13 @@ int AdjList::error_check_update_txn(int return_val)
             return 0;
         case WT_ROLLBACK:
             session->rollback_transaction(session, nullptr);
-            CommonUtil::log_msg(
-                "Rolling back transaction in update_txn" +
-                    std::string(wiredtiger_strerror(return_val)),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Rolling back transaction in update_txn" +
+                      std::string(wiredtiger_strerror(return_val)));
             return WT_ROLLBACK;
         default:
             session->rollback_transaction(session, nullptr);
-            CommonUtil::log_msg(
-                "Failed to complete update action" +
-                    std::string(wiredtiger_strerror(return_val)),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Failed to complete update action" +
+                      std::string(wiredtiger_strerror(return_val)));
             return return_val;
     }
 }
@@ -1788,11 +1749,8 @@ int AdjList::error_check_read_txn(int return_val)
             return WT_NOTFOUND;
         default:
             session->rollback_transaction(session, nullptr);
-            CommonUtil::log_msg(
-                "Failed to complete read action : " +
-                    std::string(wiredtiger_strerror(return_val)),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Failed to complete read action : " +
+                      std::string(wiredtiger_strerror(return_val)));
             return return_val;
     }
 }
@@ -1805,19 +1763,13 @@ int AdjList::error_check_remove_txn(int return_val)
             return 0;
         case WT_ROLLBACK:
             session->rollback_transaction(session, nullptr);
-            CommonUtil::log_msg(
-                "Rollback in transaction remove : " +
-                    std::string(wiredtiger_strerror(return_val)),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Rollback in transaction remove : " +
+                      std::string(wiredtiger_strerror(return_val)));
             return WT_ROLLBACK;
         default:
             session->rollback_transaction(session, nullptr);
-            CommonUtil::log_msg(
-                "Rollback in transaction remove : " +
-                    std::string(wiredtiger_strerror(return_val)),
-                __FILE__,
-                __LINE__);
+            DEBUG_MSG("Rollback in transaction remove : " +
+                      std::string(wiredtiger_strerror(return_val)));
     }
     return return_val;
 }
