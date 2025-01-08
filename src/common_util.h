@@ -11,6 +11,8 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+
+#include "fmt/core.h"
 // #ifdef LINUX
 // #include <source_location>
 // #define SRC_LOC std::source_location::current()
@@ -27,6 +29,12 @@
 #define DEBUG_MSG(msg)                                          \
     std::cerr << "DEBUG: " << msg << " (Function: " << __func__ \
               << ", Line: " << __LINE__ << ")" << std::endl;
+#define LOG_MSG(msg, ...)                                                   \
+    do                                                                      \
+    {                                                                       \
+        fmt::print(                                                         \
+            "DEBUG: [{}:{}] " msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
+    } while (0)
 
 class CommonUtil
 {

@@ -11,13 +11,6 @@
 void create_init_nodes(AdjList &graph, bool is_directed)
 {
     INFO()
-    if (!is_directed)
-    {
-        SampleGraph::create_undirected_edges();
-        assert(SampleGraph::test_edges.size() ==
-               6);  // checking if directed edges got created and stored in
-                    // test_edges
-    }
     int edge_cnt = 1;
     for (node n : SampleGraph::test_nodes)
     {
