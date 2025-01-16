@@ -9,15 +9,15 @@
 // These are the constants
 typedef enum MetadataKey
 {
-    db_name,
-    db_dir,
-    is_weighted,
-    read_optimize,
-    is_directed,
-    num_nodes,
-    num_edges,
-    max_node_id,
-    min_node_id
+  db_name,
+  db_dir,
+  is_weighted,
+  read_optimize,
+  is_directed,
+  num_nodes,
+  num_edges,
+  max_node_id,
+  min_node_id
 } MetadataKey;
 
 const std::string MetadataKeyNames[9] = {"db_name",
@@ -80,73 +80,73 @@ const degree_t OutOfBand_ID_MAX = UINT32_MAX;
 
 typedef enum GraphType
 {
-    Adj,
-    EKey,
-    SplitEKey,
-    META
+  Adj,
+  EKey,
+  SplitEKey,
+  META
 } GraphType;
 
 struct graph_opts
 {
-    bool create_new = false;
-    bool read_optimize = false;
-    bool is_directed = false;
-    bool is_weighted = false;
-    std::string db_name;
-    std::string db_dir;
-    bool optimize_create = false;  // directs when the index should be created
-    std::string conn_config;
-    std::string stat_log;
-    GraphType type;
-    node_id_t num_nodes;
-    uint64_t num_edges;  // we can have > 4B edges
-    std::string dataset;
-    int num_threads = 1;
-    ~graph_opts() = default;
-    // dump the options
-    void print_config(const std::string &filename)
-    {
-        std::ofstream out;
-        out.open(filename, std::ios::out);
-        out << "CREATE_NEW: " << create_new << std::endl;
-        out << "READ_OPTIMIZE: " << read_optimize << std::endl;
-        out << "DIRECTED: " << is_directed << std::endl;
-        out << "WEIGHTED: " << is_weighted << std::endl;
-        out << "DB_NAME: " << db_name << std::endl;
-        out << "DB_DIR: " << db_dir << std::endl;
-        out << "OPTIMIZE_CREATE: " << optimize_create << std::endl;
-        out << "CONN_CONFIG: " << conn_config << std::endl;
-        out << "STAT_LOG: " << stat_log << std::endl;
-        out << "GRAPH_TYPE: " << type << std::endl;
-        out << "DATASET: " << dataset << std::endl;
-        out << "NUM_NODES" << num_nodes << std::endl;
-        out << "NUM_EDGES" << num_edges << std::endl;
-        out.close();
-    }
+  bool create_new = false;
+  bool read_optimize = false;
+  bool is_directed = false;
+  bool is_weighted = false;
+  std::string db_name;
+  std::string db_dir;
+  bool optimize_create = false;  // directs when the index should be created
+  std::string conn_config;
+  std::string stat_log;
+  GraphType type;
+  node_id_t num_nodes;
+  uint64_t num_edges;  // we can have > 4B edges
+  std::string dataset;
+  int num_threads = 1;
+  ~graph_opts() = default;
+  // dump the options
+  void print_config(const std::string &filename)
+  {
+    std::ofstream out;
+    out.open(filename, std::ios::out);
+    out << "CREATE_NEW: " << create_new << std::endl;
+    out << "READ_OPTIMIZE: " << read_optimize << std::endl;
+    out << "DIRECTED: " << is_directed << std::endl;
+    out << "WEIGHTED: " << is_weighted << std::endl;
+    out << "DB_NAME: " << db_name << std::endl;
+    out << "DB_DIR: " << db_dir << std::endl;
+    out << "OPTIMIZE_CREATE: " << optimize_create << std::endl;
+    out << "CONN_CONFIG: " << conn_config << std::endl;
+    out << "STAT_LOG: " << stat_log << std::endl;
+    out << "GRAPH_TYPE: " << type << std::endl;
+    out << "DATASET: " << dataset << std::endl;
+    out << "NUM_NODES" << num_nodes << std::endl;
+    out << "NUM_EDGES" << num_edges << std::endl;
+    out.close();
+  }
 };
 
 typedef struct node
 {
-    node_id_t id = 0;  // node ID
-    degree_t in_degree = 0;
-    degree_t out_degree = 0;
+  node_id_t id = 0;  // node ID
+  degree_t in_degree = 0;
+  degree_t out_degree = 0;
 
 } node;
 
 typedef struct edge
 {
-    edge_id_t id = 0;
-    node_id_t src_id = 0;
-    node_id_t dst_id = 0;
-    edgeweight_t edge_weight = 0;
+  edge_id_t id = 0;
+  node_id_t src_id = 0;
+  node_id_t dst_id = 0;
+  edgeweight_t edge_weight = 0;
 } edge;
 
 typedef struct edge_index
 {
-    node_id_t src_id = 0;
-    node_id_t dst_id = 0;
-    edge_index() : src_id(0), dst_id(0) {}
-    edge_index(node_id_t a, node_id_t b) : src_id(a), dst_id(b) {}
+  node_id_t src_id = 0;
+  node_id_t dst_id = 0;
+  edge_index() : src_id(0), dst_id(0) {}
+  edge_index(node_id_t a, node_id_t b) : src_id(a), dst_id(b) {}
 
 } edge_index;
 
@@ -154,38 +154,38 @@ typedef struct edge_index key_pair;
 
 typedef struct key_range
 {
-    node_id_t start;
-    node_id_t end;
-    key_range() : start(), end() {}
-    key_range(node_id_t a, node_id_t b) : start(a), end(b) {}
+  node_id_t start;
+  node_id_t end;
+  key_range() : start(), end() {}
+  key_range(node_id_t a, node_id_t b) : start(a), end(b) {}
 } key_range;
 
 typedef key_range node_range;
 
 typedef struct edge_range
 {
-    key_pair start{};
-    key_pair end{};
-    edge_range() : start(), end() {}
-    edge_range(key_pair a, key_pair b) : start(a), end(b) {}
+  key_pair start{};
+  key_pair end{};
+  edge_range() : start(), end() {}
+  edge_range(key_pair a, key_pair b) : start(a), end(b) {}
 } edge_range;
 
 typedef struct adjlist
 {
-    node_id_t node_id{};
-    degree_t degree{};
-    std::vector<node_id_t> edgelist;
-    // This could be dynamic, but this is a good starting point.
-    adjlist() { edgelist.reserve(1000); }
-    adjlist(node_id_t id, degree_t deg) : node_id(id), degree(deg)
-    {
-        edgelist.reserve(deg);
-    }
-    void clear()
-    {
-        edgelist.clear();
-        node_id = 0;
-        degree = 0;
-    }
+  node_id_t node_id{};
+  degree_t degree{};
+  std::vector<node_id_t> edgelist;
+  // This could be dynamic, but this is a good starting point.
+  adjlist() { edgelist.reserve(1000); }
+  adjlist(node_id_t id, degree_t deg) : node_id(id), degree(deg)
+  {
+    edgelist.reserve(deg);
+  }
+  void clear()
+  {
+    edgelist.clear();
+    node_id = 0;
+    degree = 0;
+  }
 } adjlist;
 #endif

@@ -50,84 +50,83 @@ int64_t BUStep(GraphEngine *graph_engine,
                Bitmap &next,
                int thread_num)
 {
-    int64_t awake_count = 0;
-    next.reset();
+  int64_t awake_count = 0;
+  next.reset();
 
 #pragma omp parallel for reduction(+ : awake_count) num_threads(thread_num)
-    for (int i = 0; i < thread_num; i++)
+  for (int i = 0; i < thread_num; i++)
+  {
+    GraphBase *graph = graph_engine->create_graph_handle();
+    InCursor *in_cursor = graph->get_innbd_iter();
+    adjlist found{0, 0};
+    in_cursor->set_key_range(graph_engine->get_key_range(i));
+
+    in_cursor->next(&found);
+
+    while (found.node_id != OutOfBand_ID_MAX)
     {
-        GraphBase *graph = graph_engine->create_graph_handle();
-        InCursor *in_cursor = graph->get_innbd_iter();
-        adjlist found{0, 0};
-        in_cursor->set_key_range(graph_engine->get_key_range(i));
-
-        in_cursor->next(&found);
-
-        while (found.node_id != OutOfBand_ID_MAX)
+      if (parent[found.node_id] < 0)
+      {
+        for (node_id_t v : found.edgelist)
         {
-            if (parent[found.node_id] < 0)
-            {
-                for (node_id_t v : found.edgelist)
-                {
-                    if (front.get_bit(v))
-                    {
-                        parent[found.node_id] = v;
-                        awake_count++;
-                        next.set_bit(found.node_id);
-                        break;
-                    }
-                }
-            }
-            in_cursor->next(&found);
+          if (front.get_bit(v))
+          {
+            parent[found.node_id] = v;
+            awake_count++;
+            next.set_bit(found.node_id);
+            break;
+          }
         }
-        graph->close(false);
+      }
+      in_cursor->next(&found);
     }
+    graph->close(false);
+  }
 
-    return awake_count;
+  return awake_count;
 }
 
 int64_t TDStep(GraphEngine *graph_engine,
                pvector<NodeID> &parent,
                SlidingQueue<node_id_t> &queue)
 {
-    int64_t scout_count = 0;
+  int64_t scout_count = 0;
 
 #pragma omp parallel
-    {
-        QueueBuffer<node_id_t> lqueue(queue);
+  {
+    QueueBuffer<node_id_t> lqueue(queue);
 #pragma omp for reduction(+ : scout_count) nowait
-        for (auto q_iter = queue.begin(); q_iter < queue.end(); q_iter++)
+    for (auto q_iter = queue.begin(); q_iter < queue.end(); q_iter++)
+    {
+      node_id_t u = *q_iter;
+      GraphBase *graph = graph_engine->create_graph_handle();
+      for (node_id_t v : graph->get_out_nodes_id(u))
+      {
+        NodeID curr_val = parent[v];
+        if (curr_val < 0)
         {
-            node_id_t u = *q_iter;
-            GraphBase *graph = graph_engine->create_graph_handle();
-            for (node_id_t v : graph->get_out_nodes_id(u))
-            {
-                NodeID curr_val = parent[v];
-                if (curr_val < 0)
-                {
-                    if (compare_and_swap(
-                            parent[v], curr_val, static_cast<NodeID>(u)))
-                    {
-                        lqueue.push_back(v);
-                        scout_count += -curr_val;
-                    }
-                }
-            }
-            graph->close(false);
+          if (compare_and_swap(parent[v], curr_val, static_cast<NodeID>(u)))
+          {
+            lqueue.push_back(v);
+            scout_count += -curr_val;
+          }
         }
-        lqueue.flush();
+      }
+      graph->close(false);
     }
-    return scout_count;
+    lqueue.flush();
+  }
+  return scout_count;
 }
 
 void QueueToBitmap(const SlidingQueue<node_id_t> &queue, Bitmap &bm)
 {
 #pragma omp parallel for
-    for (auto q_iter = queue.begin(); q_iter < queue.end(); q_iter++)
-    {
-        node_id_t u = *q_iter;
-        bm.set_bit_atomic(u);
-    }
+  for (auto q_iter = queue.begin(); q_iter < queue.end(); q_iter++)
+  {
+    node_id_t u = *q_iter;
+    bm.set_bit_atomic(u);
+  }
 }
 
 void BitmapToQueue(GraphEngine *graph_engine,
@@ -136,54 +135,54 @@ void BitmapToQueue(GraphEngine *graph_engine,
                    int thread_num)
 {
 #pragma omp parallel num_threads(thread_num)
-    {
-        QueueBuffer<node_id_t> lqueue(queue);
+  {
+    QueueBuffer<node_id_t> lqueue(queue);
 #pragma omp for nowait
-        for (int i = 0; i < thread_num; i++)
-        {
-            GraphBase *graph = graph_engine->create_graph_handle();
-            NodeCursor *node_cursor = graph->get_node_iter();
-            node_cursor->set_key_range(graph_engine->get_key_range(i));
+    for (int i = 0; i < thread_num; i++)
+    {
+      GraphBase *graph = graph_engine->create_graph_handle();
+      NodeCursor *node_cursor = graph->get_node_iter();
+      node_cursor->set_key_range(graph_engine->get_key_range(i));
 
-            node found = {0};
-            node_cursor->next(&found);
-            while (found.id != OutOfBand_ID_MAX)
-            {
-                if (bm.get_bit(found.id)) lqueue.push_back(found.id);
-                node_cursor->next(&found);
-            }
-            graph->close(false);
-        }
-        lqueue.flush();
+      node found = {0};
+      node_cursor->next(&found);
+      while (found.id != OutOfBand_ID_MAX)
+      {
+        if (bm.get_bit(found.id)) lqueue.push_back(found.id);
+        node_cursor->next(&found);
+      }
+      graph->close(false);
     }
-    queue.slide_window();
+    lqueue.flush();
+  }
+  queue.slide_window();
 }
 
 pvector<NodeID> InitParent(GraphEngine *graph_engine,
                            node_id_t max_node_id,
                            int thread_num)
 {
-    pvector<NodeID> parent(max_node_id);
+  pvector<NodeID> parent(max_node_id);
 
 #pragma omp parallel for num_threads(thread_num)
-    for (int i = 0; i < thread_num; i++)
+  for (int i = 0; i < thread_num; i++)
+  {
+    GraphBase *graph = graph_engine->create_graph_handle();
+    NodeCursor *node_cursor = graph->get_node_iter();
+    node found = {0};
+    node_cursor->set_key_range(graph_engine->get_key_range(i));
+
+    node_cursor->next(&found);
+    while (found.id != OutOfBand_ID_MAX)
     {
-        GraphBase *graph = graph_engine->create_graph_handle();
-        NodeCursor *node_cursor = graph->get_node_iter();
-        node found = {0};
-        node_cursor->set_key_range(graph_engine->get_key_range(i));
+      auto degree = static_cast<int64_t>(graph->get_out_degree(found.id));
+      parent[found.id] = degree != 0 ? -degree : -1;
 
-        node_cursor->next(&found);
-        while (found.id != OutOfBand_ID_MAX)
-        {
-            auto degree = static_cast<int64_t>(graph->get_out_degree(found.id));
-            parent[found.id] = degree != 0 ? -degree : -1;
-
-            node_cursor->next(&found);
-        }
-        graph->close(false);
+      node_cursor->next(&found);
     }
-    return parent;
+    graph->close(false);
+  }
+  return parent;
 }
 
 /**
@@ -202,133 +201,132 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
                       int beta = 18,
                       bool verify = false)
 {
-    if (logging_enabled) std::cout << "Source" << source << std::endl;
-    GraphBase *graph_stat = graph_engine->create_graph_handle();
-    Times t;
-    t.start();
-    pvector<NodeID> parent = InitParent(graph_engine, max_node_id, thread_num);
-    t.stop();
-    if (logging_enabled) printf("%5s%23.5Lf\n", "i", t.t_secs());
+  if (logging_enabled) std::cout << "Source" << source << std::endl;
+  GraphBase *graph_stat = graph_engine->create_graph_handle();
+  Times t;
+  t.start();
+  pvector<NodeID> parent = InitParent(graph_engine, max_node_id, thread_num);
+  t.stop();
+  if (logging_enabled) printf("%5s%23.5Lf\n", "i", t.t_secs());
 
-    parent[source] = source;
-    SlidingQueue<node_id_t> queue(num_nodes);
-    queue.push_back(source);
-    queue.slide_window();
-    Bitmap curr(num_nodes);
-    curr.reset();
-    Bitmap front(num_nodes);
-    front.reset();
-    int64_t edges_to_check = GraphBase::get_num_edges();
-    int64_t scout_count = graph_stat->get_out_degree(source);
-    std::cout << "source: " << source << "\tscout_count: " << scout_count
-              << "\tedges_to_check: " << edges_to_check << std::endl;
-    queue.dump_stdout();
+  parent[source] = source;
+  SlidingQueue<node_id_t> queue(num_nodes);
+  queue.push_back(source);
+  queue.slide_window();
+  Bitmap curr(num_nodes);
+  curr.reset();
+  Bitmap front(num_nodes);
+  front.reset();
+  int64_t edges_to_check = GraphBase::get_num_edges();
+  int64_t scout_count = graph_stat->get_out_degree(source);
+  std::cout << "source: " << source << "\tscout_count: " << scout_count
+            << "\tedges_to_check: " << edges_to_check << std::endl;
+  queue.dump_stdout();
 
-    while (!queue.empty())
+  while (!queue.empty())
+  {
+    if (scout_count > edges_to_check / alpha)
     {
-        if (scout_count > edges_to_check / alpha)
-        {
-            uint64_t awake_count, old_awake_count;
-            t.start();
-            QueueToBitmap(queue, front);
-            t.stop();
-            printf("%5s%23.5Lf\n", "e", t.t_secs());
-            awake_count = queue.size();
-            queue.slide_window();
-            do
-            {
-                t.start();
-                old_awake_count = awake_count;
-                awake_count =
-                    BUStep(graph_engine, parent, front, curr, thread_num);
-                front.swap(curr);
-                t.stop();
-                printf("%5s%23.5Lf\n", "bu", t.t_secs());
+      uint64_t awake_count, old_awake_count;
+      t.start();
+      QueueToBitmap(queue, front);
+      t.stop();
+      printf("%5s%23.5Lf\n", "e", t.t_secs());
+      awake_count = queue.size();
+      queue.slide_window();
+      do
+      {
+        t.start();
+        old_awake_count = awake_count;
+        awake_count = BUStep(graph_engine, parent, front, curr, thread_num);
+        front.swap(curr);
+        t.stop();
+        printf("%5s%23.5Lf\n", "bu", t.t_secs());
 
-            } while ((awake_count >= old_awake_count) ||
-                     (awake_count > num_nodes / beta));
-            t.start();
-            BitmapToQueue(graph_engine, front, queue, thread_num);
-            t.stop();
-            printf("%5s%23.5Lf\n", "c", t.t_secs());
-            scout_count = 1;
-        }
-        else
-        {
-            t.start();
-            edges_to_check -= scout_count;
-            scout_count = TDStep(graph_engine, parent, queue);
-            queue.slide_window();
-            t.stop();
-            printf("%5s%23.5Lf\n", "td", t.t_secs());
-        }
+      } while ((awake_count >= old_awake_count) ||
+               (awake_count > num_nodes / beta));
+      t.start();
+      BitmapToQueue(graph_engine, front, queue, thread_num);
+      t.stop();
+      printf("%5s%23.5Lf\n", "c", t.t_secs());
+      scout_count = 1;
     }
+    else
+    {
+      t.start();
+      edges_to_check -= scout_count;
+      scout_count = TDStep(graph_engine, parent, queue);
+      queue.slide_window();
+      t.stop();
+      printf("%5s%23.5Lf\n", "td", t.t_secs());
+    }
+  }
 
 #pragma omp parallel for
-    for (node_id_t n = 0; n < num_nodes; n++)
-        if (parent[n] < -1) parent[n] = -1;
+  for (node_id_t n = 0; n < num_nodes; n++)
+    if (parent[n] < -1) parent[n] = -1;
 
-    if (verify)
+  if (verify)
+  {
+    int64_t count = 0, n_edges = 0;
+    NodeCursor *node_cursor = graph_stat->get_node_iter();
+    node found = {0};
+
+    node_cursor->next(&found);
+    while (found.id != OutOfBand_ID_MAX)
     {
-        int64_t count = 0, n_edges = 0;
-        NodeCursor *node_cursor = graph_stat->get_node_iter();
-        node found = {0};
-
-        node_cursor->next(&found);
-        while (found.id != OutOfBand_ID_MAX)
-        {
-            if (parent[found.id] >= 0)
-            {
-                count++;
-                n_edges += graph_stat->get_out_degree(found.id);
-            }
-            node_cursor->next(&found);
-        }
-
-        std::cout << "BFS finished, Tree has " << count << " nodes and "
-                  << n_edges << "edges" << std::endl;
+      if (parent[found.id] >= 0)
+      {
+        count++;
+        n_edges += graph_stat->get_out_degree(found.id);
+      }
+      node_cursor->next(&found);
     }
 
-    graph_stat->close(false);
-    return parent;
+    std::cout << "BFS finished, Tree has " << count << " nodes and " << n_edges
+              << "edges" << std::endl;
+  }
+
+  graph_stat->close(false);
+  return parent;
 }
 
 int main(int argc, char *argv[])
 {
-    cout << "Running BFS" << endl;
-    CmdLineApp bfs_cli(argc, argv);
-    if (!bfs_cli.parse_args())
-    {
-        return -1;
-    }
-    cmdline_opts opts = bfs_cli.get_parsed_opts();
-    opts.stat_log += "/" + opts.db_name;
+  cout << "Running BFS" << endl;
+  CmdLineApp bfs_cli(argc, argv);
+  if (!bfs_cli.parse_args())
+  {
+    return -1;
+  }
+  cmdline_opts opts = bfs_cli.get_parsed_opts();
+  opts.stat_log += "/" + opts.db_name;
 
-    const int THREAD_NUM = omp_get_max_threads();
-    std::cout << "THREAD_NUM: " << THREAD_NUM << std::endl;
-    Times t;
-    t.start();
-    GraphEngine graphEngine(THREAD_NUM, opts);
-    graphEngine.calculate_thread_offsets();
-    t.stop();
-    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+  const int THREAD_NUM = omp_get_max_threads();
+  std::cout << "THREAD_NUM: " << THREAD_NUM << std::endl;
+  Times t;
+  t.start();
+  GraphEngine graphEngine(THREAD_NUM, opts);
+  graphEngine.calculate_thread_offsets();
+  t.stop();
+  std::cout << "Graph loaded in " << t.t_micros() << std::endl;
 
-    t.start();
-    GraphBase *g = graphEngine.create_graph_handle();
-    node_id_t num_nodes = GraphBase::get_num_nodes();
-    node_id_t max_node_id = g->get_max_node_id();
-    if (opts.start_vertex == OutOfBand_ID_MAX)
-        opts.start_vertex = g->get_random_node().id;
-    g->close(false);
-    auto bfs_tree = DOBFS(&graphEngine,
-                          opts.start_vertex,
-                          num_nodes,
-                          max_node_id,
-                          THREAD_NUM,
-                          15,
-                          18,
-                          opts.verify);
-    t.stop();
-    std::cout << "BFS completed in " << t.t_micros() << std::endl;
-    graphEngine.close_graph();
+  t.start();
+  GraphBase *g = graphEngine.create_graph_handle();
+  node_id_t num_nodes = GraphBase::get_num_nodes();
+  node_id_t max_node_id = g->get_max_node_id();
+  if (opts.start_vertex == OutOfBand_ID_MAX)
+    opts.start_vertex = g->get_random_node().id;
+  g->close(false);
+  auto bfs_tree = DOBFS(&graphEngine,
+                        opts.start_vertex,
+                        num_nodes,
+                        max_node_id,
+                        THREAD_NUM,
+                        15,
+                        18,
+                        opts.verify);
+  t.stop();
+  std::cout << "BFS completed in " << t.t_micros() << std::endl;
+  graphEngine.close_graph();
 }

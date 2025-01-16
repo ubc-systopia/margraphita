@@ -9,7 +9,6 @@
 
 #include "platform_atomics.h"
 
-
 /*
 GAP Benchmark Suite
 Class:  Bitmap
@@ -19,40 +18,42 @@ Parallel bitmap that is thread-safe
  - Can set bits in parallel (set_bit_atomic) unlike std::vector<bool>
 */
 
-
-class Bitmap {
+class Bitmap
+{
  public:
-  explicit Bitmap(size_t size) {
+  explicit Bitmap(size_t size)
+  {
     uint64_t num_words = (size + kBitsPerWord - 1) / kBitsPerWord;
     start_ = new uint64_t[num_words];
     end_ = start_ + num_words;
   }
 
-  ~Bitmap() {
-    delete[] start_;
+  ~Bitmap() { delete[] start_; }
+
+  void reset() { std::fill(start_, end_, 0); }
+
+  void set_bit(size_t pos)
+  {
+    start_[word_offset(pos)] |= ((uint64_t)1l << bit_offset(pos));
   }
 
-  void reset() {
-    std::fill(start_, end_, 0);
-  }
-
-  void set_bit(size_t pos) {
-    start_[word_offset(pos)] |= ((uint64_t) 1l << bit_offset(pos));
-  }
-
-  void set_bit_atomic(size_t pos) {
+  void set_bit_atomic(size_t pos)
+  {
     uint64_t old_val, new_val;
-    do {
+    do
+    {
       old_val = start_[word_offset(pos)];
-      new_val = old_val | ((uint64_t) 1l << bit_offset(pos));
+      new_val = old_val | ((uint64_t)1l << bit_offset(pos));
     } while (!compare_and_swap(start_[word_offset(pos)], old_val, new_val));
   }
 
-  bool get_bit(size_t pos) const {
+  bool get_bit(size_t pos) const
+  {
     return (start_[word_offset(pos)] >> bit_offset(pos)) & 1l;
   }
 
-  void swap(Bitmap &other) {
+  void swap(Bitmap &other)
+  {
     std::swap(start_, other.start_);
     std::swap(end_, other.end_);
   }

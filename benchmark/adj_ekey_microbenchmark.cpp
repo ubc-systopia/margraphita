@@ -33,194 +33,191 @@ __itt_string_handle* outnbdScan =
 
 int main(int argc, char* argv[])
 {
-    cpu_set_t mask;
-    CPU_ZERO(&mask);
-    CPU_SET(0, &mask);
-    sched_setaffinity(0, sizeof(mask), &mask);
+  cpu_set_t mask;
+  CPU_ZERO(&mask);
+  CPU_SET(0, &mask);
+  sched_setaffinity(0, sizeof(mask), &mask);
 
-    std::cout << "Running Iteration" << std::endl;
-    CmdLineApp iter_cli(argc, argv);
-    if (!iter_cli.parse_args())
-    {
-        return -1;
-    }
+  std::cout << "Running Iteration" << std::endl;
+  CmdLineApp iter_cli(argc, argv);
+  if (!iter_cli.parse_args())
+  {
+    return -1;
+  }
 
-    cmdline_opts opts = iter_cli.get_parsed_opts();
-    opts.stat_log = opts.stat_log + "/" + opts.db_name;
-    opts.conn_config = "cache_size=10GB";
+  cmdline_opts opts = iter_cli.get_parsed_opts();
+  opts.stat_log = opts.stat_log + "/" + opts.db_name;
+  opts.conn_config = "cache_size=10GB";
 
-    const int THREAD_NUM = 4;
-    GraphEngine myEngine(THREAD_NUM, opts);
+  const int THREAD_NUM = 4;
+  GraphEngine myEngine(THREAD_NUM, opts);
 
-    EdgeCursor* edge_cursor;
-    OutCursor* out_cursor;
-    node_id_t counter1 = 0;
-    node_id_t counter2 = 0;
+  EdgeCursor* edge_cursor;
+  OutCursor* out_cursor;
+  node_id_t counter1 = 0;
+  node_id_t counter2 = 0;
 
-    Times t;
-    edge e = {0};
-    adjlist adj;
-    std::ofstream stat_file;
-    std::string stat_file_name = opts.stat_log + "/adj_ekey_microbenchmark";
+  Times t;
+  edge e = {0};
+  adjlist adj;
+  std::ofstream stat_file;
+  std::string stat_file_name = opts.stat_log + "/adj_ekey_microbenchmark";
 #ifdef DEBUG
-    stat_file_name = stat_file_name + "_debug";
+  stat_file_name = stat_file_name + "_debug";
 #endif
 
 #ifdef HUB
 #ifdef HUB_BREAK
-    stat_file_name = stat_file_name + "_hub_break";
+  stat_file_name = stat_file_name + "_hub_break";
 #endif
-    stat_file_name = stat_file_name + "_hub.log";
+  stat_file_name = stat_file_name + "_hub.log";
 #else
-    stat_file_name = stat_file_name + "_no_hub.log";
+  stat_file_name = stat_file_name + "_no_hub.log";
 #endif
-    std::cout << "Stat file name: " << stat_file_name << std::endl;
-    stat_file.open(stat_file_name, std::ios::app);
-    if (std::filesystem::file_size(stat_file_name) == 0)
-    {
-        stat_file << "edge_cursor, out_nbd_cursor" << std::endl;
-    }
+  std::cout << "Stat file name: " << stat_file_name << std::endl;
+  stat_file.open(stat_file_name, std::ios::app);
+  if (std::filesystem::file_size(stat_file_name) == 0)
+  {
+    stat_file << "edge_cursor, out_nbd_cursor" << std::endl;
+  }
 
 #ifdef HUB
-    GraphEngine graphEngineHub(THREAD_NUM, opts);
-    GraphBase* graphHub = nullptr;
-    if (opts.create_new)
-    {
-        t.start();
-        graphHub = graphEngineHub.create_graph_handle();
-        for (int i = 0; i < HUB_COUNT; i++)
-        {
-            edge e{.src_id = 1, .dst_id = i + 2};
-            graphHub->add_edge(e, false);
-            if (i % 1000 == 0)
-            {
-                cout << "Percentage finished:" << i / 1000 << '\n';
-            }
-        }
-        graphHub->close();
-        t.stop();
-        std::cout << "Graph loaded in " << t.t_micros() << std::endl;
-    }
-    for (int i = 0; i < ITERS; i++)
-    {
-        graphHub = graphEngineHub.create_graph_handle();
-        edge_cursor = graphHub->get_edge_iter();
-        t.start();
-#ifdef DEBUG
-        __itt_task_begin(domain, __itt_null, __itt_null, edgeScan_hub);
-#endif
-        edge_cursor->next(&e);
-        while (e.src_id != OutOfBand_ID_MAX)
-        {
-            edge_cursor->next(&e);
-            counter1++;
-        }
-#ifdef DEBUG
-        __itt_task_end(domain);
-#endif
-        t.stop();
-        stat_file << t.t_micros() << ",";
-        std::cout << "Hub traversal completed in : " << t.t_micros()
-                  << std::endl;
-#ifdef STAT
-        // return 0;
-#endif
-        out_cursor = graphHub->get_outnbd_iter();
-        t.start();
-#ifdef DEBUG
-        __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan_hub);
-#endif
-        out_cursor->next(&adj);
-        while (adj.node_id != OutOfBand_ID_MAX)
-        {
-            if (opts.type == GraphType::EKey)
-            {
-                std::cout << "adj.node_id: " << adj.node_id << "has "
-                          << adj.edgelist.size() << " neighbours" << std::endl;
-            }
-            for (node_id_t v : adj.edgelist)
-            {
-                counter2++;
-            }
-            // #ifdef HUB_BREAK
-            //             break;//for hub node, only iterate over the core.
-            // #endif
-            out_cursor->next(&adj);
-        }
-#ifdef DEBUG
-        __itt_task_end(domain);
-#endif
-        graphHub->close();
-        t.stop();
-        std::cout << "counter1(edge): " << counter1 << " counter2:(adjlist) "
-                  << counter2 << std::endl;
-        assert(counter1 == counter2);
-        stat_file << t.t_micros() << std::endl;
-        std::cout << "Hub traversal completed in : " << t.t_micros()
-                  << std::endl;
-    }
-#else
-    GraphEngine graphEngineEdge(engine_opts);
-
+  GraphEngine graphEngineHub(THREAD_NUM, opts);
+  GraphBase* graphHub = nullptr;
+  if (opts.create_new)
+  {
     t.start();
-    GraphBase* graphEdge = graphEngineEdge.create_graph_handle();
+    graphHub = graphEngineHub.create_graph_handle();
     for (int i = 0; i < HUB_COUNT; i++)
     {
-        edge e{.src_id = i, .dst_id = i + 1};
-        graphEdge->add_edge(e, false);
+      edge e{.src_id = 1, .dst_id = i + 2};
+      graphHub->add_edge(e, false);
+      if (i % 1000 == 0)
+      {
+        cout << "Percentage finished:" << i / 1000 << '\n';
+      }
     }
+    graphHub->close();
+    t.stop();
+    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+  }
+  for (int i = 0; i < ITERS; i++)
+  {
+    graphHub = graphEngineHub.create_graph_handle();
+    edge_cursor = graphHub->get_edge_iter();
+    t.start();
+#ifdef DEBUG
+    __itt_task_begin(domain, __itt_null, __itt_null, edgeScan_hub);
+#endif
+    edge_cursor->next(&e);
+    while (e.src_id != OutOfBand_ID_MAX)
+    {
+      edge_cursor->next(&e);
+      counter1++;
+    }
+#ifdef DEBUG
+    __itt_task_end(domain);
+#endif
+    t.stop();
+    stat_file << t.t_micros() << ",";
+    std::cout << "Hub traversal completed in : " << t.t_micros() << std::endl;
+#ifdef STAT
+    // return 0;
+#endif
+    out_cursor = graphHub->get_outnbd_iter();
+    t.start();
+#ifdef DEBUG
+    __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan_hub);
+#endif
+    out_cursor->next(&adj);
+    while (adj.node_id != OutOfBand_ID_MAX)
+    {
+      if (opts.type == GraphType::EKey)
+      {
+        std::cout << "adj.node_id: " << adj.node_id << "has "
+                  << adj.edgelist.size() << " neighbours" << std::endl;
+      }
+      for (node_id_t v : adj.edgelist)
+      {
+        counter2++;
+      }
+      // #ifdef HUB_BREAK
+      //             break;//for hub node, only iterate over the core.
+      // #endif
+      out_cursor->next(&adj);
+    }
+#ifdef DEBUG
+    __itt_task_end(domain);
+#endif
+    graphHub->close();
+    t.stop();
+    std::cout << "counter1(edge): " << counter1 << " counter2:(adjlist) "
+              << counter2 << std::endl;
+    assert(counter1 == counter2);
+    stat_file << t.t_micros() << std::endl;
+    std::cout << "Hub traversal completed in : " << t.t_micros() << std::endl;
+  }
+#else
+  GraphEngine graphEngineEdge(engine_opts);
+
+  t.start();
+  GraphBase* graphEdge = graphEngineEdge.create_graph_handle();
+  for (int i = 0; i < HUB_COUNT; i++)
+  {
+    edge e{.src_id = i, .dst_id = i + 1};
+    graphEdge->add_edge(e, false);
+  }
+  graphEdge->close();
+  t.stop();
+
+  std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+
+  for (int i = 0; i < ITERS; i++)
+  {
+    graphEdge = graphEngineEdge.create_graph_handle();
+    edge_cursor = graphEdge->get_edge_iter();
+    t.start();
+#ifdef DEBUG
+    __itt_task_begin(domain, __itt_null, __itt_null, edgeScan);
+#endif
+    edge_cursor->next(&e);
+    while (e.src_id != OutOfBand_ID_MAX)
+    {
+      edge_cursor->next(&e);
+      counter1++;
+    }
+#ifdef DEBUG
+    __itt_task_end(domain);
+#endif
+    t.stop();
+    stat_file << t.t_micros() << ",";
+    std::cout << "(non-hub)Edge traversal completed in : " << t.t_micros()
+              << std::endl;
+
+    out_cursor = graphEdge->get_outnbd_iter();
+    t.start();
+#ifdef DEBUG
+    __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan);
+#endif
+    out_cursor->next(&adj);
+    while (adj.node_id != OutOfBand_ID_MAX)
+    {
+      for (node_id_t v : adj.edgelist)
+      {
+        counter2++;
+      }
+      out_cursor->next(&adj);
+    }
+#ifdef DEBUG
+    __itt_task_end(domain);
+#endif
     graphEdge->close();
     t.stop();
-
-    std::cout << "Graph loaded in " << t.t_micros() << std::endl;
-
-    for (int i = 0; i < ITERS; i++)
-    {
-        graphEdge = graphEngineEdge.create_graph_handle();
-        edge_cursor = graphEdge->get_edge_iter();
-        t.start();
-#ifdef DEBUG
-        __itt_task_begin(domain, __itt_null, __itt_null, edgeScan);
+    stat_file << t.t_micros() << std::endl;
+    assert(counter1 == counter2);
+    std::cout << "Edge traversal completed in : " << t.t_micros() << std::endl;
+  }
 #endif
-        edge_cursor->next(&e);
-        while (e.src_id != OutOfBand_ID_MAX)
-        {
-            edge_cursor->next(&e);
-            counter1++;
-        }
-#ifdef DEBUG
-        __itt_task_end(domain);
-#endif
-        t.stop();
-        stat_file << t.t_micros() << ",";
-        std::cout << "(non-hub)Edge traversal completed in : " << t.t_micros()
-                  << std::endl;
-
-        out_cursor = graphEdge->get_outnbd_iter();
-        t.start();
-#ifdef DEBUG
-        __itt_task_begin(domain, __itt_null, __itt_null, outnbdScan);
-#endif
-        out_cursor->next(&adj);
-        while (adj.node_id != OutOfBand_ID_MAX)
-        {
-            for (node_id_t v : adj.edgelist)
-            {
-                counter2++;
-            }
-            out_cursor->next(&adj);
-        }
-#ifdef DEBUG
-        __itt_task_end(domain);
-#endif
-        graphEdge->close();
-        t.stop();
-        stat_file << t.t_micros() << std::endl;
-        assert(counter1 == counter2);
-        std::cout << "Edge traversal completed in : " << t.t_micros()
-                  << std::endl;
-    }
-#endif
-    stat_file.close();
-    return 0;
+  stat_file.close();
+  return 0;
 }
