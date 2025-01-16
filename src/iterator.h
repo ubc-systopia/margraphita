@@ -17,6 +17,8 @@ class table_iterator
     WT_SESSION *session = nullptr;
     bool is_first = true;
     bool has_next = true;
+    bool directed = false;
+    bool read_opt = true;
 
    public:
     table_iterator() = default;

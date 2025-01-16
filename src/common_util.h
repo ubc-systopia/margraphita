@@ -26,6 +26,7 @@
 #include "graph_exception.h"
 #include "iterator.h"
 
+#ifdef DEBUG
 #define DEBUG_MSG(msg)                                          \
     std::cerr << "DEBUG: " << msg << " (Function: " << __func__ \
               << ", Line: " << __LINE__ << ")" << std::endl;
@@ -35,6 +36,16 @@
         fmt::print(                                                         \
             "DEBUG: [{}:{}] " msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
     } while (0)
+#else
+#define DEBUG_MSG(msg) \
+    do                 \
+    {                  \
+    } while (0)
+#define LOG_MSG(msg, ...) \
+    do                    \
+    {                     \
+    } while (0)
+#endif
 
 class CommonUtil
 {
@@ -87,9 +98,6 @@ class CommonUtil
     static int node_to_record(WT_CURSOR *cursor,
                               node to_insert,
                               bool read_optimize);
-    static void record_to_node(WT_CURSOR *cursor,
-                               node *found,
-                               bool read_optimize);
     static void record_to_edge(WT_CURSOR *cursor, edge *found);
     static void read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx);
     static int adjlist_to_record(WT_SESSION *session,
@@ -105,6 +113,10 @@ class CommonUtil
     static void record_to_node_ekeyidx(WT_CURSOR *idx_cursor, node *found);
     static void record_to_edge_ekey(WT_CURSOR *cur, edge *found);
     static void get_val_idx(WT_CURSOR *idx_cursor, node_id_t *a, node_id_t *b);
+    static void record_to_node(WT_CURSOR *cursor,
+                               node *found,
+                               bool read_optimize,
+                               bool is_directed);
 };
 
 /***************************************************************************
@@ -210,20 +222,26 @@ inline int CommonUtil::node_to_record(WT_CURSOR *cursor,
 
 /**
  * @brief This function reads the record currently being pointed to by the
- * cursor, and returns the
- * @param cursor
+ * cursor, and returns the values in the node struct passed to it.
+ * @param cursor the cursor to the node tableq
+ * @param node* found to populate from the get_value call
+ * @param bool read_optimize whether the node is read optimized or not
+ * @param bool is_directed whether the graph is directed or not
  * @return node
  */
 inline void CommonUtil::record_to_node(WT_CURSOR *cursor,
                                        node *found,
-                                       bool read_optimize)
+                                       bool read_optimize,
+                                       bool is_directed)
 {
     found->in_degree = 0;
     found->out_degree = 0;
 
     if (read_optimize)
     {
-        cursor->get_value(cursor, &found->in_degree, &found->out_degree);
+        is_directed
+            ? cursor->get_value(cursor, &found->in_degree, &found->out_degree)
+            : cursor->get_value(cursor, &found->out_degree);
     }
 }
 

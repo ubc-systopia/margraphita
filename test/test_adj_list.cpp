@@ -11,7 +11,6 @@
 void create_init_nodes(AdjList &graph, bool is_directed)
 {
     INFO()
-    int edge_cnt = 1;
     for (node n : SampleGraph::test_nodes)
     {
         graph.add_node(n);
@@ -20,7 +19,6 @@ void create_init_nodes(AdjList &graph, bool is_directed)
     for (edge x : SampleGraph::test_edges)
     {
         graph.add_edge(x, false);
-        edge_cnt++;
     }
 }
 
@@ -51,7 +49,7 @@ void test_node_add(AdjList graph, bool read_optimize)
 void test_get_node(AdjList graph)
 {
     INFO();
-    int test_id1 = 1, test_id2 = -1;
+    int test_id1 = 1, test_id2 = 55;
     node found = graph.get_node(test_id1);
     assert(found.id == 1);
     // now get a node that does not exist
@@ -102,14 +100,20 @@ void test_get_adjlist(AdjList graph, int node_id)
     }
 }
 
-void test_get_edge(AdjList graph)
+void test_get_edge(AdjList graph, bool is_directed)
 {
     INFO();
     edge found =
         graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
     assert(found.src_id == SampleGraph::edge1.src_id);
     assert(found.dst_id == SampleGraph::edge1.dst_id);
-    // not testing weight since not set
+    if (!is_directed)
+    {
+        found = graph.get_edge(SampleGraph::edge1.dst_id,
+                               SampleGraph::edge1.src_id);
+        assert(found.src_id == SampleGraph::edge1.dst_id);
+        assert(found.dst_id == SampleGraph::edge1.src_id);
+    }
 
     // Now get a non-existent edge
     int test_id1 = 222, test_id2 = 333;
@@ -140,8 +144,13 @@ void test_add_edge(AdjList graph, bool is_directed)
     // Check if the nodes were created.
     node got = graph.get_node(test_id1);
     assert(got.id == 5);
+    assert(got.out_degree == 1);
     got = graph.get_node(test_id2);
     assert(got.id == 6);
+    if (is_directed)
+        assert(got.in_degree == 1 && got.out_degree == 0);
+    else
+        assert(got.in_degree == 0 && got.out_degree == 1);
 
     // Now check if the adjlists were updated
     WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
@@ -346,6 +355,7 @@ void test_get_in_degree(AdjList graph)
     // check in_degree for node3
     int test_id = 3;
     auto deg = graph.get_in_degree(test_id);
+    std::cout << "In-degree of node " << test_id << " is " << deg << std::endl;
     assert(deg == 2);
 }
 
@@ -384,7 +394,7 @@ void test_delete_node(AdjList graph, bool is_directed)
     CommonUtil::set_key(e_cursor, 1, 2);
     assert(e_cursor->search(e_cursor) != 0);
     // Now delete the reverse edges for undirected graph
-    if (is_directed)
+    if (!is_directed)
     {
         CommonUtil::set_key(e_cursor, 3, 2);
         assert(e_cursor->search(e_cursor) != 0);
@@ -395,14 +405,16 @@ void test_delete_node(AdjList graph, bool is_directed)
     adj_out_cur->reset(adj_out_cur);
     for (auto dst : graph.get_adjlist(adj_out_cur, SampleGraph::node1.id))
     {
+        // std::cout << "@408 dst: " << dst << std::endl;
         assert(dst != SampleGraph::node2.id);  // node2 should have been deleted
     }
 
     adj_in_cur->reset(adj_in_cur);
     for (auto src : graph.get_adjlist(adj_in_cur, SampleGraph::node3.id))
     {
-        assert(src != SampleGraph::node2.id);  // node 2 should have been
-                                               //  deleted from this too
+        //        std::cout << "@416 src: " << src << std::endl;
+        assert(src !=
+               SampleGraph::node2.id);  // node 2 should have been deleted
     }
 }
 
@@ -573,19 +585,27 @@ void test_NodeCursor_Range(AdjList graph)
     delete node_cursor;
 }
 
-void test_EdgeCursor(AdjList graph)
+void test_EdgeCursor(AdjList graph, bool is_directed)
 {
     INFO();
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge found;
-    node_id_t srcIdList[] = {1, 1, 5, 7, 8};
-    node_id_t dstIdList[] = {3, 7, 6, 8, 7};
+    std::vector<std::pair<node_id_t, node_id_t>> expected;
+    if (is_directed)
+    {
+        expected = {{1, 3}, {1, 7}, {5, 6}, {7, 8}, {8, 7}};
+    }
+    else
+    {
+        expected = {
+            {1, 3}, {1, 7}, {3, 1}, {5, 6}, {6, 5}, {7, 1}, {7, 8}, {8, 7}};
+    }
     int i = 0;
     edge_cursor->next(&found);
     while (found.src_id != OutOfBand_ID_MAX)
     {
-        assert(found.src_id == srcIdList[i]);
-        assert(found.dst_id == dstIdList[i]);
+        assert(found.src_id == expected[i].first);
+        assert(found.dst_id == expected[i].second);
         std::cout << found.src_id << " , " << found.dst_id << std::endl;
         // CommonUtil::dump_edge(found);
         edge_cursor->next(&found);
@@ -595,20 +615,28 @@ void test_EdgeCursor(AdjList graph)
     delete edge_cursor;
 }
 
-void test_EdgeCursor_Range(AdjList graph)
+void test_EdgeCursor_Range(AdjList graph, bool is_directed)
 {
     INFO();
     EdgeCursor *edge_cursor = graph.get_edge_iter();
     edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
     edge found;
-    node_id_t srcIdList[] = {1, 5, 7};
-    node_id_t dstIdList[] = {7, 6, 8};
+    std::vector<std::pair<node_id_t, node_id_t>> expected;
+    if (is_directed)
+    {
+        expected = {{1, 7}, {5, 6}, {7, 8}};
+    }
+    else
+    {
+        expected = {{1, 7}, {3, 1}, {5, 6}, {6, 5}, {7, 1}, {7, 8}};
+    }
+
     int i = 0;
     edge_cursor->next(&found);
     while (found.src_id != OutOfBand_ID_MAX)
     {
-        assert(found.src_id == srcIdList[i]);
-        assert(found.dst_id == dstIdList[i]);
+        assert(found.src_id == expected[i].first);
+        assert(found.dst_id == expected[i].second);
         CommonUtil::dump_edge(found);
         edge_cursor->next(&found);
         i++;
@@ -624,6 +652,7 @@ int main()
     graph_opts opts;
     opts.create_new = true;
     opts.optimize_create = false;
+    // opts.is_directed = false;
     opts.is_directed = true;
     opts.read_optimize = true;
     opts.is_weighted = true;
@@ -650,11 +679,8 @@ int main()
     test_get_nodes(graph);
     test_get_node(graph);
     test_add_edge(graph, opts.is_directed);
-    /*
-     test_add_fail should fail if create_new is false
-     add_edge->add_to_adjlists assumes no duplicate edges.
-     */
-    test_get_edge(graph);
+
+    test_get_edge(graph, opts.is_directed);
     test_get_out_edges(graph);
     test_get_in_edges(graph);
     test_get_out_nodes(graph);
@@ -662,12 +688,12 @@ int main()
     test_get_in_degree(graph);
     test_delete_node(graph, opts.is_directed);
     test_delete_isolated_node(graph, opts.is_directed);
-
+    //    //
     test_InCursor(graph);
     test_OutCursor(graph);
     test_NodeCursor(graph);
     test_NodeCursor_Range(graph);
-    test_EdgeCursor(graph);
-    test_EdgeCursor_Range(graph);
+    test_EdgeCursor(graph, opts.is_directed);
+    test_EdgeCursor_Range(graph, opts.is_directed);
     tearDown(graph);
 }

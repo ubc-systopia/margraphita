@@ -27,6 +27,16 @@ class AdjInCursor : public InCursor
         cursor = cur;
         session = sess;
     }
+    AdjInCursor(WT_CURSOR *cur,
+                WT_SESSION *sess,
+                bool is_directed,
+                bool read_optimized)
+    {
+        cursor = cur;
+        session = sess;
+        directed = is_directed;
+        read_opt = read_optimized;
+    }
     ~AdjInCursor() override = default;
 
     void set_key_range(key_range _key) override
@@ -111,6 +121,17 @@ class AdjOutCursor : public OutCursor
         cursor = cur;
         session = sess;
     }
+
+    AdjOutCursor(WT_CURSOR *cur,
+                 WT_SESSION *sess,
+                 bool is_directed,
+                 bool read_optimized)
+    {
+        cursor = cur;
+        session = sess;
+        directed = is_directed;
+        read_opt = read_optimized;
+    }
     ~AdjOutCursor() override = default;
     void setAllNodes(bool allNodes) { all_nodes = allNodes; }
 
@@ -193,6 +214,16 @@ class AdjNodeCursor : public NodeCursor
         cursor = cur;
         session = sess;
     }
+    AdjNodeCursor(WT_CURSOR *cur,
+                  WT_SESSION *sess,
+                  bool is_directed,
+                  bool is_read_optimized)
+    {
+        cursor = cur;
+        session = sess;
+        directed = is_directed;
+        read_opt = is_read_optimized;
+    }
     ~AdjNodeCursor() override = default;
 
     void set_key_range(key_range _keys) override
@@ -250,7 +281,7 @@ class AdjNodeCursor : public NodeCursor
             return;
         }
 
-        CommonUtil::record_to_node(cursor, found, true);
+        CommonUtil::record_to_node(cursor, found, read_opt, directed);
         if (cursor->next(cursor) != 0)
         {
             has_next = false;
@@ -283,7 +314,7 @@ class AdjNodeCursor : public NodeCursor
 
         if (curr_key == key)
         {
-            CommonUtil::record_to_node(cursor, found, true);
+            CommonUtil::record_to_node(cursor, found, read_opt, directed);
         }
 
         // no relevant node was found.
@@ -301,6 +332,16 @@ class AdjEdgeCursor : public EdgeCursor
     {
         cursor = cur;
         session = sess;
+    }
+    AdjEdgeCursor(WT_CURSOR *cur,
+                  WT_SESSION *sess,
+                  bool is_directed,
+                  bool is_read_optimized)
+    {
+        cursor = cur;
+        session = sess;
+        directed = is_directed;
+        read_opt = is_read_optimized;
     }
     ~AdjEdgeCursor() override = default;
 
@@ -383,12 +424,13 @@ class AdjList : public GraphBase
     static void create_wt_tables(
         graph_opts &opts, WT_CONNECTION *conn);  // Need this to init graph db
     int add_node(node to_insert, bool is_bulk = false) override;
+    //    int add_node(node to_insert) override;
     void add_node(node_id_t to_insert,
                   std::vector<node_id_t> &inlist,
                   std::vector<node_id_t> &outlist);
     bool has_node(node_id_t node_id) override;
     node get_node(node_id_t node_id) override;
-    int delete_node(node_id_t node_id) override;
+    int delete_node(node_id_t to_delete) override;
     node get_random_node() override;
     void get_random_node_ids(std::vector<node_id_t> &nodes, int count) override;
     degree_t get_in_degree(node_id_t node_id) override;
@@ -396,6 +438,7 @@ class AdjList : public GraphBase
     std::vector<node> get_nodes() override;
 
     int add_edge(edge to_insert, bool is_bulk) override;
+    //    int add_edge(edge to_insert) override;
     bool has_edge(node_id_t src_id, node_id_t dst_id) override;
     int delete_edge(node_id_t src_id, node_id_t dst_id) override;
     edge get_edge(node_id_t src_id, node_id_t dst_id) override;
@@ -462,23 +505,19 @@ class AdjList : public GraphBase
     int delete_from_adjlists(WT_CURSOR *cursor,
                              node_id_t node_id,
                              node_id_t to_delete);
-    int delete_related_edges_and_adjlists(node_id_t node_id,
+    int delete_related_edges_and_adjlists(node_id_t to_delete,
                                           int *num_edges_deleted);
     int update_node_degree(WT_CURSOR *cursor,
                            node_id_t node_id,
-                           degree_t indeg,
-                           degree_t outdeg);
+                           int32_t indeg_change,
+                           int32_t outdeg_change);
 
-    int add_one_node_degree(WT_CURSOR *cursor,
-                            node_id_t to_update,
-                            bool is_out_degree);
-    int remove_one_node_degree(node_id_t to_update, bool is_out_degree);
-
-    int add_node_in_txn(node to_insert);
-    int delete_edge_in_txn(node_id_t src_id, node_id_t dst_id);
+    int add_node_in_txn(node to_insert, bool ignore_duplicate_key);
+    int delete_edge_in_txn(node_id_t src_id,
+                           node_id_t dst_id,
+                           WT_CURSOR *nbd2prune);
 
     int error_check_insert_txn(int return_val, bool ignore_duplicate_key);
-    int error_check_update_txn(int return_val);
     int error_check_read_txn(int return_val);
     int error_check_remove_txn(int return_val);
     inline void close_all_cursors() override
