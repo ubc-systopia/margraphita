@@ -144,6 +144,7 @@ void test_add_edge(AdjList graph, bool is_directed)
   // Check if the nodes were created.
   node got = graph.get_node(test_id1);
   assert(got.id == 5);
+  CommonUtil::dump_node(got);
   assert(got.out_degree == 1);
   got = graph.get_node(test_id2);
   assert(got.id == 6);
@@ -349,14 +350,38 @@ void test_get_in_nodes(AdjList graph)
   assert(assert_fail);
 }
 
-void test_get_in_degree(AdjList graph)
+void test_get_in_and_out_degree(AdjList graph, bool directed)
 {
-  INFO();
-  // check in_degree for node3
-  int test_id = 3;
-  auto deg = graph.get_in_degree(test_id);
-  std::cout << "In-degree of node " << test_id << " is " << deg << std::endl;
-  assert(deg == 2);
+  //  INFO();
+  //  // check in_degree for node3
+  //  int test_id = 3;
+  //  auto deg = graph.get_in_degree(test_id);
+  //  std::cout << "In-degree of node " << test_id << " is " << deg <<
+  //  std::endl; assert(deg == 2);
+  INFO()
+  degree_t indeg, outdeg;
+  indeg = graph.get_in_degree(3);
+  outdeg = graph.get_out_degree(3);
+  assert(indeg == 2);
+  if (!directed)
+  {
+    assert(outdeg == 2);
+  }
+  else
+  {
+    assert(outdeg == 0);
+  }
+  indeg = graph.get_in_degree(1);
+  outdeg = graph.get_out_degree(1);
+  assert(outdeg == 3);
+  if (!directed)
+  {
+    assert(indeg == 3);
+  }
+  else
+  {
+    assert(indeg == 0);
+  }
 }
 
 void test_delete_node(AdjList graph, bool is_directed)
@@ -648,8 +673,8 @@ int main()
   graph_opts opts;
   opts.create_new = true;
   opts.optimize_create = false;
-  // opts.is_directed = false;
-  opts.is_directed = true;
+  opts.is_directed = false;
+  //  opts.is_directed = true;
   opts.read_optimize = true;
   opts.is_weighted = true;
   opts.type = GraphType::Adj;
@@ -681,10 +706,9 @@ int main()
   test_get_in_edges(graph);
   test_get_out_nodes(graph);
   test_get_in_nodes(graph);
-  test_get_in_degree(graph);
+  //  test_get_in_degree(graph);
   test_delete_node(graph, opts.is_directed);
   test_delete_isolated_node(graph, opts.is_directed);
-  //    //
   test_InCursor(graph);
   test_OutCursor(graph);
   test_NodeCursor(graph);

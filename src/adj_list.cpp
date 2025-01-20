@@ -284,7 +284,6 @@ int AdjList::add_node_in_txn(node to_insert, bool ignore_duplicate)
       LOG_MSG("Duplicate key in add_node_in_txn. Node {} already exists: {}",
               to_insert.id,
               wiredtiger_strerror(ret));
-      if (ignore_duplicate) return 0;  // this is a duplicate key, continue.
     }
     return ret;  // The transaction has been rolled back. Abort.
   }
@@ -296,7 +295,6 @@ int AdjList::add_node_in_txn(node to_insert, bool ignore_duplicate)
       DEBUG_MSG("Duplicate key in add_adjlist. An adjlist for node " +
                 to_string(to_insert.id) +
                 " already exists. : " + wiredtiger_strerror(ret));
-      return 0;  // this is a duplicate key, continue.
     }
     return ret;
   }
@@ -312,7 +310,6 @@ int AdjList::add_node_in_txn(node to_insert, bool ignore_duplicate)
             "{}",
             to_insert.id,
             wiredtiger_strerror(ret));
-        if (ignore_duplicate) return 0;
       }
       return ret;
     }
@@ -451,27 +448,32 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
   session->begin_transaction(session, "isolation=snapshot");
   /*****Insert SRC and DST if they don't exist.*****/
   node src{.id = to_insert.src_id};
-  if (add_node_in_txn(src, true))  // ok to have duplicate key
+  ret = add_node_in_txn(src, true);  // ok to have duplicate key
+  if (ret == WT_ROLLBACK)
   {
     DEBUG_MSG("Failed to add node_id " + to_string(to_insert.src_id));
     return WT_ROLLBACK;
   }
-  else
+  else if (ret == WT_DUPLICATE_KEY)
   {
-    num_nodes_added++;  // This will be incremented even if we found a
-                        // duplicate key. fix.
+    LOG_MSG("Duplicate node, no change to node count");
   }
+  else
+    num_nodes_added++;
 
   node dst{.id = to_insert.dst_id};
-  if (add_node_in_txn(dst, true))  // ok to have duplicate key
+  ret = add_node_in_txn(dst, true);  // ok to have duplicate key
+  if (ret == WT_ROLLBACK)            // ok to have duplicate key
   {
     DEBUG_MSG("Failed to add node_id " + to_string(to_insert.dst_id));
     return WT_ROLLBACK;
   }
-  else
+  else if (ret == WT_DUPLICATE_KEY)
   {
-    num_nodes_added++;
+    LOG_MSG("Duplicate node, no change to node count");
   }
+  else
+    num_nodes_added++;
 
   /***** Insert edge *****/
   CommonUtil::set_key(edge_cursor, to_insert.src_id, to_insert.dst_id);
@@ -538,6 +540,11 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
     }
   }
   session->commit_transaction(session, nullptr);
+  std::cout << "number of nodes before:" << GraphBase::get_num_nodes()
+            << std::endl;
+  std::cout << "number of nodes added: " << num_nodes_added << std::endl;
+  std::cout << "number of nodes after:" << GraphBase::get_num_nodes()
+            << std::endl;
   GraphBase::increment_nodes(num_nodes_added);
   GraphBase::increment_edges(1);
   if (!opts.is_directed)
@@ -888,6 +895,7 @@ int AdjList::update_node_degree(WT_CURSOR *cursor,
       LOG_MSG("Failed to update node degree for node {}; TX rolled back: {}",
               node_id,
               wiredtiger_strerror(ret));
+      session->rollback_transaction(session, nullptr);
       return WT_ROLLBACK;
     default:
       throw GraphException("Failed to update node degree for node_id " +
