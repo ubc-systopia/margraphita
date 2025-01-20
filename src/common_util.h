@@ -105,6 +105,9 @@ class CommonUtil
 
   static void ekey_set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
   static int ekey_get_key(WT_CURSOR *cursor, node_id_t *key1, node_id_t *key2);
+  //  static void record_to_node_ekey_new(WT_CURSOR *cur,
+  //                                      node *found,
+  //                                      bool directed);
   static void record_to_node_ekey(WT_CURSOR *cur, node *found);
   static void record_to_node_ekeyidx(WT_CURSOR *idx_cursor, node *found);
   static void record_to_edge_ekey(WT_CURSOR *cur, edge *found);
@@ -368,6 +371,30 @@ inline void CommonUtil::record_to_node_ekey(WT_CURSOR *cur, node *found)
   found->in_degree = a;
   found->out_degree = b;
 }
+
+// inline void CommonUtil::record_to_node_ekey_new(WT_CURSOR *cur,
+//                                                 node *found,
+//                                                 bool directed)
+//{
+//   // std::cout << cur->value_format << std::endl;
+//   //! checked that it works for negative int32_t values.
+//   degree_t a = 0, b = 0;
+//   int ret = cur->get_value(cur, &a, &b);
+//   if (ret != 0)
+//   {
+//     throw GraphException("Failed to get node attributes");
+//   }
+//   if (directed)
+//   {
+//     found->in_degree = a;
+//     found->out_degree = b;
+//   }
+//   else
+//   {
+//     found->out_degree = b;
+//     found->in_degree = 0;
+//   }
+// }
 
 inline void CommonUtil::record_to_edge_ekey(WT_CURSOR *cur, edge *found)
 {

@@ -80,10 +80,12 @@ class SplitEdgeKey : public GraphBase
   [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
   int delete_node_and_related_edges(node_id_t node_id, int *num_edges_to_del);
   int update_node_degree(node_id_t node_id, int in_change, int out_change);
-  int add_edge_only(edge to_insert);
-  int add_node_txn(node to_insert);
-  int error_check_add_edge(int ret);
-  int error_check_insert_txn(int return_val);
+  int add_node_txn(node to_insert,
+                   int *num_nodes_added,
+                   int32_t indeg_change,
+                   int32_t outdeg_change);
+  int error_check_insert_txn(int return_val, bool ignore_duplicate_key);
+  int error_check_read_txn(int return_val);
 
   [[maybe_unused]] inline void close_all_cursors() override
   {
@@ -105,6 +107,17 @@ class SplitEkeyInCursor : public InCursor
   {
     cursor = cur;
     session = sess;
+    set_key_range({OutOfBand_ID_MIN, OutOfBand_ID_MAX});
+  }
+  SplitEkeyInCursor(WT_CURSOR *cur,
+                    WT_SESSION *sess,
+                    bool is_directed,
+                    bool read_optimized)
+  {
+    cursor = cur;
+    session = sess;
+    directed = is_directed;
+    read_opt = read_optimized;
     set_key_range({OutOfBand_ID_MIN, OutOfBand_ID_MAX});
   }
   ~SplitEkeyInCursor() override = default;
@@ -135,14 +148,14 @@ class SplitEkeyInCursor : public InCursor
         return;
       }
     }
-    node_id_t temp_dst;
-    CommonUtil::ekey_get_key(cursor, &curr_node, &temp_dst);
+    //    node_id_t temp_dst;
+    //    CommonUtil::ekey_get_key(cursor, &curr_node, &temp_dst);
   }
 
   void next(adjlist *found) override
   {
     node_id_t src, dst;
-
+    node_id_t curr_src;
     if (!has_next)
     {
       found->node_id = OutOfBand_ID_MAX;
@@ -153,7 +166,15 @@ class SplitEkeyInCursor : public InCursor
 
     // get edge
     CommonUtil::ekey_get_key(cursor, &dst, &src);
-    if (src == OutOfBand_ID_MIN) curr_node = dst;
+    if (directed)
+    {
+      curr_node = dst;
+      curr_src = src;
+    }
+    else
+    {
+      if (src == OutOfBand_ID_MIN) curr_node = dst;
+    }
     while (cursor->next(cursor) == 0)
     {
       CommonUtil::ekey_get_key(cursor, &dst, &src);
@@ -162,6 +183,13 @@ class SplitEkeyInCursor : public InCursor
       {
         found->edgelist.push_back(src);
         found->degree++;
+      }
+      else if (dst != curr_node && directed)
+      {
+        found->node_id = curr_node;
+        found->edgelist.push_back(curr_src);
+        found->degree++;
+        return;
       }
       else
       {

@@ -42,12 +42,15 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   CommonUtil::set_table(
       sess, OUT_EDGES, edge_columns, edge_key_format, edge_value_format);
 
-  edge_columns.clear();
-  // Set up the out-edge table
-  // columns: SRC, DST, ATTR_FIRST, ATTR_SECOND
-  edge_columns = {DST, SRC, ATTR_FIRST, ATTR_SECOND};
-  CommonUtil::set_table(
-      sess, IN_EDGES, edge_columns, edge_key_format, edge_value_format);
+  if (opts.is_directed)
+  {
+    edge_columns.clear();
+    // Set up the out-edge table
+    // columns: SRC, DST, ATTR_FIRST, ATTR_SECOND
+    edge_columns = {DST, SRC, ATTR_FIRST, ATTR_SECOND};
+    CommonUtil::set_table(
+        sess, IN_EDGES, edge_columns, edge_key_format, edge_value_format);
+  }
 
   if (!opts.optimize_create)
   {
@@ -60,30 +63,37 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 void SplitEdgeKey::init_cursors()
 {
   // metadata_cursor initialization
-  int ret =
-      _get_table_cursor(METADATA, &metadata_cursor, session, false, false);
-  if (ret != 0)
+  int ret;
+  if ((ret = _get_table_cursor(
+           METADATA, &metadata_cursor, session, false, false)))
   {
     throw GraphException("Could not get a cursor to the metadata table:" +
                          string(wiredtiger_strerror(ret)));
   }
 
   // out_edge_cursor
-  ret = _get_table_cursor(OUT_EDGES, &out_edge_cursor, session, false, true);
-  if (ret != 0)
+  if ((ret = _get_table_cursor(
+           OUT_EDGES, &out_edge_cursor, session, false, true)))
   {
     throw GraphException("Could not get an out edge cursor: " +
                          string(wiredtiger_strerror(ret)));
   }
 
-  // in_edge_cursor
-  ret = _get_table_cursor(IN_EDGES, &in_edge_cursor, session, false, true);
-  if (ret != 0)
+  /**
+   * in_edge_cursor points to the IN_EDGES table if the graph is directed. It
+   * points to the OUT_EDGES table if the graph is undirected.
+   */
+
+  opts.is_directed ? (ret = _get_table_cursor(
+                          IN_EDGES, &in_edge_cursor, session, false, true))
+                   : (ret = _get_table_cursor(
+                          OUT_EDGES, &in_edge_cursor, session, false, true));
+  if (ret)
   {
     throw GraphException("Could not get an in edge cursor: " +
                          string(wiredtiger_strerror(ret)));
   }
-  // dst_src index
+  //  dst_src index
   std::string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
   ret = _get_index_cursor(
       OUT_EDGES, DST_SRC_INDEX, projection, &dst_src_idx_cursor);
@@ -93,6 +103,16 @@ void SplitEdgeKey::init_cursors()
                          string(wiredtiger_strerror(ret)));
   }
 }
+
+/**
+ * This method adds a node to the "Out_Edge" table. In case the graph is
+ * undirected, everything is fine. In case the graph is directed, we make the
+ * node entries only in the out-edge table. The in-edge table only holds the
+ * reverse edges.
+ * @param to_insert
+ * @param is_bulk
+ * @return
+ */
 int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
 {
   session->begin_transaction(session, "isolation=snapshot");
@@ -113,39 +133,64 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
   }
   //    auto in_ret =
   //        error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor));
-  auto out_ret =
-      error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor));
-  if (out_ret == 0)  // & in_ret == 0)
+  auto out_ret = out_edge_cursor->insert(out_edge_cursor);
+
+  if (error_check_insert_txn(out_ret, false))
   {
-    session->commit_transaction(session, nullptr);
-    GraphBase::increment_nodes(1);
-    return 0;
-  }
-  else
-  {
-    session->rollback_transaction(session, nullptr);
-    DEBUG_MSG("Failed to add node " + to_string(to_insert.id) +
-              " to the graph" +
-              " with error: " + string(wiredtiger_strerror(out_ret)));
+    if (out_ret == WT_DUPLICATE_KEY)
+    {
+      LOG_MSG("Duplicate key -- Node {} already exists: {}",
+              to_insert.id,
+              wiredtiger_strerror(out_ret));
+    }
     return out_ret;
   }
+  session->commit_transaction(session, nullptr);
+  GraphBase::increment_nodes(1);
+  return 0;
 }
 
-int SplitEdgeKey::add_node_txn(node to_insert)
+/**
+ * This method adds a node to the out-edge table, but must be called from within
+ * a running transaction. It is used in the add_edge method where we must check
+ * and add the src and dst nodes if they don't exist.
+ * @param to_insert
+ * @return
+ */
+int SplitEdgeKey::add_node_txn(node to_insert,
+                               int *num_nodes_added,
+                               int32_t indeg_change,
+                               int32_t outdeg_change)
 {
   CommonUtil::ekey_set_key(out_edge_cursor, to_insert.id, OutOfBand_ID_MIN);
-  if (opts.read_optimize)
+  if (out_edge_cursor->search(out_edge_cursor) == 0)
   {
-    out_edge_cursor->set_value(
-        out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
+    // The node already exists. We can update the degrees.
+    int ret = update_node_degree(to_insert.id, indeg_change, outdeg_change);
+    return ret;
   }
   else
   {
-    out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
-  }
-  int ret = out_edge_cursor->insert(out_edge_cursor);
-  if (ret != 0)
-  {
+    CommonUtil::ekey_set_key(out_edge_cursor, to_insert.id, OutOfBand_ID_MIN);
+    if (opts.read_optimize)
+    {
+      if (indeg_change > 0 || outdeg_change > 0)
+      {  // New node, but the degrees are not zero
+        out_edge_cursor->set_value(
+            out_edge_cursor, indeg_change, outdeg_change);
+      }
+      else
+      {
+        out_edge_cursor->set_value(out_edge_cursor, 0, 0);
+      }
+    }
+    else
+    {
+      out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
+    }
+    int ret =
+        error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor), false);
+    if (!ret) num_nodes_added++;
     return ret;
   }
 
@@ -175,78 +220,84 @@ bool SplitEdgeKey::has_node(node_id_t node_id)
 
 int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
 {
+  (void)is_bulk;
   int num_nodes_to_add = 0;
   int num_edges_to_add = 0;
   int ret;
   session->begin_transaction(session, "isolation=snapshot");
-  if (!has_node(to_insert.src_id))
+  node src{.id = to_insert.src_id};
+  opts.is_directed ? (ret = add_node_txn(src, &num_nodes_to_add, 0, 1))
+                   : (ret = add_node_txn(src, &num_nodes_to_add, 1, 1));
+  if (ret == 0)
+    LOG_MSG("added node {}", to_insert.src_id);
+  else if (ret == WT_DUPLICATE_KEY)
   {
-    node src;
-    // create with to-be out degree
-    if (opts.is_directed)
-      src = {to_insert.src_id, 0, 1};
-    else
-      src = {to_insert.src_id, 1, 1};
-    ret = error_check_insert_txn(add_node_txn(src));
-    if (ret != 0)
-    {
-      return ret;
-    }
-    else
-    {
-      num_nodes_to_add++;
-    }
+    LOG_MSG("Node {} already exists, updated degrees.", to_insert.src_id);
   }
-  else  // update the node degree
+  else if (ret == WT_ROLLBACK)
   {
-    ret = error_check_insert_txn(update_node_degree(to_insert.src_id, 0, 1));
-    if (ret != 0)
-    {
-      return ret;  // the session has been already rolled back.
-    }
+    return WT_ROLLBACK;
   }
-  if (!has_node(to_insert.dst_id))
+
+  node dst{.id = to_insert.dst_id};
+  opts.is_directed ? (ret = add_node_txn(dst, &num_nodes_to_add, 1, 0))
+                   : (ret = add_node_txn(dst, &num_nodes_to_add, 1, 1));
+  if (ret == 0)
   {
-    node dst;
-    // create with to-be in degree
-    if (opts.is_directed)
-      dst = {to_insert.dst_id, 1, 0};
-    else
-      dst = {to_insert.dst_id, 1, 1};
-    ret = error_check_insert_txn(add_node_txn(dst));
-    if (ret != 0)
-    {
-      return ret;
-    }
-    else
-    {
-      num_nodes_to_add++;
-    }
+    LOG_MSG("Added node {}", to_insert.dst_id);
+  }
+  else if (ret == WT_DUPLICATE_KEY)
+  {
+    LOG_MSG("Node {} already exists, updated degrees.", to_insert.dst_id);
+  }
+  else if (ret == WT_ROLLBACK)
+  {
+    return WT_ROLLBACK;
+  }
+
+  // Now add the edge into out-edges table
+  CommonUtil::ekey_set_key(out_edge_cursor, to_insert.src_id, to_insert.dst_id);
+  if (opts.is_weighted)
+  {
+    out_edge_cursor->set_value(
+        out_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
   }
   else
   {
-    ret = error_check_insert_txn(update_node_degree(to_insert.dst_id, 1, 0));
-    if (ret != 0)
-    {
-      return ret;  // the session has been already rolled back.
-    }
+    out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
   }
-  if (add_edge_only(to_insert) == 0)
+
+  if (error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor), false))
+    return ret;  // the session has been rolled back already. The final
+                 // commit on success must be called by caller function
+
+  // Insert into the in-edges table
+  CommonUtil::ekey_set_key(in_edge_cursor, to_insert.dst_id, to_insert.src_id);
+  if (opts.is_weighted)
   {
-    num_edges_to_add++;
+    in_edge_cursor->set_value(
+        in_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
   }
   else
   {
-    throw GraphException(
-        "Failed to insert edge between " + std::to_string(to_insert.src_id) +
-        " and " + std::to_string(to_insert.dst_id) + ". Session rolled back.");
+    in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_ID_MAX);
   }
+  if (error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor), false))
+  {
+    return ret;
+  }
+  num_edges_to_add++;
   session->commit_transaction(session, nullptr);
   GraphBase::increment_nodes(num_nodes_to_add);
   GraphBase::increment_edges(num_edges_to_add);
   return 0;
 }
-
+/**
+ * Check if the edge between src_id and dst_id exists in the graph.
+ * @param src_id
+ * @param dst_id
+ * @return
+ */
 edge SplitEdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
 {
   edge found = {};
@@ -643,9 +694,15 @@ std::vector<node> SplitEdgeKey::get_in_nodes(node_id_t node_id)
   std::vector<node> in_nodes;
   WT_CURSOR *in_cur;  // need new cursor because we will be using the class
                       // cursor for get_node
-  if (_get_table_cursor(IN_EDGES, &in_cur, session, false, true) != 0)
+  int ret;
+  opts.is_directed
+      ? (ret = _get_table_cursor(IN_EDGES, &in_cur, session, false, true))
+      : (ret = _get_table_cursor(OUT_EDGES, &in_cur, session, false, true));
+  if (ret != 0)
   {
-    throw GraphException("Could not get a cursor to the OutEdge table");
+    LOG_MSG("Failed to get a cursor to the {} table",
+            (opts.is_directed ? "InEdges" : "OutEdges"));
+    throw GraphException("Could not get a cursor in get_in_nodes");
   }
   int search_exact;
   CommonUtil::ekey_set_key(in_cur, node_id, OutOfBand_ID_MIN);
@@ -685,9 +742,15 @@ std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
   }
   std::vector<node_id_t> in_nodes_id;
   WT_CURSOR *in_cur;
-  if (_get_table_cursor(IN_EDGES, &in_cur, session, false, true) != 0)
+  int ret;
+  opts.is_directed
+      ? (ret = _get_table_cursor(IN_EDGES, &in_cur, session, false, true))
+      : (ret = _get_table_cursor(OUT_EDGES, &in_cur, session, false, true));
+  if (ret != 0)
   {
-    throw GraphException("Could not get a cursor to the OutEdge table");
+    LOG_MSG("Failed to get a cursor to the {} table",
+            (opts.is_directed ? "InEdges" : "OutEdges"));
+    throw GraphException("Could not get a cursor in get_in_nodes_id");
   }
   int search_exact;
   CommonUtil::ekey_set_key(in_cur, node_id, OutOfBand_ID_MIN);
@@ -732,22 +795,26 @@ int SplitEdgeKey::update_node_degree(node_id_t node_id,
   // remember to do both the in and out edge tables
   // no transaction needed
   degree_t in, out;
+  int ret = 0;
   //    WT_CURSOR *in_cursor = get_new_in_cursor();
   WT_CURSOR *out_cursor = get_new_out_cursor();
   CommonUtil::ekey_set_key(out_cursor, node_id, OutOfBand_ID_MIN);
-  if (out_cursor->search(out_cursor) == 0)
+  if (!(ret = out_cursor->search(out_cursor)))
   {
     out_cursor->get_value(out_cursor, &in, &out);
     out_cursor->set_value(out_cursor, in + in_change, out + out_change);
-    out_cursor->update(out_cursor);
+    ret = out_cursor->update(out_cursor);
   }
   else
-  {
-    return 1;
+  {  // This should never happen
+    LOG_MSG("Failed to update the node degree: Node {} does not exist",
+            node_id,
+            wiredtiger_strerror(ret));
   }
   out_cursor->close(out_cursor);
-  return 0;
+  return error_check_insert_txn(ret, false);
 }
+
 OutCursor *SplitEdgeKey::get_outnbd_iter()
 {
   OutCursor *toReturn = new SplitEKeyOutCursor(get_new_out_cursor(), session);
@@ -755,7 +822,8 @@ OutCursor *SplitEdgeKey::get_outnbd_iter()
 }
 InCursor *SplitEdgeKey::get_innbd_iter()
 {
-  InCursor *toReturn = new SplitEkeyInCursor(get_new_in_cursor(), session);
+  InCursor *toReturn = new SplitEkeyInCursor(
+      get_new_in_cursor(), session, opts.is_directed, opts.read_optimize);
 
   return toReturn;
 }
@@ -826,7 +894,8 @@ void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
   std::cout << "wasted iterations: " << waste << std::endl;
   std::cout << "ids size: " << randoms.size() << std::endl;
 }
-int SplitEdgeKey::error_check_insert_txn(int return_val)
+int SplitEdgeKey::error_check_insert_txn(int return_val,
+                                         bool ignore_duplicate_key)
 {
   switch (return_val)
   {
@@ -836,11 +905,50 @@ int SplitEdgeKey::error_check_insert_txn(int return_val)
       session->rollback_transaction(session, nullptr);
       return WT_ROLLBACK;
     case WT_DUPLICATE_KEY:
-      session->rollback_transaction(session, nullptr);
+      if (!ignore_duplicate_key)
+      {
+        LOG_MSG("Rolling back; duplicate key found");
+        session->rollback_transaction(session, nullptr);
+      }
       return WT_DUPLICATE_KEY;
     default:
+      LOG_MSG("Rolling back in insert_txn: ", wiredtiger_strerror(return_val));
       session->rollback_transaction(session, nullptr);
-      return GRAPH_API_PANIC;
+      return return_val;
+  }  //  switch (return_val)
+  //  {
+  //    case 0:
+  //      return 0;
+  //    case WT_ROLLBACK:
+  //      session->rollback_transaction(session, nullptr);
+  //      return WT_ROLLBACK;
+  //    case WT_DUPLICATE_KEY:
+  //      session->rollback_transaction(session, nullptr);
+  //      return WT_DUPLICATE_KEY;
+  //    default:
+  //      session->rollback_transaction(session, nullptr);
+  //      return GRAPH_API_PANIC;
+  //  }
+}
+
+int SplitEdgeKey::error_check_read_txn(int return_val)
+{
+  switch (return_val)
+  {
+    case 0:
+      return 0;
+    case WT_ROLLBACK:
+      session->rollback_transaction(session, nullptr);
+      return WT_ROLLBACK;
+    case WT_NOTFOUND:
+      LOG_MSG("The key was not found", wiredtiger_strerror(return_val));
+      session->rollback_transaction(session, nullptr);
+      return WT_NOTFOUND;
+    default:
+      session->rollback_transaction(session, nullptr);
+      LOG_MSG("Failed to complete read action : ",
+              wiredtiger_strerror(return_val));
+      return return_val;
   }
 }
 
@@ -913,7 +1021,7 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
 {
   int ret;
   node_id_t src, dst;
-
+  WT_CURSOR *incursor = get_new_in_cursor();
   CommonUtil::ekey_set_key(out_edge_cursor, node_id, OutOfBand_ID_MIN);
   if (out_edge_cursor->search(out_edge_cursor) != 0)
   {
@@ -942,19 +1050,18 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
       session->rollback_transaction(session, nullptr);
       return ret;  // panic
     }
-    // delete the reverse edge
-    CommonUtil::ekey_set_key(in_edge_cursor, dst, src);
-    ret = in_edge_cursor->remove(in_edge_cursor);
+    // delete the reverse edge and adjust dst's in-degree
+    CommonUtil::ekey_set_key(incursor, dst, src);
+    ret = incursor->remove(incursor);
     if (ret != 0)
     {
       session->rollback_transaction(session, nullptr);
       return ret;  // panic
     }
-
     // We have successfully deleted the edge
     *num_edges_to_add -= 1;  // we have effectively only removed one edge
-    ret = update_node_degree(
-        dst, -1, 0);  // dst node's indegree in out_edge table
+    (opts.is_directed) ? (ret = update_node_degree(dst, -1, 0))
+                       : (ret = update_node_degree(dst, -1, -1));
     if (ret != 0)
     {
       session->rollback_transaction(session, nullptr);
@@ -962,109 +1069,141 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
     }
   }
   out_edge_cursor->reset(out_edge_cursor);
+  incursor->reset(incursor);
 
-  // we now do the same for in-edges table
-  CommonUtil::ekey_set_key(in_edge_cursor, node_id, OutOfBand_ID_MIN);
-  if (in_edge_cursor->search(in_edge_cursor) == 0)
+  /**
+   * Now we need to delete edges that are incoming to the node being deleted. We
+   * need to explicitly handle this case for directed graphs, because sweeping
+   * the out_table liek we have done so far will not give us an edge incoming to
+   * the node being deleted.
+   * SO, we scan the in-table with (node_id, OutOfBand_ID_MIN) as the key, and
+   * find the edges incoming to the node. Then we delete those edges from the
+   * in-table and the corresponding edges from the out-table.
+   */
+  if (opts.is_directed)
   {
-    ret = in_edge_cursor->remove(in_edge_cursor);
-    if (ret != 0)
+    // Now we need to remove the edges incoming to the node
+    CommonUtil::ekey_set_key(incursor, node_id, OutOfBand_ID_MIN);
+    int search_dir = 0;
+    incursor->search_near(incursor, &search_dir);
+    if (search_dir < 0)
     {
-      session->rollback_transaction(session, nullptr);
-      return ret;
+      incursor->next(incursor);
     }
-  }
+    do
+    {
+      CommonUtil::ekey_get_key(incursor, &dst, &src);
+      if (dst != node_id)
+      {
+        break;
+      }
+      // Delete the edge incoming edge to the deleted node (in-edge table)
+      ret = incursor->remove(incursor);
+      if (ret != 0)
+      {
+        session->rollback_transaction(session, nullptr);
+        return ret;  // panic
+      }
+      // Delete the corresponding edge from the out-edge table
+      CommonUtil::ekey_set_key(out_edge_cursor, src, node_id);
+      ret = out_edge_cursor->remove(out_edge_cursor);
+      if (ret != 0)
+      {
+        session->rollback_transaction(session, nullptr);
+        return ret;  // panic
+      }
+      // decrement the node_degree of the src node
+      ret = update_node_degree(
+          src, 0, -1);  // src node's outdegree in in_edge table
+      if (ret != 0)
+      {
+        session->rollback_transaction(session, nullptr);
+        return ret;
+      }
+      num_edges_to_add -= 1;
+    } while (incursor->next(incursor) == 0);
+    in_edge_cursor->reset(in_edge_cursor);
 
-  while (in_edge_cursor->next(in_edge_cursor) == 0)
-  {
-    CommonUtil::ekey_get_key(in_edge_cursor, &dst, &src);
-    std::cout << "@917 dst: " << dst << " src: " << src << std::endl;
-    if (dst != node_id)
-    {
-      break;
-    }
-    // Delete the edge OUTGOING FROM the deleted node
-    ret = in_edge_cursor->remove(in_edge_cursor);
-    if (ret != 0)
-    {
-      session->rollback_transaction(session, nullptr);
-      return ret;  // panic
-    }
-    // decrement the node_degree of the src node
-    ret = update_node_degree(
-        src, 0, -1);  // src node's outdegree in in_edge table
-    if (ret != 0)
-    {
-      session->rollback_transaction(session, nullptr);
-      return ret;
-    }
+    //    // We now need to remove the src->node_id edges from the out_edge
+    //    table,
+    //    // using an index
+    //    WT_CURSOR *idx_cursor = get_node_index_cursor();
+    //    CommonUtil::ekey_set_key(idx_cursor, node_id, OutOfBand_ID_MIN);
+    //    int search_near;
+    //    idx_cursor->search_near(idx_cursor, &search_near);
+    //    if (search_near < 0)
+    //    {
+    //      idx_cursor->next(idx_cursor);
+    //    }
+    //    do
+    //    {
+    //      CommonUtil::ekey_get_key(idx_cursor, &dst, &src);
+    //      if (dst != node_id)
+    //      {
+    //        break;
+    //      }
+    //      // Delete the edge OUTGOING FROM the deleted node
+    //      CommonUtil::ekey_set_key(out_edge_cursor, src, node_id);
+    //      ret = out_edge_cursor->remove(out_edge_cursor);
+    //      if (ret != 0)
+    //      {
+    //        session->rollback_transaction(session, nullptr);
+    //        return ret;  // panic
+    //      }
+    //    } while (idx_cursor->next(idx_cursor) == 0);
+    incursor->close(incursor);
   }
-  in_edge_cursor->reset(in_edge_cursor);
-
-  // We now need to remove the src->node_id edges from the out_edge table,
-  // using an index
-  WT_CURSOR *idx_cursor = get_node_index_cursor();
-  CommonUtil::ekey_set_key(idx_cursor, node_id, OutOfBand_ID_MIN);
-  int search_near;
-  idx_cursor->search_near(idx_cursor, &search_near);
-  if (search_near < 0)
-  {
-    idx_cursor->next(idx_cursor);
-  }
-  do
-  {
-    CommonUtil::ekey_get_key(idx_cursor, &dst, &src);
-    if (dst != node_id)
-    {
-      break;
-    }
-    // Delete the edge OUTGOING FROM the deleted node
-    CommonUtil::ekey_set_key(out_edge_cursor, src, node_id);
-    ret = out_edge_cursor->remove(out_edge_cursor);
-    if (ret != 0)
-    {
-      session->rollback_transaction(session, nullptr);
-      return ret;  // panic
-    }
-  } while (idx_cursor->next(idx_cursor) == 0);
 
   return 0;
 }
 
-int SplitEdgeKey::add_edge_only(edge to_insert)
+int SplitEdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
 {
-  // insert into out-edges table
-  CommonUtil::ekey_set_key(out_edge_cursor, to_insert.src_id, to_insert.dst_id);
-  if (opts.is_weighted)
-  {
-    out_edge_cursor->set_value(
-        out_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
-  }
-  else
-  {
-    out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
-  }
+  int num_edges_to_add = 0;
+  int ret;
+  session->begin_transaction(session, "isolation=snapshot");
 
-  int ret = error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor));
-  if (ret != 0)
-    return ret;  // the session has been rolled back already. The final
-                 // commit on success must be called by caller function
+  CommonUtil::ekey_set_key(out_edge_cursor, src_id, dst_id);
+  if ((ret = error_check_insert_txn(out_edge_cursor->remove(out_edge_cursor),
+                                    false)))
+  {
+    LOG_MSG("Failed to delete the edge between {} and {}", src_id, dst_id);
+    return ret;
+  }
+  out_edge_cursor->reset(out_edge_cursor);
+  // delete the reverse edge.
+  CommonUtil::ekey_set_key(in_edge_cursor, dst_id, src_id);
+  if ((ret = error_check_insert_txn(in_edge_cursor->remove(in_edge_cursor),
+                                    false)))
+  {
+    LOG_MSG(
+        "Failed to delete the reverse edge between {} and {}", dst_id, src_id);
+    return ret;
+  }
+  in_edge_cursor->reset(in_edge_cursor);
+  num_edges_to_add -= 1;  // we have effectively only removed one edge
 
-  // Insert into the in-edges table
-  CommonUtil::ekey_set_key(in_edge_cursor, to_insert.dst_id, to_insert.src_id);
-  if (opts.is_weighted)
+  if (opts.read_optimize)
   {
-    in_edge_cursor->set_value(
-        in_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
+    opts.is_directed ? (ret = update_node_degree(dst_id, -1, -0))
+                     : (ret = update_node_degree(dst_id, -1, -1));
+    if (ret)
+    {
+      LOG_MSG("failed to update node degree");
+      return ret;
+    }
+    opts.is_directed ? (ret = update_node_degree(src_id, 0, -1))
+                     : (ret = update_node_degree(src_id, -1, -1));
+    if (ret)
+    {
+      LOG_MSG("failed to update node degree");
+      return ret;
+    }
   }
-  else
-  {
-    in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_ID_MAX);
-  }
-  return error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor));
+  session->commit_transaction(session, nullptr);
+  GraphBase::increment_edges(num_edges_to_add);
+  return 0;
 }
-int SplitEdgeKey::error_check_add_edge(int ret) { return 0; }
-int SplitEdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id) { return 0; }
 
 WT_CURSOR *SplitEdgeKey::get_new_out_cursor()
 {
@@ -1075,12 +1214,19 @@ WT_CURSOR *SplitEdgeKey::get_new_out_cursor()
   }
   return new_out_cursor;
 }
+
 WT_CURSOR *SplitEdgeKey::get_new_in_cursor()
 {
   WT_CURSOR *new_in_cursor = nullptr;
-  if (_get_table_cursor(IN_EDGES, &new_in_cursor, session, false, true) != 0)
+  int ret;
+  opts.is_directed ? (ret = _get_table_cursor(
+                          IN_EDGES, &new_in_cursor, session, false, true))
+                   : (ret = _get_table_cursor(
+                          OUT_EDGES, &new_in_cursor, session, false, true));
+  if (ret)
   {
-    throw GraphException("Could not get a cursor to the In-Edge table");
+    throw GraphException("Could not get an in edge cursor: " +
+                         string(wiredtiger_strerror(ret)));
   }
 
   return new_in_cursor;

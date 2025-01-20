@@ -11,13 +11,6 @@
 void create_init_nodes(SplitEdgeKey &graph, bool is_directed)
 {
   INFO()
-  if (!is_directed)
-  {
-    SampleGraph::create_undirected_edges();
-    assert(SampleGraph::test_edges.size() ==
-           6);  // checking if directed edges got created and stored in
-                // test_edges
-  }
   for (node n : SampleGraph::test_nodes)
   {
     graph.add_node(n);
@@ -90,7 +83,7 @@ void test_add_edge(SplitEdgeKey &graph, bool is_directed, bool is_weighted)
   {
     found = graph.get_edge(6, 5);
     assert(found.src_id == 6);
-    assert(found.src_id == 5);
+    assert(found.dst_id == 5);
     if (is_weighted) assert(found.edge_weight == 333);
   }
 
@@ -119,7 +112,7 @@ void test_add_edge(SplitEdgeKey &graph, bool is_directed, bool is_weighted)
   }
 }
 
-void test_get_edge(SplitEdgeKey &graph)
+void test_get_edge(SplitEdgeKey &graph, bool directed)
 {
   INFO()
   edge found =
@@ -127,6 +120,13 @@ void test_get_edge(SplitEdgeKey &graph)
   assert(found.src_id == SampleGraph::edge1.src_id);
   assert(found.dst_id == SampleGraph::edge1.dst_id);
 
+  if (!directed)
+  {
+    found =
+        graph.get_edge(SampleGraph::edge1.dst_id, SampleGraph::edge1.src_id);
+    assert(found.src_id == SampleGraph::edge1.dst_id);
+    assert(found.dst_id == SampleGraph::edge1.src_id);
+  }
   // Now get a non-existent edge
   found = graph.get_edge(222, 333);
   assert(found.src_id == 0);
@@ -251,9 +251,10 @@ void test_get_in_edges(SplitEdgeKey &graph)
 void test_get_in_nodes(SplitEdgeKey &graph)
 {
   INFO()
-  std::vector<node> nodes = graph.get_in_nodes(3);
+  int test_id1 = 3, test_id2 = 4, test_id3 = 1500;
+  std::vector<node> nodes = graph.get_in_nodes(test_id1);
   for (auto n : nodes) CommonUtil::dump_node(n);
-  std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(3);
+  std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(test_id1);
   assert(nodes.size() == 2);
   assert(nodes_id.size() == 2);
   assert(nodes.at(0).id == SampleGraph::node1.id);
@@ -262,8 +263,8 @@ void test_get_in_nodes(SplitEdgeKey &graph)
   assert(nodes.at(1).id == nodes_id.at(1));
 
   // test for a node that has no in_edge
-  nodes = graph.get_in_nodes(4);
-  nodes_id = graph.get_in_nodes_id(4);
+  nodes = graph.get_in_nodes(test_id2);
+  nodes_id = graph.get_in_nodes_id(test_id2);
   assert(nodes.empty());
   assert(nodes_id.empty());
 
@@ -271,7 +272,7 @@ void test_get_in_nodes(SplitEdgeKey &graph)
   bool assert_fail = false;
   try
   {
-    nodes = graph.get_in_nodes(1500);
+    nodes = graph.get_in_nodes(test_id3);
   }
   catch (GraphException &ex)
   {
@@ -281,14 +282,32 @@ void test_get_in_nodes(SplitEdgeKey &graph)
   assert(assert_fail);
 }
 
-void test_get_in_and_out_degree(SplitEdgeKey &graph)
+void test_get_in_and_out_degree(SplitEdgeKey &graph, bool directed)
 {
   INFO()
   degree_t indeg, outdeg;
   indeg = graph.get_in_degree(3);
-  outdeg = graph.get_out_degree(1);
+  outdeg = graph.get_out_degree(3);
   assert(indeg == 2);
+  if (!directed)
+  {
+    assert(outdeg == 2);
+  }
+  else
+  {
+    assert(outdeg == 0);
+  }
+  indeg = graph.get_in_degree(1);
+  outdeg = graph.get_out_degree(1);
   assert(outdeg == 3);
+  if (!directed)
+  {
+    assert(indeg == 3);
+  }
+  else
+  {
+    assert(indeg == 0);
+  }
 }
 
 void test_delete_node(SplitEdgeKey &graph, bool is_directed)
@@ -329,45 +348,95 @@ void test_delete_node(SplitEdgeKey &graph, bool is_directed)
   }
   else
   {
+    CommonUtil::dump_node(graph.get_node(SampleGraph::node1.id));
+    CommonUtil::dump_node(graph.get_node(SampleGraph::node3.id));
+
     assert(graph.get_in_degree(SampleGraph::node1.id) == 2);
+    std::cout << graph.get_out_degree(SampleGraph::node3.id) << std::endl;
     assert(graph.get_out_degree(SampleGraph::node3.id) == 1);
   }
 }
 
-void test_EdgeCursor(SplitEdgeKey &graph)
+void test_delete_edge(SplitEdgeKey &graph, bool is_directed)
+{
+  INFO()
+  WT_CURSOR *e_cur = graph.get_out_edge_cursor();
+  // Verify edge(1,3) exists
+  assert(graph.has_edge(SampleGraph::edge2.src_id, SampleGraph::edge2.dst_id) ==
+         true);
+
+  // Delete edge(1,3) and verify it was actually deleted
+  graph.delete_edge(SampleGraph::edge2.src_id, SampleGraph::edge2.dst_id);
+  CommonUtil::ekey_set_key(
+      e_cur, SampleGraph::edge2.src_id, SampleGraph::edge2.dst_id);
+  int ret = e_cur->search(e_cur);
+  assert(ret != 0);
+
+  // Verify that the in and out degrees of node 1 and 3 got updated
+  if (is_directed)
+  {
+    assert(graph.get_out_degree(SampleGraph::edge2.src_id) == 1);
+    assert(graph.get_in_degree(SampleGraph::edge2.src_id) == 0);
+    assert(graph.get_out_degree(SampleGraph::edge2.dst_id) == 0);
+    assert(graph.get_in_degree(SampleGraph::edge2.dst_id) == 0);
+  }
+  else
+  {
+    assert(graph.get_out_degree(SampleGraph::edge2.src_id) == 1);
+    assert(graph.get_in_degree(SampleGraph::edge2.dst_id) == 0);
+  }
+}
+
+void test_EdgeCursor(SplitEdgeKey &graph, bool directed)
 {
   INFO()
   EdgeCursor *edge_cursor = graph.get_edge_iter();
   edge found;
-  node_id_t srcIdList[] = {1, 1, 5, 7, 8};
-  node_id_t dstIdList[] = {3, 7, 6, 8, 7};
+  std::vector<std::pair<node_id_t, node_id_t>> expected;
+  if (directed)
+  {
+    expected = {{1, 3}, {1, 7}, {5, 6}, {7, 8}, {8, 7}};
+  }
+  else
+  {
+    expected = {{1, 3}, {1, 7}, {3, 1}, {5, 6}, {6, 5}, {7, 1}, {7, 8}, {8, 7}};
+  }
+
   int i = 0;
   edge_cursor->next(&found);
   while (found.src_id != OutOfBand_ID_MAX)
   {
-    assert(found.src_id == srcIdList[i]);
-    assert(found.dst_id == dstIdList[i]);
+    assert(found.src_id == expected[i].first);
+    assert(found.dst_id == expected[i].second);
     CommonUtil::dump_edge(found);
     edge_cursor->next(&found);
     i++;
   }
+  edge_cursor->close();
   delete edge_cursor;
 }
 
-void test_EdgeCursor_Range(SplitEdgeKey &graph)
+void test_EdgeCursor_Range(SplitEdgeKey &graph, bool directed)
 {
   INFO()
   EdgeCursor *edge_cursor = graph.get_edge_iter();
   edge_cursor->set_key_range(edge_range(key_pair{1, 4}, key_pair{8, 1}));
   edge found;
-  node_id_t srcIdList[] = {1, 5, 7};
-  node_id_t dstIdList[] = {7, 6, 8};
+  std::vector<std::pair<node_id_t, node_id_t>> expected;
+  if (directed)
+  {
+    expected = {{1, 7}, {5, 6}, {7, 8}};
+  }
+  else
+  {
+    expected = {{1, 7}, {3, 1}, {5, 6}, {6, 5}, {7, 1}, {7, 8}};
+  }
   int i = 0;
   edge_cursor->next(&found);
   while (found.src_id != OutOfBand_ID_MAX)
   {
-    assert(found.src_id == srcIdList[i]);
-    assert(found.dst_id == dstIdList[i]);
+    assert(found.src_id == expected[i].first);
+    assert(found.dst_id == expected[i].second);
     CommonUtil::dump_edge(found);
     edge_cursor->next(&found);
     i++;
@@ -483,7 +552,8 @@ int main()
   graph_opts opts;
   opts.create_new = true;
   opts.optimize_create = false;
-  opts.is_directed = true;
+  opts.is_directed = false;
+  //  opts.is_directed = true;
   opts.read_optimize = true;
   opts.is_weighted = true;
   opts.type = GraphType::SplitEKey;
@@ -510,23 +580,27 @@ int main()
   test_get_nodes(graph);
   test_get_random_nodes(graph);
   test_add_edge(graph, opts.is_directed, opts.is_weighted);
-  test_get_edge(graph);
+  test_get_edge(graph, opts.is_directed);
   test_get_edges(graph);
   test_get_out_edges(graph);
   test_get_out_nodes(graph);
   test_get_in_edges(graph);
 
   test_get_in_nodes(graph);
-  test_get_in_and_out_degree(graph);
-  test_delete_node(graph, opts.is_directed);
+  test_get_in_and_out_degree(graph, opts.is_directed);
   test_get_edges(graph);
-  test_EdgeCursor(graph);
-  test_EdgeCursor_Range(graph);
+  test_get_nodes(graph);
+  test_delete_node(graph, opts.is_directed);
+
+  test_get_edges(graph);
+  test_EdgeCursor(graph, opts.is_directed);
+  test_EdgeCursor_Range(graph, opts.is_directed);
   test_InCursor(graph);
-  //    //! TODO: test_InCursor_Range(graph);
+  //! TODO: test_InCursor_Range(graph);
   test_OutCursor(graph);
   test_NodeCursor(graph);
   test_NodeCursor_Range(graph);
+  test_delete_edge(graph, opts.is_directed);
 
   tearDown(graph);
   return 0;
