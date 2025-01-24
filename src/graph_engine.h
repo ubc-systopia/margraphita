@@ -17,13 +17,14 @@ class GraphEngine
   GraphEngine(int _num_threads, graph_opts &engine_opts);
   GraphEngine();
   ~GraphEngine();
-  GraphBase *create_graph_handle();
+  GraphBase *create_graph_handle(bool read_only = false);
   void create_indices();
   void calculate_thread_offsets(bool make_edge = false);
   key_range get_key_range(int thread_id);
   edge_range get_edge_range(int thread_id);
   void close_graph();
   WT_CONNECTION *get_connection();
+  std::string get_last_checkpoint() { return last_checkpoint; }
 
  protected:
   WT_CONNECTION *conn = nullptr;
@@ -39,6 +40,9 @@ class GraphEngine
   void close_connection();
 
  private:
+  std::string last_checkpoint;
+  void force_metadata_sync();
+  void make_checkpoint();
   void _calculate_thread_offsets(int thread_max, GraphBase *graph_stats);
   void _calculate_thread_offsets_edge(int thread_max, GraphBase *graph_stats);
 };
@@ -61,29 +65,46 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
 
 GraphEngine::~GraphEngine() { close_connection(); }
 
-GraphBase *GraphEngine::create_graph_handle()
+void GraphEngine::make_checkpoint()
+{
+  WT_SESSION *session;
+  // use timestamp
+  auto now =
+      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  std::tm localTime = *std::localtime(&now);
+  char cpt_name[27];
+  std::strftime(cpt_name, 27, "name=%Y_%m_%d_%H_%M_%S", &localTime);
+
+  std::cout << "Creating checkpoint " << cpt_name << std::endl;
+  conn->open_session(conn, nullptr, nullptr, &session);
+  if (session->checkpoint(session, cpt_name))
+  {
+    throw GraphException("Failed to create checkpoint");
+  }
+  // the checkpoint name without the name= prefix
+  std::strftime(cpt_name, 27, "%Y_%m_%d_%H_%M_%S", &localTime);
+  last_checkpoint = cpt_name;
+  session->close(session, nullptr);
+}
+
+GraphBase *GraphEngine::create_graph_handle(bool read_only)
 {
   GraphBase *ptr;
-  //    if (opts.type == GraphType::Std)
-  //    {
-  //        ptr = new StandardGraph(opts, conn);
-  //    }
-  if (opts.type == GraphType::Adj)
+  graph_opts new_opts = opts;
+  if (read_only)
   {
-    ptr = new AdjList(opts, conn);
+    make_checkpoint();
+    new_opts.read_only = true;
+    new_opts.create_new = false;
+    new_opts.checkpoint_name = this->last_checkpoint;
   }
-  else if (opts.type == GraphType::EKey)
-  {
-    ptr = new EdgeKey(opts, conn);
-  }
-  else if (opts.type == GraphType::SplitEKey)
-  {
-    ptr = new SplitEdgeKey(opts, conn);
-  }
+  if (new_opts.type == GraphType::Adj)
+    ptr = new AdjList(new_opts, conn);
+  else if (new_opts.type == GraphType::SplitEKey)
+    ptr = new SplitEdgeKey(new_opts, conn);
   else
-  {
     throw GraphException("Failed to create graph object");
-  }
+
   return ptr;
 }
 
@@ -91,11 +112,6 @@ void GraphEngine::create_indices()
 {
   WT_SESSION *sess;
   CommonUtil::open_session(conn, &sess);
-  // Should enforce other handles are closed here (TODO?)
-  //    if (opts.type == GraphType::Std)
-  //    {
-  //        StandardGraph::create_indices(sess);
-  //    }
   if (opts.type == GraphType::EKey)
   {
     EdgeKey::create_indices(sess);
@@ -256,17 +272,9 @@ void GraphEngine::create_new_graph()
     throw GraphException("Cannot open connection to new DB");
   };
 
-  //    if (opts.type == GraphType::Std)
-  //    {
-  //        StandardGraph::create_wt_tables(opts, conn);
-  //    }
   if (opts.type == GraphType::Adj)
   {
     AdjList::create_wt_tables(opts, conn);
-  }
-  else if (opts.type == GraphType::EKey)
-  {
-    EdgeKey::create_wt_tables(opts, conn);
   }
   else if (opts.type == GraphType::SplitEKey)
   {

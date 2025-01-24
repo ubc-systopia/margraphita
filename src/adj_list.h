@@ -424,8 +424,8 @@ class AdjList : public GraphBase
       graph_opts &opts, WT_CONNECTION *conn);  // Need this to init graph db
   int add_node(node to_insert, bool is_bulk = false) override;
   //    int add_node(node to_insert) override;
-  void add_node(node_id_t to_insert,
-                std::vector<node_id_t> &inlist,
+  [[maybe_unused]] void add_node(node_id_t to_insert,
+                                 std::vector<node_id_t> &inlist,
                 std::vector<node_id_t> &outlist);
   bool has_node(node_id_t node_id) override;
   node get_node(node_id_t node_id) override;

@@ -87,13 +87,13 @@ class GraphBase
                                WT_CURSOR **cursor,
                                WT_SESSION *session,
                                bool is_random,
-                               bool prevent_overwrite);
+                               bool prevent_overwrite,
+                               std::string checkpoint_name = "");
   int _get_index_cursor(const std::string &table_name,
                         const std::string &idx_name,
                         const std::string &projection,
                         WT_CURSOR **cursor);
   [[maybe_unused]] void _restore_from_db();
-  [[maybe_unused]] void _restore_from_db(const std::string &db_name);
   [[maybe_unused]] void sync_metadata();
   virtual void close_all_cursors() = 0;
 };

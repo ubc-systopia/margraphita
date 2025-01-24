@@ -58,6 +58,7 @@ void test_get_node(AdjList graph)
   found = graph.get_random_node();
   CommonUtil::dump_node(found);
 }
+
 void test_get_nodes(AdjList graph)
 {
   INFO();
@@ -667,6 +668,22 @@ void test_EdgeCursor_Range(AdjList graph, bool is_directed)
 }
 void tearDown(AdjList &graph) { graph.close(true); }
 
+void test_ro_get_nodes(GraphBase *graph)
+{
+  INFO();
+  int n = 10;
+  for (node x : graph->get_nodes())
+  {
+    CommonUtil::dump_node(x);
+#ifdef B64
+    assert(sizeof(x.id) == 8);
+#else
+    assert(sizeof(x.id) == 4);
+#endif
+    if (--n == 0) break;
+  }
+}
+
 int main()
 {
   const int THREAD_NUM = 1;
@@ -716,4 +733,15 @@ int main()
   test_EdgeCursor(graph, opts.is_directed);
   test_EdgeCursor_Range(graph, opts.is_directed);
   tearDown(graph);
+  myEngine.close_graph();
+
+  ////////////
+  // Now test for read_only mode
+  opts.create_new = false;
+  opts.read_only = true;
+  GraphEngine roEngine(THREAD_NUM, opts);
+  GraphBase *rograph = roEngine.create_graph_handle();
+  test_ro_get_nodes(rograph);
+  rograph->close(false);
+  roEngine.close_graph();
 }

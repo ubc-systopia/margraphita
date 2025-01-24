@@ -88,6 +88,7 @@ typedef enum GraphType
 
 struct graph_opts
 {
+  bool read_only = false;
   bool create_new = false;
   bool read_optimize = false;
   bool is_directed = false;
@@ -102,6 +103,7 @@ struct graph_opts
   uint64_t num_edges;  // we can have > 4B edges
   std::string dataset;
   int num_threads = 1;
+  std::string checkpoint_name;
   ~graph_opts() = default;
   // dump the options
   void print_config(const std::string &filename)

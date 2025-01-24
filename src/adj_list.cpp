@@ -149,30 +149,54 @@ void AdjList::init_cursors()
 {
   // metadata_cursor initialization
   int ret;
-  if ((ret = _get_table_cursor(
-           METADATA, &metadata_cursor, session, false, false)))
+  std::cout << fmt::format("Initializing cursors for a {} graph handle to {}",
+                           opts.read_only ? "Read-Only" : "Read-Write",
+                           opts.db_name)
+            << std::endl;
+  std::cout << opts.checkpoint_name;
+  if ((ret = _get_table_cursor(METADATA,
+                               &metadata_cursor,
+                               session,
+                               false,
+                               false,
+                               opts.checkpoint_name)))
   {
     throw GraphException("Could not get a cursor to the metadata table:" +
                          string(wiredtiger_strerror(ret)));
   }
 
   // node_cursor initialization
-  if ((ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false, true)))
+  if ((ret = _get_table_cursor(NODE_TABLE,
+                               &node_cursor,
+                               session,
+                               false,
+                               true,
+                               opts.checkpoint_name)))
   {
     throw GraphException("Could not get a cursor to the node table:" +
                          string(wiredtiger_strerror(ret)));
   }
 
   // edge_cursor initialization
-  if ((ret = _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, true)))
+  if ((ret = _get_table_cursor(EDGE_TABLE,
+                               &edge_cursor,
+                               session,
+                               false,
+                               true,
+                               opts.checkpoint_name)))
+
   {
     throw GraphException("Could not get a cursor to the edge table:" +
                          string(wiredtiger_strerror(ret)));
   }
 
   // out_adjlist_cursors initialization
-  if ((ret = _get_table_cursor(
-           OUT_ADJLIST, &out_adjlist_cursor, session, false, false)))
+  if ((ret = _get_table_cursor(OUT_ADJLIST,
+                               &out_adjlist_cursor,
+                               session,
+                               false,
+                               false,
+                               opts.checkpoint_name)))
   {
     throw GraphException("Could not get a cursor to the out adjlist table : " +
                          string(wiredtiger_strerror(ret)));
@@ -182,12 +206,14 @@ void AdjList::init_cursors()
                                               &in_adjlist_cursor,
                                               session,
                                               false,
-                                              false))  // directed
-                   : (ret = _get_table_cursor(OUT_ADJLIST,
-                                              &in_adjlist_cursor,
-                                              session,
-                                              false,
-                                              false));  // undirected
+                                 false,
+                                 opts.checkpoint_name))  // directed
+      : (ret = _get_table_cursor(OUT_ADJLIST,
+                                 &in_adjlist_cursor,
+                                 session,
+                                 false,
+                                 false,
+                                 opts.checkpoint_name));  // undirected
   if (ret)
   {
     throw GraphException("Could not get a cursor to the in_Adjlist table: " +
@@ -317,9 +343,9 @@ int AdjList::add_node_in_txn(node to_insert, bool ignore_duplicate)
   return ret;
 }
 
-void AdjList::add_node(node_id_t to_insert,
-                       std::vector<node_id_t> &inlist,
-                       std::vector<node_id_t> &outlist)
+[[maybe_unused]] void AdjList::add_node(node_id_t to_insert,
+                                        std::vector<node_id_t> &inlist,
+                                        std::vector<node_id_t> &outlist)
 {
   int ret;
 
@@ -558,7 +584,8 @@ node AdjList::get_random_node()
 {
   node found = {0};
   WT_CURSOR *random_cursor = nullptr;
-  int ret = _get_table_cursor(NODE_TABLE, &random_cursor, session, true, false);
+  int ret = _get_table_cursor(
+      NODE_TABLE, &random_cursor, session, true, false, opts.checkpoint_name);
   if (ret != 0)
   {
     throw GraphException("could not get a random cursor to the node table");
@@ -579,7 +606,8 @@ void AdjList::get_random_node_ids(std::vector<node_id_t> &random_nodes,
                                   int count)
 {
   WT_CURSOR *random_cursor = nullptr;
-  int ret = _get_table_cursor(NODE_TABLE, &random_cursor, session, true, false);
+  int ret = _get_table_cursor(
+      NODE_TABLE, &random_cursor, session, true, false, opts.checkpoint_name);
   if (ret != 0)
   {
     throw GraphException("could not get a random cursor to the node table");
@@ -1276,7 +1304,8 @@ int AdjList::delete_from_adjlists(WT_CURSOR *cursor,
   std::vector<node_id_t> out_edgelist;
 
   WT_CURSOR *in_cursor = nullptr;
-  _get_table_cursor(IN_ADJLIST, &in_cursor, session, false, false);
+  _get_table_cursor(
+      IN_ADJLIST, &in_cursor, session, false, false, opts.checkpoint_name);
   CommonUtil::set_key(in_cursor, node_id);
 
   if (in_cursor->search(in_cursor) != 0)
@@ -1290,7 +1319,8 @@ int AdjList::delete_from_adjlists(WT_CURSOR *cursor,
   // node_id from its neighbors
 
   WT_CURSOR *out_cursor = nullptr;
-  _get_table_cursor(OUT_ADJLIST, &out_cursor, session, false, false);
+  _get_table_cursor(
+      OUT_ADJLIST, &out_cursor, session, false, false, opts.checkpoint_name);
 
   for (auto neighbor : in_edgelist)
   {
@@ -1495,7 +1525,8 @@ WT_CURSOR *AdjList::get_node_cursor()
 {
   if (node_cursor == nullptr)
   {
-    int ret = _get_table_cursor(NODE_TABLE, &node_cursor, session, false, true);
+    int ret = _get_table_cursor(
+        NODE_TABLE, &node_cursor, session, false, true, opts.checkpoint_name);
     if (ret != 0)
     {
       throw GraphException("Could not get a test node cursor");
@@ -1508,8 +1539,8 @@ WT_CURSOR *AdjList::get_node_cursor()
 WT_CURSOR *AdjList::get_new_node_cursor()
 {
   WT_CURSOR *new_node_cursor = nullptr;
-  int ret =
-      _get_table_cursor(NODE_TABLE, &new_node_cursor, session, false, true);
+  int ret = _get_table_cursor(
+      NODE_TABLE, &new_node_cursor, session, false, true, opts.checkpoint_name);
   if (ret != 0)
   {
     throw GraphException("Could not get a test node cursor");
@@ -1521,8 +1552,8 @@ WT_CURSOR *AdjList::get_edge_cursor()
 {
   if (edge_cursor == nullptr)
   {
-    int ret =
-        _get_table_cursor(EDGE_TABLE, &edge_cursor, session, false, false);
+    int ret = _get_table_cursor(
+        EDGE_TABLE, &edge_cursor, session, false, false, opts.checkpoint_name);
     if (ret != 0)
     {
       throw GraphException("Could not get a test edge cursor");
@@ -1534,8 +1565,12 @@ WT_CURSOR *AdjList::get_edge_cursor()
 WT_CURSOR *AdjList::get_new_edge_cursor()
 {
   WT_CURSOR *new_edge_cursor = nullptr;
-  int ret =
-      _get_table_cursor(EDGE_TABLE, &new_edge_cursor, session, false, false);
+  int ret = _get_table_cursor(EDGE_TABLE,
+                              &new_edge_cursor,
+                              session,
+                              false,
+                              false,
+                              opts.checkpoint_name);
   if (ret != 0)
   {
     throw GraphException("Could not get a test edge cursor");
@@ -1552,12 +1587,14 @@ WT_CURSOR *AdjList::get_in_adjlist_cursor()
                                                 &in_adjlist_cursor,
                                                 session,
                                                 false,
-                                                false))  // directed
-                     : (ret = _get_table_cursor(OUT_ADJLIST,
-                                                &in_adjlist_cursor,
-                                                session,
-                                                false,
-                                                false));  // undirected
+                                   false,
+                                   opts.checkpoint_name))  // directed
+        : (ret = _get_table_cursor(OUT_ADJLIST,
+                                   &in_adjlist_cursor,
+                                   session,
+                                   false,
+                                   false,
+                                   opts.checkpoint_name));  // undirected
     if (ret != 0)
     {
       throw GraphException("Could not get a test in_adjlist cursor");
@@ -1573,13 +1610,15 @@ WT_CURSOR *AdjList::get_new_in_adjlist_cursor()
   opts.is_directed ? (ret = _get_table_cursor(IN_ADJLIST,
                                               &new_in_adjlist_cursor,
                                               session,
-                                              false,
-                                              false))  // directed
-                   : (ret = _get_table_cursor(OUT_ADJLIST,
-                                              &new_in_adjlist_cursor,
-                                              session,
-                                              false,
-                                              false));  // undirected
+                                 false,
+                                 false,
+                                 opts.checkpoint_name))  // directed
+      : (ret = _get_table_cursor(OUT_ADJLIST,
+                                 &new_in_adjlist_cursor,
+                                 session,
+                                 false,
+                                 false,
+                                 opts.checkpoint_name));  // undirected
   if (ret != 0)
   {
     throw GraphException("Could not get a test in_adjlist cursor");
@@ -1591,8 +1630,12 @@ WT_CURSOR *AdjList::get_out_adjlist_cursor()
 {
   if (out_adjlist_cursor == nullptr)
   {
-    int ret = _get_table_cursor(
-        OUT_ADJLIST, &out_adjlist_cursor, session, false, true);
+    int ret = _get_table_cursor(OUT_ADJLIST,
+                                &out_adjlist_cursor,
+                                session,
+                                false,
+                                true,
+                                opts.checkpoint_name);
     if (ret != 0)
     {
       throw GraphException("Could not get a test out_adjlist cursor");
@@ -1604,8 +1647,12 @@ WT_CURSOR *AdjList::get_out_adjlist_cursor()
 WT_CURSOR *AdjList::get_new_out_adjlist_cursor()
 {
   WT_CURSOR *new_out_adjlist_cursor = nullptr;
-  int ret = _get_table_cursor(
-      OUT_ADJLIST, &new_out_adjlist_cursor, session, false, false);
+  int ret = _get_table_cursor(OUT_ADJLIST,
+                              &new_out_adjlist_cursor,
+                              session,
+                              false,
+                              false,
+                              opts.checkpoint_name);
   if (ret != 0)
   {
     throw GraphException("Could not get a test out_adjlist cursor");
@@ -1616,8 +1663,12 @@ WT_CURSOR *AdjList::get_new_out_adjlist_cursor()
 WT_CURSOR *AdjList::get_new_random_outadj_cursor()
 {
   WT_CURSOR *rand_out_adjlist_cursor = nullptr;
-  int ret = _get_table_cursor(
-      OUT_ADJLIST, &rand_out_adjlist_cursor, session, true, false);
+  int ret = _get_table_cursor(OUT_ADJLIST,
+                              &rand_out_adjlist_cursor,
+                              session,
+                              true,
+                              false,
+                              opts.checkpoint_name);
   if (ret != 0)
   {
     throw GraphException("Could not get a test node cursor");

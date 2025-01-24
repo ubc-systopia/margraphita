@@ -213,14 +213,23 @@ int GraphBase::_get_table_cursor(const std::string &table,
                                  WT_CURSOR **cursor,
                                  WT_SESSION *session,
                                  bool is_random,
-                                 bool prevent_overwrite)
+                                 bool prevent_overwrite,
+                                 std::string checkpoint_name)
 {
-  char config[256];
+  char config[512];
   snprintf(config,
            sizeof(config),
            "next_random=%s,overwrite=%s",
            is_random ? "true" : "false",
            prevent_overwrite ? "false" : "true");
+  // append checkpoint name if provided
+  if (!checkpoint_name.empty())
+  {
+    snprintf(config + strlen(config),
+             sizeof(config) - strlen(config),
+             ",checkpoint=%s",
+             checkpoint_name.c_str());
+  }
   char table_name[256];
   snprintf(table_name, sizeof(table_name), "table:%s", table.c_str());
   int err = session->open_cursor(session, table_name, nullptr, config, cursor);
@@ -250,58 +259,6 @@ void GraphBase::_restore_from_db()
 
   int key;
   WT_ITEM item;
-  while (cursor->next(cursor) == 0)
-  {
-    cursor->get_key(cursor, &key);
-    cursor->get_value(cursor, &item);
-
-    if (key == MetadataKey::db_dir)
-    {
-      this->opts.db_dir = string((char *)item.data, item.size);
-    }
-    else if (key == MetadataKey::db_name)
-    {
-      this->opts.db_name = string((char *)item.data, item.size);
-    }
-    else if (key == MetadataKey::is_weighted)
-    {
-      this->opts.is_weighted = *((bool *)item.data);
-    }
-    else if (key == MetadataKey::read_optimize)
-    {
-      this->opts.read_optimize = *((bool *)item.data);
-    }
-    else if (key == MetadataKey::is_directed)
-    {
-      this->opts.is_directed = *((bool *)item.data);
-    }
-    else if (key == MetadataKey::num_nodes)
-    {
-      this->opts.num_nodes = *((node_id_t *)item.data);
-      GraphBase::local_nnodes.store(this->opts.num_nodes);
-    }
-    else if (key == MetadataKey::num_edges)
-    {
-      this->opts.num_edges = *((uint64_t *)item.data);
-      GraphBase::local_nedges.store(this->opts.num_edges);
-    }
-  }
-}
-
-// Close, restore from DB, create/drop indices
-void GraphBase::_restore_from_db(const std::string &db_name)
-{
-  CommonUtil::open_connection(const_cast<char *>(db_name.c_str()),
-                              opts.stat_log,
-                              opts.conn_config,
-                              &connection);
-  WT_CURSOR *cursor = nullptr;
-
-  CommonUtil::open_session(connection, &session);
-  int key;
-  WT_ITEM item;
-  _get_table_cursor(METADATA, &cursor, session, false, false);
-
   while (cursor->next(cursor) == 0)
   {
     cursor->get_key(cursor, &key);
