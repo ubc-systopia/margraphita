@@ -73,15 +73,15 @@ int main(int argc, char *argv[])
       graph->dump_table(table_name, num_records);
     graph->close();
   }
-  else if (opts.type == GraphType::EKey)
-  {
-    auto *graph = dynamic_cast<EdgeKey *>(graphEngine.create_graph_handle());
-    if (table_name == METADATA)
-      graph->dump_meta_data();
-    else
-      graph->dump_table(table_name, num_records);
-    graph->close();
-  }
+  //  else if (opts.type == GraphType::EKey)
+  //  {
+  //    auto *graph = dynamic_cast<EdgeKey
+  //    *>(graphEngine.create_graph_handle()); if (table_name == METADATA)
+  //      graph->dump_meta_data();
+  //    else
+  //      graph->dump_table(table_name, num_records);
+  //    graph->close();
+  //  }
   else if (opts.type == GraphType::SplitEKey)
   {
     auto *graph =

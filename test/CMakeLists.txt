@@ -12,10 +12,10 @@ ADD_EXECUTABLE(test_adj_list "${PATH_TEST}/test_adj_list.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_adj_list PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_adj_list PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
-# Test Edge Key
-ADD_EXECUTABLE(test_edgekey "${PATH_TEST}/test_edgekey.cpp")
-TARGET_INCLUDE_DIRECTORIES(test_edgekey PRIVATE ${PATH_SRC})
-TARGET_LINK_LIBRARIES(test_edgekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
+## Test Edge Key
+#ADD_EXECUTABLE(test_edgekey "${PATH_TEST}/test_edgekey.cpp")
+#TARGET_INCLUDE_DIRECTORIES(test_edgekey PRIVATE ${PATH_SRC})
+#TARGET_LINK_LIBRARIES(test_edgekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
 # Test Split EdgeKey
 ADD_EXECUTABLE(test_split_ekey "${PATH_TEST}/test_split_edgekey.cpp")

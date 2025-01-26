@@ -214,7 +214,7 @@ int GraphBase::_get_table_cursor(const std::string &table,
                                  WT_SESSION *session,
                                  bool is_random,
                                  bool prevent_overwrite,
-                                 std::string checkpoint_name)
+                                 const std::string &checkpoint_name)
 {
   char config[512];
   snprintf(config,
@@ -233,12 +233,7 @@ int GraphBase::_get_table_cursor(const std::string &table,
   char table_name[256];
   snprintf(table_name, sizeof(table_name), "table:%s", table.c_str());
   int err = session->open_cursor(session, table_name, nullptr, config, cursor);
-  if (err != 0)
-  {
-    throw GraphException("Failed to open a cursor on the " + table +
-                         " table\n" + wiredtiger_strerror(err));
-  }
-  return 0;
+  return err;
 }
 
 void GraphBase::close(bool synchronize)
@@ -311,20 +306,27 @@ void GraphBase::_restore_from_db()
 int GraphBase::_get_index_cursor(const std::string &table_name,
                                  const std::string &idx_name,
                                  const std::string &projection,
+                                 const std::string &checkpoint_name,
                                  WT_CURSOR **cursor)
 {
   std::string index_name = "index:" + table_name + ":" + idx_name + projection;
-  if (int ret = session->open_cursor(
-                    session, index_name.c_str(), NULL, NULL, cursor) != 0)
+  int ret;
+  if (checkpoint_name.empty())
   {
-    fprintf(stderr,
-            "Failed to open the cursor on the index %s on table %s: %s \n",
-            index_name.c_str(),
-            table_name.c_str(),
-            wiredtiger_strerror(ret));
-    return ret;
+    ret = session->open_cursor(
+        session, index_name.c_str(), nullptr, NULL, cursor);
   }
-  return 0;
+  else
+  {
+    char checkpoint[256];
+    snprintf(checkpoint,
+             sizeof(checkpoint),
+             "checkpoint=%s",
+             checkpoint_name.c_str());
+    ret = session->open_cursor(
+        session, index_name.c_str(), nullptr, checkpoint, cursor);
+  }
+  return ret;
 }
 
 void GraphBase::sync_metadata()

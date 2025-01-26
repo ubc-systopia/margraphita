@@ -63,17 +63,30 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 void SplitEdgeKey::init_cursors()
 {
   // metadata_cursor initialization
+  std::cout << fmt::format("Initializing cursors for a {} graph handle to {}",
+                           opts.read_only ? "Read-Only" : "Read-Write",
+                           opts.db_name)
+            << std::endl;
+  std::cout << opts.checkpoint_name;
   int ret;
-  if ((ret = _get_table_cursor(
-           METADATA, &metadata_cursor, session, false, false)))
+  if ((ret = _get_table_cursor(METADATA,
+                               &metadata_cursor,
+                               session,
+                               false,
+                               false,
+                               opts.checkpoint_name)))
   {
     throw GraphException("Could not get a cursor to the metadata table:" +
                          string(wiredtiger_strerror(ret)));
   }
 
   // out_edge_cursor
-  if ((ret = _get_table_cursor(
-           OUT_EDGES, &out_edge_cursor, session, false, true)))
+  if ((ret = _get_table_cursor(OUT_EDGES,
+                               &out_edge_cursor,
+                               session,
+                               false,
+                               true,
+                               opts.checkpoint_name)))
   {
     throw GraphException("Could not get an out edge cursor: " +
                          string(wiredtiger_strerror(ret)));
@@ -84,10 +97,18 @@ void SplitEdgeKey::init_cursors()
    * points to the OUT_EDGES table if the graph is undirected.
    */
 
-  opts.is_directed ? (ret = _get_table_cursor(
-                          IN_EDGES, &in_edge_cursor, session, false, true))
-                   : (ret = _get_table_cursor(
-                          OUT_EDGES, &in_edge_cursor, session, false, true));
+  opts.is_directed ? (ret = _get_table_cursor(IN_EDGES,
+                                              &in_edge_cursor,
+                                              session,
+                                              false,
+                                              true,
+                                              opts.checkpoint_name))
+                   : (ret = _get_table_cursor(OUT_EDGES,
+                                              &in_edge_cursor,
+                                              session,
+                                              false,
+                                              true,
+                                              opts.checkpoint_name));
   if (ret)
   {
     throw GraphException("Could not get an in edge cursor: " +
@@ -95,8 +116,11 @@ void SplitEdgeKey::init_cursors()
   }
   //  dst_src index
   std::string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
-  ret = _get_index_cursor(
-      OUT_EDGES, DST_SRC_INDEX, projection, &dst_src_idx_cursor);
+  ret = _get_index_cursor(OUT_EDGES,
+                          DST_SRC_INDEX,
+                          projection,
+                          opts.checkpoint_name,
+                          &dst_src_idx_cursor);
   if (ret != 0)
   {
     throw GraphException("Could not get a cursor to the dst_src index" +
@@ -393,8 +417,12 @@ node SplitEdgeKey::get_random_node()
   int ret = 0;
   if (random_node_cursor == nullptr)
   {
-    ret =
-        _get_table_cursor(OUT_EDGES, &random_node_cursor, session, true, true);
+    ret = _get_table_cursor(OUT_EDGES,
+                            &random_node_cursor,
+                            session,
+                            true,
+                            true,
+                            opts.checkpoint_name);
   }
   if (ret != 0)
   {
@@ -558,7 +586,8 @@ std::vector<node> SplitEdgeKey::get_out_nodes(node_id_t node_id)
   std::vector<node> out_nodes;
   WT_CURSOR *e_cur;  // need new cursor because we will be using the class
                      // cursor for get_node
-  if (_get_table_cursor(OUT_EDGES, &e_cur, session, false, true) != 0)
+  if (_get_table_cursor(
+          OUT_EDGES, &e_cur, session, false, true, opts.checkpoint_name) != 0)
   {
     throw GraphException("Could not get a cursor to the OutEdge table");
   }
@@ -602,7 +631,8 @@ std::vector<node_id_t> SplitEdgeKey::get_out_nodes_id(node_id_t node_id)
 {
   std::vector<node_id_t> out_nodes_id;
   WT_CURSOR *e_cur;
-  if (_get_table_cursor(OUT_EDGES, &e_cur, session, false, true) != 0)
+  if (_get_table_cursor(
+          OUT_EDGES, &e_cur, session, false, true, opts.checkpoint_name) != 0)
   {
     throw GraphException("Could not get a cursor to the OutEdge table");
   }
@@ -696,8 +726,10 @@ std::vector<node> SplitEdgeKey::get_in_nodes(node_id_t node_id)
                       // cursor for get_node
   int ret;
   opts.is_directed
-      ? (ret = _get_table_cursor(IN_EDGES, &in_cur, session, false, true))
-      : (ret = _get_table_cursor(OUT_EDGES, &in_cur, session, false, true));
+      ? (ret = _get_table_cursor(
+             IN_EDGES, &in_cur, session, false, true, opts.checkpoint_name))
+      : (ret = _get_table_cursor(
+             OUT_EDGES, &in_cur, session, false, true, opts.checkpoint_name));
   if (ret != 0)
   {
     LOG_MSG("Failed to get a cursor to the {} table",
@@ -744,8 +776,10 @@ std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
   WT_CURSOR *in_cur;
   int ret;
   opts.is_directed
-      ? (ret = _get_table_cursor(IN_EDGES, &in_cur, session, false, true))
-      : (ret = _get_table_cursor(OUT_EDGES, &in_cur, session, false, true));
+      ? (ret = _get_table_cursor(
+             IN_EDGES, &in_cur, session, false, true, opts.checkpoint_name))
+      : (ret = _get_table_cursor(
+             OUT_EDGES, &in_cur, session, false, true, opts.checkpoint_name));
   if (ret != 0)
   {
     LOG_MSG("Failed to get a cursor to the {} table",
@@ -845,8 +879,12 @@ void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
   int ret = 0;
   if (random_node_cursor == nullptr)
   {
-    ret =
-        _get_table_cursor(EDGE_TABLE, &random_node_cursor, session, true, true);
+    ret = _get_table_cursor(EDGE_TABLE,
+                            &random_node_cursor,
+                            session,
+                            true,
+                            true,
+                            opts.checkpoint_name);
   }
   if (ret != 0)
   {
@@ -1007,8 +1045,8 @@ WT_CURSOR *SplitEdgeKey::get_metadata_cursor()
 {
   if (metadata_cursor == nullptr)
   {
-    int ret =
-        _get_table_cursor(METADATA, &metadata_cursor, session, false, true);
+    int ret = _get_table_cursor(
+        METADATA, &metadata_cursor, session, false, true, opts.checkpoint_name);
     if (ret != 0)
     {
       throw GraphException("Could not get a metadata cursor");
@@ -1208,7 +1246,12 @@ int SplitEdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
 WT_CURSOR *SplitEdgeKey::get_new_out_cursor()
 {
   WT_CURSOR *new_out_cursor = nullptr;
-  if (_get_table_cursor(OUT_EDGES, &new_out_cursor, session, false, true) != 0)
+  if (_get_table_cursor(OUT_EDGES,
+                        &new_out_cursor,
+                        session,
+                        false,
+                        true,
+                        opts.checkpoint_name) != 0)
   {
     throw GraphException("Could not get a cursor to the OutEdge table");
   }
@@ -1219,10 +1262,18 @@ WT_CURSOR *SplitEdgeKey::get_new_in_cursor()
 {
   WT_CURSOR *new_in_cursor = nullptr;
   int ret;
-  opts.is_directed ? (ret = _get_table_cursor(
-                          IN_EDGES, &new_in_cursor, session, false, true))
-                   : (ret = _get_table_cursor(
-                          OUT_EDGES, &new_in_cursor, session, false, true));
+  opts.is_directed ? (ret = _get_table_cursor(IN_EDGES,
+                                              &new_in_cursor,
+                                              session,
+                                              false,
+                                              true,
+                                              opts.checkpoint_name))
+                   : (ret = _get_table_cursor(OUT_EDGES,
+                                              &new_in_cursor,
+                                              session,
+                                              false,
+                                              true,
+                                              opts.checkpoint_name));
   if (ret)
   {
     throw GraphException("Could not get an in edge cursor: " +
@@ -1236,8 +1287,11 @@ WT_CURSOR *SplitEdgeKey::get_new_node_index_cursor()
 {
   WT_CURSOR *new_dst_src_idx_cursor = nullptr;
   string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
-  if (_get_index_cursor(
-          OUT_EDGES, DST_SRC_INDEX, projection, &new_dst_src_idx_cursor) != 0)
+  if (_get_index_cursor(OUT_EDGES,
+                        DST_SRC_INDEX,
+                        projection,
+                        opts.checkpoint_name,
+                        &new_dst_src_idx_cursor) != 0)
   {
     throw GraphException("Could not get a cursor to DST_SRC_INDEX");
   }
