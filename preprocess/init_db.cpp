@@ -35,13 +35,6 @@ int main(int argc, char *argv[])
   t.stop();
   cout << "Graph created in " << t.t_micros() << endl;
 
-  // must use derived class object here
-  if (opts.exit_on_create)  // Exit after creating the db
-  {
-    graphEngine.close_graph();
-    exit(0);
-  }
-
   // create_indices does not apply to adjacency lists
   if (opts.create_indices && opts.type != GraphType::Adj)
   {

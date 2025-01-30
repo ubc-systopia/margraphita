@@ -40,19 +40,14 @@ int main(int argc, char *argv[])
   opts.db_dir = db_path.substr(0, db_path.find_last_of('/'));
   opts.db_name = db_path.substr(db_path.find_last_of('/') + 1);
 
-  std::string table_name = argv[3];
-  int num_records = atoi(argv[4]);
+  std::string table_name = argv[2];
   GraphType type;
 
-  if (strcmp(argv[2], "adj") == 0)
+  if (strcmp(argv[3], "adj") == 0)
   {
     type = GraphType::Adj;
   }
-  else if (strcmp(argv[2], "ekey") == 0)
-  {
-    type = GraphType::EKey;
-  }
-  else if (strcmp(argv[2], "split_ekey") == 0)
+  else if (strcmp(argv[3], "split_ekey") == 0)
   {
     type = GraphType::SplitEKey;
   }
@@ -61,6 +56,8 @@ int main(int argc, char *argv[])
     throw GraphException("Unrecognized graph representation");
   }
   opts.type = type;
+  // number of records to dump
+  int num_records = atoi(argv[4]);
 
   GraphEngine graphEngine(1, opts);
 

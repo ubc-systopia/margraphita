@@ -1716,6 +1716,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
   if (table_name == NODE_TABLE)
   {
     std::ofstream outfile("nodes_dump.txt");
+    node_cursor->reset(node_cursor);
     while (node_cursor->next(node_cursor) == 0 && num_records > 0)
     {
       num_records--;
@@ -1731,6 +1732,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
   else if (table_name == EDGE_TABLE)
   {
     std::ofstream outfile("edges_dump.txt");
+    edge_cursor->reset(edge_cursor);
     while (edge_cursor->next(edge_cursor) == 0 && num_records > 0)
     {
       edge found;
@@ -1747,11 +1749,13 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
   else if (table_name == OUT_ADJLIST)
   {
     std::ofstream outfile("outedge_dump.txt");
+    out_adjlist_cursor->reset(out_adjlist_cursor);
     while (out_adjlist_cursor->next(out_adjlist_cursor) == 0 && num_records > 0)
     {
       adjlist found;
       num_records--;
-      out_adjlist_cursor->get_key(out_adjlist_cursor, &found.node_id);
+      CommonUtil::get_key(out_adjlist_cursor, &found.node_id);
+      //      std::cout << "Node ID: " << found.node_id << std::endl;
       CommonUtil::record_to_adjlist(out_adjlist_cursor, &found);
       CommonUtil::dump_adjlist(found, outfile);
     }
@@ -1759,11 +1763,12 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
   else if (table_name == IN_ADJLIST)
   {
     std::ofstream outfile("inedge_dump.txt");
+    in_adjlist_cursor->reset(in_adjlist_cursor);
     while (in_adjlist_cursor->next(in_adjlist_cursor) == 0 && num_records > 0)
     {
       adjlist found;
       num_records--;
-      in_adjlist_cursor->get_key(in_adjlist_cursor, &found.node_id);
+      CommonUtil::get_key(in_adjlist_cursor, &found.node_id);
       CommonUtil::record_to_adjlist(in_adjlist_cursor, &found);
       CommonUtil::dump_adjlist(found, outfile);
     }

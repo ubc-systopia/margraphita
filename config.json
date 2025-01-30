@@ -1,6 +1,6 @@
 {
-    "GRAPH_PROJECT_DIR": "scratch/margraphita",
-    "KRON_GEN_PATH": "scratch/gapbs/converter",
+    "GRAPH_PROJECT_DIR": "/home/puneet/scratch/margraphita",
+    "KRON_GEN_PATH": "/home/puneet/scratch/gapbs/converter",
     "KRON_GRAPHS_PATH": "/drives/hdd_main",
     "DB_DIR": "db",
     "GOLDEN_DIR": "/drives/ssd2/flexograph_rd",

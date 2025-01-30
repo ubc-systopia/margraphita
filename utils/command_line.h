@@ -16,7 +16,6 @@ struct cmdline_opts : graph_opts
 {
   // option to create a new db
   bool create_indices = false;
-  bool exit_on_create = false;
   // app opts
   int num_trials = 16;
   node_id_t start_vertex = OutOfBand_ID_MAX;
@@ -37,7 +36,6 @@ struct cmdline_opts : graph_opts
     std::ofstream out;
     out.open(filename, std::ios::out | std::ios::app);
     out << "CREATE_INDICES: " << create_indices << std::endl;
-    out << "EXIT_ON_CREATE: " << exit_on_create << std::endl;
     out << "NUM_TRIALS: " << num_trials << std::endl;
     out << "START_VERTEX: " << start_vertex << std::endl;
     out << "TOLERANCE: " << tolerance << std::endl;
@@ -252,9 +250,6 @@ class CmdLineInsert : public CmdLineBase
     add_help_message('x',
                      "create_index",
                      "(Optional) Flag to create indexes. Default = false");
-    add_help_message('e',
-                     "exit_on_create",
-                     "(Optional) Exit after creating the db. Default = false");
   }
 
   void handle_args(signed char opt, char *opt_arg) override
@@ -263,9 +258,6 @@ class CmdLineInsert : public CmdLineBase
     {
       case 'x':
         opts.create_indices = true;
-        break;
-      case 'e':
-        opts.exit_on_create = true;
         break;
       default:
         CmdLineBase::handle_args(opt, opt_arg);

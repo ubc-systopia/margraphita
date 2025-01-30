@@ -3,48 +3,56 @@
         "num_nodes": 11950757,
         "num_edges": 12711603,
         "dataset_name": "road_asia",
+        "directed": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/road_asia/road_asia"
     },
     {
         "num_nodes": 23947347,
         "num_edges": 28854312,
         "dataset_name": "road_usa",
+        "directed": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/road_usa/road_usa"
     },
     {
         "num_nodes": 4847571,
         "num_edges": 68993773,
         "dataset_name": "livejournal",
+        "directed": true,
         "graph_path": "/drives/hdd_main/datasets_downloads/livejournal/livejournal"
     },
     {
         "num_nodes": 3072441,
         "num_edges": 117184899,
         "dataset_name": "orkut",
+        "directed": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/orkut/orkut"
     },
     {
         "num_nodes": 317727,
         "num_edges": 50870313,
         "dataset_name": "dota_league",
+        "directed": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/dota_league/dota_league"
     },
     {
         "num_nodes": 8388608,
         "num_edges": 129333677,
         "dataset_name": "graph500_23",
+        "directed": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_23/graph500_23"
     },
     {
         "num_nodes": 32804978,
         "num_edges": 1051922853,
         "dataset_name": "graph500_26",
+        "directed": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_26/graph500_26"
     },
     {
         "num_nodes": 121242388,
         "num_edges": 4236163958,
         "dataset_name": "graph500_28",
+        "directed": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_28/graph500_28"
     },
     {

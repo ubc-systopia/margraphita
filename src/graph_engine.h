@@ -112,11 +112,7 @@ void GraphEngine::create_indices()
 {
   WT_SESSION *sess;
   CommonUtil::open_session(conn, &sess);
-  if (opts.type == GraphType::EKey)
-  {
-    EdgeKey::create_indices(sess);
-  }
-  else if (opts.type == GraphType::SplitEKey)
+  if (opts.type == GraphType::SplitEKey)
   {
     SplitEdgeKey::create_indices(sess);
   }

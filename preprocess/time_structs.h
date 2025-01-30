@@ -40,7 +40,7 @@ class InsertOpts
   std::string db_name;
   graph_opts opts{.create_new = true,
                   .read_optimize = false,
-                  .is_directed = true,
+                  .is_directed = false,
                   .is_weighted = false,
                   .optimize_create = true};
   enum GraphType graph_type
@@ -73,7 +73,7 @@ class InsertOpts
                      "type of representation. This can be either std, adj, "
                      "ekey, or all");
     add_help_message('r', "ropt", "Make the WT database read optimized");
-    add_help_message('u', "undirected", "The graph is undirected");
+    add_help_message('D', "directed", "The graph is DIRECTED");
     add_help_message('m', "mt", "number of threads to use");
     add_help_message('w', "weighted", "The graph is weighted");
   }
