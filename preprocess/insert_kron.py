@@ -6,6 +6,7 @@ from preprocess import Preprocess
 from paths import ConfigReader
 from paths import GraphDatasetReader
 import time
+import json
 
 
 def api_insert(config: dict[str, any]):
@@ -20,7 +21,7 @@ def main():
     parser.add_argument(
         "--real", help="insert real-world graphs from graph_datasets.json; Default is False", action='store_true', default=False)
     parser.add_argument("--log_dir", type=str,
-                        help="log directory. Defaults to CWD")
+                        help="log directory. Defaults to LOG_DIR in config.json")
     parser.add_argument("-b", "--bulk", action='store_true',
                         default=False, help="Bulk insert graphs. Defaults to False")
     parser.add_argument("-x", "--index", action='store_true',
@@ -77,6 +78,56 @@ def main():
     print("Index: " + str(args.index))
     print("Use API: " + str(args.use_api))
 
+    # This can be read from a DB, but for now we just read from a file
+    dataset_json = GraphDatasetReader("graph_datasets.json").read_config()
+    for dataset in dataset_json:
+        dataset.update(config_data)  # add config to dataset
+        dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
+        dataset.update(vars(args))  # add args to config
+        # output the graphs in the same directory as the graph
+        dataset['output_dir'] = os.path.join(os.path.dirname(dataset['graph_path']), "preprocess")
+        print("Output dir: " + dataset['output_dir'])
+        os.makedirs(dataset['output_dir'], exist_ok=True)
+
+        golden_image = os.path.join(
+            dataset['GOLDEN_DIR'], dataset['dataset_name'])
+        os.makedirs(golden_image, exist_ok=True)
+        dataset['db_dir'] = os.path.join(
+            config_data['GOLDEN_DIR'],  dataset['dataset_name'])
+
+        if not os.path.exists(dataset['output_dir']):
+            os.makedirs(dataset['output_dir'])
+        dataset['scale'] = 0
+
+        # dump the config struct to a tmp file
+        with open("gotconfig.json", "a+") as f:
+            f.write(json.dumps(dataset, indent=4, sort_keys=True))
+
+        preprocess_obj = Preprocess(dataset)
+        print("is bulk: " + str(args.bulk)
+              + " \nindex: " + str(args.index)
+              + " \npreprocess: " + str(args.preprocess))
+        for graph_type in ["adj", "split_ekey"]:
+            preprocess_obj.init_db(graph_type)
+        if (args.preprocess):
+            time_beg = time.time()
+            preprocess_obj.preprocess()
+            time_end = time.time()
+            print(f"Time taken to preprocess: {time_end - time_beg}\n")
+
+        if (args.bulk):
+            preprocess_obj.bulk_insert()
+        if (args.index):
+            preprocess_obj.create_index()
+        else:
+            api_insert(config_data)
+        preprocess_obj.log(
+            "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
+
+
+if __name__ == "__main__":
+    main()
+"""
     if args.kron:
         sf_list = [26, 28, 30]
         for scale in sf_list:
@@ -138,54 +189,4 @@ def main():
             exit(0)  # done with kron graphs
 
     # To insert graphs that are not Kronecker graphs
-    # This can be read from a DB, but for now we just read from a file
-    dataset_json = GraphDatasetReader("graph_datasets.json").read_config()
-    for dataset in dataset_json:
-        dataset.update(config_data)  # add config to dataset
-        dataset["graph_dir"] = os.path.dirname(dataset["graph_path"])
-        dataset.update(vars(args))  # add args to config
-        # output the graphs in the same directory as the graph
-        dataset['output_dir'] = os.path.dirname(dataset['graph_path'])
-        dataset['output_dir'] = os.path.join(
-            dataset['output_dir'], "preprocess")
-        print("Output dir: " + dataset['output_dir'])
-        os.makedirs(dataset['output_dir'], exist_ok=True)
-
-        golden_image = os.path.join(
-            dataset['GOLDEN_DIR'], dataset['dataset_name'])
-        os.makedirs(golden_image, exist_ok=True)
-        dataset['db_dir'] = os.path.join(
-            config_data['GOLDEN_DIR'],  dataset['dataset_name'])
-
-        if not os.path.exists(dataset['output_dir']):
-            os.makedirs(dataset['output_dir'])
-        dataset['scale'] = 0
-
-        # dump the config struct to a tmp file
-        with open("gotconfig.json", "w") as f:
-            f.write(str(dataset))
-
-        preprocess_obj = Preprocess(dataset)
-        print("is bulk: " + str(args.bulk)
-              + " \nindex: " + str(args.index)
-              + " \npreprocess: " + str(args.preprocess))
-        for graph_type in ["adj"]:  # , "std", "ekey", "split_ekey"]:
-            preprocess_obj.init_db(graph_type)
-        if (args.preprocess):
-            time_beg = time.time()
-            preprocess_obj.preprocess()
-            time_end = time.time()
-            print(f"Time taken to preprocess: {time_end - time_beg}\n")
-
-        if (args.bulk):
-            preprocess_obj.bulk_insert()
-        if (args.index):
-            preprocess_obj.create_index()
-        else:
-            api_insert(config_data)
-        preprocess_obj.log(
-            "Finished inserting " + dataset['dataset_name'] + "\n-------------------\n")
-
-
-if __name__ == "__main__":
-    main()
+"""

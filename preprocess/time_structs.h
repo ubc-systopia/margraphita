@@ -131,8 +131,8 @@ class InsertOpts
       case 'r':
         opts.read_optimize = true;
         break;
-      case 'u':
-        opts.is_directed = false;
+      case 'D':
+        opts.is_directed = true;
         break;
       case 'm':
         std::cout << opt << " " << optarg << std::endl;

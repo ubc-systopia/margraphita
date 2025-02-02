@@ -1753,6 +1753,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     while (out_adjlist_cursor->next(out_adjlist_cursor) == 0 && num_records > 0)
     {
       adjlist found;
+      // found.edgelist.reserve(15000);
       num_records--;
       CommonUtil::get_key(out_adjlist_cursor, &found.node_id);
       //      std::cout << "Node ID: " << found.node_id << std::endl;

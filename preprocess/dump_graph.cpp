@@ -18,7 +18,8 @@ int main(int argc, char *argv[])
   graph_opts opts;
   opts.create_new = false;
   opts.optimize_create = true;  // no indexes while inserting
-  opts.is_directed = true;
+  opts.is_directed =
+      false;  // <-- Make sure to set this to true for directed graphs
   opts.is_weighted = true;
 
   if (argc != 5)

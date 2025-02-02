@@ -5,7 +5,7 @@
 #ifndef GRAPHAPI_BULK_INSERT_LOW_MEM_H
 #define GRAPHAPI_BULK_INSERT_LOW_MEM_H
 #include <sys/stat.h>
-#include <tbb/concurrent_map.h>
+#include <tbb/concurrent_hash_map.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_reduce.h>
 #include <unistd.h>
@@ -36,7 +36,7 @@ size_t space = 0;
 graph_opts opts;
 int num_per_chunk;
 
-WT_CONNECTION *conn_std, *conn_adj, *conn_ekey, *conn_split_ekey;
+WT_CONNECTION *conn_std, *conn_adj, *conn_split_ekey;
 
 typedef struct fgraph_conn_object
 {
@@ -172,7 +172,7 @@ typedef struct degrees_
 } degrees;
 
 // Using a TBB concurrent map to store the degrees of the nodes.
-typedef tbb::concurrent_map<node_id_t, degrees> degree_map;
+typedef tbb::concurrent_hash_map<node_id_t, degrees> degree_map;
 degree_map node_degrees;
 
 std::tuple<node_id_t, node_id_t> get_min_max_key()
@@ -226,12 +226,33 @@ int *InsertWeights(size_t n)
 int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
 {
   CommonUtil::set_key(adjcur, adj.node_id);
-  WT_ITEM item;
-  item.data = adj.edgelist.data();
-  item.size = adj.edgelist.size() * sizeof(node_id_t);
-  space += adj.edgelist.size() * sizeof(node_id_t);
-  adjcur->set_value(adjcur, adj.edgelist.size(), &item);
-  int ret = adjcur->insert(adjcur);
+  int ret;
+  if (adjcur->search(adjcur) == 0)
+  {
+    adjlist old_adj;
+    CommonUtil::record_to_adjlist(adjcur, &old_adj);
+    // merge the edgelists and remove duplicates
+    std::vector<node_id_t> new_edgelist;
+    std::set_union(adj.edgelist.begin(),
+                   adj.edgelist.end(),
+                   old_adj.edgelist.begin(),
+                   old_adj.edgelist.end(),
+                   std::back_inserter(new_edgelist));
+    WT_ITEM item;
+    item.data = new_edgelist.data();
+    item.size = new_edgelist.size() * sizeof(node_id_t);
+    adjcur->set_value(adjcur, new_edgelist.size(), &item);
+    ret = adjcur->update(adjcur);
+  }
+  else
+  {
+    WT_ITEM item;
+    item.data = adj.edgelist.data();
+    item.size = adj.edgelist.size() * sizeof(node_id_t);
+    // space += adj.edgelist.size() * sizeof(node_id_t);
+    adjcur->set_value(adjcur, adj.edgelist.size(), &item);
+    ret = adjcur->insert(adjcur);
+  }
   if (ret != 0)
   {
     PRINT_ADJ_ERROR(adj.node_id, ret, wiredtiger_strerror(ret))
@@ -243,6 +264,7 @@ int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
 int add_to_edge_table(WT_CURSOR *cur,
                       const node_id_t node_id,
                       const std::vector<node_id_t> &edgelist,
+                      int *edge_count,
                       bool is_weighted = false)
 {
   int *weight = InsertWeights(edgelist.size());
@@ -264,6 +286,7 @@ int add_to_edge_table(WT_CURSOR *cur,
     }
     i++;
   }
+  *edge_count += edgelist.size();
   delete[] weight;
   return 0;
 }
@@ -303,7 +326,14 @@ inline int add_to_node_table(WT_CURSOR *cur,
   CommonUtil::set_key(cur, id);
   if (opts.read_optimize)
   {
-    cur->set_value(cur, in_degree, out_degree);
+    if (id == 0)
+    {
+      std::cout << "Adding node 0 with in_degree: " << in_degree
+                << " and out_degree: " << out_degree << std::endl;
+      std::cout << "directed? " << opts.is_directed << std::endl;
+    }
+    opts.is_directed ? cur->set_value(cur, in_degree, out_degree)
+                     : cur->set_value(cur, in_degree + out_degree);
   }
   else
   {
@@ -314,19 +344,21 @@ inline int add_to_node_table(WT_CURSOR *cur,
   {
     std::cerr << "Error inserting node " << id << ": "
               << wiredtiger_strerror(ret) << std::endl;
-    return ret;
   }
   return ret;
 }
 
-int add_node_to_ekey(WT_CURSOR *ekey_cur, const node &node)
+int add_node_to_ekey(WT_CURSOR *ekey_cur,
+                     const node_id_t id,
+                     const degree_t in_degree,
+                     const degree_t out_degree)
 {
-  CommonUtil::ekey_set_key(ekey_cur, node.id, OutOfBand_ID_MIN);
-  ekey_cur->set_value(ekey_cur, node.in_degree, node.out_degree);
+  CommonUtil::ekey_set_key(ekey_cur, id, OutOfBand_ID_MIN);
+  ekey_cur->set_value(ekey_cur, in_degree, out_degree);
   int ret = ekey_cur->insert(ekey_cur);
   if (ret != 0)
   {
-    std::cerr << "Error inserting node " << node.id << ": "
+    std::cerr << "Error inserting node " << id << ": "
               << wiredtiger_strerror(ret) << std::endl;
     return ret;
   }
@@ -396,44 +428,20 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
     std::cout << "Could not open the DB: " << _db_name;
     exit(1);
   }
-  // open ekey connection
-  // _db_name = _opts.db_dir + "/ekey_" + middle + "_" + _opts.db_name;
-  // if (wiredtiger_open(_db_name.c_str(),
-  //                     nullptr,
-  //                     const_cast<char *>(conn_config.c_str()),
-  //                     &conn_ekey) != 0)
-  // {
-  //     std::cout << "Could not open the DB: " << _db_name;
-  //     exit(1);
-  // }
 
   // open split ekey connection
-  // open ekey connection
-  // _db_name = _opts.db_dir + "/split_ekey_" + middle + "_" + _opts.db_name;
-  // if (wiredtiger_open(_db_name.c_str(),
-  //                     nullptr,
-  //                     const_cast<char *>(conn_config.c_str()),
-  //                     &conn_split_ekey) != 0)
-  // {
-  //     std::cout << "Could not open the DB: " << _db_name;
-  //     exit(1);
-  // }
-
-  // _db_name = _opts.db_dir + "/std_" + middle + "_" + _opts.db_name;
-
-  // if (wiredtiger_open(_db_name.c_str(),
-  //                     nullptr,
-  //                     const_cast<char *>(conn_config.c_str()),
-  //                     &conn_std) != 0)
-  // {
-  //     std::cout << "Could not open the DB: " << _db_name;
-  //     exit(1);
-  // }
+  _db_name = _opts.db_dir + "/split_ekey_" + middle + "_" + _opts.db_name;
+  if (wiredtiger_open(_db_name.c_str(),
+                      nullptr,
+                      const_cast<char *>(conn_config.c_str()),
+                      &conn_split_ekey) != 0)
+  {
+    std::cout << "Could not open the DB: " << _db_name;
+    exit(1);
+  }
 
   assert(conn_adj != nullptr);
-  // assert(conn_std != nullptr);
-  // assert(conn_ekey != nullptr);
-  // assert(conn_split_ekey != nullptr);
+  assert(conn_split_ekey != nullptr);
 }
 
 /**
