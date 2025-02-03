@@ -8,12 +8,19 @@ services:
       dockerfile: Dockerfile
     container_name: flexograph
     volumes:
-      - /home/puneet/db:/db
+      - db:/db
+      - systems:/FlexoGraph
 
 volumes:
+  systems:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./
+      o: bind
   db:
     driver: local
     driver_opts:
       type: none
-      device: /db
+      device: ./db
       o: bind

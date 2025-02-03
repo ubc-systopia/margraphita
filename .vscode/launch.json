@@ -5,6 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "insert_kron",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "/home/puneet/scratch/margraphita/build/debug/preprocess",
+            "program": "/home/puneet/scratch/margraphita/build/debug/preprocess/insert_kron.py",
+            "args": [
+                "--real",
+                "--bulk",
+                "-x",
+                "-p",
+                "-m 28"
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "test_std",
             "type": "cppdbg",
             "request": "launch",

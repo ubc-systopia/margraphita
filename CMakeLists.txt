@@ -78,6 +78,8 @@ FetchContent_MakeAvailable(fmt)
 #find_package(fmt)
 find_package(Boost COMPONENTS serialization REQUIRED)
 
+find_package(TBB REQUIRED)
+
 
 # find_package(Boost)
 if(Boost_FOUND)

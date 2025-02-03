@@ -2,231 +2,245 @@
 
 void insert_edge_thread(int _tid, bool is_weighted = false)
 {
-    int tid = _tid;
-    std::string filename = opts.dataset + "/out_";
-    char c = (char)(97 + tid);
-    filename.push_back('a');
-    filename.push_back(c);
+  int tid = _tid;
+  std::string filename = opts.dataset + "/out_";
+  int first_char = tid / 26;
+  int second_char = tid % 26;
+  char c1 = (char)(97 + first_char);
+  char c2 = (char)(97 + second_char);
+  filename.push_back(c1);
+  filename.push_back(c2);
 
-    worker_sessions adj_obj(conn_adj, "table:adjlistout", GraphType::Adj);
-    worker_sessions split_ekey_out(
-        conn_split_ekey, "table:edge_out", GraphType::SplitEKey);
-    worker_sessions std_obj(conn_std, "table:edge", GraphType::Std);
-    worker_sessions ekey_obj(conn_ekey, "table:edge", GraphType::EKey);
+  worker_sessions adj_obj(conn_adj, "table:adjlistout", GraphType::Adj);
+  worker_sessions split_ekey_out(
+      conn_split_ekey, "table:edge_out", GraphType::SplitEKey);
 
-    reader::AdjReader adj_reader(filename);
-    adjlist adj_list;
-    while (adj_reader.get_next_adjlist(adj_list) == 0)
-    {
-        // insert into STD: edge table
-        add_to_edge_table(
-            std_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
-        add_to_edgekey(
-            ekey_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
-        add_to_edgekey(split_ekey_out.e_cur,
-                       adj_list.node_id,
-                       adj_list.edgelist,
-                       is_weighted);
-        add_to_edge_table(
-            adj_obj.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
+  reader::AdjReader adj_reader(filename);
+  adjlist adj_list;
+  int edge_count = 0;
+  int adj_count = 0;
+  while (adj_reader.get_next_adjlist(adj_list) == 0)
+  {
+    add_to_edgekey(
+        split_ekey_out.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
+    add_to_edge_table(adj_obj.e_cur,
+                      adj_list.node_id,
+                      adj_list.edgelist,
+                      &edge_count,
+                      is_weighted);
 
-        add_to_adjlist(adj_obj.cur, adj_list);
+    add_to_adjlist(adj_obj.cur, adj_list);
 
-        // acquire a lock and update the global node_degree
-#pragma omp critical
-        {
-            node_degrees[adj_list.node_id].out_degree =
-                adj_list.edgelist.size();
-        }
-
-        adj_list.clear();
-    }
+    //    node_degrees[adj_list.node_id].out_degree = adj_list.edgelist.size();
+    degrees d = {0, static_cast<degree_t>(adj_list.edgelist.size())};
+    node_degrees.insert(std::make_pair(adj_list.node_id, d));
+    adj_count++;
+    adj_list.clear();
+  }
+  std::cout << "Thread " << tid << " inserted " << adj_count
+            << " adjlists that had" << edge_count << " edges" << std::endl;
 }
 
-void insert_rev_edge_thread(int _tid)
+/**
+ * THIS CAN OVERWRITE THE ADJACENCY LISTS OF THE NODES. GET the in_adjlist and
+ * merge.
+ * @param _tid
+ * @param is_directed
+ */
+void insert_rev_edge_thread(int _tid, bool is_directed)
 {
-    int tid = _tid;
-    std::string filename = opts.dataset + "/in_";
-    char c = (char)(97 + tid);
-    filename.push_back('a');
-    filename.push_back(c);
+  int tid = _tid;
+  std::string filename = opts.dataset + "/in_";
+  int first_char = tid / 26;
+  int second_char = tid % 26;
+  char c1 = (char)(97 + first_char);
+  char c2 = (char)(97 + second_char);
+  filename.push_back(c1);
+  filename.push_back(c2);
 
-    worker_sessions adj_obj(conn_adj, "table:adjlistin", GraphType::Adj);
-    worker_sessions split_ekey_in(
-        conn_split_ekey, "table:edge_in", GraphType::SplitEKey);
+  std::string adj_table_name, ekey_table_name;
+  if (is_directed)
+  {
+    adj_table_name = "table:adjlistin";
+    ekey_table_name = "table:edge_in";
+  }
+  else
+  {
+    adj_table_name = "table:adjlistout";
+    ekey_table_name = "table:edge_out";
+  }
+  worker_sessions adj_obj(conn_adj, adj_table_name, GraphType::Adj);
+  worker_sessions split_ekey_in(
+      conn_split_ekey, ekey_table_name, GraphType::SplitEKey);
 
-    reader::AdjReader adj_reader(filename);
-    adjlist adj_list;
-    while (adj_reader.get_next_adjlist(adj_list) == 0)
-    {
-        // insert into ADJ: inadjlist table
-        add_to_adjlist(adj_obj.cur, adj_list);
-        add_to_edgekey(
-            split_ekey_in.e_cur, adj_list.node_id, adj_list.edgelist);
-        // acquire a lock and update the global node_degree
-#pragma omp critical
-        {
-            // check if node_id is already present in the map and update the
-            // in_degree
-            if (node_degrees.find(adj_list.node_id) != node_degrees.end())
-            {
-                node_degrees[adj_list.node_id].in_degree =
-                    adj_list.edgelist.size();
-            }
-            else
-            {
-                node_degrees[adj_list.node_id].in_degree =
-                    adj_list.edgelist.size();
-                node_degrees[adj_list.node_id].out_degree = 0;
-            }
-        }
+  reader::AdjReader adj_reader(filename);
+  adjlist adj_list;
+  while (adj_reader.get_next_adjlist(adj_list) == 0)
+  {
+    // insert into ADJ: inadjlist table
+    add_to_adjlist(adj_obj.cur, adj_list);
+    add_to_edgekey(split_ekey_in.e_cur, adj_list.node_id, adj_list.edgelist);
+    // get the node degree from the map and update the in_degree
+    tbb::concurrent_hash_map<node_id_t, degrees>::accessor a;
+    node_degrees.insert(a, adj_list.node_id);
+    a->second.in_degree = adj_list.edgelist.size();
+    a.release();
 
-        adj_list.clear();
-    }
+    adj_list.clear();
+  }
 }
 
-void debug_dump_edges()
-{
-    worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey);
-    debug_print_edges(ekey_node_obj.e_cur, GraphType::EKey, "ekey_edges");
-}
+// void debug_dump_edges()
+//{
+//   worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey);
+//   debug_print_edges(ekey_node_obj.e_cur, GraphType::EKey, "ekey_edges");
+// }
 
 void insert_nodes()
 {
-    worker_sessions std_node_obj(conn_std, "", GraphType::Std, false);
-    worker_sessions adj_node_obj(conn_adj, "", GraphType::Adj, false);
-    worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey, false);
-    worker_sessions split_ekey_node_obj(
-        conn_split_ekey, "", GraphType::SplitEKey, false);
-    int count = 0;
-    // iterate over the node_degrees and insert into the node table
-    for (auto it = node_degrees.begin(); it != node_degrees.end(); it++)
-    {
-        node to_insert;
-        to_insert.id = it->first;
-        to_insert.in_degree = it->second.in_degree;
-        to_insert.out_degree = it->second.out_degree;
-        // insert into STD: node table
-        add_to_node_table(std_node_obj.n_cur, to_insert);
-        // insert into EKEY: node table
-        add_node_to_ekey(ekey_node_obj.e_cur, to_insert);
-        // insert into SPLIT_EKEY_OUT table for nodes
-        add_node_to_ekey(split_ekey_node_obj.e_cur, to_insert);
-        // insert into ADJ: node table
-        add_to_node_table(adj_node_obj.n_cur, to_insert);
-        count++;
-    }
-    std::cout << "inserted " << count << " nodes" << std::endl;
+  tbb::parallel_for(
+      node_degrees.range(),
+      [](tbb::concurrent_hash_map<node_id_t, degrees>::range_type &r)
+      {
+        worker_sessions adj_node_obj(conn_adj, "", GraphType::Adj, false);
+        worker_sessions split_ekey_node_obj(
+            conn_split_ekey, "", GraphType::SplitEKey, false);
+        int count = 0;
+        for (auto it = r.begin(); it != r.end(); it++)
+        {
+          // insert into ADJ: node table
+          add_to_node_table(adj_node_obj.n_cur,
+                            it->first,
+                            it->second.in_degree,
+                            it->second.out_degree);
+          // insert into SPLIT_EKEY_OUT table
+          // for nodes
+          add_node_to_ekey(split_ekey_node_obj.e_cur,
+                           it->first,
+                           it->second.in_degree,
+                           it->second.out_degree);
+          count++;
+        }
+        //        std::cout << "inserted " << count << " nodes" << std::endl;
+      });
 }
 
-void dump_mdata(int key, WT_CURSOR *cursor)
+void dump_mdata(int key, char *key_str, WT_CURSOR *cursor)
 {
-    cursor->set_key(cursor, key);
-    cursor->search(cursor);
-    WT_ITEM item;
-    cursor->get_value(cursor, &item);
-    std::cout << "Key: " << key << " Value: " << *(node_id_t *)item.data
-              << std::endl;
+  cursor->set_key(cursor, key);
+  cursor->search(cursor);
+  WT_ITEM item;
+  cursor->get_value(cursor, &item);
+  std::cout << "Key: " << key_str << " Value: " << *(node_id_t *)item.data
+            << std::endl;
 }
 
 void update_metadata(const graph_opts &_opts)
 {
-    node_id_t key_min = node_degrees.begin()->first;
-    node_id_t key_max = node_degrees.rbegin()->first;
-    std::cout << "Number of nodes: " << _opts.num_nodes << std::endl;
-    std::cout << "Cout of node_degrees: " << node_degrees.size() << std::endl;
-    // std::cout << "Number of nodes: " << _opts.num_nodes
-    //           << std::endl;
-    std::cout << "Number of edges: " << _opts.num_edges << std::endl;
+  std::cout << "Number of nodes: " << _opts.num_nodes << std::endl;
+  std::cout << "Count of node_degrees: " << node_degrees.size() << std::endl;
+  // std::cout << "Number of nodes: " << _opts.num_nodes
+  //           << std::endl;
+  std::cout << "Number of edges: " << _opts.num_edges << std::endl;
 
-    std::cout << "Min node id: " << key_min << std::endl;
-    std::cout << "Max node id: " << key_max << std::endl;
+  auto [key_min, key_max] = get_min_max_key();
+  std::cout << "Min node id: " << key_min << std::endl;
+  std::cout << "Max node id: " << key_max << std::endl;
 
-    for (auto conn : {conn_std, conn_adj, conn_ekey, conn_split_ekey})
-    {
-        worker_sessions obj(conn, "table:metadata", GraphType::META, false);
-        WT_CURSOR *cursor = obj.metadata;
-        // Key min
-        add_metadata(MetadataKey::min_node_id,
-                     (char *)&key_min,
-                     sizeof(key_min),
-                     cursor);
-        // Key max
-        add_metadata(MetadataKey::max_node_id,
-                     (char *)&key_max,
-                     sizeof(key_max),
-                     cursor);
-        // Number of nodes
-        add_metadata(MetadataKey::num_nodes,
-                     (char *)&opts.num_nodes,
-                     sizeof(opts.num_nodes),
-                     cursor);
-        // Number of edges
-        add_metadata(MetadataKey::num_edges,
-                     (char *)&opts.num_edges,
-                     sizeof(opts.num_edges),
-                     cursor);
-    }
-    for (auto conn : {conn_std, conn_adj, conn_ekey})
-    {
-        worker_sessions obj(conn, "table:metadata", GraphType::META, false);
-        WT_CURSOR *cursor = obj.metadata;
-        dump_mdata(MetadataKey::min_node_id, cursor);
-        dump_mdata(MetadataKey::max_node_id, cursor);
-        dump_mdata(MetadataKey::num_nodes, cursor);
-        dump_mdata(MetadataKey::num_edges, cursor);
-    }
+  for (auto conn : {conn_adj, conn_split_ekey})
+  {
+    worker_sessions obj(conn, "table:metadata", GraphType::META, false);
+    WT_CURSOR *cursor = obj.metadata;
+    // Key min
+    add_metadata(
+        MetadataKey::min_node_id, (char *)&key_min, sizeof(key_min), cursor);
+    // Key max
+    add_metadata(
+        MetadataKey::max_node_id, (char *)&key_max, sizeof(key_max), cursor);
+    // Number of nodes
+    add_metadata(MetadataKey::num_nodes,
+                 (char *)&opts.num_nodes,
+                 sizeof(opts.num_nodes),
+                 cursor);
+    // Number of edges
+    add_metadata(MetadataKey::num_edges,
+                 (char *)&opts.num_edges,
+                 sizeof(opts.num_edges),
+                 cursor);
+  }
+  for (auto conn :
+       {conn_adj, conn_split_ekey})  //, conn_ekey, conn_split_ekey})
+  {
+    worker_sessions obj(conn, "table:metadata", GraphType::META, false);
+    WT_CURSOR *cursor = obj.metadata;
+    dump_mdata(MetadataKey::min_node_id, "min_node_id", cursor);
+    dump_mdata(MetadataKey::max_node_id, "max_node_id", cursor);
+    dump_mdata(MetadataKey::num_nodes, "num_nodes", cursor);
+    dump_mdata(MetadataKey::num_edges, "num_edges", cursor);
+  }
 }
 
 int main(int argc, char *argv[])
 {
-    InsertOpts params(argc, argv);
-    if (!params.parse_args())
-    {
-        params.print_help();
-        return -1;
-    }
-    opts = params.make_graph_opts();
-    std::string conn_config = "create,cache_size=10GB";
+  InsertOpts params(argc, argv);
+  if (!params.parse_args())
+  {
+    params.print_help();
+    return -1;
+  }
+  opts = params.make_graph_opts();
+  assert(opts.is_directed == false);
+  std::string conn_config = "create,cache_size=10GB";
 #ifdef STAT
-    std::string stat_config =
-        "statistics=(all),statistics_log=(wait=0,on_close=true";
-    conn_config += "," + stat_config;
+  std::string stat_config =
+      "statistics=(all),statistics_log=(wait=0,on_close=true";
+  conn_config += "," + stat_config;
 #endif
 
-    // open connections to all three dbs
-    make_connections(opts, conn_config);
+  // open connections to all three dbs
+  make_connections(opts, conn_config);
 
-    num_per_chunk = (int)(opts.num_edges / NUM_THREADS);
-    dump_config(opts, conn_config);
-    std::cout << "dataset: " << opts.dataset << std::endl;
+  num_per_chunk = (int)(opts.num_edges / opts.num_threads);
+  dump_config(opts, conn_config);
+  std::cout << "dataset: " << opts.dataset << std::endl;
 
-    // We first work on the out edges. We will read the edges from the file and
-    // insert them into the edge table and the adjlist table
-    std::cout << "weighted? " << opts.is_weighted << std::endl;
-#pragma omp parallel for num_threads(NUM_THREADS)
-    for (int i = 0; i < NUM_THREADS; i++)
-    {
-        insert_edge_thread(i, opts.is_weighted);
-    }
+  // We first work on the out edges. We will read the edges from the file and
+  // insert them into the edge table and the adjlist table
+  std::cout << "weighted? " << opts.is_weighted << std::endl;
+  Times t;
+  t.start();
+#pragma omp parallel for num_threads(opts.num_threads)
+  for (int i = 0; i < opts.num_threads; i++)
+  {
+    insert_edge_thread(i, opts.is_weighted);
+  }
 
-#pragma omp parallel for num_threads(NUM_THREADS)
-    for (int i = 0; i < NUM_THREADS; i++)
-    {
-        insert_rev_edge_thread(i);
-    }
+  t.stop();
+  std::cout << "Time taken to insert edges: " << t.t_secs() << "s" << std::endl;
+  t.start();
+#pragma omp parallel for num_threads(opts.num_threads)
+  for (int i = 0; i < opts.num_threads; i++)
+  {
+    insert_rev_edge_thread(i, opts.is_directed);
+  }
+  t.stop();
+  std::cout << "Time taken to insert rev edges: " << t.t_secs() << "s"
+            << std::endl;
+  // insert nodes into the node table
+  t.start();
 
-    // insert nodes into the node table
+  insert_nodes();
 
-    insert_nodes();
-    // debug_dump_edges();
+  t.stop();
+  std::cout << "Time taken to insert nodes: " << t.t_secs() << "s" << std::endl;
+  // debug_dump_edges();
 
-    update_metadata(opts);
+  update_metadata(opts);
 
-    conn_adj->close(conn_adj, nullptr);
-    conn_std->close(conn_std, nullptr);
-    conn_ekey->close(conn_ekey, nullptr);
-    conn_split_ekey->close(conn_split_ekey, nullptr);
+  conn_adj->close(conn_adj, nullptr);
+  // conn_std->close(conn_std, nullptr);
+  // conn_ekey->close(conn_ekey, nullptr);
+  conn_split_ekey->close(conn_split_ekey, nullptr);
 
-    return (EXIT_SUCCESS);
+  return (EXIT_SUCCESS);
 }

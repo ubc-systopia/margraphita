@@ -19,12 +19,12 @@ INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${PATH_SRC} ${Boost_INCLUDE_DIRS})
 add_executable(bulk_insert_low_mem bulk_insert_low_mem.cpp reader.h
         bulk_insert_low_mem.h)
 # target_include_directories(bulk_insert_low_mem PRIVATE)
-target_link_libraries(bulk_insert_low_mem PUBLIC ${NAME_LIB} graph_utils)
+target_link_libraries(bulk_insert_low_mem PUBLIC ${NAME_LIB} graph_utils TBB::tbb)
 #
 ## ###################################################################################
-#add_executable(dense_vertexranges dense_vertexranges_set.cpp)
-#target_include_directories(dense_vertexranges PRIVATE ${PMAP})
-#target_link_libraries(dense_vertexranges PUBLIC ${NAME_LIB} graph_utils)
+add_executable(dense_vertexranges dense_vertexranges_set.cpp)
+target_include_directories(dense_vertexranges PRIVATE ${PMAP})
+target_link_libraries(dense_vertexranges PUBLIC ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 # add_executable(single_threaded_graphapi_insert single_threaded_graphapi_insert.cpp)
@@ -45,3 +45,8 @@ target_link_libraries(init_db PUBLIC ${NAME_LIB} graph_utils)
 add_executable(mk_adjlists mk_adjlists.cpp reader.h mk_adjlists.h)
 target_include_directories(mk_adjlists PRIVATE ${PATH_SRC})
 target_link_libraries(mk_adjlists PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
+
+# ###################################################################################
+add_executable(dump_graph dump_graph.cpp reader.h)
+target_include_directories(dump_graph PRIVATE ${PATH_SRC})
+target_link_libraries(dump_graph PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)

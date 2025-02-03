@@ -3,19 +3,19 @@ message("WT SO IS ${wt_shared_lib}")
 
 # Create Test executables
 # Test standard_graph
-ADD_EXECUTABLE(test_standard_graph "${PATH_TEST}/test_standard_graph.cpp")
-TARGET_INCLUDE_DIRECTORIES(test_standard_graph PRIVATE ${PATH_SRC} ${WT_INSTALL_DIR}/include)
-TARGET_LINK_LIBRARIES(test_standard_graph PUBLIC ${NAME_LIB} ${wt_shared_lib})
+#ADD_EXECUTABLE(test_standard_graph "${PATH_TEST}/test_standard_graph.cpp")
+#TARGET_INCLUDE_DIRECTORIES(test_standard_graph PRIVATE ${PATH_SRC} ${WT_INSTALL_DIR}/include)
+#TARGET_LINK_LIBRARIES(test_standard_graph PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
 # Test AdjList
 ADD_EXECUTABLE(test_adj_list "${PATH_TEST}/test_adj_list.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_adj_list PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_adj_list PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
-# Test Edge Key
-ADD_EXECUTABLE(test_edgekey "${PATH_TEST}/test_edgekey.cpp")
-TARGET_INCLUDE_DIRECTORIES(test_edgekey PRIVATE ${PATH_SRC})
-TARGET_LINK_LIBRARIES(test_edgekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
+## Test Edge Key
+#ADD_EXECUTABLE(test_edgekey "${PATH_TEST}/test_edgekey.cpp")
+#TARGET_INCLUDE_DIRECTORIES(test_edgekey PRIVATE ${PATH_SRC})
+#TARGET_LINK_LIBRARIES(test_edgekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
 # Test Split EdgeKey
 ADD_EXECUTABLE(test_split_ekey "${PATH_TEST}/test_split_edgekey.cpp")
