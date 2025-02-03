@@ -1313,7 +1313,7 @@ void SplitEdgeKey::create_indices(WT_SESSION *session)
 
 void SplitEdgeKey::dump_table(string &table_name, int num_records)
 {
-  ofstream out = ofstream("dump_" + table_name + ".txt");
+  ofstream out = ofstream("S_EKey_dump_" + table_name + ".txt");
   if (table_name == IN_EDGES)
   {
     while (in_edge_cursor->next(in_edge_cursor) == 0 && num_records > 0)
@@ -1337,7 +1337,7 @@ void SplitEdgeKey::dump_table(string &table_name, int num_records)
     while (out_edge_cursor->next(out_edge_cursor) == 0 && num_records > 0)
     {
       node_id_t src, dst;
-      CommonUtil::ekey_get_key(out_edge_cursor, &dst, &src);
+      CommonUtil::ekey_get_key(out_edge_cursor, &src, &dst);
       if (dst == OutOfBand_ID_MIN)
       {
         out << "NODE ID\t" << src << std::endl;

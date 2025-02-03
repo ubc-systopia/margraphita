@@ -59,6 +59,7 @@
         "num_nodes": 44797986,
         "num_edges": 17022117362,
         "dataset_name": "graph500_30",
+        "directed": "false",
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_30/graph500_30"
     }
 ]
