@@ -8,6 +8,7 @@
 #include "command_line.h"
 #include "common_util.h"
 #include "graph_engine.h"
+#include "mem_usage.h"
 #include "pvector.h"
 #include "times.h"
 
@@ -134,6 +135,8 @@ void print_top_scores(pvector<ScoreT>& score, node_id_t n_nodes, GraphBase* g)
 int main(int argc, char* argv[])
 {
   cout << "Running PageRank" << endl;
+  mem_util::mem_usage memory_usage;
+  memory_usage.before();
   PageRankOpts pr_cli(argc, argv, 1e-4, 10);
   if (!pr_cli.parse_args())
   {
@@ -151,7 +154,7 @@ int main(int argc, char* argv[])
   graphEngine.calculate_thread_offsets();
   t.stop();
   std::cout << "Graph loaded in " << t.t_secs() << "s" << std::endl;
-  // Now run PR
+
   long double total_time = 0;
   for (int i = 0; i < opts.num_trials; i++)
   {
@@ -175,4 +178,6 @@ int main(int argc, char* argv[])
   }
   cout << "Average time: " << total_time / opts.num_trials << endl;
   graphEngine.close_graph();
+  memory_usage.after();
+  memory_usage.print_diff();
 }
