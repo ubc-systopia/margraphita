@@ -1,6 +1,7 @@
 #ifndef MMAPHELP_H_
 #define MMAPHELP_H_
 
+#include <stdio.h>
 #include <sys/mman.h>
 
 template <typename T>

@@ -33,8 +33,19 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
 
     //    node_degrees[adj_list.node_id].out_degree = adj_list.edgelist.size();
     degrees d = {0, static_cast<degree_t>(adj_list.edgelist.size())};
-    node_degrees.insert(std::make_pair(adj_list.node_id, d));
+    {
+      degree_map::accessor acc;
+      if (node_degrees.insert(acc, adj_list.node_id))
+      {
+        acc->second = d;
+      }
+    }  // for releasing the accessor lock.
     adj_count++;
+    /**if (adj_count % 100000 == 0)
+    {
+      std::cout << "Thread " << tid << " inserted " << adj_count
+                << " adjlists that had" << edge_count << " edges" << std::endl;
+    }**/
     adj_list.clear();
   }
   std::cout << "Thread " << tid << " inserted " << adj_count
@@ -81,20 +92,21 @@ void insert_rev_edge_thread(int _tid, bool is_directed)
     add_to_adjlist(adj_obj.cur, adj_list);
     add_to_edgekey(split_ekey_in.e_cur, adj_list.node_id, adj_list.edgelist);
     // get the node degree from the map and update the in_degree
-    tbb::concurrent_hash_map<node_id_t, degrees>::accessor a;
-    node_degrees.insert(a, adj_list.node_id);
-    a->second.in_degree = adj_list.edgelist.size();
-    a.release();
-
+    {
+      degree_map::accessor acc;
+      if (node_degrees.find(acc, adj_list.node_id))
+      {
+        acc->second.in_degree = adj_list.edgelist.size();
+      }
+      else
+      {
+        node_degrees.insert(acc, adj_list.node_id);
+        acc->second = {static_cast<degree_t>(adj_list.edgelist.size()), 0};
+      }
+    }
     adj_list.clear();
   }
 }
-
-// void debug_dump_edges()
-//{
-//   worker_sessions ekey_node_obj(conn_ekey, "", GraphType::EKey);
-//   debug_print_edges(ekey_node_obj.e_cur, GraphType::EKey, "ekey_edges");
-// }
 
 void insert_nodes()
 {
@@ -123,6 +135,31 @@ void insert_nodes()
         }
         //        std::cout << "inserted " << count << " nodes" << std::endl;
       });
+}
+
+void debug_dump_nodes()
+{
+  std::ofstream out("dump_node_degrees.txt", std::ofstream::out);
+  std::vector<int> keys;
+  for (tbb::concurrent_hash_map<node_id_t, degrees>::const_iterator it =
+           node_degrees.begin();
+       it != node_degrees.end();
+       ++it)
+  {
+    keys.push_back(it->first);
+  }
+
+  // Step 2: Sort the keys
+  std::sort(keys.begin(), keys.end());
+
+  // Step 3: Print the sorted keys0
+  out << "Sorted keys: ";
+  for (const int &key : keys)
+  {
+    out << key << "\n";
+  }
+  out << std::endl;
+  out.close();
 }
 
 void dump_mdata(int key, char *key_str, WT_CURSOR *cursor)
@@ -233,13 +270,11 @@ int main(int argc, char *argv[])
 
   t.stop();
   std::cout << "Time taken to insert nodes: " << t.t_secs() << "s" << std::endl;
-  // debug_dump_edges();
+  // debug_dump_nodes();
 
   update_metadata(opts);
 
   conn_adj->close(conn_adj, nullptr);
-  // conn_std->close(conn_std, nullptr);
-  // conn_ekey->close(conn_ekey, nullptr);
   conn_split_ekey->close(conn_split_ekey, nullptr);
 
   return (EXIT_SUCCESS);

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
+set(CMAKE_CXX_COMPILER /usr/bin/g++-11)
 project(graphapi VERSION 1.0
   DESCRIPTION "C++ GraphAPI for WiredTiger"
   LANGUAGES CXX

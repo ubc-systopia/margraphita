@@ -172,7 +172,7 @@ typedef struct degrees_
 } degrees;
 
 // Using a TBB concurrent map to store the degrees of the nodes.
-typedef tbb::concurrent_hash_map<node_id_t, degrees> degree_map;
+using degree_map = tbb::concurrent_hash_map<node_id_t, degrees>;
 degree_map node_degrees;
 
 std::tuple<node_id_t, node_id_t> get_min_max_key()
