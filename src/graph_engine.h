@@ -142,8 +142,8 @@ void GraphEngine::calculate_thread_offsets(bool make_edge)
 {
   // Create snapshot here first?
   GraphBase *graph_stats = create_graph_handle();
-  _calculate_thread_offsets(num_threads, graph_stats);
-  // _calculate_thread_offsets_fast(num_threads, graph_stats);
+  //_calculate_thread_offsets(num_threads, graph_stats);
+  _calculate_thread_offsets_fast(num_threads, graph_stats);
   if (make_edge) _calculate_thread_offsets_edge(num_threads, graph_stats);
   graph_stats->close(false);
 }
@@ -154,7 +154,7 @@ void GraphEngine::calculate_thread_offsets(bool make_edge)
  *
  * If we don't have this metadata recorded, we can extract this by using the
  * GraphAPI calls: get_min_node, get_max_node.
- *
+ * This function only works correctly if the max_node_id is the last node_id.
  */
 void GraphEngine::_calculate_thread_offsets(int thread_max,
                                             GraphBase *graph_stats)
@@ -196,6 +196,10 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
             << std::endl;
   assert(num_nodes == i);
   n_cur->close();
+  for (auto x : node_ranges)
+  {
+    std::cout << x << std::endl;
+  }
 }
 
 /**
@@ -209,26 +213,32 @@ void GraphEngine::_calculate_thread_offsets_fast(int thread_max,
                                                  GraphBase *graph_stats)
 {
   node_ranges.clear();
-  node_id_t num_nodes = graph_stats->get_num_nodes();
-  node_id_t per_partition_nodes =
-      (num_nodes / thread_max) +
-      ((num_nodes % thread_max) != 0);  // ceil division
-
   node_id_t min_node = graph_stats->get_min_node_id();
   node_id_t max_node = graph_stats->get_max_node_id();
 
-  // start from min_node, construct thread_max ranges of per_partition_nodes
-  // each
-  for (node_id_t j = min_node; j <= max_node; j += per_partition_nodes)
+  node_id_t per_partition_nodes = (max_node - min_node) / thread_max;
+
+  for (int i = 0; i <= thread_max; ++i)
   {
-    node_ranges.push_back(j);
+    node_ranges.push_back(min_node + i * per_partition_nodes);
   }
   // add the last node
-  node_ranges.push_back(max_node);
-  //  std::cout << "The node boundaries are: " << std::endl;
+  node_ranges.back() = max_node;
+  //  std::cout << "The number of nodes is: " << num_nodes << std::endl;
+  //  std::cout << "The number of partitions is: " << node_ranges.size()
+  //            << std::endl;
+  //  std::cout << "The min node is: " << min_node
+  //            << " and the max node is: " << max_node << std::endl;
   //  for (auto x : node_ranges)
   //  {
   //    std::cout << x << std::endl;
+  //  }
+  //  std::cout << "printing the key ranges" << std::endl;
+  //  for (int i = 0; i < num_threads; i++)
+  //  {
+  //    auto x = get_key_range(i);
+  //    std::cout << "thread " << i << " [" << x.start << ", " << x.end <<
+  //    "]\n";
   //  }
 }
 
@@ -369,7 +379,7 @@ key_range GraphEngine::get_key_range(int thread_id)
   }
   else
   {
-    to_return.end = OutOfBand_ID_MAX;
+    to_return.end = node_ranges[thread_id + 1];
   }
   return to_return;
 }
