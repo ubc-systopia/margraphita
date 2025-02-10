@@ -106,7 +106,7 @@ int CommonUtil::open_connection(const char *db_name,
                                 const std::string &conn_config,
                                 WT_CONNECTION **conn)
 {
-  char config[1024] = "create";
+  char config[1024] = "create";  // create if not exists.
   std::string _config;
   _config = conn_config;
 #ifdef STAT
@@ -122,7 +122,7 @@ int CommonUtil::open_connection(const char *db_name,
   {
     snprintf(config + strlen("create"), 1018, ",%s", _config.c_str());
   }
-  std::cout << "conn_config is: " << conn_config << std::endl;
+  std::cout << "conn_config is: " << config << std::endl;
 
   if (wiredtiger_open(db_name, nullptr, config, conn) != 0)
   {

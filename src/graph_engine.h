@@ -17,13 +17,15 @@ class GraphEngine
   GraphEngine(int _num_threads, graph_opts &engine_opts);
   GraphEngine();
   ~GraphEngine();
-  GraphBase *create_graph_handle(bool read_only = false);
+  GraphBase *create_graph_handle();
+  GraphBase *create_ro_graph_handle(const string &checkpoint_name = "");
   void create_indices();
   void calculate_thread_offsets(bool make_edge = false);
   key_range get_key_range(int thread_id);
   edge_range get_edge_range(int thread_id);
   void close_graph();
   WT_CONNECTION *get_connection();
+  std::string make_checkpoint();
   std::string get_last_checkpoint() { return last_checkpoint; }
 
  protected:
@@ -42,8 +44,8 @@ class GraphEngine
  private:
   std::string last_checkpoint;
   void force_metadata_sync();
-  void make_checkpoint();
   void _calculate_thread_offsets(int thread_max, GraphBase *graph_stats);
+  void _calculate_thread_offsets_fast(int thread_max, GraphBase *graph_stats);
   void _calculate_thread_offsets_edge(int thread_max, GraphBase *graph_stats);
 };
 
@@ -52,7 +54,7 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
   num_threads = _num_threads;
   // init with the engine_opts passed as args without copying
   opts = engine_opts;
-  opts.print_config("cmd_config.txt");
+  //  opts.print_config("cmd_config.txt");
   if (opts.create_new)
   {
     create_new_graph();
@@ -65,7 +67,7 @@ GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
 
 GraphEngine::~GraphEngine() { close_connection(); }
 
-void GraphEngine::make_checkpoint()
+std::string GraphEngine::make_checkpoint()
 {
   WT_SESSION *session;
   // use timestamp
@@ -85,23 +87,37 @@ void GraphEngine::make_checkpoint()
   std::strftime(cpt_name, 27, "%Y_%m_%d_%H_%M_%S", &localTime);
   last_checkpoint = cpt_name;
   session->close(session, nullptr);
+  return last_checkpoint;
 }
 
-GraphBase *GraphEngine::create_graph_handle(bool read_only)
+GraphBase *GraphEngine::create_ro_graph_handle(
+    const std::string &checkpoint_name)
 {
   GraphBase *ptr;
   graph_opts new_opts = opts;
-  if (read_only)
-  {
+  if (checkpoint_name.empty() && this->last_checkpoint.empty())
     make_checkpoint();
-    new_opts.read_only = true;
-    new_opts.create_new = false;
-    new_opts.checkpoint_name = this->last_checkpoint;
-  }
+  new_opts.read_only = true;
+  new_opts.create_new = false;
+  new_opts.checkpoint_name = this->last_checkpoint;
+
   if (new_opts.type == GraphType::Adj)
     ptr = new AdjList(new_opts, conn);
   else if (new_opts.type == GraphType::SplitEKey)
     ptr = new SplitEdgeKey(new_opts, conn);
+  else
+    throw GraphException("Failed to create graph object");
+
+  return ptr;
+}
+
+GraphBase *GraphEngine::create_graph_handle()
+{
+  GraphBase *ptr;
+  if (opts.type == GraphType::Adj)
+    ptr = new AdjList(opts, conn);
+  else if (opts.type == GraphType::SplitEKey)
+    ptr = new SplitEdgeKey(opts, conn);
   else
     throw GraphException("Failed to create graph object");
 
@@ -127,6 +143,7 @@ void GraphEngine::calculate_thread_offsets(bool make_edge)
   // Create snapshot here first?
   GraphBase *graph_stats = create_graph_handle();
   _calculate_thread_offsets(num_threads, graph_stats);
+  // _calculate_thread_offsets_fast(num_threads, graph_stats);
   if (make_edge) _calculate_thread_offsets_edge(num_threads, graph_stats);
   graph_stats->close(false);
 }
@@ -138,7 +155,6 @@ void GraphEngine::calculate_thread_offsets(bool make_edge)
  * If we don't have this metadata recorded, we can extract this by using the
  * GraphAPI calls: get_min_node, get_max_node.
  *
- * TODO:  Implement these functions in the representations/GraphBase Iface
  */
 void GraphEngine::_calculate_thread_offsets(int thread_max,
                                             GraphBase *graph_stats)
@@ -157,7 +173,6 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
   node_id_t i = 0;
   node found;
   n_cur->next(&found);
-  //    std::cout << found.id << std::endl;
 
   while (found.id != OutOfBand_ID_MAX)
   {
@@ -175,13 +190,46 @@ void GraphEngine::_calculate_thread_offsets(int thread_max,
     n_cur->next(&found);
     i++;
   }
-  //    std::cout << "The node boundaries are: " << std::endl;
-  //    for (auto x : node_ranges)
-  //    {
-  //        std::cout << x << std::endl;
-  //    }
+  std::cout << "the iterator count is: " << i << std::endl;
+  std::cout << "The number of nodes is: " << num_nodes << std::endl;
+  std::cout << "The number of partitions is: " << node_ranges.size()
+            << std::endl;
   assert(num_nodes == i);
   n_cur->close();
+}
+
+/**
+ * This function does not traverse the node list to find thread offsets. Instead
+ * it uses the max and min node IDs from the metadata table, to calculate the
+ * thread offsets.
+ * @param thread_max The number of threads (partitions) to create the offsets
+ * @param graph_stats The graph object to calculate the offsets from
+ */
+void GraphEngine::_calculate_thread_offsets_fast(int thread_max,
+                                                 GraphBase *graph_stats)
+{
+  node_ranges.clear();
+  node_id_t num_nodes = graph_stats->get_num_nodes();
+  node_id_t per_partition_nodes =
+      (num_nodes / thread_max) +
+      ((num_nodes % thread_max) != 0);  // ceil division
+
+  node_id_t min_node = graph_stats->get_min_node_id();
+  node_id_t max_node = graph_stats->get_max_node_id();
+
+  // start from min_node, construct thread_max ranges of per_partition_nodes
+  // each
+  for (node_id_t j = min_node; j <= max_node; j += per_partition_nodes)
+  {
+    node_ranges.push_back(j);
+  }
+  // add the last node
+  node_ranges.push_back(max_node);
+  //  std::cout << "The node boundaries are: " << std::endl;
+  //  for (auto x : node_ranges)
+  //  {
+  //    std::cout << x << std::endl;
+  //  }
 }
 
 void GraphEngine::_calculate_thread_offsets_edge(int thread_max,

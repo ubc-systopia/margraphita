@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #define MAKE_EKEY(x) ((x) + 1)
-#define OG_KEY(x) ((x)-1)
+#define OG_KEY(x) ((x) - 1)
 
 // These are the constants
 typedef enum MetadataKey
@@ -181,7 +181,7 @@ typedef struct adjlist
   adjlist() { edgelist.reserve(1000); }
   adjlist(node_id_t id, degree_t deg) : node_id(id), degree(deg)
   {
-    edgelist.reserve(deg);
+    if (deg > 1000) edgelist.reserve(deg);
   }
   void clear()
   {

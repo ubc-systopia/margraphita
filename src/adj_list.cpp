@@ -149,11 +149,6 @@ void AdjList::init_cursors()
 {
   // metadata_cursor initialization
   int ret;
-  std::cout << fmt::format("Initializing cursors for a {} graph handle to {}",
-                           opts.read_only ? "Read-Only" : "Read-Write",
-                           opts.db_name)
-            << std::endl;
-  std::cout << opts.checkpoint_name;
   if ((ret = _get_table_cursor(METADATA,
                                &metadata_cursor,
                                session,

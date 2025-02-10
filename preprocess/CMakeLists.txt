@@ -50,3 +50,6 @@ target_link_libraries(mk_adjlists PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_ut
 add_executable(dump_graph dump_graph.cpp reader.h)
 target_include_directories(dump_graph PRIVATE ${PATH_SRC})
 target_link_libraries(dump_graph PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
+
+#add_executable(test_tbb test_tbbb.cpp)
+#target_link_libraries(test_tbb PUBLIC TBB::tbb)
