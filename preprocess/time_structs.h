@@ -33,7 +33,7 @@ class InsertOpts
   int argc_;
   char **argv_;
   std::string argstr_ =
-      "d:p:l:e:n:f:t:rum:w";  //! Construct this after you
+      "d:p:l:e:n:f:t:rDm:w";  //! Construct this after you
                               //! finish the rest of this thing
   std::vector<std::string> help_strings_;
 
