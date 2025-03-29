@@ -302,7 +302,7 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
 {
   cursor->reset(cursor);
   CommonUtil::set_key(cursor, to_insert.node_id);
-  int ret = cursor->search(cursor);  // <-- things fail if I remove this. Why?
+  int ret = cursor->search(cursor);
 
   WT_ITEM item;
   item.data = to_insert.edgelist.data();

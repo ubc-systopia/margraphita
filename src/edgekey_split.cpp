@@ -63,11 +63,6 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 void SplitEdgeKey::init_cursors()
 {
   // metadata_cursor initialization
-  std::cout << fmt::format("Initializing cursors for a {} graph handle to {}",
-                           opts.read_only ? "Read-Only" : "Read-Write",
-                           opts.db_name)
-            << std::endl;
-  std::cout << opts.checkpoint_name;
   int ret;
   if ((ret = _get_table_cursor(METADATA,
                                &metadata_cursor,

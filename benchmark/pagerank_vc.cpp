@@ -8,6 +8,7 @@
 #include "command_line.h"
 #include "common_util.h"
 #include "graph_engine.h"
+#include "mem_usage.h"
 #include "pvector.h"
 #include "times.h"
 
@@ -28,29 +29,28 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
 #pragma omp parallel for
   for (int i = 0; i < thread_num; i++)
   {
-    GraphBase* graph = graph_engine.create_graph_handle();
+    GraphBase* graph = graph_engine.create_ro_graph_handle();
     NodeCursor* node_cursor = graph->get_node_iter();
     node_cursor->set_key_range(graph_engine.get_key_range(i));
 
     node found = {0};
     node_cursor->next(&found);
-
     while (found.id != OutOfBand_ID_MAX)
     {
+      //      std::cout << found.id << "\n";
       deg[found.id] = found.out_degree;
       node_cursor->next(&found);
     }
     node_cursor->close();
     graph->close(false);
   }
-
   for (int iter = 0; iter < max_iters; iter++)
   {
     double error = 0;
 #pragma omp parallel for reduction(+ : error)
     for (int i = 0; i < thread_num; i++)
     {
-      GraphBase* graph = graph_engine.create_graph_handle();
+      GraphBase* graph = graph_engine.create_ro_graph_handle();
       InCursor* in_cursor = graph->get_innbd_iter();
       in_cursor->set_key_range(graph_engine.get_key_range(i));
 
@@ -59,12 +59,14 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
 
       while (found.node_id != OutOfBand_ID_MAX)
       {
+        //        std::cout << found.node_id << ": [";
         ScoreT incoming_total = 0;
         for (node_id_t v : found.edgelist)
         {
           incoming_total += src[v];
+          //          std::cout << v << " ";
         }
-
+        //        std::cout << " ]" << std::endl;
         ScoreT old_score = dst[found.node_id];
         dst[found.node_id] = (1 - kDamp) / num_nodes + kDamp * incoming_total;
         error += fabs(dst[found.node_id] - old_score);
@@ -133,6 +135,8 @@ void print_top_scores(pvector<ScoreT>& score, node_id_t n_nodes, GraphBase* g)
 int main(int argc, char* argv[])
 {
   cout << "Running PageRank" << endl;
+  mem_util::mem_usage memory_usage;
+  memory_usage.before();
   PageRankOpts pr_cli(argc, argv, 1e-4, 10);
   if (!pr_cli.parse_args())
   {
@@ -141,22 +145,22 @@ int main(int argc, char* argv[])
 
   cmdline_opts opts = pr_cli.get_parsed_opts();
   opts.stat_log += "/" + opts.db_name;
-  //    opts.dump_cmd_config("out");
+
   const int THREAD_NUM = omp_get_max_threads();
   Times t;
   t.start();
   GraphEngine graphEngine(THREAD_NUM, opts);
+  std::string checkpt = graphEngine.make_checkpoint();
   graphEngine.calculate_thread_offsets();
   t.stop();
-  std::cout << "Graph loaded in " << t.t_micros() << std::endl;
-  // return 0;
-  // get the number of nodes in the graph:
-  // Now run PR
+  std::cout << "Graph loaded in " << t.t_secs() << "s" << std::endl;
+
   long double total_time = 0;
   for (int i = 0; i < opts.num_trials; i++)
   {
     t.start();
-    GraphBase* g = graphEngine.create_graph_handle();
+    //    GraphBase* g = graphEngine.create_graph_handle();
+    GraphBase* g = graphEngine.create_ro_graph_handle(checkpt);
     node_id_t num_nodes = g->get_num_nodes();
     node_id_t max_node_id = g->get_max_node_id();
     g->close(false);
@@ -167,11 +171,13 @@ int main(int argc, char* argv[])
                                      max_node_id,
                                      opts.tolerance);
     t.stop();
-    cout << "PR  completed in : " << t.t_secs() << endl;
+    cout << "PR  completed in : " << t.t_secs() << "s" << endl;
     total_time += t.t_secs();
     if (i == opts.num_trials - 1 && opts.print_stats)
       print_top_scores(score, num_nodes, g);
   }
   cout << "Average time: " << total_time / opts.num_trials << endl;
   graphEngine.close_graph();
+  memory_usage.after();
+  memory_usage.print_diff();
 }

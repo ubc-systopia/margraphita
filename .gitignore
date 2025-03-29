@@ -43,3 +43,5 @@ build/test/
 build/utils/
 cmake-build-debug/
 .idea/
+docs/
+plots/

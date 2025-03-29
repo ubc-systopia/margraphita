@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
   if (argc != 5)
   {
     std::cout << "Usage: ./dump_graph <db_home> <table_name> "
-                 "<graph_type> <num_records>"
+                 "<graph_type> <num_records (-1 for all)>"
               << std::endl;
     exit(1);
   }
@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
   if (opts.type == GraphType::Adj)
   {
     auto *graph = dynamic_cast<AdjList *>(graphEngine.create_graph_handle());
+    if (num_records == -1) num_records = graph->get_num_nodes();
     if (table_name == METADATA)
       graph->dump_meta_data();
     else
@@ -84,6 +85,7 @@ int main(int argc, char *argv[])
   {
     auto *graph =
         dynamic_cast<SplitEdgeKey *>(graphEngine.create_graph_handle());
+    if (num_records == -1) num_records = graph->get_num_nodes();
     if (table_name == METADATA)
       graph->dump_meta_data();
     else
