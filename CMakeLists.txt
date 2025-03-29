@@ -104,14 +104,12 @@ else ()
 endif ()
 
 
-SET(PATH_BUILD "${PROJECT_SOURCE_DIR}/build")
 SET(PATH_INCLUDE "${WT_INSTALL_DIR}/include")
 SET(PATH_LIBRARY "${WT_INSTALL_DIR}/lib")
 SET(PATH_SRC "${PROJECT_SOURCE_DIR}/src")
 SET(PATH_TEST "${PROJECT_SOURCE_DIR}/test")
 SET(BENCHMARK "${PROJECT_SOURCE_DIR}/benchmark")
 SET(UTILS "${PROJECT_SOURCE_DIR}/utils")
-SET(PMAP "${UTILS}/parallel_hashmap")
 
 message(STATUS "WT SO IS ${wt_shared_lib}")
 
