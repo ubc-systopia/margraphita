@@ -6,7 +6,6 @@ LABEL description="Build environment for FlexoGraph"
 ENV HOME=/root
 SHELL [ "/bin/bash" , "-c" ]
 
-# Install dependencies
 RUN apt-get update && apt-get install ca-certificates -y
 RUN apt-get --no-install-recommends -y install build-essential cmake git libboost-all-dev libomp-dev wget gdb autotools-dev autoconf automake libtool gnupg #needed for Intel TBB
 RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null
