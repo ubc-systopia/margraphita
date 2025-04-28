@@ -55,7 +55,9 @@ class Preprocess:
             read_opt_directed_string += "r"
         if self.config_data['directed']:
             read_opt_directed_string += "d"
-        db_name = f"{graph_type}_" + read_opt_directed_string + f"_{self.config_data['dataset_name']}"
+        if read_opt_directed_string != "":
+            read_opt_directed_string += "_"
+        db_name = f"{graph_type}_" + read_opt_directed_string + f"{self.config_data['dataset_name']}"
 
         cmd = (
             f"{self.config_data['cmd_root']}/preprocess/init_db -l {self.config_data['log_dir']} -m {db_name} "
@@ -72,7 +74,9 @@ class Preprocess:
             read_opt_directed_string += "r"
         if self.config_data['directed']:
             read_opt_directed_string += "d"
-        db_name = f"{graph_type}_" + read_opt_directed_string + f"_{self.config_data['dataset_name']}"
+        if read_opt_directed_string != "":
+            read_opt_directed_string += "_"
+        db_name = f"{graph_type}_" + read_opt_directed_string + f"{self.config_data['dataset_name']}"
         cmd = (
             f"{self.config_data['cmd_root']}/preprocess/init_db -n "  # -n is for new
             f"-m {db_name} -p {self.config_data['db_dir']} -s {self.config_data['dataset_name']} "

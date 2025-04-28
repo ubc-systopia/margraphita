@@ -16,10 +16,10 @@ def api_insert(config: dict[str, any]):
 def main():
     parser = argparse.ArgumentParser(
         description="Insert kron graphs into the database")
-    parser.add_argument("--kron", action='store_true', default=False,
-                        help="insert kron graphs")
-    parser.add_argument(
-        "--real", help="insert real-world graphs from graph_datasets.json; Default is False", action='store_true', default=False)
+    # parser.add_argument("--kron", action='store_true', default=False,
+    #                     help="insert kron graphs")
+    # parser.add_argument(
+    #     "--real", help="insert real-world graphs from graph_datasets.json; Default is False", action='store_true', default=False)
     parser.add_argument("--log_dir", type=str,
                         help="log directory. Defaults to LOG_DIR in config.json")
     parser.add_argument("-b", "--bulk", action='store_true',

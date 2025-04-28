@@ -110,6 +110,9 @@ void insert_rev_edge_thread(int _tid, bool is_directed)
 
 void insert_nodes()
 {
+  tbb::task_arena arena(opts.num_threads);
+  arena.execute([&]()
+  {
   tbb::parallel_for(
       node_degrees.range(),
       [](tbb::concurrent_hash_map<node_id_t, degrees>::range_type &r)
@@ -135,6 +138,8 @@ void insert_nodes()
         }
         //        std::cout << "inserted " << count << " nodes" << std::endl;
       });
+  });
+  
 }
 
 void debug_dump_nodes()
@@ -228,6 +233,10 @@ int main(int argc, char *argv[])
   opts = params.make_graph_opts();
   assert(opts.is_directed == false);
   std::string conn_config = "create,cache_size=10GB";
+  if (std::thread::hardware_concurrency() > 100)
+  {
+    conn_config += ",session_max=" + std::to_string(std::thread::hardware_concurrency());
+  }
 #ifdef STAT
   std::string stat_config =
       "statistics=(all),statistics_log=(wait=0,on_close=true";

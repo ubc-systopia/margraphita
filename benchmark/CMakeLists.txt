@@ -3,8 +3,8 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_benchmarks.py DESTINATION ${CMAKE_CURR
 
 INCLUDE_DIRECTORIES(${PATH_INCLUDE} ${UTILS} ${ITTAPI_INCLUDE_DIR} ${PATH_SRC})
 
-add_executable(adj_ekey_microbenchmark adj_ekey_microbenchmark.cpp)
-target_link_libraries(adj_ekey_microbenchmark PUBLIC ${NAME_LIB} ${ITTAPI_LIB} graph_utils)
+#add_executable(adj_ekey_microbenchmark adj_ekey_microbenchmark.cpp)
+#target_link_libraries(adj_ekey_microbenchmark PUBLIC ${NAME_LIB} ${ITTAPI_LIB} graph_utils)
 ####################################################################################
 ############ PAGE RANK AND FRIENDS  ################################################
 ####################################################################################
@@ -96,8 +96,8 @@ target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 #
 
 #
-add_executable(iteration_vc iteration_vc.cpp)
-target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} ${ITTAPI_LIB} graph_utils)
+#add_executable(iteration_vc iteration_vc.cpp)
+#target_link_libraries(iteration_vc PUBLIC ${NAME_LIB} ${ITTAPI_LIB} graph_utils)
 #
 #add_executable(iteration_ec iteration_ec.cpp)
 #target_link_libraries(iteration_ec PUBLIC ${NAME_LIB} graph_utils)

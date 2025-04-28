@@ -407,6 +407,10 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
   {
     middle += "d";
   }
+  if (!middle.empty())
+  {
+    middle += "_";
+  }
   // make sure the dataset is a directory, if not, extract the directory name
   // and use it
   if (_opts.dataset.back() != '/')
@@ -419,7 +423,7 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
   }
   std::cout << "Dataset: " << _opts.dataset << std::endl;
 
-  std::string _db_name = _opts.db_dir + "/adj_" + middle + "_" + _opts.db_name;
+  std::string _db_name = _opts.db_dir + "/adj_" + middle + _opts.db_name;
   if (wiredtiger_open(_db_name.c_str(),
                       nullptr,
                       const_cast<char *>(conn_config.c_str()),
@@ -430,7 +434,7 @@ void make_connections(graph_opts &_opts, const std::string &conn_config)
   }
 
   // open split ekey connection
-  _db_name = _opts.db_dir + "/split_ekey_" + middle + "_" + _opts.db_name;
+  _db_name = _opts.db_dir + "/split_ekey_" + middle + _opts.db_name;
   if (wiredtiger_open(_db_name.c_str(),
                       nullptr,
                       const_cast<char *>(conn_config.c_str()),

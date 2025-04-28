@@ -40,30 +40,30 @@ class EdgeReader
     beg_offset = _beg;
     cur_pos = beg_offset;
     num_per_chunk = _num;
-
     std::ios::sync_with_stdio(false);
-    edge_file = std::ifstream(filename, std::ifstream::in);
+        edge_file = std::ifstream(filename, std::ifstream::in);
+        //check if the file is open
+        if (!edge_file.is_open())
+        {
+            throw GraphException("Failed to open the edge file for " + filename);
+        }
 
-    std::string dirname = filename.substr(0, filename.find_last_of('/'));
-    // strip the filename of anything after_
-    std::string::size_type pos = filename.find_last_of('_');
-    if (pos != std::string::npos)
-    {
-      filename =
-          dirname + "/" + adj_type + filename.substr(pos, filename.size());
-    }
-
-    adj_file = std::ofstream(filename, std::ofstream::out);
-    std::cout << "Filename: " << filename << std::endl;
-    if (!edge_file.is_open())
-    {
-      throw GraphException("** could not open " + filename);
-    }
-    if (!adj_file.is_open())
-    {
-      throw GraphException("Failed to create the " + adj_type +
-                           " adjacency file for " + filename);
-    }
+        std::string dirname = filename.substr(0, filename.find_last_of('/'));
+        // strip the filename of anything after_
+        std::string::size_type pos = filename.find_last_of('_');
+        if (pos != std::string::npos)
+        {
+            filename = dirname + "/" + adj_type +
+                       filename.substr(pos, filename.size());
+        }
+        std::cout <<"Opening for writing: " << filename << std::endl;
+        adj_file = std::ofstream(filename, std::ofstream::out);
+        if (!adj_file.is_open())
+        {
+            throw GraphException("Failed to create the " + adj_type +
+                                 " adjacency file for " + filename);
+        }
+  
   }
 
   void mk_adjlist()
