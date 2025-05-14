@@ -1,11 +1,11 @@
 #include "graph_engine.h"
 
-GraphEngine::GraphEngine(int _num_threads, graph_opts &engine_opts)
+GraphEngine::GraphEngine(int _num_threads, const graph_opts &engine_opts)
+    : num_threads(_num_threads), opts(engine_opts)
 {
-  num_threads = _num_threads;
-  // init with the engine_opts passed as args without copying
-  opts = engine_opts;
-  //  opts.print_config("cmd_config.txt");
+  // std::cout <<" GraphEngine constructor called\n\n\n" << std::endl ;
+  //  check_opts_valid();
+  opts.print_config("");
   if (opts.create_new)
   {
     create_new_graph();
@@ -235,32 +235,50 @@ void GraphEngine::_calculate_thread_offsets_edge(int thread_max,
   //    }
   e_cur->close();
 }
-void GraphEngine::check_opts_valid()
+
+void GraphEngine::check_opts_valid() const
 {
-  if (num_threads < 1)
+  if (opts.db_name.empty())
   {
-    throw GraphException("Number of threads must be at least 1");
+    throw GraphException("DB name is empty");
+  }
+  if (opts.db_dir.empty())
+  {
+    throw GraphException("DB dir is empty");
+  }
+  if (opts.conn_config.empty())
+  {
+    throw GraphException("Connection config is empty");
+  }
+  if (opts.dataset.empty())
+  {
+    throw GraphException("Dataset is empty");
+  }
+  if (opts.checkpoint_name.empty())
+  {
+    std::cerr << "Checkpoint name is empty" << std::endl;
+  }
+  if (opts.stat_log.empty())
+  {
+    std::cerr << "Stat log is empty" << std::endl;
+  }
+  if (opts.num_nodes == 0)
+  {
+    std::cerr << "Number of nodes is zero" << std::endl;
+  }
+  if (opts.num_edges == 0)
+  {
+    std::cerr << "Number of edges is zero" << std::endl;
+  }
+  if (opts.num_threads == 0)
+  {
+    std::cerr << "Number of threads is zero" << std::endl;
   }
 
-  try
+  if (opts.type == GraphType::Adj || opts.type == GraphType::SplitEKey)  {/*no-op*/}
+  else
   {
-    CommonUtil::check_graph_params(opts);
-  }
-  catch (GraphException &G)
-  {
-    std::cout << G.what() << std::endl;
-  }
-  if (!CommonUtil::check_dir_exists(opts.stat_log))
-  {
-    try
-    {
-      std::cout << "Creating stat log directory " << opts.stat_log << std::endl;
-      std::filesystem::create_directories(opts.stat_log);
-    }
-    catch (GraphException &G)
-    {
-      std::cout << G.what() << std::endl;
-    }
+    throw GraphException("Graph type is not set");
   }
 }
 
@@ -352,7 +370,7 @@ edge_range GraphEngine::get_edge_range(int thread_id)
   }
   return to_return;
 }
-GraphEngine::GraphEngine() {}//
+GraphEngine::GraphEngine() {}  //
 // Created by puneet on 27/03/25.
 //
-void GraphEngine::force_metadata_sync() {return;}
+void GraphEngine::force_metadata_sync() { return; }

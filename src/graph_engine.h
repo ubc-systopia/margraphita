@@ -14,7 +14,7 @@
 class GraphEngine
 {
  public:
-  GraphEngine(int _num_threads, graph_opts &engine_opts);
+  GraphEngine(int _num_threads, const graph_opts &engine_opts);
   GraphEngine();
   ~GraphEngine();
   GraphBase *create_graph_handle();
@@ -36,7 +36,7 @@ class GraphEngine
   graph_opts opts;
   node_id_t last_node_id{};
 
-  void check_opts_valid();
+  void check_opts_valid() const ;
   void create_new_graph();
   void open_connection();
   void close_connection();
