@@ -7,6 +7,7 @@
 
 #include "common_defs.h"
 #include "common_util.h"
+#include "common_defs.h"
 
 class time_info
 {
@@ -39,16 +40,11 @@ class InsertOpts
   std::vector<std::string> help_strings_;
 
   std::string db_name;
-  graph_opts opts{.create_new = true,
-                  .read_optimize = false,
-                  .is_directed = false,
-                  .is_weighted = false,
-                  .optimize_create = true};
+  graph_opts opts ;
   enum GraphType graph_type
   {
   };
   std::string logdir;
-  bool read_optimize = false;
 
   void add_help_message(char opt,
                         const std::string &opt_arg,
@@ -63,6 +59,7 @@ class InsertOpts
  public:
   InsertOpts(int argc, char **argv) : argc_(argc), argv_(argv)
   {
+    opts.create_new = true;
     add_help_message('d', "db", "Name of the WT DB");
     add_help_message('p', "path", "Path to WT DB");
     add_help_message('l', "log", "logdir name");

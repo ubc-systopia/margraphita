@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <fstream>
+#include <iostream>
 #define MAKE_EKEY(x) ((x) + 1)
 #define OG_KEY(x) ((x) - 1)
 
@@ -93,37 +95,100 @@ struct graph_opts
   bool read_optimize = false;
   bool is_directed = false;
   bool is_weighted = false;
-  std::string db_name;
-  std::string db_dir;
-  bool optimize_create = false;  // directs when the index should be created
-  std::string conn_config;
-  std::string stat_log;
+  bool optimize_create = true;  // directs when the index should be created
+  std::string db_name{};
+  std::string db_dir{};
+  std::string conn_config{};
+  std::string stat_log{};
+  std::string dataset {};
+  std::string checkpoint_name{};
   GraphType type;
-  node_id_t num_nodes;
-  uint64_t num_edges;  // we can have > 4B edges
-  std::string dataset;
+  node_id_t num_nodes{};
+  uint64_t num_edges{};  // we can have > 4B edges
   int num_threads = 1;
-  std::string checkpoint_name;
+  //make a default constructor
+  graph_opts() : db_name(""), db_dir(""), conn_config(""), stat_log(""), checkpoint_name(""),
+                 type(GraphType::Adj), num_nodes(0), num_edges(0), dataset(""), num_threads(1), 
+                  read_only(false), create_new(false), read_optimize(false), is_directed(false),
+                  is_weighted(false), optimize_create(true)
+                 {}
   ~graph_opts() = default;
+
   // dump the options
-  void print_config(const std::string &filename)
+  void print_config(const std::string &filename) const
   {
-    std::ofstream out;
-    out.open(filename, std::ios::out);
-    out << "CREATE_NEW: " << create_new << std::endl;
-    out << "READ_OPTIMIZE: " << read_optimize << std::endl;
-    out << "DIRECTED: " << is_directed << std::endl;
-    out << "WEIGHTED: " << is_weighted << std::endl;
-    out << "DB_NAME: " << db_name << std::endl;
-    out << "DB_DIR: " << db_dir << std::endl;
-    out << "OPTIMIZE_CREATE: " << optimize_create << std::endl;
-    out << "CONN_CONFIG: " << conn_config << std::endl;
-    out << "STAT_LOG: " << stat_log << std::endl;
-    out << "GRAPH_TYPE: " << type << std::endl;
-    out << "DATASET: " << dataset << std::endl;
-    out << "NUM_NODES" << num_nodes << std::endl;
-    out << "NUM_EDGES" << num_edges << std::endl;
-    out.close();
+    std::ostream* out;
+    std::ofstream file;
+
+    if (filename.empty()) {
+      out = &std::cout;
+    } else {
+      file.open(filename, std::ios::out);
+      out = &file;
+    }
+
+    *out << "CREATE_NEW: " << create_new << std::endl;
+    *out << "READ_OPTIMIZE: " << read_optimize << std::endl;
+    *out << "DIRECTED: " << is_directed << std::endl;
+    *out << "WEIGHTED: " << is_weighted << std::endl;
+    *out << "DB_NAME: " << db_name << std::endl;
+    *out << "DB_DIR: " << db_dir << std::endl;
+    *out << "OPTIMIZE_CREATE: " << optimize_create << std::endl;
+    *out << "CONN_CONFIG: " << conn_config << std::endl;
+    *out << "STAT_LOG: " << stat_log << std::endl;
+    *out << "GRAPH_TYPE: " << type << std::endl;
+    *out << "DATASET: " << dataset << std::endl;
+    *out << "NUM_NODES: " << num_nodes << std::endl;
+    *out << "NUM_EDGES: " << num_edges << std::endl;
+
+    if (file.is_open()) {
+      file.close();
+    }
+  }
+
+  //make an assignment operator
+  graph_opts &operator=(const graph_opts &other)
+  {
+    if (this != &other)
+    {
+      read_only = other.read_only;
+      create_new = other.create_new;
+      read_optimize = other.read_optimize;
+      is_directed = other.is_directed;
+      is_weighted = other.is_weighted;
+      db_name = other.db_name;
+      db_dir = other.db_dir;
+      optimize_create = other.optimize_create;
+      conn_config = other.conn_config;
+      stat_log = other.stat_log;
+      type = other.type;
+      num_nodes = other.num_nodes;
+      num_edges = other.num_edges;
+      dataset = other.dataset;
+      num_threads = other.num_threads;
+      checkpoint_name = other.checkpoint_name;
+    }
+    return *this;
+  }
+  //make a copy constructor
+  graph_opts(const graph_opts &other)
+  {
+    read_only = other.read_only;
+    create_new = other.create_new;
+    read_optimize = other.read_optimize;
+    is_directed = other.is_directed;
+    is_weighted = other.is_weighted;
+    db_name = other.db_name;
+    db_dir = other.db_dir;
+    optimize_create = other.optimize_create;
+    conn_config = other.conn_config;
+    stat_log = other.stat_log;
+    type = other.type;
+    num_nodes = other.num_nodes;
+    num_edges = other.num_edges;
+    checkpoint_name = other.checkpoint_name;
+    num_threads = other.num_threads;
+    dataset = other.dataset;
   }
 };
 
