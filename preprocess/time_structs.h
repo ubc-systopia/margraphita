@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string>
 
+#include "common_defs.h"
 #include "common_util.h"
 
 class time_info
