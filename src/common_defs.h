@@ -1,10 +1,10 @@
 #ifndef COMMON_DEFS_H
 #define COMMON_DEFS_H
 
-#include <string>
-#include <vector>
 #include <fstream>
 #include <iostream>
+#include <string>
+#include <vector>
 #define MAKE_EKEY(x) ((x) + 1)
 #define OG_KEY(x) ((x) - 1)
 
@@ -45,12 +45,8 @@ const std::string ATTR_FIRST =
     "attr_fst";  // Used in EdgeKey as the first attribute.
 const std::string ATTR_SECOND =
     "attr_scnd";  // Used in EdgeKey as the second attribute.
-const std::string WEIGHT = "weight";
 const std::string NODE_TABLE = "node";
 const std::string EDGE_TABLE = "edge";
-const std::string SRC_INDEX = "IX_edge_" + SRC;
-const std::string DST_INDEX = "IX_edge_" + DST;
-const std::string SRC_DST_INDEX = "IX_edge_" + SRC + DST;
 const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
 // specific to AdjList implementation
 const std::string OUT_ADJLIST = "adjlistout";
@@ -58,8 +54,6 @@ const std::string IN_ADJLIST = "adjlistin";
 // specific to EdgeKeySplit implementation
 const std::string OUT_EDGES = "edge_out";
 const std::string IN_EDGES = "edge_in";
-const std::string node_count = "nNodes";
-const std::string edge_count = "nEdges";
 
 #ifdef B64
 typedef uint64_t node_id_t;
@@ -77,7 +71,7 @@ const node_id_t OutOfBand_ID_MIN =
 #ifdef B64
 const node_id_t OutOfBand_ID_MAX = UINT64_MAX;
 #else
-const degree_t OutOfBand_ID_MAX = UINT32_MAX;
+const node_id_t OutOfBand_ID_MAX = UINT32_MAX;
 #endif
 
 typedef enum GraphType
@@ -100,29 +94,46 @@ struct graph_opts
   std::string db_dir{};
   std::string conn_config{};
   std::string stat_log{};
-  std::string dataset {};
+  std::string dataset{};
   std::string checkpoint_name{};
   GraphType type;
   node_id_t num_nodes{};
   uint64_t num_edges{};  // we can have > 4B edges
   int num_threads = 1;
-  //make a default constructor
-  graph_opts() : db_name(""), db_dir(""), conn_config(""), stat_log(""), checkpoint_name(""),
-                 type(GraphType::Adj), num_nodes(0), num_edges(0), dataset(""), num_threads(1), 
-                  read_only(false), create_new(false), read_optimize(false), is_directed(false),
-                  is_weighted(false), optimize_create(true)
-                 {}
+  // make a default constructor
+  graph_opts()
+      : db_name(""),
+        db_dir(""),
+        conn_config(""),
+        stat_log(""),
+        checkpoint_name(""),
+        type(GraphType::Adj),
+        num_nodes(0),
+        num_edges(0),
+        dataset(""),
+        num_threads(1),
+        read_only(false),
+        create_new(false),
+        read_optimize(false),
+        is_directed(false),
+        is_weighted(false),
+        optimize_create(true)
+  {
+  }
   ~graph_opts() = default;
 
   // dump the options
   void print_config(const std::string &filename) const
   {
-    std::ostream* out;
+    std::ostream *out;
     std::ofstream file;
 
-    if (filename.empty()) {
+    if (filename.empty())
+    {
       out = &std::cout;
-    } else {
+    }
+    else
+    {
       file.open(filename, std::ios::out);
       out = &file;
     }
@@ -141,12 +152,13 @@ struct graph_opts
     *out << "NUM_NODES: " << num_nodes << std::endl;
     *out << "NUM_EDGES: " << num_edges << std::endl;
 
-    if (file.is_open()) {
+    if (file.is_open())
+    {
       file.close();
     }
   }
 
-  //make an assignment operator
+  // make an assignment operator
   graph_opts &operator=(const graph_opts &other)
   {
     if (this != &other)
@@ -170,7 +182,7 @@ struct graph_opts
     }
     return *this;
   }
-  //make a copy constructor
+  // make a copy constructor
   graph_opts(const graph_opts &other)
   {
     read_only = other.read_only;
@@ -253,6 +265,17 @@ typedef struct adjlist
     edgelist.clear();
     node_id = 0;
     degree = 0;
+  }
+  void insert(node_id_t id)
+  {
+    edgelist.emplace_back(id);
+    degree++;
+  }
+  void insert_sorted(node_id_t id)
+  {
+    edgelist.emplace_back(id);
+    degree++;
+    std::sort(edgelist.begin(), edgelist.end());
   }
 } adjlist;
 #endif
