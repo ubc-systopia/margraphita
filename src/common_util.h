@@ -33,7 +33,9 @@
 #define LOG_MSG(msg, ...)                                                      \
   do                                                                           \
   {                                                                            \
-    fmt::print("DEBUG: [{}:{}] " msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
+    /* The format string itself should be a literal. */                        \
+    /* Pass the dynamic parts as separate arguments. */                        \
+    fmt::print(stderr, "DEBUG: [{}:{}] " msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
   } while (0)
 #else
 #define DEBUG_MSG(msg) \
@@ -317,7 +319,7 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
               " - " + wiredtiger_strerror(ret));
   }
   cursor->reset(cursor);
-  return 0;
+  return ret;
 }
 
 /**
