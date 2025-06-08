@@ -205,15 +205,15 @@ void GraphBase::dump_meta_data()
  * @param cursor This is the pointer that will hold the set cursor.
  * @param is_random This is a bool value to indicate if the cursor must be
  * random.
- * @param prevent_overwrite This is a bool value to indicate whether we want to
- * specify overwrite=false, imposing stricter checks on inserts/updates
+ * @param overwrite_allowed This is a bool value to indicate whether we want to
+ * allow overwrites
  * @return 0 if the cursor could be set
  */
 int GraphBase::_get_table_cursor(const std::string &table,
                                  WT_CURSOR **cursor,
                                  WT_SESSION *session,
                                  bool is_random,
-                                 bool prevent_overwrite,
+                                 bool overwrite_allowed,
                                  const std::string &checkpoint_name)
 {
   char config[512];
@@ -221,7 +221,7 @@ int GraphBase::_get_table_cursor(const std::string &table,
            sizeof(config),
            "next_random=%s,overwrite=%s",
            is_random ? "true" : "false",
-           prevent_overwrite ? "false" : "true");
+           overwrite_allowed ? "true" : "false");
   // append checkpoint name if provided
   if (!checkpoint_name.empty())
   {

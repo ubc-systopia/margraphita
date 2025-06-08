@@ -71,7 +71,12 @@ class GraphBase
   static void increment_edges(int increment);
 
   [[nodiscard]] std::string get_db_name() const { return opts.db_name; };
-
+  static int _get_table_cursor(const std::string &table,
+                               WT_CURSOR **cursor,
+                               WT_SESSION *session,
+                               bool is_random,
+                               bool overwrite_allowed,
+                               const std::string &checkpoint_name = "");
  protected:
   graph_opts opts;
   WT_CONNECTION *connection = nullptr;
@@ -83,12 +88,7 @@ class GraphBase
 
   [[maybe_unused]] WT_CONNECTION *get_db_conn() { return this->connection; }
   [[maybe_unused]] WT_SESSION *get_db_session() { return this->session; }
-  static int _get_table_cursor(const std::string &table,
-                               WT_CURSOR **cursor,
-                               WT_SESSION *session,
-                               bool is_random,
-                               bool prevent_overwrite,
-                               const std::string &checkpoint_name = "");
+
   int _get_index_cursor(const std::string &table_name,
                         const std::string &idx_name,
                         const std::string &projection,
