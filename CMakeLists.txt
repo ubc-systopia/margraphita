@@ -103,6 +103,13 @@ else ()
   message(STATUS "Using 32 bit vertex ids")
 endif ()
 
+if(UseProps)
+  message(STATUS "Creating the nodes and edge tables in AdjList")
+  add_compile_definitions (MK_NEDGES)
+else()
+  message (STATUS "Not creating node and edge tables in AdjList")
+endif()
+
 
 SET(PATH_INCLUDE "${WT_INSTALL_DIR}/include")
 SET(PATH_LIBRARY "${WT_INSTALL_DIR}/lib")

@@ -1,8 +1,13 @@
 #ifndef ADJLIST_OUTNBDCURSOR_H
 #define ADJLIST_OUTNBDCURSOR_H
 #include "common_util.h"
-#include "graph.h"
-#include "graph_exception.h"
+
+/** * @brief This class is used to iterate over the adjacency list in the out * direction.
+ * The constructor accepts a cursor to the out table and a session object, and additionally
+ * can take parameters to indicate if the graph is directed and if it is read optimized.
+ * The setAllNodes method allows the user to specify if all nodes should be returned,
+ * regardless of whether they have any outgoing edges or not. This method is useful only when the graph is created in a way that all nodes are present in the out adjacency list table, even if they have no outgoing edges. This is not always true.
+ */
 class AdjOutCursor : public OutCursor
 {
  private:
