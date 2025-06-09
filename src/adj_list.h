@@ -114,7 +114,8 @@ class AdjList : public GraphBase
   [[maybe_unused]] void delete_node_from_adjlists(node_id_t node_id);
   int add_to_adjlists(WT_CURSOR *cursor,
                       node_id_t node_id,
-                      node_id_t to_insert);
+                      node_id_t to_insert, 
+                      bool &node_exits);
   int delete_from_adjlists(WT_CURSOR *cursor,
                            node_id_t node_id,
                            node_id_t to_delete);

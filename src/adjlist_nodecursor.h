@@ -16,11 +16,17 @@ private:
    * @param node_id 
    * @return degree_t 
    */
-  degree_t get_in_degree(void)
+  degree_t get_in_degree(node_id_t id)
   {
-    adjlist temp;
-    CommonUtil::record_to_adjlist(in_cur, &temp);
-    return temp.degree;
+    CommonUtil::set_key(in_cur, id);
+    int ret = in_cur->search(in_cur);
+    if (ret == 0)
+    {
+      adjlist temp;
+      CommonUtil::record_to_adjlist(in_cur, &temp);
+      return temp.degree;
+    }
+    return 0;
   }
 #endif
  public:
@@ -29,12 +35,16 @@ private:
     cursor = cur;
     session = sess;
     #ifndef MK_NEDGES
-    GraphBase::_get_table_cursor(OUT_ADJLIST,
+    if (directed) {
+      GraphBase::_get_table_cursor(IN_ADJLIST,
                                    &in_cur,
                                    session,
                                    false,
                                    false,
                                    "");
+    }else{
+      in_cur = nullptr;  // not used for undirected graphs
+    }
     #endif
   }
   AdjNodeCursor(WT_CURSOR *cur,
@@ -47,12 +57,16 @@ private:
     directed = is_directed;
     read_opt = is_read_optimized;
     #ifndef MK_NEDGES
-    GraphBase::_get_table_cursor(OUT_ADJLIST,
+    if (directed) {
+      GraphBase::_get_table_cursor(IN_ADJLIST,
                                    &in_cur,
                                    session,
                                    false,
                                    false,
                                    "");
+    }else{
+      in_cur = nullptr;  // not used for undirected graphs
+    }
     #endif
   }
   ~AdjNodeCursor() override = default;
@@ -78,18 +92,6 @@ private:
           this->has_next = false;
         }
       }
-      #ifndef MK_NEDGES // do the same for in_cur
-      CommonUtil::set_key(in_cur, keys.start);
-      in_cur->search_near(in_cur, &status);
-      if (status < 0)
-      {
-        // Advances the cursor
-        if (in_cur->next(in_cur) != 0)
-        {
-          this->has_next = false;
-        }
-      }
-      #endif
     }
     else
     {
@@ -98,12 +100,6 @@ private:
       {
         this->has_next = false;
       }
-      #ifndef MK_NEDGES // do the same for in_cur
-      if (in_cur->next(in_cur) != 0)
-      {
-        this->has_next = false;
-      }
-      #endif
     }
   }
 
@@ -137,7 +133,7 @@ private:
     adjlist temp;
     CommonUtil::record_to_adjlist(cursor, &temp);
     found->out_degree = temp.degree;
-    directed ? found->in_degree = get_in_degree()
+    directed ? found->in_degree = get_in_degree(found->id)
              : found->in_degree = temp.degree;
 #endif
     if (cursor->next(cursor) != 0)
@@ -178,7 +174,7 @@ private:
       adjlist temp;
       CommonUtil::record_to_adjlist(cursor, &temp);
       found->out_degree = temp.degree;
-      directed ? found->in_degree = get_in_degree()
+      directed ? found->in_degree = get_in_degree(found->id)
                : found->in_degree = temp.degree;
       #endif
       found->id = curr_key;

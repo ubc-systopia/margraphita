@@ -101,20 +101,13 @@ void test_rollbacks(WT_CONNECTION *conn, graph_opts &opts)
 void create_init_nodes(WT_CONNECTION *conn, graph_opts &opts)
 {
   INFO()
-  // #pragma omp parallel for num_threads(2)
-  //   for (node n : SampleGraph::test_nodes)
-  //   {
-
-  //     thread_local AdjList graph(opts, conn);
-  //     graph.add_node(n);
-  //   }
-
 
   atomic<int> rollbakcs(0);
   atomic<int> insert_cnt{0};
-#pragma omp parallel for num_threads(1) shared(rollbakcs, insert_cnt)
+// #pragma omp parallel for num_threads(1) shared(rollbakcs, insert_cnt)
   for (edge x : SampleGraph::parallel_insert_edges)
   {
+    std::cout << "Inserting edge: " << x.src_id << " -> " << x.dst_id << std::endl;
     thread_local AdjList graph(opts, conn);
     bool inserted = false;
     while (!inserted)
@@ -130,6 +123,7 @@ void create_init_nodes(WT_CONNECTION *conn, graph_opts &opts)
         rollbakcs++;
       }
     }
+    
   }
   std::cout << "Rollback count: " << rollbakcs.load() << std::endl;
   std::cout << "Inserted count: " << insert_cnt.load() << std::endl;
@@ -793,7 +787,7 @@ void test_OutCursor(AdjList graph)
   delete out_cursor;
 
   out_cursor = (AdjOutCursor *)graph.get_outnbd_iter();
-  // out_cursor->setAllNodes(false);
+  out_cursor->setAllNodes(false);
   std::cout << "Printing in-adjlists for nodes with non-null nbd "
                "(AllNodes=false)\n";
   out_cursor->next(&found);
@@ -964,9 +958,9 @@ int main()
   test_InCursor(graph);
   test_OutCursor(graph);
   test_NodeCursor(graph);
-   test_NodeCursor_Range(graph);
-   test_EdgeCursor(graph, opts.is_directed);
-   test_EdgeCursor_Range(graph, opts.is_directed);
+  test_NodeCursor_Range(graph);
+  test_EdgeCursor(graph, opts.is_directed);
+  test_EdgeCursor_Range(graph, opts.is_directed);
   tearDown(graph);
   myEngine.close_graph();
 

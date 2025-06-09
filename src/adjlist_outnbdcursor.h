@@ -98,7 +98,13 @@ class AdjOutCursor : public OutCursor
       {
         has_next = false;
       }
-    } while (found->degree == 0 && all_nodes == false);
+
+    } while (found->degree == 0 && all_nodes == false && has_next);
+    
+    if (found->degree == 0 && !all_nodes)
+    {
+      return no_next(found);
+    }
   }
 
   void next(adjlist *found, node_id_t key) override {}

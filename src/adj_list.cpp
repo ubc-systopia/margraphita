@@ -534,7 +534,10 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
   int num_nodes_added = 0;
 
   session->begin_transaction(session, "isolation=snapshot");
-  
+  #ifdef DEBUG
+  std::cout << "Adding edge: " << to_insert.src_id << " -> "
+            << to_insert.dst_id << std::endl;
+  #endif
   #ifdef MK_NEDGES
   node first, second;
   //construct the first node and second edge based on which of the src and dst id is smaller.
@@ -621,37 +624,49 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
     }
   }
 #endif
-  if (to_insert.src_id < to_insert.dst_id)
+  bool node_added = false;
+  node_id_t node1, node2;
+  to_insert.src_id < to_insert.dst_id
+      ? (node1 = to_insert.src_id, node2 = to_insert.dst_id)
+      : (node1 = to_insert.dst_id, node2 = to_insert.src_id);
+
+  if (ret = add_to_adjlists(out_adjlist_cursor, node1, node2, node_added) != 0)
   {
-    //do the adjlist of the smaller id first
-    if (ret = add_to_adjlists(out_adjlist_cursor, to_insert.src_id,
-                          to_insert.dst_id) != 0)
+    return ret;
+  }
+  //We add all nodes to the out_adjlist_cursor, even ones with no (yet known) adjlist.
+  //This is because we need to be able to get the node count from the out_adjlist_cursor.
+  //The add_to_adjlist call above has already set the key to node1 so we add node2 to the 
+  //out_adjlist_cursor
+  CommonUtil::set_key(out_adjlist_cursor, node2);
+  if (out_adjlist_cursor->search(out_adjlist_cursor) !=0)
+  {
+    add_adjlist(out_adjlist_cursor, node2);
+    num_nodes_added++;
+  }
+
+  #ifndef MK_NEDGES
+  //we need to increment node counts here if the node table is not made.
+  if (node_added)
+  {
+    //We really added a new node if the node was not already present in the
+    //out_adjlist_cursor AND the in_adjlist_cursor.
+    //Now check the in_adjlist_cursor.
+    CommonUtil::set_key(in_adjlist_cursor, node1);
+    if (in_adjlist_cursor->search(in_adjlist_cursor) != 0)
     {
-      return ret;
-    }
-    //don't need to check for is_directed here, as the in_adjlist_cursor is a dup 
-    //of the out_adjlist_cursor in the undirected case.
-    ret = add_to_adjlists(in_adjlist_cursor, to_insert.dst_id,
-                          to_insert.src_id);
-    if (ret != 0)
-    {
-      return ret;
+      //Truly a new node, so increment the count.
+      num_nodes_added++;
     }
   }
-  else
+  #endif
+  //don't need to check for is_directed here, as the in_adjlist_cursor is a dup 
+  //of the out_adjlist_cursor in the undirected case. We do not care about the node_added flag here because we have already fixed the node count above.
+  ret = add_to_adjlists(in_adjlist_cursor, node2,
+                        node1, node_added);
+  if (ret != 0)
   {
-    ret = add_to_adjlists(in_adjlist_cursor, to_insert.dst_id,
-                          to_insert.src_id);
-    if (ret != 0)
-    {
-      return ret;
-    }
-    ret = add_to_adjlists(out_adjlist_cursor, to_insert.src_id,
-                          to_insert.dst_id);
-    if (ret != 0)
-    {
-      return ret;
-    }
+    return ret;
   }
 
   session->commit_transaction(session, nullptr);
@@ -914,7 +929,7 @@ node AdjList::get_node(node_id_t node_id)
             .in_degree = get_in_degree(found.node_id),
             .out_degree = found.degree};
   }
-  out_adjlist_cursor->reset(out_adjlist_cursor);
+  //If the node is not in the out_adjlist.
   return {.id = OutOfBand_ID_MAX, .in_degree = 0, .out_degree = 0};
 #endif
 }
@@ -1406,7 +1421,7 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
 
 int AdjList::add_to_adjlists(WT_CURSOR *cursor,
                              node_id_t node_id,
-                             node_id_t to_insert)
+                             node_id_t to_insert, bool &node_added)
 {
   int ret;
   adjlist to_add = adjlist(node_id, 0);
@@ -1428,12 +1443,15 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
       //on WT_DUPLICATE_KEY, the cursor is already positioned at the
       // node_id, so we can just read the existing adjlist and insert
       // the new edge to it.
-      adjlist found  = adjlist(node_id, 0);
+      node_added = false; // this means that the node_id was already present
+      adjlist found  = adjlist(to_add.node_id, 0);
       CommonUtil::record_to_adjlist(cursor, &found);
       found.insert_sorted(to_insert);  // insert the edge to the edgelist
       return CommonUtil::adjlist_to_record(session, cursor, found);
     }
   }
+  node_added = true; // this means that the node_id was not present
+  // and we added it to the table.
   return ret;
 }
 

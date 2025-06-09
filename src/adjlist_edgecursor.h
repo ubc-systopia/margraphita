@@ -73,21 +73,21 @@ class AdjEdgeCursor : public EdgeCursor
           }
           pos = 0;
         }
-        //now advance the position to the first edge in range.
-        std::cout << "start_edge.dst_id: " << start_edge.dst_id
-                  << " current_adjlist size: "
-                  << current_adjlist.edgelist.size() 
-                  << "pos = " << pos 
-                  << " has value: "<< current_adjlist.edgelist[pos] << std::endl;
-        while (pos < current_adjlist.edgelist.size() &&
-                current_adjlist.edgelist[pos] < start_edge.dst_id)
-        {
-          pos++;
-        }
-        std::cout << "pos: " << pos
-                  << " current_adjlist size: "
-                  << current_adjlist.edgelist.size() << std::endl;
       }
+      //now advance the position to the first edge in range.
+      std::cout << "start_edge.dst_id: " << start_edge.dst_id
+                << " current_adjlist size: "
+                << current_adjlist.edgelist.size() 
+                << "pos = " << pos 
+                << " has value: "<< current_adjlist.edgelist[pos] << std::endl;
+      while (pos < current_adjlist.edgelist.size() &&
+              current_adjlist.edgelist[pos] < start_edge.dst_id)
+      {
+        pos++;
+      }
+      std::cout << "pos: " << pos
+                << " current_adjlist size: "
+                << current_adjlist.edgelist.size() << std::endl;
       #endif
     }
     else
@@ -146,6 +146,8 @@ class AdjEdgeCursor : public EdgeCursor
       has_next = false;
     }
     #else
+    //advance the position in the current_adjlist to the first edge
+    
     if (pos >= current_adjlist.edgelist.size())
     {
       if (cursor->next(cursor) != 0)
