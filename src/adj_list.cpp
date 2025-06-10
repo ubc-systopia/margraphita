@@ -546,22 +546,22 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
     first.id = to_insert.src_id;
     opts.is_directed
         ? (first.in_degree = 0, first.out_degree = 1)
-        : (first.in_degree = 1, first.out_degree = 1);
+        : (first.in_degree = 0, first.out_degree = 1); //no in_degree for undirected
     second.id = to_insert.dst_id;
     opts.is_directed
         ? (second.in_degree = 1, second.out_degree = 0)
-        : (second.in_degree = 1, second.out_degree = 1);
+        : (second.in_degree = 0, second.out_degree = 1); //no in_degree for undirected
   }
   else
   {
     first.id = to_insert.dst_id;
     opts.is_directed
         ? (first.in_degree = 1, first.out_degree = 0)
-        : (first.in_degree = 1, first.out_degree = 1);
+        : (first.in_degree = 0, first.out_degree = 1); //no in_degree for undirected
     second.id = to_insert.src_id;
     opts.is_directed
         ? (second.in_degree = 0, second.out_degree = 1)
-        : (second.in_degree = 1, second.out_degree = 1);
+        : (second.in_degree = 0, second.out_degree = 1); //no in_degree for undirected
   }
 
   /*****Insert SRC and DST if they don't exist.*****/
@@ -923,11 +923,13 @@ node AdjList::get_node(node_id_t node_id)
   int ret = out_adjlist_cursor->search(out_adjlist_cursor);
   if (ret == 0)
   {
+    node temp ;
     CommonUtil::record_to_adjlist(out_adjlist_cursor, &found);
-    CommonUtil::get_key(out_adjlist_cursor, &found.node_id);
-    return {.id = found.node_id,
-            .in_degree = get_in_degree(found.node_id),
-            .out_degree = found.degree};
+    temp.id = node_id;
+    temp.out_degree = found.degree;
+    opts.is_directed? temp.in_degree = get_in_degree(node_id) :
+                  temp.in_degree = 0; // in_degree is 0 for undirected graphs
+    return temp;
   }
   //If the node is not in the out_adjlist.
   return {.id = OutOfBand_ID_MAX, .in_degree = 0, .out_degree = 0};
@@ -1507,7 +1509,7 @@ int AdjList::delete_related_edges_and_adjlists(node_id_t to_delete,
 #ifdef MK_NEDGES
   WT_CURSOR *edge_cursor_new = nullptr;
   _get_table_cursor(
-        EDGE_TABLE, &edge_cursor, session, false, false, opts.checkpoint_name);
+        EDGE_TABLE, &edge_cursor_new, session, false, false, opts.checkpoint_name);
   CommonUtil::set_key(edge_cursor, to_delete, OutOfBand_ID_MIN);
   int status;
   edge_cursor->search_near(edge_cursor, &status);

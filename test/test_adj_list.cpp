@@ -162,10 +162,8 @@ void test_get_node(AdjList graph, graph_opts &opts)
   CommonUtil::dump_node(found);
   assert(found.id == 1);
   assert(found.out_degree == 5);
-  if (opts.is_directed)
-    assert(found.in_degree == 0);
-  else
-    assert(found.in_degree == 5);
+  assert(found.in_degree == 0); // node 1 has no incoming edges in the
+                                 // sample graph
 
   // now get a node that does not exist
   found = graph.get_node(test_id2);
@@ -263,18 +261,19 @@ void test_add_edge(AdjList graph, bool is_directed)
   }
   // Check if the nodes were created.
   node got = graph.get_node(test_id1);
+  CommonUtil::dump_node(got);
   assert(got.id == test_id1);
-  if (is_directed)
-    assert(got.out_degree == 1 && got.in_degree == 0);
-  else
-    assert(got.out_degree == 1 && got.in_degree == 1);
+  assert(got.out_degree == 1 && got.in_degree == 0);
+  //the node should have no in edge; if undirected, we don't consider in_degree.
 
   got = graph.get_node(test_id2);
+  CommonUtil::dump_node(got);
   assert(got.id == test_id2);
   if (is_directed)
     assert(got.in_degree == 1 && got.out_degree == 0);
   else
-    assert(got.in_degree == 1 && got.out_degree == 1);
+    assert(got.in_degree == 0 && got.out_degree == 1);
+    //node has no out_edge, but for undirected graph, we only consider out_degree.
 
   // Now check if the adjlists were updated
   WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
@@ -919,7 +918,7 @@ int main()
   opts.create_new = true;
   opts.optimize_create = false;
   // opts.is_directed = false;
-   opts.is_directed = true;
+  opts.is_directed = true;
   opts.read_optimize = true;
   opts.is_weighted = true;
   opts.type = GraphType::Adj;
