@@ -100,6 +100,7 @@ struct graph_opts
   node_id_t num_nodes{};
   uint64_t num_edges{};  // we can have > 4B edges
   int num_threads = 1;
+  bool sort_edges = false;  // sort edges in the edge table
   // make a default constructor
   graph_opts()
       : db_name(""),
@@ -117,7 +118,8 @@ struct graph_opts
         read_optimize(false),
         is_directed(false),
         is_weighted(false),
-        optimize_create(true)
+        optimize_create(true),
+        sort_edges(false)
   {
   }
   ~graph_opts() = default;
@@ -151,6 +153,7 @@ struct graph_opts
     *out << "DATASET: " << dataset << std::endl;
     *out << "NUM_NODES: " << num_nodes << std::endl;
     *out << "NUM_EDGES: " << num_edges << std::endl;
+    *out << "SORT_EDGES: " << sort_edges << std::endl;
 
     if (file.is_open())
     {
@@ -179,6 +182,7 @@ struct graph_opts
       dataset = other.dataset;
       num_threads = other.num_threads;
       checkpoint_name = other.checkpoint_name;
+      sort_edges = other.sort_edges;  // copy sort_edges option
     }
     return *this;
   }
@@ -201,6 +205,7 @@ struct graph_opts
     checkpoint_name = other.checkpoint_name;
     num_threads = other.num_threads;
     dataset = other.dataset;
+    sort_edges = other.sort_edges;  // copy sort_edges option
   }
 };
 

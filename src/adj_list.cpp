@@ -540,29 +540,48 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
   #endif
   #ifdef MK_NEDGES
   node first, second;
-  //construct the first node and second edge based on which of the src and dst id is smaller.
-  if (to_insert.src_id < to_insert.dst_id)
-  {
+  #ifdef OrderNodes
+
+    //construct the first node and second edge based on which of the src and dst id is smaller.
+    if (to_insert.src_id < to_insert.dst_id)
+    {
+      first.id = to_insert.src_id;
+      first.in_degree = 0, first.out_degree = 1;
+      //this holds true for both directed and undirected graphs.
+      // opts.is_directed
+      //     ? (first.in_degree = 0, first.out_degree = 1)
+      //     : (first.in_degree = 0, first.out_degree = 1); //no in_degree for undirected
+      second.id = to_insert.dst_id;
+      opts.is_directed
+          ? (second.in_degree = 1, second.out_degree = 0)
+          : (second.in_degree = 0, second.out_degree = 1); //no in_degree for undirected
+    }
+    else
+    {
+      first.id = to_insert.dst_id;
+      opts.is_directed
+          ? (first.in_degree = 1, first.out_degree = 0)
+          : (first.in_degree = 0, first.out_degree = 1); //no in_degree for undirected
+      second.id = to_insert.src_id;
+      second.in_degree = 0, second.out_degree = 1;
+      //this holds true for both directed and undirected graphs.
+      // opts.is_directed
+      //     ? (second.in_degree = 0, second.out_degree = 1)
+      //     : (second.in_degree = 0, second.out_degree = 1); //no in_degree for undirected
+    }
+  #else
     first.id = to_insert.src_id;
-    opts.is_directed
-        ? (first.in_degree = 0, first.out_degree = 1)
-        : (first.in_degree = 0, first.out_degree = 1); //no in_degree for undirected
+    first.in_degree = 0, first.out_degree = 1;
+    //this holds true for both directed and undirected graphs.
+    // opts.is_directed
+    //     ? (first.in_degree = 0, first.out_degree = 1)
+    //     : (first.in_degree = 0, first.out_degree = 1); //no in_degree for undirected
     second.id = to_insert.dst_id;
     opts.is_directed
         ? (second.in_degree = 1, second.out_degree = 0)
         : (second.in_degree = 0, second.out_degree = 1); //no in_degree for undirected
-  }
-  else
-  {
-    first.id = to_insert.dst_id;
-    opts.is_directed
-        ? (first.in_degree = 1, first.out_degree = 0)
-        : (first.in_degree = 0, first.out_degree = 1); //no in_degree for undirected
-    second.id = to_insert.src_id;
-    opts.is_directed
-        ? (second.in_degree = 0, second.out_degree = 1)
-        : (second.in_degree = 0, second.out_degree = 1); //no in_degree for undirected
-  }
+  #endif
+
 
   /*****Insert SRC and DST if they don't exist.*****/
   ret = add_node_in_txn(first);  // ok to have duplicate key
@@ -626,9 +645,14 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
 #endif
   bool node_added = false;
   node_id_t node1, node2;
+  #ifdef OrderNodes
   to_insert.src_id < to_insert.dst_id
       ? (node1 = to_insert.src_id, node2 = to_insert.dst_id)
       : (node1 = to_insert.dst_id, node2 = to_insert.src_id);
+  #else
+  node1 = to_insert.src_id;
+  node2 = to_insert.dst_id;
+  #endif
 
   if (ret = add_to_adjlists(out_adjlist_cursor, node1, node2, node_added) != 0)
   {
@@ -767,6 +791,28 @@ int AdjList::delete_node(node_id_t to_delete)
 #endif
   delete_related_edges_and_adjlists(to_delete, &num_deleted_edges);
 
+  // delete the node from the in_adjlist table
+  //For whatever reasson, placing this in the delete_related_edges_and_adjlists
+  //function does not work. So, we do it here.
+  if (opts.is_directed)
+  {
+    in_adjlist_cursor->reset(in_adjlist_cursor);
+    CommonUtil::set_key(in_adjlist_cursor, to_delete);
+    if ((ret = error_check_insert_txn(in_adjlist_cursor->remove(in_adjlist_cursor))))
+    {
+      if(ret == WT_NOTFOUND)
+      {
+        // this means that the node was not found in the in_adjlist table
+        // which is fine, we can just return.
+      }else{
+        DEBUG_MSG("Failed to delete node " + std::to_string(to_delete) +
+                " from in_adjlist; TX rolled back.");
+        return ret;
+      }
+    }
+    in_adjlist_cursor->reset(in_adjlist_cursor);
+  }
+
   session->commit_transaction(session, nullptr);
   GraphBase::increment_nodes(-1);
   GraphBase::increment_edges(-num_deleted_edges);
@@ -783,7 +829,8 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
 {
   int ret;
 #ifdef MK_NEDGES
-
+if (opts.read_optimize)
+{
   CommonUtil::set_key(node_cursor, node_id);
   ret = node_cursor->search(node_cursor);
   if (ret != 0)
@@ -798,6 +845,23 @@ uint32_t AdjList::get_in_degree(node_id_t node_id)
   if (!opts.is_directed) found.in_degree = found.out_degree;
   node_cursor->reset(node_cursor);
   return found.in_degree;
+}else{
+  CommonUtil::set_key(in_adjlist_cursor, node_id);
+  ret = in_adjlist_cursor->search(in_adjlist_cursor);
+  if (ret != 0)
+  {
+    // throw GraphException("Could not find node with ID" +
+    //                      std::to_string(node_id) + " in the
+    //                      adjlist");
+    return 0;
+  }
+  adjlist in_edges;
+  in_edges.node_id = node_id;
+  CommonUtil::record_to_adjlist(in_adjlist_cursor, &in_edges);
+  in_adjlist_cursor->reset(in_adjlist_cursor);
+  return in_edges.degree;
+}
+  
 #else
   CommonUtil::set_key(in_adjlist_cursor, node_id);
   ret = in_adjlist_cursor->search(in_adjlist_cursor);
@@ -864,7 +928,9 @@ std::vector<node> AdjList::get_nodes()
 {
   std::vector<node> nodelist;
 #ifdef MK_NEDGES
-  while ((node_cursor->next(node_cursor) == 0))
+if(opts.read_optimize)
+  {  
+while ((node_cursor->next(node_cursor) == 0))
   {
     node found;
     CommonUtil::record_to_node(
@@ -873,8 +939,24 @@ std::vector<node> AdjList::get_nodes()
     nodelist.push_back(found);
   }
   node_cursor->reset(node_cursor);
+  } 
+  else   {
+    
+while (out_adjlist_cursor->next(out_adjlist_cursor) == 0)
+  {
+    adjlist found{};
+
+    CommonUtil::record_to_adjlist(out_adjlist_cursor, &found);
+    CommonUtil::get_key(out_adjlist_cursor, &found.node_id);
+    node temp = {
+        .id = found.node_id, .in_degree = 0, .out_degree = found.degree};
+    opts.is_directed? temp.in_degree = get_in_degree(found.node_id) :
+                  temp.in_degree = temp.out_degree;
+    nodelist.push_back(temp);
+  }
+}
 #else
-  while (out_adjlist_cursor->next(out_adjlist_cursor) == 0)
+while (out_adjlist_cursor->next(out_adjlist_cursor) == 0)
   {
     adjlist found{};
 
@@ -899,7 +981,26 @@ std::vector<node> AdjList::get_nodes()
 node AdjList::get_node(node_id_t node_id)
 {
 #ifdef MK_NEDGES
-  node found = {};
+  if(!opts.read_optimize)
+  {
+    adjlist found = {};
+
+  CommonUtil::set_key(out_adjlist_cursor, node_id);
+  int ret = out_adjlist_cursor->search(out_adjlist_cursor);
+  if (ret == 0)
+  {
+    node temp ;
+    CommonUtil::record_to_adjlist(out_adjlist_cursor, &found);
+    temp.id = node_id;
+    temp.out_degree = found.degree;
+    opts.is_directed? temp.in_degree = get_in_degree(node_id) :
+                  temp.in_degree = 0; // in_degree is 0 for undirected graphs
+    return temp;
+  }
+  //If the node is not in the out_adjlist.
+  return {.id = OutOfBand_ID_MAX, .in_degree = 0, .out_degree = 0};
+  }else{
+    node found = {};
   CommonUtil::set_key(node_cursor, node_id);
   int ret = node_cursor->search(node_cursor);
   if (ret == 0)
@@ -916,6 +1017,8 @@ node AdjList::get_node(node_id_t node_id)
   }
   node_cursor->reset(node_cursor);
   return found;
+  }
+  
 #else
   adjlist found = {};
 
@@ -1406,7 +1509,7 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
                                             node_id_t node_id)
 {
   int ret;
-  adjlist adj_list;
+  
 
   CommonUtil::set_key(cursor, node_id);
   ret = cursor->search(cursor);
@@ -1415,7 +1518,7 @@ std::vector<node_id_t> AdjList::get_adjlist(WT_CURSOR *cursor,
     LOG_MSG("Node ID {} does not have an adjacency list", node_id);
     return {};
   }
-
+  adjlist adj_list;
   CommonUtil::record_to_adjlist(cursor, &adj_list);
   cursor->reset(cursor);
   return adj_list.edgelist;
@@ -1448,7 +1551,14 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
       node_added = false; // this means that the node_id was already present
       adjlist found  = adjlist(to_add.node_id, 0);
       CommonUtil::record_to_adjlist(cursor, &found);
-      found.insert_sorted(to_insert);  // insert the edge to the edgelist
+      if (opts.sort_edges) 
+      {
+        found.insert_sorted(to_insert);
+      }
+      else 
+      {
+        found.insert(to_insert);
+      }
       return CommonUtil::adjlist_to_record(session, cursor, found);
     }
   }
@@ -1589,25 +1699,6 @@ edge_done:
   }
   out_adjlist_cursor->reset(out_adjlist_cursor);
   
-  //if directed, delete the node from the in_adjlist table
-  if (opts.is_directed)
-  {
-    in_adjlist_cursor->reset(in_adjlist_cursor);
-    CommonUtil::set_key(in_adjlist_cursor, to_delete);
-    if ((ret = error_check_insert_txn(in_adjlist_cursor->remove(in_adjlist_cursor))))
-    {
-      // if(ret == WT_NOTFOUND)
-      // {
-      //   // this means that the node was not found in the in_adjlist table
-      //   // which is fine, we can just return.
-      //   return 0;
-      // }
-      DEBUG_MSG("Failed to delete node " + std::to_string(to_delete) +
-                " from in_adjlist; TX rolled back.");
-      return ret;
-    }
-    in_adjlist_cursor->reset(in_adjlist_cursor);
-  }
   return ret;
 }
 

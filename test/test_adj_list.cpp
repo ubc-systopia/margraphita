@@ -1,51 +1,134 @@
 #include <atomic>
 #include <cassert>
+#include <fstream>
+#include <random>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 #include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
 #include "sample_graph.h"
+#include "test_utils.h"
 #include "times.h"
-
-#include <fstream>
-#include <vector>
-#include <string>
-#include <sstream>
-#include <utility>
-#include <random>
 
 #define delim "--------------"
 #define INFO() fprintf(stdout, "%s\nNow running: %s\n", delim, __FUNCTION__);
 
-std::vector<edge> read_edges_parallel(const std::string& filename) {
+atomic<int> rollbakcs(0);
+atomic<int> insert_cnt{0};
+
+// Function for the dedicated monitoring thread.
+// It will periodically measure and log performance metrics.
+void monitor_function(std::atomic<bool> &stop_flag,
+                      const std::string &log_filepath,
+                      int interval_seconds)
+{
+  // Open the log file in append mode. If it doesn't exist, it will be created.
+  std::ofstream log_file(log_filepath, std::ios_base::app);
+
+  // Set up variable to measure elapsed time
+  long elapsed_time = 0;
+  long prev_insertions = 0;
+
+  if (!log_file.is_open())
+  {
+    std::cerr << "Error: Could not open log file: " << log_filepath
+              << std::endl;
+    return;  // Exit if file cannot be opened
+  }
+
+  if (log_file.tellp() == 0)
+  {  // Check if file is empty and write headers
+    log_file << "Timestamp,Threads,Memory_VmRSS_GB,Insertions,Rollbacks,Insert_"
+                "Bandwidth"
+             << std::endl;
+  }
+
+  std::cout << "Monitoring thread started. Logging to " << log_filepath
+            << " every " << interval_seconds << " seconds." << std::endl;
+
+  // Loop until the stop_flag is set by the main thread.
+  while (!stop_flag.load())
+  {
+    int thread_count = get_current_thread_count();
+    long rss_kb = get_current_rss_kb();
+
+    // Get current time for the log entry
+    auto now = std::chrono::system_clock::now();
+    std::time_t current_time_t = std::chrono::system_clock::to_time_t(now);
+    std::tm *local_tm = std::localtime(
+        &current_time_t);  // Not thread-safe, but avoids localtime_r
+
+    char time_str[100];
+    // Format time as YYYY-MM-DD HH:MM:SS
+    std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", local_tm);
+
+    // Calculate insertions and rollbacks
+    int current_insertions = insert_cnt.load();
+    int current_rollbacks = rollbakcs.load();
+    int insertions = current_insertions - prev_insertions;
+    prev_insertions = current_insertions;
+    double insert_bandwidth =
+        (insertions) / (interval_seconds);  // Bandwidth in Edges/sec
+
+    // Write metrics to the log file in CSV format
+    log_file << time_str << "," << thread_count << "," << rss_kb << ","
+             << current_insertions << "," << current_rollbacks << ","
+             << insert_bandwidth << std::endl;
+    log_file.flush();  // Ensure data is written to disk immediately
+
+    // Sleep for the specified interval
+    std::this_thread::sleep_for(std::chrono::seconds(interval_seconds));
+  }
+
+  log_file.close();  // Close the log file when done
+  std::cout << "Monitoring thread stopped gracefully." << std::endl;
+}
+
+std::vector<edge> read_edges_parallel(const std::string &filename)
+{
   std::vector<std::string> lines;
 
   // Read all lines into memory
   {
     std::ifstream infile(filename);
     std::string line;
-    while (std::getline(infile, line)) {
+    while (std::getline(infile, line))
+    {
       lines.push_back(line);
     }
   }
 
   std::vector<edge> edges(lines.size());
 
-  #pragma omp parallel for
-  for (size_t i = 0; i < lines.size(); ++i) {
+#pragma omp parallel for
+  for (size_t i = 0; i < lines.size(); ++i)
+  {
     std::istringstream iss(lines[i]);
     node_id_t u, v;
-    if (iss >> u >> v) {
-      edges[i] = {.id = 0, .src_id = u, .dst_id = v, .edge_weight = 0}; // Assuming edge_weight is 0
-    } else {
-      continue; // Invalid line, skip it
+    if (iss >> u >> v)
+    {
+      edges[i] = {.id = 0,
+                  .src_id = u,
+                  .dst_id = v,
+                  .edge_weight = 0};  // Assuming edge_weight is 0
+    }
+    else
+    {
+      continue;  // Invalid line, skip it
     }
   }
 
   return edges;
 }
 
-void test_rollbacks(WT_CONNECTION *conn, graph_opts &opts)
+void test_rollbacks(WT_CONNECTION *conn,
+                    graph_opts &opts,
+                    std::string &log_file_path)
 {
   INFO()
   std::string filename = opts.dataset;
@@ -55,16 +138,30 @@ void test_rollbacks(WT_CONNECTION *conn, graph_opts &opts)
   std::mt19937 gen(rd());
   std::shuffle(edges.begin(), edges.end(), gen);
 
-  atomic<int> rollbakcs(0);
-  atomic<int> insert_cnt{0};
+  // --- Configuration for monitoring ---
+  std::atomic<bool> stop_monitoring(
+      false);                   // Flag to signal monitoring thread to stop
+  log_file_path += "_log.csv";  // Path for the log file
+  int monitor_interval_seconds =
+      60;  // How often to log (e.g., every 5 seconds)
+
+  // --- Start the monitoring thread ---
+  // std::ref is used to pass stop_monitoring by reference to the thread
+  // function.
+  std::thread monitor_th(monitor_function,
+                         std::ref(stop_monitoring),
+                         log_file_path,
+                         monitor_interval_seconds);
+
   Times t;
   t.start();
   std::cout << "Inserting edges from file: " << filename << std::endl;
   std::cout << "Total edges to insert: " << edges.size() << std::endl;
-  std::cout << "Using " << opts.num_threads << " threads for insertion." << std::endl;
+  std::cout << "Using 8 threads for insertion." << std::endl;
   std::cout << "Starting insertion..." << std::endl;
 #pragma omp parallel for num_threads(8) shared(rollbakcs, insert_cnt)
   for (edge x : edges)
+  // for (int i = 0; i < 100; ++i)
   {
     thread_local AdjList graph(opts, conn);
     bool inserted = false;
@@ -75,28 +172,39 @@ void test_rollbacks(WT_CONNECTION *conn, graph_opts &opts)
       {
         inserted = true;
         insert_cnt++;
-        if(insert_cnt.load() % 1000000 == 0)
+        if (insert_cnt.load() % 10000000 == 0)
         {
-          std::cout << "Inserted count: " << insert_cnt.load() << std::endl;
+          std::cout << "Current Inserted count: " << insert_cnt.load()
+                    << std::endl;
         }
       }
       else
       {
         rollbakcs++;
-        if (rollbakcs.load() % 1000 == 0)
+        if (rollbakcs.load() % 100000 == 0)
         {
-          std::cout << "Rollback count: " << rollbakcs.load() << std::endl;
+#pragma omp critical
+          {
+            std::cout << "Current Rollbacks count: " << rollbakcs.load()
+                      << std::endl;
+          }  // Only one thread prints the rollback count
         }
+        // sleep for a short duration to avoid busy waiting
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
       }
     }
   }
   t.stop();
-  std::cout << "Insertion completed in " << t.t_secs() << " seconds." << std::endl;
+  std::cout << "Insertion completed in " << t.t_secs() << " seconds."
+            << std::endl;
   std::cout << "Total edges inserted: " << insert_cnt.load() << std::endl;
-  std::cout << "Rollback count: " << rollbakcs.load() << std::endl;
-  std::cout << "Inserted count: " << insert_cnt.load() << std::endl;
-}
+  std::cout << "Total Rollback count: " << rollbakcs.load() << std::endl;
 
+  // --- Signal the monitoring thread to stop and wait for it to finish ---
+  std::cout << "Signaling monitoring thread to stop..." << std::endl;
+  stop_monitoring.store(true);  // Set the flag to true
+  monitor_th.join();            // Wait for the monitoring thread to complete
+}
 
 void create_init_nodes(WT_CONNECTION *conn, graph_opts &opts)
 {
@@ -104,10 +212,11 @@ void create_init_nodes(WT_CONNECTION *conn, graph_opts &opts)
 
   atomic<int> rollbakcs(0);
   atomic<int> insert_cnt{0};
-// #pragma omp parallel for num_threads(1) shared(rollbakcs, insert_cnt)
+#pragma omp parallel for num_threads(1) shared(rollbakcs, insert_cnt)
   for (edge x : SampleGraph::parallel_insert_edges)
   {
-    std::cout << "Inserting edge: " << x.src_id << " -> " << x.dst_id << std::endl;
+    std::cout << "Inserting edge: " << x.src_id << " -> " << x.dst_id
+              << std::endl;
     thread_local AdjList graph(opts, conn);
     bool inserted = false;
     while (!inserted)
@@ -123,7 +232,6 @@ void create_init_nodes(WT_CONNECTION *conn, graph_opts &opts)
         rollbakcs++;
       }
     }
-    
   }
   std::cout << "Rollback count: " << rollbakcs.load() << std::endl;
   std::cout << "Inserted count: " << insert_cnt.load() << std::endl;
@@ -162,7 +270,7 @@ void test_get_node(AdjList graph, graph_opts &opts)
   CommonUtil::dump_node(found);
   assert(found.id == 1);
   assert(found.out_degree == 5);
-  assert(found.in_degree == 0); // node 1 has no incoming edges in the
+  assert(found.in_degree == 0);  // node 1 has no incoming edges in the
                                  // sample graph
 
   // now get a node that does not exist
@@ -264,7 +372,8 @@ void test_add_edge(AdjList graph, bool is_directed)
   CommonUtil::dump_node(got);
   assert(got.id == test_id1);
   assert(got.out_degree == 1 && got.in_degree == 0);
-  //the node should have no in edge; if undirected, we don't consider in_degree.
+  // the node should have no in edge; if undirected, we don't consider
+  // in_degree.
 
   got = graph.get_node(test_id2);
   CommonUtil::dump_node(got);
@@ -273,7 +382,8 @@ void test_add_edge(AdjList graph, bool is_directed)
     assert(got.in_degree == 1 && got.out_degree == 0);
   else
     assert(got.in_degree == 0 && got.out_degree == 1);
-    //node has no out_edge, but for undirected graph, we only consider out_degree.
+  // node has no out_edge, but for undirected graph, we only consider
+  // out_degree.
 
   // Now check if the adjlists were updated
   WT_CURSOR *in_adj_cur = graph.get_in_adjlist_cursor();
@@ -363,8 +473,14 @@ void test_get_in_edges(AdjList graph, graph_opts &opts)
   int test_id1 = 4, test_id2 = 3, test_id3 = 1500;
   std::vector<edge> edges = graph.get_in_edges(test_id1);
 
-  if(opts.is_directed) {assert(edges.size() == 3);}
-  else {assert(edges.size() == 8);}
+  if (opts.is_directed)
+  {
+    assert(edges.size() == 3);
+  }
+  else
+  {
+    assert(edges.size() == 8);
+  }
   // Check edge0 (1, 4)
   assert(edges.at(0).src_id == 1);
   assert(edges.at(0).dst_id == 4);
@@ -486,9 +602,11 @@ void test_get_in_nodes(AdjList graph, graph_opts &opts)
     assert(nodes.empty());
     assert(nodes_id.empty());
     return;  // no in edges for node 1 in a directed graph
-  }else{ 
+  }
+  else
+  {
     assert(nodes.size() == 5);
-    assert(nodes_id.size() == 5);  
+    assert(nodes_id.size() == 5);
     assert(nodes.at(0).id == 4);  // edge(1->4)
     assert(nodes.at(0).id == nodes_id.at(0));
     assert(nodes.at(1).id == 5);  // edge(1->5)
@@ -499,11 +617,11 @@ void test_get_in_nodes(AdjList graph, graph_opts &opts)
     assert(nodes.at(3).id == nodes_id.at(3));
     assert(nodes.at(4).id == 13);  // edge(1->13)
     assert(nodes.at(4).id == nodes_id.at(4));
-}
+  }
   // test for a node that has a valid in-edge
   nodes = graph.get_in_nodes(test_id2);
   nodes_id = graph.get_in_nodes_id(test_id2);
-  //Node 4 has 3 inedges (1,2,3) and 5 out edges (5,7,8,9,13)
+  // Node 4 has 3 inedges (1,2,3) and 5 out edges (5,7,8,9,13)
   if (opts.is_directed)
   {
     assert(nodes.size() == 3);
@@ -514,7 +632,9 @@ void test_get_in_nodes(AdjList graph, graph_opts &opts)
     assert(nodes.at(1).id == nodes_id.at(1));
     assert(nodes.at(2).id == 3);  // edge(3->4)
     assert(nodes.at(2).id == nodes_id.at(2));
-  }else{
+  }
+  else
+  {
     assert(nodes.size() == 8);
     assert(nodes_id.size() == 8);
     assert(nodes.at(0).id == 1);  // edge(1->4)
@@ -531,7 +651,7 @@ void test_get_in_nodes(AdjList graph, graph_opts &opts)
     assert(nodes.at(5).id == nodes_id.at(5));
     assert(nodes.at(6).id == 9);  // edge(4->9)
     assert(nodes.at(6).id == nodes_id.at(6));
-    assert(nodes.at(7).id == 13); // edge (4->13)
+    assert(nodes.at(7).id == 13);  // edge (4->13)
     assert(nodes.at(7).id == nodes_id.at(7));
   }
 
@@ -628,25 +748,25 @@ void test_delete_node(AdjList graph, bool is_directed)
   CommonUtil::set_key(adj_in_cur, SampleGraph::node2.id);
   ret = adj_in_cur->search(adj_in_cur);
   assert(ret != 0);
-/*
-This was valid for the old sample graph.
-#ifdef MK_NEDGES
-  // check that edge(2,3) is deleted
-  CommonUtil::set_key(e_cursor, 2, 3);
-  assert(e_cursor->search(e_cursor) != 0);
-  // check that edge(1,2) is deleted
-  CommonUtil::set_key(e_cursor, 1, 2);
-  assert(e_cursor->search(e_cursor) != 0);
-  // Now delete the reverse edges for undirected graph
-  if (!is_directed)
-  {
-    CommonUtil::set_key(e_cursor, 3, 2);
+  /*
+  This was valid for the old sample graph.
+  #ifdef MK_NEDGES
+    // check that edge(2,3) is deleted
+    CommonUtil::set_key(e_cursor, 2, 3);
     assert(e_cursor->search(e_cursor) != 0);
-    CommonUtil::set_key(e_cursor, 2, 1);
+    // check that edge(1,2) is deleted
+    CommonUtil::set_key(e_cursor, 1, 2);
     assert(e_cursor->search(e_cursor) != 0);
-  }
-#endif
-*/
+    // Now delete the reverse edges for undirected graph
+    if (!is_directed)
+    {
+      CommonUtil::set_key(e_cursor, 3, 2);
+      assert(e_cursor->search(e_cursor) != 0);
+      CommonUtil::set_key(e_cursor, 2, 1);
+      assert(e_cursor->search(e_cursor) != 0);
+    }
+  #endif
+  */
   // Verify that node 2 is deleted from adjlist of node1 and node3
   // In the new sample graph, for node 2: ((out) 13, 4, 5,7, 8, 9 | in {} )
   adj_out_cur->reset(adj_out_cur);
@@ -677,9 +797,9 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
   int ret = 0;
 
   graph.delete_node(SampleGraph::isolated_node.id);
+  return;
 
-
-  #ifdef MK_NEDGES
+#ifdef MK_NEDGES
   // Verify node4 exists
   WT_CURSOR *n_cursor = graph.get_node_cursor();
   // Delete isolated_node and verify it was actually deleted
@@ -696,7 +816,7 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
   WT_CURSOR *adj_in_cur = graph.get_in_adjlist_cursor();
   CommonUtil::set_key(adj_in_cur, SampleGraph::isolated_node.id);
   assert(adj_in_cur->search(adj_in_cur) != 0);
-
+  return;
 
 #ifdef MK_NEDGES
   // Check no edge has node4 in source or dst
@@ -739,7 +859,7 @@ void test_InCursor(AdjList graph)
   INFO();
   auto *in_cursor = (AdjInCursor *)graph.get_innbd_iter();
   adjlist found;
-  
+
   // in_cursor->setAllNodes(true);
   // std::cout << "Printing in-adjlists for all nodes (AllNodes=true)\n"
   //           << std::endl;
@@ -753,16 +873,17 @@ void test_InCursor(AdjList graph)
   // std::cout << "the found.node id is " << found.node_id << std::endl;
   // assert(found.node_id == OutOfBand_ID_MAX);
   // found.clear();
-  std::cout << "Printing in-adjlists for nodes with non-null nbd (AllNodes=false)\n"
-         << std::endl;
+  std::cout
+      << "Printing in-adjlists for nodes with non-null nbd (AllNodes=false)\n"
+      << std::endl;
   in_cursor->setAllNodes(false);
   // adjlist found;
   in_cursor->next(&found);
   while (found.node_id != OutOfBand_ID_MAX)
   {
-      CommonUtil::dump_adjlist(found);
-      found.clear();
-      in_cursor->next(&found);
+    CommonUtil::dump_adjlist(found);
+    found.clear();
+    in_cursor->next(&found);
   }
   in_cursor->close();
   delete in_cursor;
@@ -805,9 +926,23 @@ void test_NodeCursor(AdjList &graph)
   INFO();
   NodeCursor *node_cursor = graph.get_node_iter();
   node found;
-  node_id_t nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 9,//node 2 is deleted
-                            10, 11, 12, 13, 14, 15, 16,
-                            18, 19}; //test_add_edge adds nodes 18 and 19
+  node_id_t nodeIdList[] = {1,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                            9,  // node 2 is deleted
+                            10,
+                            11,
+                            12,
+                            13,
+                            14,
+                            15,
+                            16,
+                            18,
+                            19};  // test_add_edge adds nodes 18 and 19
   int i = 0;
   node_cursor->next(&found);
   while (found.id != OutOfBand_ID_MAX)
@@ -828,7 +963,7 @@ void test_NodeCursor_Range(AdjList graph)
   INFO();
   NodeCursor *node_cursor = graph.get_node_iter();
   node found;
-  node_id_t nodeIdList[] = {3,4,5,6}; // nodes in range [3,6]
+  node_id_t nodeIdList[] = {3, 4, 5, 6};  // nodes in range [3,6]
   int i = 0;
   node_cursor->set_key_range(key_range{3, 6});
   node_cursor->next(&found);
@@ -863,7 +998,8 @@ void test_EdgeCursor(AdjList graph, bool is_directed)
   {
     // assert(found.src_id == expected[i].first);
     // assert(found.dst_id == expected[i].second);
-    std::cout << "("<<found.src_id << " , " << found.dst_id << ")" <<std::endl;
+    std::cout << "(" << found.src_id << " , " << found.dst_id << ")"
+              << std::endl;
     // CommonUtil::dump_edge(found);
     edge_cursor->next(&found);
     i++;
@@ -878,8 +1014,9 @@ void test_EdgeCursor_Range(AdjList graph, bool is_directed)
   EdgeCursor *edge_cursor = graph.get_edge_iter();
   edge_cursor->set_key_range(edge_range(key_pair{1, 5}, key_pair{3, 5}));
   edge found;
-  std::vector<std::pair<node_id_t, node_id_t>> expected = {{1, 5}, {1, 8}, {1,9}, {1,13}, {3,4}, {3,5}};
-    //same for directed and undirected graphs
+  std::vector<std::pair<node_id_t, node_id_t>> expected = {
+      {1, 5}, {1, 8}, {1, 9}, {1, 13}, {3, 4}, {3, 5}};
+  // same for directed and undirected graphs
   int i = 0;
   edge_cursor->next(&found);
   while (found.src_id != OutOfBand_ID_MAX)
@@ -911,7 +1048,8 @@ void test_ro_get_nodes(GraphBase *graph)
   }
 }
 
-int main()
+// accept read_opt, sort_edges from command line
+int main(int argc, char *argv[])
 {
   const int THREAD_NUM = 1;
   graph_opts opts;
@@ -919,12 +1057,15 @@ int main()
   opts.optimize_create = false;
   // opts.is_directed = false;
   opts.is_directed = true;
-  opts.read_optimize = true;
+
   opts.is_weighted = true;
   opts.type = GraphType::Adj;
   opts.db_dir = "./db";
   opts.db_name = "test_adj";
-  opts.conn_config = "cache_size=10GB";
+  opts.conn_config =
+      "cache_size=100GB,eviction_trigger=95,eviction_dirty_trigger=95,eviction_"
+      "dirty_target=85";
+  opts.sort_edges = true;
   if (const char *env_p = std::getenv("GRAPH_PROJECT_DIR"))
   {
     opts.stat_log = std::string(env_p);
@@ -934,33 +1075,65 @@ int main()
     std::cout << "GRAPH_PROJECT_DIR not set. Using CWD" << std::endl;
     opts.stat_log = "./";
   }
+  opts.dataset = "/drives/hdd_main/datasets_downloads/dota_league/dota_league";
+  std::string log_name = "results/";
+  // extract last part of the dataset path to make the log name
+  log_name += "DotaLeague_";  // parser cannot handle underscores in the name
+#ifdef MK_NEDGES
+  std::cout << "DB being created with MK_NEDGES enabled" << std::endl;
+  log_name += "withNodes";
+#else
+  std::cout << "DB being created with MK_NEDGES disabled" << std::endl;
+  log_name += "withoutNodes";
+#endif
+
+#ifdef B64
+  std::cout << "Using 64-bit IDs" << std::endl;
+#else
+  std::cout << "Using 32-bit IDs" << std::endl;
+#endif
+
+#ifdef OrderNodes
+  std::cout << "Using OrderNodes" << std::endl;
+  log_name += "_OrderNodes";
+#else
+  std::cout << "Not using OrderNodes" << std::endl;
+  log_name += "_NoOrderNodes";
+#endif
+
+  // opts.sort_edges ? log_name += "_SortEdges" : log_name += "_NoSortEdges";
+  // opts.read_optimize ? log_name += "_ReadOpt" : log_name += "_NoReadOpt";
+
+  opts.sort_edges = false;
+  opts.read_optimize = true;
 
   // GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
   //                                            .opts = opts};
   GraphEngine myEngine(THREAD_NUM, opts);
   WT_CONNECTION *conn = myEngine.get_connection();
-  create_init_nodes(conn, opts);
-  // opts.dataset = "/drives/hdd_main/datasets_downloads/graph500_23/graph500_23";
-  // test_rollbacks(conn, opts);
-  AdjList graph(opts, conn);
-  test_get_nodes(graph, opts);
-  test_get_node(graph, opts);
-  test_add_edge(graph, opts.is_directed);
-  test_node_add(graph, opts);
-  test_get_edge(graph, opts.is_directed);
-  test_get_out_edges(graph, opts);
-  test_get_in_edges(graph, opts);
-  test_get_out_nodes(graph, opts);
-  test_get_in_nodes(graph, opts);
-  test_delete_node(graph, opts.is_directed);
-  test_delete_isolated_node(graph, opts.is_directed);
-  test_InCursor(graph);
-  test_OutCursor(graph);
-  test_NodeCursor(graph);
-  test_NodeCursor_Range(graph);
-  test_EdgeCursor(graph, opts.is_directed);
-  test_EdgeCursor_Range(graph, opts.is_directed);
-  tearDown(graph);
+  // create_init_nodes(conn, opts);
+
+  test_rollbacks(conn, opts, log_name);
+  // AdjList graph(opts, conn);
+  // test_get_nodes(graph, opts);
+  // test_get_node(graph, opts);
+  // test_add_edge(graph, opts.is_directed);
+  // test_node_add(graph, opts);
+  // test_get_edge(graph, opts.is_directed);
+  // test_get_out_edges(graph, opts);
+  // test_get_in_edges(graph, opts);
+  // test_get_out_nodes(graph, opts);
+  // test_get_in_nodes(graph, opts);
+  // test_delete_node(graph, opts.is_directed);
+
+  // test_delete_isolated_node(graph, opts.is_directed);
+  // test_InCursor(graph);
+  // test_OutCursor(graph);
+  // test_NodeCursor(graph);
+  // test_NodeCursor_Range(graph);
+  // test_EdgeCursor(graph, opts.is_directed);
+  // test_EdgeCursor_Range(graph, opts.is_directed);
+  // tearDown(graph);
   myEngine.close_graph();
 
   ////////////

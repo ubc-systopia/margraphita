@@ -96,18 +96,30 @@ endif()
 # ######################################################
 SET(NAME_LIB "GraphAPI")
 
+string(ASCII 27 Esc)
+set(COLOR_RESET "${Esc}[0m")
+set(COLOR_BOLD "${Esc}[1m")
+set(COLOR_BOLD_YELLOW "${Esc}[1;33m")
+
 if (B64)
-  message(STATUS "Using 64 bit vertex ids")
+  message("${COLOR_BOLD_YELLOW}Using 64 bit vertex ids ${COLOR_RESET}")
   add_compile_definitions(B64)
 else ()
-  message(STATUS "Using 32 bit vertex ids")
+  message("${COLOR_BOLD_YELLOW}Using 32 bit vertex ids${COLOR_RESET}")
 endif ()
 
 if(UseProps)
-  message(STATUS "Creating the nodes and edge tables in AdjList")
+  message("${COLOR_BOLD_YELLOW}Creating the nodes and edge tables in AdjList${COLOR_RESET}")
   add_compile_definitions (MK_NEDGES)
 else()
-  message (STATUS "Not creating node and edge tables in AdjList")
+  message("${COLOR_BOLD_YELLOW}Not creating node and edge tables in AdjList${COLOR_RESET}")
+endif()
+
+if(OrderNodes)
+  message("${COLOR_BOLD_YELLOW}Sort src, dst by ID when inserting edges in AdjList${COLOR_RESET}")
+  add_compile_definitions (OrderNodes)
+else ()
+  message("${COLOR_BOLD_YELLOW}Do not sort src, dst by ID when inserting edges in AdjList${COLOR_RESET}")
 endif()
 
 
