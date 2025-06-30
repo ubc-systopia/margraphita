@@ -125,7 +125,7 @@ void GraphBase::insert_metadata(const int key,
   int ret = cursor->insert(cursor);
   if (ret != 0)
   {
-    fprintf(stderr, "Failed to insert metadata for the key %d", key);
+    fprintf(stderr, "Failed to insert metadata for the key %d. ", key);
     fprintf(stderr, "Error: %s\n", wiredtiger_strerror(ret));
     exit(-1);
   }
@@ -332,23 +332,27 @@ int GraphBase::_get_index_cursor(const std::string &table_name,
 void GraphBase::sync_metadata()
 {
   node_id_t temp = GraphBase::get_num_nodes();
+  std::cout << "number of nodes: " << temp << std::endl;
   insert_metadata(MetadataKey::num_nodes,
                   (char *)&temp,
                   sizeof(node_id_t),
                   metadata_cursor);
   temp = GraphBase::get_num_edges();
+  std::cout << "number of edges: " << temp << std::endl;
   insert_metadata(MetadataKey::num_edges,
                   (char *)&temp,
                   sizeof(edge_id_t),
                   metadata_cursor);
 
   auto max_node = get_max_node_id();
+  std::cout << "max_node: " << max_node << std::endl;
   insert_metadata(MetadataKey::max_node_id,
                   (char *)&max_node,
                   sizeof(node_id_t),
                   metadata_cursor);
 
   auto min_node = get_min_node_id();
+  std::cout << "min_node: " << min_node << std::endl;
   insert_metadata(MetadataKey::min_node_id,
                   (char *)&min_node,
                   sizeof(node_id_t),

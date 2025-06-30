@@ -68,7 +68,7 @@ void SplitEdgeKey::init_cursors()
                                &metadata_cursor,
                                session,
                                false,
-                               false,
+                               true,  // overwrite must be allowed
                                opts.checkpoint_name)))
   {
     throw GraphException("Could not get a cursor to the metadata table:" +

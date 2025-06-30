@@ -11,7 +11,7 @@
 #include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
-#include "sample_graph.h"
+#include "sample_graph_adjlist.h"
 #include "test_utils.h"
 #include "times.h"
 
@@ -20,6 +20,7 @@
 
 atomic<int> rollbakcs(0);
 atomic<int> insert_cnt{0};
+static std::atomic<bool> final_close_done(false);
 
 // Function for the dedicated monitoring thread.
 // It will periodically measure and log performance metrics.
@@ -159,39 +160,51 @@ void test_rollbacks(WT_CONNECTION *conn,
   std::cout << "Total edges to insert: " << edges.size() << std::endl;
   std::cout << "Using 8 threads for insertion." << std::endl;
   std::cout << "Starting insertion..." << std::endl;
-#pragma omp parallel for num_threads(8) shared(rollbakcs, insert_cnt)
-  for (edge x : edges)
-  // for (int i = 0; i < 100; ++i)
+#pragma omp parallel num_threads(8) shared(rollbakcs, insert_cnt)
   {
     thread_local AdjList graph(opts, conn);
-    bool inserted = false;
-    while (!inserted)
+#pragma omp for
+    for (int i = 0; i < edges.size(); ++i)
     {
-      int ret = graph.add_edge(x, true);
-      if (ret == 0)
+      bool inserted = false;
+      while (!inserted)
       {
-        inserted = true;
-        insert_cnt++;
-        if (insert_cnt.load() % 10000000 == 0)
+        int ret = graph.add_edge(edges[i], true);
+        if (ret == 0)
         {
-          std::cout << "Current Inserted count: " << insert_cnt.load()
-                    << std::endl;
-        }
-      }
-      else
-      {
-        rollbakcs++;
-        if (rollbakcs.load() % 100000 == 0)
-        {
-#pragma omp critical
+          inserted = true;
+          insert_cnt++;
+          if (insert_cnt.load() % 10000000 == 0)
           {
-            std::cout << "Current Rollbacks count: " << rollbakcs.load()
+            std::cout << "Current Inserted count: " << insert_cnt.load()
                       << std::endl;
-          }  // Only one thread prints the rollback count
+          }
         }
-        // sleep for a short duration to avoid busy waiting
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
+        else
+        {
+          rollbakcs++;
+          if (rollbakcs.load() % 100000 == 0)
+          {
+#pragma omp critical
+            {
+              std::cout << "Current Rollbacks count: " << rollbakcs.load()
+                        << std::endl;
+            }  // Only one thread prints the rollback count
+          }
+          // sleep for a short duration to avoid busy waiting
+          std::this_thread::sleep_for(std::chrono::microseconds(1));
+        }
       }
+    }
+    // Now sync the metadata
+#pragma omp barrier
+    if (!final_close_done.exchange(true))
+    {
+      graph.close(true);
+    }
+    else
+    {
+      graph.close();  // other threads close without syncing metadata
     }
   }
   t.stop();
@@ -1064,7 +1077,7 @@ int main(int argc, char *argv[])
   opts.db_name = "test_adj";
   opts.conn_config =
       "cache_size=100GB,eviction_trigger=95,eviction_dirty_trigger=95,eviction_"
-      "dirty_target=85";
+      "dirty_target=85";  //",verbose=[evict:1,evictserver:1,transaction:1]";
   opts.sort_edges = true;
   if (const char *env_p = std::getenv("GRAPH_PROJECT_DIR"))
   {
@@ -1105,44 +1118,48 @@ int main(int argc, char *argv[])
   // opts.read_optimize ? log_name += "_ReadOpt" : log_name += "_NoReadOpt";
 
   opts.sort_edges = false;
-  opts.read_optimize = true;
+  opts.read_optimize = false;  // false;
 
   // GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
   //                                            .opts = opts};
+  //  opts.create_new = false;
   GraphEngine myEngine(THREAD_NUM, opts);
   WT_CONNECTION *conn = myEngine.get_connection();
-  // create_init_nodes(conn, opts);
+  create_init_nodes(conn, opts);
 
-  test_rollbacks(conn, opts, log_name);
-  // AdjList graph(opts, conn);
-  // test_get_nodes(graph, opts);
-  // test_get_node(graph, opts);
-  // test_add_edge(graph, opts.is_directed);
-  // test_node_add(graph, opts);
-  // test_get_edge(graph, opts.is_directed);
-  // test_get_out_edges(graph, opts);
-  // test_get_in_edges(graph, opts);
-  // test_get_out_nodes(graph, opts);
-  // test_get_in_nodes(graph, opts);
-  // test_delete_node(graph, opts.is_directed);
+  //test_rollbacks(conn, opts, log_name);
 
-  // test_delete_isolated_node(graph, opts.is_directed);
-  // test_InCursor(graph);
-  // test_OutCursor(graph);
-  // test_NodeCursor(graph);
-  // test_NodeCursor_Range(graph);
-  // test_EdgeCursor(graph, opts.is_directed);
-  // test_EdgeCursor_Range(graph, opts.is_directed);
-  // tearDown(graph);
+   AdjList graph(opts, conn);
+  //  graph.dump_meta_data();
+  //  graph.close();
+  test_get_nodes(graph, opts);
+  test_get_node(graph, opts);
+  test_add_edge(graph, opts.is_directed);
+  test_node_add(graph, opts);
+  test_get_edge(graph, opts.is_directed);
+  test_get_out_edges(graph, opts);
+  test_get_in_edges(graph, opts);
+  test_get_out_nodes(graph, opts);
+  test_get_in_nodes(graph, opts);
+  test_delete_node(graph, opts.is_directed);
+
+  test_delete_isolated_node(graph, opts.is_directed);
+  test_InCursor(graph);
+  test_OutCursor(graph);
+  test_NodeCursor(graph);
+  test_NodeCursor_Range(graph);
+  test_EdgeCursor(graph, opts.is_directed);
+  test_EdgeCursor_Range(graph, opts.is_directed);
+  tearDown(graph);
   myEngine.close_graph();
 
   ////////////
   // Now test for read_only mode
-  //  opts.create_new = false;
-  //  opts.read_only = true;
-  //  GraphEngine roEngine(THREAD_NUM, opts);
-  //  GraphBase *rograph = roEngine.create_graph_handle();
-  //  test_ro_get_nodes(rograph);
-  //  rograph->close(false);
-  //  roEngine.close_graph();
+   opts.create_new = false;
+   opts.read_only = true;
+   GraphEngine roEngine(THREAD_NUM, opts);
+   GraphBase *rograph = roEngine.create_graph_handle();
+   test_ro_get_nodes(rograph);
+   rograph->close(false);
+   roEngine.close_graph();
 }

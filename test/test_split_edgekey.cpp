@@ -3,7 +3,7 @@
 #include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
-#include "sample_graph.h"
+#include "sample_graph_ekey.h"
 
 #define delim "--------------"
 #define INFO() fprintf(stderr, "%s\nNow running: %s\n", delim, __FUNCTION__);
@@ -544,7 +544,11 @@ void test_InCursor(SplitEdgeKey &graph)
   delete in_cursor;
 }
 
-void tearDown(SplitEdgeKey &graph) { graph.close(true); }
+void tearDown(SplitEdgeKey &graph)
+{
+  INFO();
+  graph.close(true);
+}
 
 void test_ro_get_nodes(GraphBase *graph)
 {

@@ -37,6 +37,15 @@
     /* Pass the dynamic parts as separate arguments. */                        \
     fmt::print(stderr, "DEBUG: [{}:{}] " msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
   } while (0)
+#define LOG_ROLLBACK_LOCATION(func_name, edge)      \
+                                                    \
+  if (ret == WT_ROLLBACK)                           \
+  {                                                 \
+    printf("ROLLBACK at %s for edge (%lu, %lu) \n", \
+           func_name,                               \
+           edge.src_id,                             \
+           edge.dst_id);                            \
+  }
 #else
 #define DEBUG_MSG(msg) \
   do                   \
@@ -45,6 +54,11 @@
 #define LOG_MSG(msg, ...) \
   do                      \
   {                       \
+  } while (0)
+
+#define LOG_ROLLBACK_LOCATION(msg, ...) \
+  do                                    \
+  {                                     \
   } while (0)
 #endif
 

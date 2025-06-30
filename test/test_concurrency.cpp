@@ -5,7 +5,7 @@
 #include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
-#include "sample_graph.h"
+#include "sample_graph_adjlist.h"
 
 #define THREAD_NUM 2
 using namespace std;

@@ -27,8 +27,8 @@ if(NOT EXISTS ${WT_BINARY})
   include(ExternalProject)
   ExternalProject_Add(wiredtiger
     BUILD_ALWAYS false
-    GIT_REPOSITORY https://github.com/wiredtiger/wiredtiger
-    GIT_TAG 11.0.0
+          GIT_REPOSITORY https://github.com/artorhem/wiredtiger
+          GIT_TAG 11.0.0_flexograph
     PREFIX "${PREFIX_DIR}"
     DOWNLOAD_DIR "${WT_DOWNLOAD_DIR}"
     LOG_DIR "${WT_DOWNLOAD_DIR}"
