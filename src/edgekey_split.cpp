@@ -52,10 +52,10 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
         sess, IN_EDGES, edge_columns, edge_key_format, edge_value_format);
   }
 
-  if (!opts.optimize_create)
-  {
-    create_indices(sess);
-  }
+  // if (!opts.optimize_create)
+  // {
+  //   create_indices(sess);
+  // }
 
   sess->close(sess, nullptr);
 }
@@ -109,18 +109,18 @@ void SplitEdgeKey::init_cursors()
     throw GraphException("Could not get an in edge cursor: " +
                          string(wiredtiger_strerror(ret)));
   }
-  //  dst_src index
-  std::string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
-  ret = _get_index_cursor(OUT_EDGES,
-                          DST_SRC_INDEX,
-                          projection,
-                          opts.checkpoint_name,
-                          &dst_src_idx_cursor);
-  if (ret != 0)
-  {
-    throw GraphException("Could not get a cursor to the dst_src index" +
-                         string(wiredtiger_strerror(ret)));
-  }
+  // Removed dst_src index dependency
+  // std::string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
+  // ret = _get_index_cursor(OUT_EDGES,
+  //                         DST_SRC_INDEX,
+  //                         projection,
+  //                         opts.checkpoint_name,
+  //                         &dst_src_idx_cursor);
+  // if (ret != 0)
+  // {
+  //   throw GraphException("Could not get a cursor to the dst_src index" +
+  //                        string(wiredtiger_strerror(ret)));
+  // }
 }
 
 /**
@@ -337,28 +337,66 @@ std::vector<node> SplitEdgeKey::get_nodes()
   std::vector<node> nodes;
 
   int search_exact;
+  // Start by positioning cursor to (OutOfBand_ID_MIN, OutOfBand_ID_MIN)
   CommonUtil::ekey_set_key(
-      dst_src_idx_cursor, OutOfBand_ID_MIN, OutOfBand_ID_MIN);
-  dst_src_idx_cursor->search_near(dst_src_idx_cursor, &search_exact);
-  if (search_exact <= 0)
+      out_edge_cursor, OutOfBand_ID_MIN, OutOfBand_ID_MIN);
+  out_edge_cursor->search_near(out_edge_cursor, &search_exact);
+  
+  if (search_exact < 0)
   {
-    throw GraphException("get_nodes failed to position cursor at beginning");
-    // this literally cannot  happen.
+    // Position to first record if search_near returns negative
+    if (out_edge_cursor->next(out_edge_cursor) != 0) {
+      out_edge_cursor->reset(out_edge_cursor);
+      return nodes; // Empty graph
+    }
   }
-  // the cursor is positioned at the first node in the table.
+  
+  // Keep doing search_near in a loop till there are no more nodes found
   node_id_t src, dst;
-  do
+  bool continue_search = true;
+  
+  while (continue_search)
   {
-    node n;
-    CommonUtil::ekey_get_key(dst_src_idx_cursor, &dst, &src);
-    if (dst != OutOfBand_ID_MIN) break;
-    n.id = src;
-    dst_src_idx_cursor->get_value(
-        dst_src_idx_cursor, &n.in_degree, &n.out_degree);
-    nodes.push_back(n);
-  } while (dst_src_idx_cursor->next(dst_src_idx_cursor) == 0);
+    // Get current key
+    if (CommonUtil::ekey_get_key(out_edge_cursor, &src, &dst) != 0) {
+      break; // Error getting key
+    }
+    
+    if (dst == OutOfBand_ID_MIN)
+    {
+      // Found a node entry
+      node n;
+      n.id = src;
+      if (opts.read_optimize)
+      {
+        out_edge_cursor->get_value(
+            out_edge_cursor, &n.in_degree, &n.out_degree);
+      }
+      else
+      {
+        n.in_degree = 0;
+        n.out_degree = 0;
+      }
+      nodes.push_back(n);
+    }
+    
+    // Search for next node by setting key to (src+1, OutOfBand_ID_MIN)
+    // This works for both cases: found a node (src) or found an edge (src)
+    CommonUtil::ekey_set_key(out_edge_cursor, src + 1, OutOfBand_ID_MIN);
+    if (out_edge_cursor->search_near(out_edge_cursor, &search_exact) != 0)
+    {
+      continue_search = false; // No more records
+    }
+    else if (search_exact < 0)
+    {
+      // Position to next record if search_near returns negative
+      if (out_edge_cursor->next(out_edge_cursor) != 0) {
+        continue_search = false; // No more records
+      }
+    }
+  }
 
-  dst_src_idx_cursor->reset(dst_src_idx_cursor);
+  out_edge_cursor->reset(out_edge_cursor);
   return nodes;
 }
 
@@ -859,7 +897,7 @@ InCursor *SplitEdgeKey::get_innbd_iter()
 NodeCursor *SplitEdgeKey::get_node_iter()
 {
   NodeCursor *toReturn =
-      new SplitEKeyNodeCursor(get_new_node_index_cursor(), session);
+      new SplitEKeyNodeCursor(get_new_out_cursor(), session);
   return toReturn;
 }
 EdgeCursor *SplitEdgeKey::get_edge_iter()
@@ -1278,33 +1316,34 @@ WT_CURSOR *SplitEdgeKey::get_new_in_cursor()
   return new_in_cursor;
 }
 
-WT_CURSOR *SplitEdgeKey::get_new_node_index_cursor()
-{
-  WT_CURSOR *new_dst_src_idx_cursor = nullptr;
-  string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
-  if (_get_index_cursor(OUT_EDGES,
-                        DST_SRC_INDEX,
-                        projection,
-                        opts.checkpoint_name,
-                        &new_dst_src_idx_cursor) != 0)
-  {
-    throw GraphException("Could not get a cursor to DST_SRC_INDEX");
-  }
-
-  return new_dst_src_idx_cursor;
-}
-void SplitEdgeKey::create_indices(WT_SESSION *session)
-{
-  std::string idx_name, idx_conf;
-  // Index on (DST,SRC) columns of the edge table
-  // Used for adjacency neighbourhood iterators
-  idx_name = "index:" + OUT_EDGES + ":" + DST_SRC_INDEX;
-  idx_conf = "columns=(" + DST + "," + SRC + ")";
-  if (session->create(session, idx_name.c_str(), idx_conf.c_str()) != 0)
-  {
-    throw GraphException("Failed to create DST_SRC_INDEX on the edge table");
-  }
-}
+// Removed get_new_node_index_cursor() - no longer using DST_SRC_INDEX
+// WT_CURSOR *SplitEdgeKey::get_new_node_index_cursor()
+// {
+//   WT_CURSOR *new_dst_src_idx_cursor = nullptr;
+//   string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
+//   if (_get_index_cursor(OUT_EDGES,
+//                         DST_SRC_INDEX,
+//                         projection,
+//                         opts.checkpoint_name,
+//                         &new_dst_src_idx_cursor) != 0)
+//   {
+//     throw GraphException("Could not get a cursor to DST_SRC_INDEX");
+//   }
+//
+//   return new_dst_src_idx_cursor;
+// }
+// void SplitEdgeKey::create_indices(WT_SESSION *session)
+// {
+//   std::string idx_name, idx_conf;
+//   // Index on (DST,SRC) columns of the edge table
+//   // Used for adjacency neighbourhood iterators
+//   idx_name = "index:" + OUT_EDGES + ":" + DST_SRC_INDEX;
+//   idx_conf = "columns=(" + DST + "," + SRC + ")";
+//   if (session->create(session, idx_name.c_str(), idx_conf.c_str()) != 0)
+//   {
+//     throw GraphException("Failed to create DST_SRC_INDEX on the edge table");
+//   }
+// }
 
 void SplitEdgeKey::dump_table(string &table_name, int num_records)
 {

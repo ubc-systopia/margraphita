@@ -62,11 +62,12 @@ class SplitEdgeKey : public GraphBase
   }
   [[nodiscard]] WT_CURSOR *get_in_edge_cursor() const { return in_edge_cursor; }
   WT_CURSOR *get_new_in_cursor();
-  [[nodiscard]] WT_CURSOR *get_node_index_cursor() const
-  {
-    return dst_src_idx_cursor;
-  }
-  WT_CURSOR *get_new_node_index_cursor();
+  // Removed dst_src_idx_cursor dependencies
+  // [[nodiscard]] WT_CURSOR *get_node_index_cursor() const
+  // {
+  //   return dst_src_idx_cursor;
+  // }
+  // WT_CURSOR *get_new_node_index_cursor();
   static void create_indices(WT_SESSION *session);
   void dump_table(std::string &table_name, int num_records);
 
@@ -74,7 +75,7 @@ class SplitEdgeKey : public GraphBase
   WT_CURSOR *out_edge_cursor = nullptr;
   WT_CURSOR *random_node_cursor = nullptr;
   WT_CURSOR *in_edge_cursor = nullptr;
-  WT_CURSOR *dst_src_idx_cursor = nullptr;
+  // WT_CURSOR *dst_src_idx_cursor = nullptr; // Removed dependency
 
   // internal methods
   [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
@@ -92,7 +93,7 @@ class SplitEdgeKey : public GraphBase
     out_edge_cursor->close(out_edge_cursor);
     random_node_cursor->close(random_node_cursor);
     in_edge_cursor->close(in_edge_cursor);
-    dst_src_idx_cursor->close(dst_src_idx_cursor);
+    // dst_src_idx_cursor->close(dst_src_idx_cursor); // Removed dependency
   }
 };
 
@@ -302,7 +303,7 @@ class SplitEKeyOutCursor : public OutCursor
 class SplitEKeyNodeCursor : public NodeCursor
 {
  public:
-  // Takes a composite index cursor on (dst, src)
+  // Takes a main edge table cursor, not an index cursor
   SplitEKeyNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
   {
     cursor = cur;
@@ -315,11 +316,10 @@ class SplitEKeyNodeCursor : public NodeCursor
   {
     keys = _keys;
     int status;
-    // set the cursor to the first relevant record in range
+    // Use main edge table with (src, OutOfBand_ID_MIN) pattern
     if (keys.start != OutOfBand_ID_MIN)
     {
-      CommonUtil::ekey_set_key(cursor, OutOfBand_ID_MIN, keys.start);
-      // flipped because (dst, src)
+      CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID_MIN);
       cursor->search_near(cursor, &status);
       if (status < 0)
       {
@@ -332,10 +332,15 @@ class SplitEKeyNodeCursor : public NodeCursor
     }
     else
     {
-      // Advance the cursor to the first record
-      if (cursor->next(cursor) != 0)
+      // Start from beginning with (OutOfBand_ID_MIN, OutOfBand_ID_MIN)
+      CommonUtil::ekey_set_key(cursor, OutOfBand_ID_MIN, OutOfBand_ID_MIN);
+      cursor->search_near(cursor, &status);
+      if (status < 0)
       {
-        this->has_next = false;
+        if (cursor->next(cursor) != 0)
+        {
+          this->has_next = false;
+        }
       }
     }
   }
@@ -350,31 +355,47 @@ class SplitEKeyNodeCursor : public NodeCursor
 
   void next(node *found) override
   {
-    edge curr_edge;
+    node_id_t src, dst;
     if (!has_next)
     {
       no_next(found);
+      return;
     }
 
-    CommonUtil::ekey_get_key(cursor, &curr_edge.dst_id, &curr_edge.src_id);
-    found->id = curr_edge.src_id;
+    // Now using main edge table cursor (src, dst) format
+    CommonUtil::ekey_get_key(cursor, &src, &dst);
+    
+    if (keys.end != OutOfBand_ID_MIN && src > keys.end)
+    {
+      no_next(found);
+      return;
+    }
+
+    if (dst != OutOfBand_ID_MIN)
+    {
+      no_next(found);
+      return;
+    }
+    
+    // Found a valid node entry
+    found->id = src;
     cursor->get_value(cursor, &found->in_degree, &found->out_degree);
-
-    if (keys.end != OutOfBand_ID_MIN && curr_edge.src_id > keys.end)
-    {
-      no_next(found);
-    }
-
-    if (curr_edge.dst_id != OutOfBand_ID_MIN)
-    {
-      no_next(found);
-    }
-    int ret = cursor->next(cursor);
+    
+    // Advance to next node using search_near
+    CommonUtil::ekey_set_key(cursor, src + 1, OutOfBand_ID_MIN);
+    int search_exact;
+    int ret = cursor->search_near(cursor, &search_exact);
     if (ret != 0)
     {
-      std::cout << wiredtiger_strerror(ret) << std::endl;
       has_next = false;
       return;
+    }
+    if (search_exact < 0)
+    {
+      if (cursor->next(cursor) != 0) {
+        has_next = false;
+        return;
+      }
     }
   }
 

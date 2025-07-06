@@ -622,6 +622,8 @@ int main()
   test_NodeCursor_Range(graph);
   test_delete_edge(graph, opts.is_directed);
 
+  test_get_edges(graph);
+  
   tearDown(graph);
   myEngine.close_graph();
   ////////////

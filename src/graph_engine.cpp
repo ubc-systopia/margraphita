@@ -81,7 +81,7 @@ void GraphEngine::create_indices()
   CommonUtil::open_session(conn, &sess);
   if (opts.type == GraphType::SplitEKey)
   {
-    SplitEdgeKey::create_indices(sess);
+    //SplitEdgeKey::create_indices(sess);
   }
   else
   {
