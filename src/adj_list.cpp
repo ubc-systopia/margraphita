@@ -1287,7 +1287,7 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
     throw GraphException("There is no node with ID " + to_string(node_id));
   }
   std::vector<node_id_t> adjlist = get_adjlist(out_adjlist_cursor, node_id);
-
+  std::sort(adjlist.begin(), adjlist.end());
   for (auto dst_id : adjlist)
   {
     out_nodes.push_back(get_node(dst_id));
@@ -1313,6 +1313,7 @@ std::vector<node_id_t> AdjList::get_out_nodes_id(node_id_t node_id)
     throw GraphException("There is no node with ID " + to_string(node_id));
   }
   adjlist = get_adjlist(out_adjlist_cursor, node_id);
+  std::sort(adjlist.begin(), adjlist.end());
   out_adjlist_cursor->reset(out_adjlist_cursor);
   return adjlist;
 }
@@ -1335,6 +1336,7 @@ std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
     adjlist out_edges_list;
     CommonUtil::record_to_adjlist(out_adjlist_cursor, &out_edges_list);
     CommonUtil::get_key(out_adjlist_cursor, &out_edges_list.node_id);
+    std::sort(out_edges_list.edgelist.begin(), out_edges_list.edgelist.end()); //need this in sorted order
     for (auto dst_id : out_edges_list.edgelist)
     {
       edge found = {.src_id = node_id, .dst_id = dst_id};
@@ -1368,6 +1370,7 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
     throw GraphException("There is no node with ID " + to_string(node_id));
   }
   std::vector<node_id_t> adjlist = get_adjlist(in_adjlist_cursor, node_id);
+  std::sort(adjlist.begin(), adjlist.end());
   for (auto src_id : adjlist)
   {
     in_nodes.push_back(get_node(src_id));
@@ -1410,6 +1413,7 @@ std::vector<edge> AdjList::get_in_edges(node_id_t node_id)
   int ret;
 
   src_nodes = get_adjlist(in_adjlist_cursor, node_id);
+  std::sort(src_nodes.begin(), src_nodes.end());
   for (auto src_id : src_nodes)
   {
     edge found = {.src_id = src_id, .dst_id = node_id};

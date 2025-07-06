@@ -2,7 +2,7 @@
 #ifndef SAMPLE_STD
 #define SAMPLE_STD
 #include "common_util.h"
-namespace SampleGraph
+namespace SampleGraphAdjList
 {
 // edge edge1 = {.id = 0, .src_id = 1, .dst_id = 2, .edge_weight = 0};
 
@@ -137,6 +137,6 @@ void create_undirected_edges()
     }
   }
 }
-}  // namespace SampleGraph
+}  // namespace SampleGraphAdjList
 
 #endif

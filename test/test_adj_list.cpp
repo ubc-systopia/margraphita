@@ -226,7 +226,7 @@ void create_init_nodes(WT_CONNECTION *conn, graph_opts &opts)
   atomic<int> rollbakcs(0);
   atomic<int> insert_cnt{0};
 #pragma omp parallel for num_threads(1) shared(rollbakcs, insert_cnt)
-  for (edge x : SampleGraph::parallel_insert_edges)
+  for (edge x : SampleGraphAdjList::parallel_insert_edges)
   {
     std::cout << "Inserting edge: " << x.src_id << " -> " << x.dst_id
               << std::endl;
@@ -339,16 +339,16 @@ void test_get_edge(AdjList graph, bool is_directed)
 {
   INFO();
   edge found =
-      graph.get_edge(SampleGraph::edge1.src_id, SampleGraph::edge1.dst_id);
+      graph.get_edge(SampleGraphAdjList::edge1.src_id, SampleGraphAdjList::edge1.dst_id);
   CommonUtil::dump_edge(found);
-  assert(found.src_id == SampleGraph::edge1.src_id);
-  assert(found.dst_id == SampleGraph::edge1.dst_id);
+  assert(found.src_id == SampleGraphAdjList::edge1.src_id);
+  assert(found.dst_id == SampleGraphAdjList::edge1.dst_id);
   if (!is_directed)
   {
     found =
-        graph.get_edge(SampleGraph::edge1.dst_id, SampleGraph::edge1.src_id);
-    assert(found.src_id == SampleGraph::edge1.dst_id);
-    assert(found.dst_id == SampleGraph::edge1.src_id);
+        graph.get_edge(SampleGraphAdjList::edge1.dst_id, SampleGraphAdjList::edge1.src_id);
+    assert(found.src_id == SampleGraphAdjList::edge1.dst_id);
+    assert(found.dst_id == SampleGraphAdjList::edge1.src_id);
   }
 
   // Now get a non-existent edge
@@ -453,14 +453,14 @@ void test_get_out_edges(AdjList graph, graph_opts &opts)
     CommonUtil::dump_edge(e);
   }
   // compare edge0
-  assert(edges.at(0).src_id == SampleGraph::edge1.src_id);
-  assert(edges.at(0).dst_id == SampleGraph::edge1.dst_id);
+  assert(edges.at(0).src_id == SampleGraphAdjList::edge1.src_id);
+  assert(edges.at(0).dst_id == SampleGraphAdjList::edge1.dst_id);
   // compare edge1
-  assert(edges.at(1).src_id == SampleGraph::edge2.src_id);
-  assert(edges.at(1).dst_id == SampleGraph::edge2.dst_id);
+  assert(edges.at(1).src_id == SampleGraphAdjList::edge2.src_id);
+  assert(edges.at(1).dst_id == SampleGraphAdjList::edge2.dst_id);
   // compare edge4
-  assert(edges.at(2).src_id == SampleGraph::edge3.src_id);
-  assert(edges.at(2).dst_id == SampleGraph::edge3.dst_id);
+  assert(edges.at(2).src_id == SampleGraphAdjList::edge3.src_id);
+  assert(edges.at(2).dst_id == SampleGraphAdjList::edge3.dst_id);
 
   // Now test for a node that has no out edge
   edges = graph.get_out_edges(test_id2);
@@ -741,24 +741,24 @@ void test_delete_node(AdjList graph, bool is_directed)
 
 #ifdef MK_NEDGES
   // Verify node2 exists
-  CommonUtil::set_key(n_cursor, SampleGraph::node2.id);
+  CommonUtil::set_key(n_cursor, SampleGraphAdjList::node2.id);
   ret = n_cursor->search(n_cursor);
   assert(ret == 0);
   n_cursor->reset(n_cursor);
 #endif
   // Delete node2 and verify it was actually deleted
-  graph.delete_node(SampleGraph::node2.id);
+  graph.delete_node(SampleGraphAdjList::node2.id);
 
 #ifdef MK_NEDGES
-  CommonUtil::set_key(n_cursor, SampleGraph::node2.id);
+  CommonUtil::set_key(n_cursor, SampleGraphAdjList::node2.id);
   ret = n_cursor->search(n_cursor);
   assert(ret != 0);
 #endif
   // Verify node2's adjacency lists are deleted
-  CommonUtil::set_key(adj_out_cur, SampleGraph::node2.id);
+  CommonUtil::set_key(adj_out_cur, SampleGraphAdjList::node2.id);
   ret = adj_out_cur->search(adj_out_cur);
   assert(ret != 0);
-  CommonUtil::set_key(adj_in_cur, SampleGraph::node2.id);
+  CommonUtil::set_key(adj_in_cur, SampleGraphAdjList::node2.id);
   ret = adj_in_cur->search(adj_in_cur);
   assert(ret != 0);
   /*
@@ -789,7 +789,7 @@ void test_delete_node(AdjList graph, bool is_directed)
     for (auto dst : graph.get_adjlist(adj_out_cur, out))
     {
       // std::cout << "@408 dst: " << dst << std::endl;
-      assert(dst != SampleGraph::node2.id);  // node2 should have been deleted
+      assert(dst != SampleGraphAdjList::node2.id);  // node2 should have been deleted
     }
   }
 
@@ -799,7 +799,7 @@ void test_delete_node(AdjList graph, bool is_directed)
     for (auto src : graph.get_adjlist(adj_in_cur, in))
     {
       // std::cout << "@412 src: " << src << std::endl;
-      assert(src != SampleGraph::node2.id);  // node2 should have been deleted
+      assert(src != SampleGraphAdjList::node2.id);  // node2 should have been deleted
     }
   }
 }
@@ -809,25 +809,25 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
   INFO();
   int ret = 0;
 
-  graph.delete_node(SampleGraph::isolated_node.id);
+  graph.delete_node(SampleGraphAdjList::isolated_node.id);
   return;
 
 #ifdef MK_NEDGES
   // Verify node4 exists
   WT_CURSOR *n_cursor = graph.get_node_cursor();
   // Delete isolated_node and verify it was actually deleted
-  CommonUtil::set_key(n_cursor, SampleGraph::isolated_node.id);
+  CommonUtil::set_key(n_cursor, SampleGraphAdjList::isolated_node.id);
   ret = n_cursor->search(n_cursor);
   assert(ret != 0);
 #endif
 
   // Verify node4's adjacency lists are deleted
   WT_CURSOR *adj_out_cur = graph.get_out_adjlist_cursor();
-  CommonUtil::set_key(adj_out_cur, SampleGraph::isolated_node.id);
+  CommonUtil::set_key(adj_out_cur, SampleGraphAdjList::isolated_node.id);
   assert(adj_out_cur->search(adj_out_cur) != 0);
 
   WT_CURSOR *adj_in_cur = graph.get_in_adjlist_cursor();
-  CommonUtil::set_key(adj_in_cur, SampleGraph::isolated_node.id);
+  CommonUtil::set_key(adj_in_cur, SampleGraphAdjList::isolated_node.id);
   assert(adj_in_cur->search(adj_in_cur) != 0);
   return;
 
@@ -836,8 +836,8 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
   std::vector<edge> edges = graph.get_edges();
   for (edge e : edges)
   {
-    assert(e.src_id != SampleGraph::isolated_node.id);
-    assert(e.dst_id != SampleGraph::isolated_node.id);
+    assert(e.src_id != SampleGraphAdjList::isolated_node.id);
+    assert(e.dst_id != SampleGraphAdjList::isolated_node.id);
   }
 #endif
   // Now check if node4 is present in in/out_adj_list of any of the remaining
@@ -849,7 +849,7 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     CommonUtil::record_to_adjlist(adj_out_cur, &found);
     for (auto dst : found.edgelist)
     {
-      assert(dst != SampleGraph::isolated_node.id);  // node4 should have been
+      assert(dst != SampleGraphAdjList::isolated_node.id);  // node4 should have been
                                                      // deleted
     }
   }
@@ -861,7 +861,7 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     CommonUtil::record_to_adjlist(adj_in_cur, &found);
     for (auto src : found.edgelist)
     {
-      assert(src != SampleGraph::isolated_node.id);  // node4 should have been
+      assert(src != SampleGraphAdjList::isolated_node.id);  // node4 should have been
                                                      // deleted
     }
   }
