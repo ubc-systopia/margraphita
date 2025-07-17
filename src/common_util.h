@@ -112,7 +112,7 @@ class CommonUtil
   static int node_to_record(WT_CURSOR *cursor,
                             node to_insert,
                             bool read_optimize);
-  static void record_to_edge(WT_CURSOR *cursor, edge *found);
+  // static void record_to_edge(WT_CURSOR *cursor, edge *found);
   static void read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx);
   static int adjlist_to_record(WT_SESSION *session,
                                WT_CURSOR *cursor,
@@ -258,13 +258,13 @@ inline void CommonUtil::record_to_node(WT_CURSOR *cursor,
   }
 }
 
-inline void CommonUtil::record_to_edge(WT_CURSOR *cursor, edge *found)
-{
-  if (cursor->get_value(cursor, &found->edge_weight) != 0)
-  {
-    throw GraphException("Could not get the value from the edge table");
-  }
-}
+// inline void CommonUtil::record_to_edge(WT_CURSOR *cursor, edge *found)
+// {
+//   if (cursor->get_value(cursor, &found->edge_weight) != 0)
+//   {
+//     throw GraphException("Could not get the value from the edge table");
+//   }
+// }
 
 //! todo : fix this
 inline void CommonUtil::read_from_edge_idx(WT_CURSOR *idx_cursor, edge *e_idx)

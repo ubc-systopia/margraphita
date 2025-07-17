@@ -67,10 +67,6 @@ class AdjList : public GraphBase
   NodeCursor *get_node_iter() override;
   EdgeCursor *get_edge_iter() override;
   // edgeweight_t get_edge_weight(node_id_t src_id, node_id_t dst_id);
-  [[maybe_unused]] void update_edge_weight(
-      node_id_t src_id,
-      node_id_t dst_id,
-      edgeweight_t edge_weight);  // todo <-- is this implemented?
 
   // internal cursor operations:
   //! Check if these should be public:
@@ -90,6 +86,10 @@ class AdjList : public GraphBase
                   node_id_t node_id,
                   std::vector<node_id_t> &list);
   [[maybe_unused]] void dump_table(std::string &table_name, int limit = 0);
+
+  [[maybe_unused]] int update_edge_weight (node_id_t src_id,
+                          node_id_t dst_id,
+                          edgeweight_t edge_weight);
 
  private:
   friend class AdjNodeCursor;
@@ -140,6 +140,22 @@ class AdjList : public GraphBase
     CommonUtil::close_cursor(in_adjlist_cursor);
     CommonUtil::close_cursor(out_adjlist_cursor);
   }
+
+  inline void get_edge_wt (WT_CURSOR *e_cur, edgeweight_t *edge_weight)
+  {
+    WT_ITEM item;
+    e_cur->get_value(e_cur, &item);
+    *edge_weight = *(edgeweight_t *)item.data;
+  }
+
+  inline void set_edge_wt (WT_CURSOR *e_cur, edgeweight_t edge_weight)
+  {
+    WT_ITEM item;
+    item.data = &edge_weight;
+    item.size = sizeof(edgeweight_t);
+    e_cur->set_value(e_cur, &item);
+  }
+
 };
 
 #endif

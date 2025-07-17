@@ -100,7 +100,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   {
     // edge_columns.push_back(WEIGHT);
     edge_columns.emplace_back("weight");
-    edge_value_format += "i";
+    edge_value_format += "u";
   }
   else
   {
@@ -617,11 +617,13 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
 
   if (opts.is_weighted)
   {
-    edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
+    //edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
+    set_edge_wt(edge_cursor, to_insert.edge_weight);
   }
   else
   {
-    edge_cursor->set_value(edge_cursor, 0);
+    //edge_cursor->set_value(edge_cursor, 0);
+    set_edge_wt(edge_cursor, 0.0);
   }
   if ((ret = error_check_insert_txn(edge_cursor->insert(edge_cursor))))
   {
@@ -1092,7 +1094,8 @@ std::vector<edge> AdjList::get_edges()
     CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
     if (opts.is_weighted)
     {
-      CommonUtil::record_to_edge(edge_cursor, &found);
+      // CommonUtil::record_to_edge(edge_cursor, &found);
+      get_edge_wt(edge_cursor, &found.edge_weight);
     }
 
     edgelist.push_back(found);
@@ -1136,7 +1139,8 @@ edge AdjList::get_edge(node_id_t src_id, node_id_t dst_id)
     found.dst_id = dst_id;
     if (opts.is_weighted)
     {
-      CommonUtil::record_to_edge(edge_cursor, &found);
+      // CommonUtil::record_to_edge(edge_cursor, &found);
+      get_edge_wt(edge_cursor, &found.edge_weight);
     }
   }
   else
@@ -1518,24 +1522,24 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
  * @throws GraphException if trying to update weight for an unweighted graph, if
  * the edge cursor could not be found, or if the update operation fails.
  */
-[[maybe_unused]] void AdjList::update_edge_weight(node_id_t src_id,
+[[maybe_unused]] int AdjList::update_edge_weight(node_id_t src_id,
                                                   node_id_t dst_id,
-                                                  int32_t edge_weight)
+                                                  edgeweight_t edge_weight)
 {
   if (!opts.is_weighted)
   {
     throw GraphException("Trying to insert weight for an unweighted graph");
   }
+  session->begin_transaction(session, "isolation=snapshot");
   int ret;
   CommonUtil::set_key(edge_cursor, src_id, dst_id);
-  edge_cursor->set_value(edge_cursor, edge_weight);
-  ret = edge_cursor->insert(edge_cursor);
-  if (ret != 0)
+  set_edge_wt(edge_cursor, edge_weight);
+  ret = error_check_insert_txn(edge_cursor->insert(edge_cursor));
+  if (ret!=0)
   {
-    throw GraphException("Could not update edge weight for edge (" +
-                         std::to_string(src_id) + ", " +
-                         std::to_string(dst_id) + ")");
+    LOG_MSG ("Failed to update edge weight between ", src_id, dst_id);
   }
+  return ret;
 }
 
 /**
@@ -1952,7 +1956,8 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     e_cur->get_key(e_cur, &found.src_id, &found.dst_id);
     if (opts.is_weighted)
     {
-      CommonUtil::record_to_edge(e_cur, &found);
+      //CommonUtil::record_to_edge(e_cur, &found);
+      get_edge_wt(e_cur, &found.edge_weight);
     }
   }
   else
@@ -1992,7 +1997,8 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
       CommonUtil::get_key(edge_cursor, &found.src_id, &found.dst_id);
       if (opts.is_weighted)
       {
-        CommonUtil::record_to_edge(edge_cursor, &found);
+        // CommonUtil::record_to_edge(edge_cursor, &found);
+        get_edge_wt(edge_cursor, &found.edge_weight);
       }
       CommonUtil::dump_edge(found, outfile);
     }

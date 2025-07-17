@@ -365,20 +365,20 @@ void test_add_edge(AdjList graph, bool is_directed)
   edge to_insert = {
       .src_id = 18,
       .dst_id = 19,
-      .edge_weight = 333};  // node 300 and 400 dont exist yet so we must also
+      .edge_weight = 33.33};  // node 300 and 400 dont exist yet so we must also
                             // check if the nodes get created
   int test_id1 = 18, test_id2 = 19;
   graph.add_edge(to_insert, false);
   edge found = graph.get_edge(test_id1, test_id2);
   CommonUtil::dump_edge(found);
-  // assert(found.edge_weight == 333);
+  assert(found.edge_weight == 33.33);
   if (!is_directed)
   {
     found = graph.get_edge(test_id2, test_id1);
-    // CommonUtil::dump_edge(found);
+    CommonUtil::dump_edge(found);
     assert(found.src_id == test_id2);
     assert(found.dst_id == test_id1);
-    // assert(found.edge_weight == 333);
+    assert(found.edge_weight == 33.33);
   }
   // Check if the nodes were created.
   node got = graph.get_node(test_id1);

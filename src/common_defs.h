@@ -62,7 +62,7 @@ typedef uint64_t edge_id_t;
 typedef uint32_t node_id_t;
 typedef uint32_t edge_id_t;
 #endif
-typedef int32_t edgeweight_t;
+typedef double edgeweight_t;
 typedef uint32_t degree_t;
 
 /// @brief EdgeKey specific definitions
@@ -222,7 +222,7 @@ typedef struct edge
   edge_id_t id = 0;
   node_id_t src_id = 0;
   node_id_t dst_id = 0;
-  edgeweight_t edge_weight = 0;
+  edgeweight_t edge_weight = 0.0;
 } edge;
 
 typedef struct edge_index

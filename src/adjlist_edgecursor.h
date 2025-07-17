@@ -139,7 +139,10 @@ class AdjEdgeCursor : public EdgeCursor
     }
     if (get_weight)
     {
-      CommonUtil::record_to_edge(cursor, found);
+      // CommonUtil::record_to_edge(cursor, found);
+      WT_ITEM item;
+      cursor->get_value(cursor, &item);
+      found->edge_weight = *(edgeweight_t *)item.data;
     }
     if (cursor->next(cursor) != 0)
     {
