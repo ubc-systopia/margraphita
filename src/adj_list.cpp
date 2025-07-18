@@ -1344,7 +1344,17 @@ std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
     for (auto dst_id : out_edges_list.edgelist)
     {
       edge found = {.src_id = node_id, .dst_id = dst_id};
-      found.edge_weight = 0;
+      #ifdef MK_NEDGES
+      if (opts.is_weighted)
+      {
+        CommonUtil::set_key(edge_cursor, found.src_id, found.dst_id);
+        edge_cursor->search(edge_cursor);
+        get_edge_wt(edge_cursor, &found.edge_weight);
+        edge_cursor->reset(edge_cursor);
+      }
+      #else
+        found.edge_weight = 0;
+      #endif
       out_edges.push_back(found);
     }
   }
@@ -1421,7 +1431,16 @@ std::vector<edge> AdjList::get_in_edges(node_id_t node_id)
   for (auto src_id : src_nodes)
   {
     edge found = {.src_id = src_id, .dst_id = node_id};
-    found.edge_weight = 0;
+    #ifdef MK_NEDGES
+    if (opts.is_weighted)
+    {
+      CommonUtil::set_key(edge_cursor, found.src_id, found.dst_id);
+      edge_cursor->search(edge_cursor);
+      get_edge_wt(edge_cursor, &found.edge_weight);
+    }
+    #else
+      found.edge_weight = 0;
+    #endif
     in_edges.push_back(found);
   }
   return in_edges;
