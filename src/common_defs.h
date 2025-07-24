@@ -1,6 +1,7 @@
 #ifndef COMMON_DEFS_H
 #define COMMON_DEFS_H
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -47,7 +48,7 @@ const std::string ATTR_SECOND =
     "attr_scnd";  // Used in EdgeKey as the second attribute.
 const std::string NODE_TABLE = "node";
 const std::string EDGE_TABLE = "edge";
-const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
+[[maybe_unused]] const std::string DST_SRC_INDEX = "IX_edge_" + DST + SRC;
 // specific to AdjList implementation
 const std::string OUT_ADJLIST = "adjlistout";
 const std::string IN_ADJLIST = "adjlistin";
@@ -103,22 +104,22 @@ struct graph_opts
   bool sort_edges = false;  // sort edges in the edge table
   // make a default constructor
   graph_opts()
-      : db_name(""),
-        db_dir(""),
-        conn_config(""),
-        stat_log(""),
-        checkpoint_name(""),
-        type(GraphType::Adj),
-        num_nodes(0),
-        num_edges(0),
-        dataset(""),
-        num_threads(1),
-        read_only(false),
+      : read_only(false),
         create_new(false),
         read_optimize(false),
         is_directed(false),
         is_weighted(false),
         optimize_create(true),
+        db_name(),
+        db_dir(),
+        conn_config(),
+        stat_log(),
+        dataset(),
+        checkpoint_name(),
+        type(GraphType::Adj),
+        num_nodes(0),
+        num_edges(0),
+        num_threads(1),
         sort_edges(false)
   {
   }
@@ -230,7 +231,9 @@ typedef struct edge_index
   node_id_t src_id = 0;
   node_id_t dst_id = 0;
   edge_index() : src_id(0), dst_id(0) {}
-  edge_index(node_id_t a, node_id_t b) : src_id(a), dst_id(b) {}
+  [[maybe_unused]] edge_index(node_id_t a, node_id_t b) : src_id(a), dst_id(b)
+  {
+  }
 
 } edge_index;
 
@@ -244,14 +247,14 @@ typedef struct key_range
   key_range(node_id_t a, node_id_t b) : start(a), end(b) {}
 } key_range;
 
-typedef key_range node_range;
+[[maybe_unused]] typedef key_range node_range;
 
 typedef struct edge_range
 {
   key_pair start{};
   key_pair end{};
   edge_range() : start(), end() {}
-  edge_range(key_pair a, key_pair b) : start(a), end(b) {}
+  [[maybe_unused]] edge_range(key_pair a, key_pair b) : start(a), end(b) {}
 } edge_range;
 
 typedef struct adjlist
@@ -280,7 +283,7 @@ typedef struct adjlist
   {
     edgelist.emplace_back(id);
     degree++;
-    std::sort(edgelist.begin(), edgelist.end());
+    std::ranges::sort(edgelist.begin(), edgelist.end(), std::less<>());
   }
 } adjlist;
 #endif
