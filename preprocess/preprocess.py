@@ -139,21 +139,44 @@ class Preprocess:
         ##############################
         # determine num_edges from the graph
         ##############################
-        self.log(
-            "Get the number of edges from the graph using awk")
-        # cmd = f"parallel awk -f count.awk ::: {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a*" + \
-        #       "| awk '{sum += $1} END {print sum}'"
-        cmd = f"wc -l {self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
-        self.log(f"Running command: {cmd}\n")
-        if (not self.config_data['dry_run']):
-            st = time.time()
-            found_edges = int(check_output(cmd, shell=True).split()[0])
-            et = time.time()
-            print(f"Time taken to count the edges: {et - st}\n")
-            self.config_data['num_edges'] = found_edges
-            self.log(f"The graph has {found_edges} edges")
-            print("Found edges: " + str(found_edges))
-            self.num_edges = found_edges
+        # self.log(
+        #     "Get the number of edges from the graph using awk")
+        # # cmd = f"parallel awk -f count.awk ::: {self.config_data['output_dir']}/{self.config_data['dataset_name']}_a*" + \
+        # #       "| awk '{sum += $1} END {print sum}'"
+        # cmd = f"wc -l {self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
+        # self.log(f"Running command: {cmd}\n")
+        # if (not self.config_data['dry_run']):
+        #     st = time.time()
+        #     found_edges = int(check_output(cmd, shell=True).split()[0])
+        #     et = time.time()
+        #     print(f"Time taken to count the edges: {et - st}\n")
+        #     self.config_data['num_edges'] = found_edges
+        #     self.log(f"The graph has {found_edges} edges")
+        #     print("Found edges: " + str(found_edges))
+        #     self.num_edges = found_edges
+        
+        # Read num_edges from properties file
+        self.log("Reading number of edges from properties file")
+        graph_dir = os.path.dirname(self.config_data['graph_path'])
+        properties_file = os.path.join(graph_dir, f"{self.config_data['dataset_name']}.properties")
+        
+        edgecount_line_found = False
+        if os.path.exists(properties_file):
+            with open(properties_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if "meta.edges" in line:
+                        found_edges = int(line.split('=')[1].strip())
+                        self.config_data['num_edges'] = found_edges
+                        self.log(f"The graph has {found_edges} edges (from properties file)")
+                        print("Found edges: " + str(found_edges))
+                        self.num_edges = found_edges
+                        edgecount_line_found = True
+                        break
+        else:
+            raise FileNotFoundError(f"Properties file not found: {properties_file}")
+        if not edgecount_line_found:
+            raise FileNotFoundError(f"Could not find edges count in properties file: {properties_file}")
 
         ##############################
         # Split the graph into NUM_THREADS files
@@ -173,31 +196,53 @@ class Preprocess:
         ##############################
         # compute num_nodes from the graph
         ##############################
-        self.log("Constructing the nodes file")
-        cmd = (
-            f"find {self.config_data['output_dir']} -type f -regex '.*/{self.config_data['dataset_name']}_\\w\\w$' -print | "
-            "parallel awk -f nodes.awk {} | "
-            f"sort -u -n > {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
-        )
-        # cmd = f"ls {self.config_data['output_dir']} | grep -E '{self.config_data['dataset_name']}_\w\w$' | parallel awk -f nodes.awk " + \
-        #     "{}" + \
-        #     f" | sort -u -n >  {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
-        print(cmd)
-        self.log(f"Running command: {cmd}\n")
-        if (not self.config_data['dry_run']):
-            st = time.time()
-            os.system(cmd)
-            et = time.time()
-            print(f"Time taken to construct the nodes file: {et - st}\n")
-        st = time.time()
-        found_nodes = int(check_output(
-            ["wc", "-l", f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"]).split()[0])
-        et = time.time()
-        print(f"Time taken to count the nodes: {et - st}\n")
-        self.config_data['num_nodes'] = found_nodes
-        self.log(f"Counting the number of nodes {found_nodes}")
-        print("Found nodes: " + str(found_nodes))
-        self.num_nodes = found_nodes
+        # self.log("Constructing the nodes file")
+        # cmd = (
+        #     f"find {self.config_data['output_dir']} -type f -regex '.*/{self.config_data['dataset_name']}_\\w\\w$' -print | "
+        #     "parallel awk -f nodes.awk {} | "
+        #     f"sort -u -n > {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
+        # )
+        # # cmd = f"ls {self.config_data['output_dir']} | grep -E '{self.config_data['dataset_name']}_\w\w$' | parallel awk -f nodes.awk " + \
+        # #     "{}" + \
+        # #     f" | sort -u -n >  {self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"
+        # print(cmd)
+        # self.log(f"Running command: {cmd}\n")
+        # if (not self.config_data['dry_run']):
+        #     st = time.time()
+        #     os.system(cmd)
+        #     et = time.time()
+        #     print(f"Time taken to construct the nodes file: {et - st}\n")
+        # st = time.time()
+        # found_nodes = int(check_output(
+        #     ["wc", "-l", f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_nodes"]).split()[0])
+        # et = time.time()
+        # print(f"Time taken to count the nodes: {et - st}\n")
+        # self.config_data['num_nodes'] = found_nodes
+        # self.log(f"Counting the number of nodes {found_nodes}")
+        # print("Found nodes: " + str(found_nodes))
+        # self.num_nodes = found_nodes
+        
+        # Read num_nodes from properties file
+        self.log("Reading number of nodes from properties file")
+        graph_dir = os.path.dirname(self.config_data['graph_path'])
+        properties_file = os.path.join(graph_dir, f"{self.config_data['dataset_name']}.properties")
+        vertexcount_line_found = False
+        if os.path.exists(properties_file):
+            with open(properties_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if "meta.vertices" in line:
+                        found_nodes = int(line.split('=')[1].strip())
+                        self.config_data['num_nodes'] = found_nodes
+                        self.log(f"The graph has {found_nodes} nodes (from properties file)")
+                        print("Found nodes: " + str(found_nodes))
+                        self.num_nodes = found_nodes
+                        vertexcount_line_found = True
+                        break
+        else:
+            raise FileNotFoundError(f"Properties file not found: {properties_file}")
+        if not vertexcount_line_found:
+            raise FileNotFoundError(f"Could not find vertices count in properties file: {properties_file}")
 
         ##################################
         # reverse the graph
