@@ -124,17 +124,17 @@ class Preprocess:
         # sort the graph
         ##############################
 
-        self.log("Sorting the graph")
-        sort_cmd = (f"sort -g -k1,1 -k2,2 --parallel=10 -S 10G {self.config_data['graph_path']} > "
-                    f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted")
+        # self.log("Sorting the graph")
+        # sort_cmd = (f"sort -g -k1,1 -k2,2 --parallel=10 -S 10G {self.config_data['graph_path']} > "
+        #             f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted")
 
-        self.config_data['sorted_graph'] = f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
-        self.log(f"Running sort command: {sort_cmd}\n")
-        if (not self.config_data['dry_run']):
-            st = time.time()
-            os.system(sort_cmd)
-            et = time.time()
-            print(f"Time taken to sort the graph: {et - st}\n")
+        # self.config_data['sorted_graph'] = f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_sorted"
+        # self.log(f"Running sort command: {sort_cmd}\n")
+        # if (not self.config_data['dry_run']):
+        #     st = time.time()
+        #     os.system(sort_cmd)
+        #     et = time.time()
+        #     print(f"Time taken to sort the graph: {et - st}\n")
 
         ##############################
         # determine num_edges from the graph
@@ -293,7 +293,14 @@ class Preprocess:
             et = time.time()
             print(f"Time taken to split the reverse graph: {et - st}\n")
 
+        ##################################
+        # Delete the big reversed graph
         ##############################
+        if (not self.config_data['dry_run']):
+            cmd = f"rm {self.config_data['reverse_graph']}"
+            self.log(f"Running command: {cmd}\n")
+            os.system(cmd)
+
         # Now construct the adjacency list files
         ##############################
         self.log("Constructing the adjacency list files")

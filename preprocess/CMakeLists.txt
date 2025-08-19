@@ -53,3 +53,6 @@ target_link_libraries(dump_graph PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_uti
 
 #add_executable(test_tbb test_tbbb.cpp)
 #target_link_libraries(test_tbb PUBLIC TBB::tbb)
+
+# ###################################################################################
+add_executable(check_sorted check_sorted.cpp)
