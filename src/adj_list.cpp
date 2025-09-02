@@ -617,12 +617,12 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
 
   if (opts.is_weighted)
   {
-    //edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
+    // edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
     set_edge_wt(edge_cursor, to_insert.edge_weight);
   }
   else
   {
-    //edge_cursor->set_value(edge_cursor, 0);
+    // edge_cursor->set_value(edge_cursor, 0);
     set_edge_wt(edge_cursor, 0.0);
   }
   if ((ret = error_check_insert_txn(edge_cursor->insert(edge_cursor))))
@@ -635,11 +635,13 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
     CommonUtil::set_key(edge_cursor, to_insert.dst_id, to_insert.src_id);
     if (opts.is_weighted)
     {
-      edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
+      // edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
+      set_edge_wt(edge_cursor, to_insert.edge_weight);
     }
     else
     {
-      edge_cursor->set_value(edge_cursor, 0);
+      // edge_cursor->set_value(edge_cursor, 0.0);
+      set_edge_wt(edge_cursor, 0.0);
     }
     if ((ret = error_check_insert_txn(edge_cursor->insert(edge_cursor))))
     {
@@ -1340,11 +1342,12 @@ std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
     adjlist out_edges_list;
     CommonUtil::record_to_adjlist(out_adjlist_cursor, &out_edges_list);
     CommonUtil::get_key(out_adjlist_cursor, &out_edges_list.node_id);
-    std::sort(out_edges_list.edgelist.begin(), out_edges_list.edgelist.end()); //need this in sorted order
+    std::sort(out_edges_list.edgelist.begin(),
+              out_edges_list.edgelist.end());  // need this in sorted order
     for (auto dst_id : out_edges_list.edgelist)
     {
       edge found = {.src_id = node_id, .dst_id = dst_id};
-      #ifdef MK_NEDGES
+#ifdef MK_NEDGES
       if (opts.is_weighted)
       {
         CommonUtil::set_key(edge_cursor, found.src_id, found.dst_id);
@@ -1352,9 +1355,9 @@ std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
         get_edge_wt(edge_cursor, &found.edge_weight);
         edge_cursor->reset(edge_cursor);
       }
-      #else
-        found.edge_weight = 0;
-      #endif
+#else
+      found.edge_weight = 0;
+#endif
       out_edges.push_back(found);
     }
   }
@@ -1431,16 +1434,16 @@ std::vector<edge> AdjList::get_in_edges(node_id_t node_id)
   for (auto src_id : src_nodes)
   {
     edge found = {.src_id = src_id, .dst_id = node_id};
-    #ifdef MK_NEDGES
+#ifdef MK_NEDGES
     if (opts.is_weighted)
     {
       CommonUtil::set_key(edge_cursor, found.src_id, found.dst_id);
       edge_cursor->search(edge_cursor);
       get_edge_wt(edge_cursor, &found.edge_weight);
     }
-    #else
-      found.edge_weight = 0;
-    #endif
+#else
+    found.edge_weight = 0;
+#endif
     in_edges.push_back(found);
   }
   return in_edges;
@@ -1533,32 +1536,70 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
 }
 
 /**
- * @brief For the edge identified with (src_id, dst_id) update the edge weight
+ * @brief This function is used for graphalytics workloads. for each edge, read
+ * its current weight. If the current weight exist, add e's weight with current
+ * weight and update the edge weight otherwise insert e as the new edge.
  *
- * @param src_id source id
- * @param dst_id dst ID
- * @param edge_weight new edge weight
- * @throws GraphException if trying to update weight for an unweighted graph, if
- * the edge cursor could not be found, or if the update operation fails.
+ * @param to_update weighted edge to insert/update.
+ * @return true if the operation succeeds
  */
-[[maybe_unused]] int AdjList::update_edge_weight(node_id_t src_id,
-                                                  node_id_t dst_id,
-                                                  edgeweight_t edge_weight)
+bool AdjList::update_edge(edge to_update)
 {
+  // Check if the graph is weighted
   if (!opts.is_weighted)
   {
-    throw GraphException("Trying to insert weight for an unweighted graph");
+    LOG_MSG("Graph is not weighted");
+    return false;
   }
   session->begin_transaction(session, "isolation=snapshot");
-  int ret;
-  CommonUtil::set_key(edge_cursor, src_id, dst_id);
-  set_edge_wt(edge_cursor, edge_weight);
-  ret = error_check_insert_txn(edge_cursor->insert(edge_cursor));
-  if (ret!=0)
+  // Search for the edge in the edge table
+  WT_CURSOR *edge_cur = get_edge_cursor();
+  CommonUtil::set_key(edge_cur, to_update.src_id, to_update.dst_id);
+  int ret = edge_cur->search(edge_cur);
+  if (ret == WT_NOTFOUND)
   {
-    LOG_MSG ("Failed to update edge weight between ", src_id, dst_id);
+    // Edge does not exist, insert it
+    /***** Insert edge *****/
+    CommonUtil::set_key(edge_cur, to_update.src_id, to_update.dst_id);
+    set_edge_wt(edge_cur, to_update.edge_weight);
+    if ((ret = error_check_insert_txn(edge_cur->insert(edge_cur))))
+    {
+      return false;
+    }
+    // insert the reverse edge if undirected
+    if (!opts.is_directed)
+    {
+      CommonUtil::set_key(edge_cur, to_update.dst_id, to_update.src_id);
+      if (opts.is_weighted)
+      {
+        set_edge_wt(edge_cur, to_update.edge_weight);
+      }
+      else
+      {
+        set_edge_wt(edge_cur, 0.0);
+      }
+      if ((ret = error_check_insert_txn(edge_cur->insert(edge_cur))))
+      {
+        LOG_ROLLBACK_LOCATION("update_edge(to_update)", to_update);
+        return false;
+      }
+    }
   }
-  return ret;
+  else
+  {
+    edgeweight_t new_edge_weight = 0.0;
+    get_edge_wt(edge_cur, &new_edge_weight);
+    new_edge_weight += to_update.edge_weight;
+    set_edge_wt(edge_cur, new_edge_weight);
+
+    if ((ret = error_check_insert_txn(edge_cur->update(edge_cur))))
+    {
+      LOG_ROLLBACK_LOCATION("update_edge(to_update)", to_update);
+      return false;
+    }
+  }
+  session->commit_transaction(session, nullptr);
+  return true;
 }
 
 /**
@@ -1975,7 +2016,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
     e_cur->get_key(e_cur, &found.src_id, &found.dst_id);
     if (opts.is_weighted)
     {
-      //CommonUtil::record_to_edge(e_cur, &found);
+      // CommonUtil::record_to_edge(e_cur, &found);
       get_edge_wt(e_cur, &found.edge_weight);
     }
   }

@@ -15,7 +15,7 @@
 #include "graph.h"
 #include "graph_exception.h"
 
-//forward declarations for the cursor classes
+// forward declarations for the cursor classes
 class AdjNodeCursor;
 class AdjOutCursor;
 class AdjInCursor;
@@ -25,7 +25,6 @@ using namespace std;
 
 class AdjList : public GraphBase
 {
-
  public:
   AdjList() = default;
   AdjList(graph_opts &opt_params,
@@ -87,9 +86,7 @@ class AdjList : public GraphBase
                   std::vector<node_id_t> &list);
   [[maybe_unused]] void dump_table(std::string &table_name, int limit = 0);
 
-  [[maybe_unused]] int update_edge_weight (node_id_t src_id,
-                          node_id_t dst_id,
-                          edgeweight_t edge_weight);
+  bool update_edge(edge to_update) override;
 
  private:
   friend class AdjNodeCursor;
@@ -114,7 +111,7 @@ class AdjList : public GraphBase
   [[maybe_unused]] void delete_node_from_adjlists(node_id_t node_id);
   int add_to_adjlists(WT_CURSOR *cursor,
                       node_id_t node_id,
-                      node_id_t to_insert, 
+                      node_id_t to_insert,
                       bool &node_exits);
   int delete_from_adjlists(WT_CURSOR *cursor,
                            node_id_t node_id,
@@ -141,21 +138,20 @@ class AdjList : public GraphBase
     CommonUtil::close_cursor(out_adjlist_cursor);
   }
 
-  inline void get_edge_wt (WT_CURSOR *e_cur, edgeweight_t *edge_weight)
+  inline void get_edge_wt(WT_CURSOR *e_cur, edgeweight_t *edge_weight)
   {
     WT_ITEM item;
     e_cur->get_value(e_cur, &item);
     *edge_weight = *(edgeweight_t *)item.data;
   }
 
-  inline void set_edge_wt (WT_CURSOR *e_cur, edgeweight_t edge_weight)
+  inline void set_edge_wt(WT_CURSOR *e_cur, edgeweight_t edge_weight)
   {
     WT_ITEM item;
     item.data = &edge_weight;
     item.size = sizeof(edgeweight_t);
     e_cur->set_value(e_cur, &item);
   }
-
 };
 
 #endif

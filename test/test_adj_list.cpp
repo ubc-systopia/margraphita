@@ -338,15 +338,15 @@ void test_get_adjlist(AdjList graph, int node_id)
 void test_get_edge(AdjList graph, bool is_directed)
 {
   INFO();
-  edge found =
-      graph.get_edge(SampleGraphAdjList::edge1.src_id, SampleGraphAdjList::edge1.dst_id);
+  edge found = graph.get_edge(SampleGraphAdjList::edge1.src_id,
+                              SampleGraphAdjList::edge1.dst_id);
   CommonUtil::dump_edge(found);
   assert(found.src_id == SampleGraphAdjList::edge1.src_id);
   assert(found.dst_id == SampleGraphAdjList::edge1.dst_id);
   if (!is_directed)
   {
-    found =
-        graph.get_edge(SampleGraphAdjList::edge1.dst_id, SampleGraphAdjList::edge1.src_id);
+    found = graph.get_edge(SampleGraphAdjList::edge1.dst_id,
+                           SampleGraphAdjList::edge1.src_id);
     assert(found.src_id == SampleGraphAdjList::edge1.dst_id);
     assert(found.dst_id == SampleGraphAdjList::edge1.src_id);
   }
@@ -366,7 +366,7 @@ void test_add_edge(AdjList graph, bool is_directed)
       .src_id = 18,
       .dst_id = 19,
       .edge_weight = 33.33};  // node 300 and 400 dont exist yet so we must also
-                            // check if the nodes get created
+                              // check if the nodes get created
   int test_id1 = 18, test_id2 = 19;
   graph.add_edge(to_insert, false);
   edge found = graph.get_edge(test_id1, test_id2);
@@ -789,7 +789,8 @@ void test_delete_node(AdjList graph, bool is_directed)
     for (auto dst : graph.get_adjlist(adj_out_cur, out))
     {
       // std::cout << "@408 dst: " << dst << std::endl;
-      assert(dst != SampleGraphAdjList::node2.id);  // node2 should have been deleted
+      assert(dst !=
+             SampleGraphAdjList::node2.id);  // node2 should have been deleted
     }
   }
 
@@ -799,7 +800,8 @@ void test_delete_node(AdjList graph, bool is_directed)
     for (auto src : graph.get_adjlist(adj_in_cur, in))
     {
       // std::cout << "@412 src: " << src << std::endl;
-      assert(src != SampleGraphAdjList::node2.id);  // node2 should have been deleted
+      assert(src !=
+             SampleGraphAdjList::node2.id);  // node2 should have been deleted
     }
   }
 }
@@ -849,8 +851,8 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     CommonUtil::record_to_adjlist(adj_out_cur, &found);
     for (auto dst : found.edgelist)
     {
-      assert(dst != SampleGraphAdjList::isolated_node.id);  // node4 should have been
-                                                     // deleted
+      assert(dst != SampleGraphAdjList::isolated_node.id);  // node4 should have
+                                                            // been deleted
     }
   }
 
@@ -861,8 +863,8 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
     CommonUtil::record_to_adjlist(adj_in_cur, &found);
     for (auto src : found.edgelist)
     {
-      assert(src != SampleGraphAdjList::isolated_node.id);  // node4 should have been
-                                                     // deleted
+      assert(src != SampleGraphAdjList::isolated_node.id);  // node4 should have
+                                                            // been deleted
     }
   }
 }
@@ -1061,6 +1063,41 @@ void test_ro_get_nodes(GraphBase *graph)
   }
 }
 
+void test_update_edge(AdjList graph, bool is_directed)
+{
+  INFO();
+  edge to_update = {
+      .src_id = 1,
+      .dst_id = 3,
+      .edge_weight = 111.11};  // edge (1,3) exists in the sample graph
+  int test_id1 = 1, test_id2 = 3;
+  graph.update_edge(to_update);
+  edge found = graph.get_edge(test_id1, test_id2);
+  CommonUtil::dump_edge(found);
+  assert(found.edge_weight == 111.11);
+  if (!is_directed)
+  {
+    found = graph.get_edge(test_id2, test_id1);
+    CommonUtil::dump_edge(found);
+    assert(found.src_id == test_id2);
+    assert(found.dst_id == test_id1);
+    assert(found.edge_weight == 111.11);
+  }
+
+  // Now try updating a non-existent edge
+  to_update = {.src_id = 222,
+               .dst_id = 333,
+               .edge_weight = 44.44};  // edge (222,333) does not exist
+
+  bool updated = graph.update_edge(to_update);
+  assert(updated == true);  // add the edge if it does not exist.
+  edge found1 = graph.get_edge(222, 333);
+  CommonUtil::dump_edge(found1);
+  assert(found1.src_id == 222);
+  assert(found1.dst_id == 333);
+  assert(found1.edge_weight == 44.44);
+}
+
 // accept read_opt, sort_edges from command line
 int main(int argc, char *argv[])
 {
@@ -1127,9 +1164,9 @@ int main(int argc, char *argv[])
   WT_CONNECTION *conn = myEngine.get_connection();
   create_init_nodes(conn, opts);
 
-  //test_rollbacks(conn, opts, log_name);
+  // test_rollbacks(conn, opts, log_name);
 
-   AdjList graph(opts, conn);
+  AdjList graph(opts, conn);
   //  graph.dump_meta_data();
   //  graph.close();
   test_get_nodes(graph, opts);
@@ -1141,6 +1178,7 @@ int main(int argc, char *argv[])
   test_get_in_edges(graph, opts);
   test_get_out_nodes(graph, opts);
   test_get_in_nodes(graph, opts);
+  test_update_edge(graph, opts.is_directed);
   test_delete_node(graph, opts.is_directed);
 
   test_delete_isolated_node(graph, opts.is_directed);
@@ -1155,11 +1193,11 @@ int main(int argc, char *argv[])
 
   ////////////
   // Now test for read_only mode
-   opts.create_new = false;
-   opts.read_only = true;
-   GraphEngine roEngine(THREAD_NUM, opts);
-   GraphBase *rograph = roEngine.create_graph_handle();
-   test_ro_get_nodes(rograph);
-   rograph->close(false);
-   roEngine.close_graph();
+  opts.create_new = false;
+  opts.read_only = true;
+  GraphEngine roEngine(THREAD_NUM, opts);
+  GraphBase *rograph = roEngine.create_graph_handle();
+  test_ro_get_nodes(rograph);
+  rograph->close(false);
+  roEngine.close_graph();
 }

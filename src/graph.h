@@ -38,7 +38,17 @@ class GraphBase
   virtual int add_edge(edge to_insert, bool is_bulk) = 0;
   virtual int delete_edge(node_id_t src_id, node_id_t dst_id) = 0;
   virtual edge get_edge(node_id_t src_id, node_id_t dst_id) = 0;
-  // void update_edge(edge to_update); no need to implement.
+
+  /**
+   * @brief This function is used for graphalytics workloads. for each edge,
+   * read its current weight. If the current weight exist, add e's weight with
+   * current weight and update the edge weight otherwise insert e as the new
+   * edge.
+   *
+   * @param to_update weighted edge to insert/update.
+   * @return true if the operation succeeds
+   */
+  virtual bool update_edge(edge to_update) = 0;
   virtual std::vector<node> get_nodes() = 0;
   virtual std::vector<edge> get_edges() = 0;
   virtual bool has_edge(node_id_t src_id, node_id_t dst_id) = 0;
@@ -77,6 +87,7 @@ class GraphBase
                                bool is_random,
                                bool overwrite_allowed,
                                const std::string &checkpoint_name = "");
+
  protected:
   graph_opts opts;
   WT_CONNECTION *connection = nullptr;

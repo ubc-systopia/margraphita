@@ -240,6 +240,10 @@ bool SplitEdgeKey::has_node(node_id_t node_id)
 int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
 {
   (void)is_bulk;
+#ifdef DEBUG
+  std::cout << "Adding edge (" << to_insert.src_id << ", " << to_insert.dst_id
+            << ", " << to_insert.edge_weight << ")\n";
+#endif
   int num_nodes_to_add = 0;
   int num_edges_to_add = 0;
   int ret;
@@ -302,8 +306,8 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
     in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_ID_MAX);
   }
   if (error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor), false))
-  {
     return ret;
+  {
   }
   num_edges_to_add++;
   session->commit_transaction(session, nullptr);
@@ -332,36 +336,72 @@ edge SplitEdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
   return found;
 }
 
+/**
+ * @brief This function is used for graphalytics workloads. for each edge, read
+ * its current weight. If the current weight exist, add e's weight with current
+ * weight and update the edge weight otherwise insert e as the new edge.
+ *
+ * @param to_update weighted edge to insert/update.
+ * @return true if the operation succeeds
+ */
+bool SplitEdgeKey::update_edge(edge to_update)
+{
+  int ret;
+  session->begin_transaction(session, "isolation=snapshot");
+  CommonUtil::ekey_set_key(out_edge_cursor, to_update.src_id, to_update.dst_id);
+  if (out_edge_cursor->search(out_edge_cursor) == 0)
+  {
+    edge found = {0};
+    CommonUtil::record_to_edge_ekey(out_edge_cursor, &found);
+    found.edge_weight += to_update.edge_weight;
+    CommonUtil::ekey_set_key(out_edge_cursor, found.src_id, found.dst_id);
+    out_edge_cursor->set_value(
+        out_edge_cursor, found.edge_weight, OutOfBand_ID_MAX);
+  }
+  else
+  {
+    out_edge_cursor->set_value(
+        out_edge_cursor, to_update.edge_weight, OutOfBand_ID_MAX);
+  }
+  if (error_check_insert_txn(out_edge_cursor->update(out_edge_cursor), false))
+  {
+    return false;
+  }
+  session->commit_transaction(session, nullptr);
+  return true;
+}
+
 std::vector<node> SplitEdgeKey::get_nodes()
 {
   std::vector<node> nodes;
 
   int search_exact;
   // Start by positioning cursor to (OutOfBand_ID_MIN, OutOfBand_ID_MIN)
-  CommonUtil::ekey_set_key(
-      out_edge_cursor, OutOfBand_ID_MIN, OutOfBand_ID_MIN);
+  CommonUtil::ekey_set_key(out_edge_cursor, OutOfBand_ID_MIN, OutOfBand_ID_MIN);
   out_edge_cursor->search_near(out_edge_cursor, &search_exact);
-  
+
   if (search_exact < 0)
   {
     // Position to first record if search_near returns negative
-    if (out_edge_cursor->next(out_edge_cursor) != 0) {
+    if (out_edge_cursor->next(out_edge_cursor) != 0)
+    {
       out_edge_cursor->reset(out_edge_cursor);
-      return nodes; // Empty graph
+      return nodes;  // Empty graph
     }
   }
-  
+
   // Keep doing search_near in a loop till there are no more nodes found
   node_id_t src, dst;
   bool continue_search = true;
-  
+
   while (continue_search)
   {
     // Get current key
-    if (CommonUtil::ekey_get_key(out_edge_cursor, &src, &dst) != 0) {
-      break; // Error getting key
+    if (CommonUtil::ekey_get_key(out_edge_cursor, &src, &dst) != 0)
+    {
+      break;  // Error getting key
     }
-    
+
     if (dst == OutOfBand_ID_MIN)
     {
       // Found a node entry
@@ -379,19 +419,20 @@ std::vector<node> SplitEdgeKey::get_nodes()
       }
       nodes.push_back(n);
     }
-    
+
     // Search for next node by setting key to (src+1, OutOfBand_ID_MIN)
     // This works for both cases: found a node (src) or found an edge (src)
     CommonUtil::ekey_set_key(out_edge_cursor, src + 1, OutOfBand_ID_MIN);
     if (out_edge_cursor->search_near(out_edge_cursor, &search_exact) != 0)
     {
-      continue_search = false; // No more records
+      continue_search = false;  // No more records
     }
     else if (search_exact < 0)
     {
       // Position to next record if search_near returns negative
-      if (out_edge_cursor->next(out_edge_cursor) != 0) {
-        continue_search = false; // No more records
+      if (out_edge_cursor->next(out_edge_cursor) != 0)
+      {
+        continue_search = false;  // No more records
       }
     }
   }
@@ -845,6 +886,7 @@ std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
   in_cur->close(in_cur);
   return in_nodes_id;
 }
+
 /**
  * @brief This function accepts a node_id and two integers, in_change and
  * out_change and updates the in and out degree of the node in the in_Edge and
@@ -896,8 +938,7 @@ InCursor *SplitEdgeKey::get_innbd_iter()
 }
 NodeCursor *SplitEdgeKey::get_node_iter()
 {
-  NodeCursor *toReturn =
-      new SplitEKeyNodeCursor(get_new_out_cursor(), session);
+  NodeCursor *toReturn = new SplitEKeyNodeCursor(get_new_out_cursor(), session);
   return toReturn;
 }
 EdgeCursor *SplitEdgeKey::get_edge_iter()

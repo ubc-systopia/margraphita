@@ -39,6 +39,8 @@ class SplitEdgeKey : public GraphBase
   std::vector<node> get_in_nodes(node_id_t node_id) override;
   std::vector<node_id_t> get_in_nodes_id(node_id_t node_id) override;
 
+  bool update_edge(edge to_update) override;
+
   node_id_t get_max_node_id() override;
   node_id_t get_min_node_id() override;
 
@@ -364,7 +366,7 @@ class SplitEKeyNodeCursor : public NodeCursor
 
     // Now using main edge table cursor (src, dst) format
     CommonUtil::ekey_get_key(cursor, &src, &dst);
-    
+
     if (keys.end != OutOfBand_ID_MIN && src > keys.end)
     {
       no_next(found);
@@ -376,11 +378,11 @@ class SplitEKeyNodeCursor : public NodeCursor
       no_next(found);
       return;
     }
-    
+
     // Found a valid node entry
     found->id = src;
     cursor->get_value(cursor, &found->in_degree, &found->out_degree);
-    
+
     // Advance to next node using search_near
     CommonUtil::ekey_set_key(cursor, src + 1, OutOfBand_ID_MIN);
     int search_exact;
@@ -392,7 +394,8 @@ class SplitEKeyNodeCursor : public NodeCursor
     }
     if (search_exact < 0)
     {
-      if (cursor->next(cursor) != 0) {
+      if (cursor->next(cursor) != 0)
+      {
         has_next = false;
         return;
       }
