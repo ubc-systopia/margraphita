@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "common_util.h"
+#include "edgekey_split.h"
 #include "graph.h"
 #include "graph_exception.h"
 
@@ -64,12 +65,6 @@ class SplitEdgeKey : public GraphBase
   }
   [[nodiscard]] WT_CURSOR *get_in_edge_cursor() const { return in_edge_cursor; }
   WT_CURSOR *get_new_in_cursor();
-  // Removed dst_src_idx_cursor dependencies
-  // [[nodiscard]] WT_CURSOR *get_node_index_cursor() const
-  // {
-  //   return dst_src_idx_cursor;
-  // }
-  // WT_CURSOR *get_new_node_index_cursor();
   static void create_indices(WT_SESSION *session);
   void dump_table(std::string &table_name, int num_records);
 
@@ -79,7 +74,6 @@ class SplitEdgeKey : public GraphBase
   WT_CURSOR *in_edge_cursor = nullptr;
   // WT_CURSOR *dst_src_idx_cursor = nullptr; // Removed dependency
 
-  // internal methods
   [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
   int delete_node_and_related_edges(node_id_t node_id, int *num_edges_to_del);
   int update_node_degree(node_id_t node_id, int in_change, int out_change);
@@ -97,7 +91,100 @@ class SplitEdgeKey : public GraphBase
     in_edge_cursor->close(in_edge_cursor);
     // dst_src_idx_cursor->close(dst_src_idx_cursor); // Removed dependency
   }
+
+ public:
+  static void ekey_set_edge_value(WT_CURSOR *cursor, edgeweight_t weight);
+  static void ekey_get_edge_value(WT_CURSOR *cursor, edgeweight_t *weight);
+  static void ekey_set_node_value(WT_CURSOR *cursor,
+                                  degree_t in_degree,
+                                  degree_t out_degree);
+  static void ekey_get_node_value(WT_CURSOR *cursor,
+                                  degree_t *in_degree,
+                                  degree_t *out_degree);
 };
+
+// internal methods
+template <typename T, typename... Args>
+static inline int pack_values(WT_ITEM *item,
+                              const T &first,
+                              const Args &...args)
+{
+  constexpr size_t count = 1 + sizeof...(Args);
+  T *buffer = new T[count];  // dynamic allocation for correct alignment
+
+  buffer[0] = first;
+  size_t idx = 1;
+  ((buffer[idx++] = args), ...);
+
+  item->data = reinterpret_cast<const unsigned *>(buffer);
+  item->size = sizeof(T) * count;
+  return 0;
+}
+
+template <typename T, typename... Args>
+static inline int unpack_values(const WT_ITEM *item, T *first, Args... args)
+{
+  constexpr size_t count = 1 + sizeof...(Args);
+  if (item->size != sizeof(T) * count)
+  {
+    return -1;
+  }
+  size_t offset = 0;
+  auto unpack = [&](auto *value)
+  {
+    memcpy(
+        value, reinterpret_cast<const char *>(item->data) + offset, sizeof(T));
+    offset += sizeof(T);
+  };
+  unpack(first);
+  (unpack(args), ...);
+  return 0;
+}
+
+inline void SplitEdgeKey::ekey_set_edge_value(WT_CURSOR *cursor,
+                                              edgeweight_t weight)
+{
+  WT_ITEM item;
+  pack_values(&item, weight);
+  cursor->set_value(cursor, &item);
+  // free((void *)item.data);
+}
+inline void SplitEdgeKey::ekey_set_node_value(WT_CURSOR *cursor,
+                                              degree_t in_deg,
+                                              degree_t out_deg)
+{
+  WT_ITEM item;
+  pack_values(&item, in_deg, out_deg);
+  cursor->set_value(cursor, &item);
+  // free((void *)item.data);
+}
+
+inline void SplitEdgeKey::ekey_get_node_value(WT_CURSOR *cursor,
+                                              degree_t *in_deg,
+                                              degree_t *out_deg)
+{
+  WT_ITEM item;
+  cursor->get_value(cursor, &item);
+  if (item.size != sizeof(degree_t) * 2)
+  {
+    throw GraphException("Node degree size mismatch");
+  }
+  unpack_values(&item, in_deg, out_deg);
+  // free((void *)item.data);
+}
+
+inline void SplitEdgeKey::ekey_get_edge_value(WT_CURSOR *cursor,
+                                              edgeweight_t *weight)
+{
+  WT_ITEM item;
+  cursor->get_value(cursor, &item);
+  if (item.size != sizeof(edgeweight_t))
+  {
+    throw GraphException("Edge weight size mismatch");
+  }
+  unpack_values(&item, weight);
+  // free((void *)item.data);
+}
 
 class SplitEkeyInCursor : public InCursor
 {
@@ -381,7 +468,9 @@ class SplitEKeyNodeCursor : public NodeCursor
 
     // Found a valid node entry
     found->id = src;
-    cursor->get_value(cursor, &found->in_degree, &found->out_degree);
+    // cursor->get_value(cursor, &found->in_degree, &found->out_degree);
+    SplitEdgeKey::ekey_get_node_value(
+        cursor, &found->in_degree, &found->out_degree);
 
     // Advance to next node using search_near
     CommonUtil::ekey_set_key(cursor, src + 1, OutOfBand_ID_MIN);
@@ -501,7 +590,8 @@ class SplitEKeyEdgeCursor : public EdgeCursor
     }
     if (get_weight)
     {
-      CommonUtil::record_to_edge_ekey(cursor, found);
+      // CommonUtil::record_to_edge_ekey(cursor, found);
+      SplitEdgeKey::ekey_get_edge_value(cursor, &found->edge_weight);
     }
 
     if (cursor->next(cursor) != 0)

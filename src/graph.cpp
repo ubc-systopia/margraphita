@@ -119,7 +119,7 @@ void GraphBase::insert_metadata(const int key,
 {
   cursor->set_key(cursor, key);
   WT_ITEM item;
-  item.data = value;
+  item.data = reinterpret_cast<const unsigned*>(value);
   item.size = size;
   cursor->set_value(cursor, &item);
   int ret = cursor->insert(cursor);

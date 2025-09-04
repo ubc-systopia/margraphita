@@ -40,6 +40,7 @@ void test_node_add(SplitEdgeKey &graph, bool read_optimize)
   node new_node = {.id = 11, .in_degree = 0, .out_degree = 0};
   graph.add_node(new_node);
   node found = graph.get_node(new_node.id);
+  CommonUtil::dump_node(found);
   assert(new_node.id == found.id);
   if (read_optimize)
   {
@@ -71,20 +72,20 @@ void test_add_edge(SplitEdgeKey &graph, bool is_directed, bool is_weighted)
   edge to_insert = {
       .src_id = 5,
       .dst_id = 6,
-      .edge_weight = 333};  // node 300 and 400 dont exist yet so we must also
-                            // check if the nodes get created
+      .edge_weight = 333.55};  // node 300 and 400 dont exist yet so we must
+                               // also check if the nodes get created
   graph.add_edge(to_insert, false);
   edge found = graph.get_edge(5, 6);
   CommonUtil::dump_edge(found);
   assert(found.src_id == 5);
   assert(found.dst_id == 6);
-  if (is_weighted) assert(found.edge_weight == 333);
+  if (is_weighted) assert(found.edge_weight == 333.55);
   if (!is_directed)
   {
     found = graph.get_edge(6, 5);
     assert(found.src_id == 6);
     assert(found.dst_id == 5);
-    if (is_weighted) assert(found.edge_weight == 333);
+    if (is_weighted) assert(found.edge_weight == 333.55);
   }
 
   // Check if the nodes were created.
@@ -566,6 +567,41 @@ void test_ro_get_nodes(GraphBase *graph)
   }
 }
 
+void test_update_edge(SplitEdgeKey graph, bool is_directed)
+{
+  INFO();
+  edge to_update = {
+      .src_id = 1,
+      .dst_id = 3,
+      .edge_weight = 111.11};  // edge (1,3) exists in the sample graph
+  int test_id1 = 1, test_id2 = 3;
+  graph.update_edge(to_update);
+  edge found = graph.get_edge(test_id1, test_id2);
+  CommonUtil::dump_edge(found);
+  assert(found.edge_weight == 111.11);
+  if (!is_directed)
+  {
+    found = graph.get_edge(test_id2, test_id1);
+    CommonUtil::dump_edge(found);
+    assert(found.src_id == test_id2);
+    assert(found.dst_id == test_id1);
+    assert(found.edge_weight == 111.11);
+  }
+
+  // Now try updating a non-existent edge
+  to_update = {.src_id = 222,
+               .dst_id = 333,
+               .edge_weight = 44.44};  // edge (222,333) does not exist
+
+  bool updated = graph.update_edge(to_update);
+  assert(updated == true);  // add the edge if it does not exist.
+  edge found1 = graph.get_edge(222, 333);
+  CommonUtil::dump_edge(found1);
+  assert(found1.src_id == 222);
+  assert(found1.dst_id == 333);
+  assert(found1.edge_weight == 44.44);
+}
+
 int main()
 {
   const int THREAD_NUM = 1;
@@ -610,20 +646,21 @@ int main()
   test_get_in_and_out_degree(graph, opts.is_directed);
   test_get_edges(graph);
   test_get_nodes(graph);
+  test_update_edge(graph, opts.is_directed);
   test_delete_node(graph, opts.is_directed);
 
   test_get_edges(graph);
   test_EdgeCursor(graph, opts.is_directed);
   test_EdgeCursor_Range(graph, opts.is_directed);
   test_InCursor(graph);
-  //! TODO: test_InCursor_Range(graph);
+  // //! TODO: test_InCursor_Range(graph);
   test_OutCursor(graph);
   test_NodeCursor(graph);
   test_NodeCursor_Range(graph);
   test_delete_edge(graph, opts.is_directed);
 
   test_get_edges(graph);
-  
+
   tearDown(graph);
   myEngine.close_graph();
   ////////////

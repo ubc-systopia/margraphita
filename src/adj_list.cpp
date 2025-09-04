@@ -481,7 +481,7 @@ int AdjList::add_adjlist(WT_CURSOR *cursor,
   // Now, initialize the in/out degree to 0 and adjlist to empty list
   WT_ITEM item;
   // item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
-  item.data = list.data();
+  item.data = reinterpret_cast<const unsigned*>(list.data());
   item.size = list.size() * sizeof(node_id_t);
   cursor->set_value(cursor,
                     list.size(),
@@ -812,7 +812,7 @@ int AdjList::delete_node(node_id_t to_delete)
 // first delete the node from the node table (if the table exists)
 #ifdef MK_NEDGES
   CommonUtil::set_key(node_cursor, to_delete);
-  if (ret = error_check_insert_txn(node_cursor->remove(node_cursor)))
+  if ((ret = error_check_insert_txn(node_cursor->remove(node_cursor))))
   {
     DEBUG_MSG("Failed to delete to_delete " + std::to_string(to_delete) +
               "; TX rolled back.");
@@ -1427,7 +1427,6 @@ std::vector<edge> AdjList::get_in_edges(node_id_t node_id)
 {
   std::vector<edge> in_edges;
   std::vector<node_id_t> src_nodes;
-  int ret;
 
   src_nodes = get_adjlist(in_adjlist_cursor, node_id);
   std::sort(src_nodes.begin(), src_nodes.end());
@@ -1640,7 +1639,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
 
   CommonUtil::set_key(cursor, node_id);
   WT_ITEM item;
-  item.data = to_add.edgelist.data();
+  item.data = reinterpret_cast<const unsigned*>(to_add.edgelist.data());
   item.size = to_add.edgelist.size() * sizeof(node_id_t);
   cursor->set_value(cursor, to_add.degree, &item);
 

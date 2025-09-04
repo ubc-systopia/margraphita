@@ -148,7 +148,7 @@ class AdjList : public GraphBase
   inline void set_edge_wt(WT_CURSOR *e_cur, edgeweight_t edge_weight)
   {
     WT_ITEM item;
-    item.data = &edge_weight;
+    item.data = reinterpret_cast<const unsigned*>(&edge_weight);
     item.size = sizeof(edgeweight_t);
     e_cur->set_value(e_cur, &item);
   }
