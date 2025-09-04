@@ -77,7 +77,7 @@ char *pack_int_vector_wti(WT_SESSION *session,
 {
   WT_PACK_STREAM *psp;
   WT_ITEM item;
-  item.data = to_pack.data();
+  item.data = (unsigned *)to_pack.data();
   item.size = sizeof(int) * to_pack.size();
 
   void *pack_buf = malloc(sizeof(int) * to_pack.size());
@@ -195,7 +195,7 @@ int main()
     cursor->set_key(cursor, i);
     WT_ITEM item;
     std::vector<int> vec = {i + 1, i + 2, i + 3, i + 4, i + 5};
-    item.data = vec.data();
+    item.data = (unsigned *)vec.data();
     item.size = vec.size() * sizeof(int);
     cursor->set_value(cursor, &item);
     cursor->insert(cursor);
@@ -211,7 +211,7 @@ int main()
     WT_ITEM item;
     std::vector<int> vec = {i + 1, i + 2, i + 3, i + 4, i + 5};
     char *pack_buf = pack_int_vector_wti(session, vec, &size);
-    item.data = pack_buf;
+    item.data = (unsigned *)pack_buf;
     item.size = size;
     cursor1->set_value(cursor1, &item);
     cursor1->insert(cursor1);

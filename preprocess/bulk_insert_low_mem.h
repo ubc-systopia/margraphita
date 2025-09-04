@@ -239,7 +239,7 @@ int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
                    old_adj.edgelist.end(),
                    std::back_inserter(new_edgelist));
     WT_ITEM item;
-    item.data = new_edgelist.data();
+    item.data = (unsigned *)new_edgelist.data();
     item.size = new_edgelist.size() * sizeof(node_id_t);
     adjcur->set_value(adjcur, new_edgelist.size(), &item);
     ret = adjcur->update(adjcur);
@@ -247,7 +247,7 @@ int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
   else
   {
     WT_ITEM item;
-    item.data = adj.edgelist.data();
+    item.data = (unsigned *)adj.edgelist.data();
     item.size = adj.edgelist.size() * sizeof(node_id_t);
     // space += adj.edgelist.size() * sizeof(node_id_t);
     adjcur->set_value(adjcur, adj.edgelist.size(), &item);
@@ -460,7 +460,7 @@ void add_metadata(const int key,
 {
   cursor->set_key(cursor, key);
   WT_ITEM item;
-  item.data = value;
+  item.data = (unsigned *)value;
   item.size = size;
   cursor->set_value(cursor, &item);
   int ret = cursor->insert(cursor);

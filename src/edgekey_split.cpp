@@ -34,28 +34,23 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     throw GraphException("Cannot open session");
   }
   // Set up the out-edge table
-  // columns: SRC, DST, ATTR_FIRST, ATTR_SECOND
-  vector<string> edge_columns = {SRC, DST, ATTR_FIRST, ATTR_SECOND};
+  // columns: SRC, DST, ATTR
+  vector<string> edge_columns = {SRC, DST, ATTR};
   string edge_key_format = "uu";  // SRC DST
   string edge_value_format =
-      "II";  // in/out degree(unit32_t) or weight/uninterpreted
+      "u";  // in/out degree(unit32_t) or weight/uninterpreted
   CommonUtil::set_table(
       sess, OUT_EDGES, edge_columns, edge_key_format, edge_value_format);
 
   if (opts.is_directed)
   {
     edge_columns.clear();
-    // Set up the out-edge table
-    // columns: SRC, DST, ATTR_FIRST, ATTR_SECOND
-    edge_columns = {DST, SRC, ATTR_FIRST, ATTR_SECOND};
+    // Set up the in-edge table
+    // columns: DST, SRC, ATTR
+    edge_columns = {DST, SRC, ATTR};
     CommonUtil::set_table(
         sess, IN_EDGES, edge_columns, edge_key_format, edge_value_format);
   }
-
-  // if (!opts.optimize_create)
-  // {
-  //   create_indices(sess);
-  // }
 
   sess->close(sess, nullptr);
 }
@@ -139,16 +134,15 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
   // CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id, OutOfBand_ID_MIN);
   if (opts.read_optimize)
   {
-    out_edge_cursor->set_value(
+    // out_edge_cursor->set_value(
+    //     out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
+    ekey_set_node_value(
         out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
-    //        in_edge_cursor->set_value(
-    //            in_edge_cursor, to_insert.in_degree,
-    //            to_insert.out_degree);
   }
   else
   {
-    out_edge_cursor->set_value(out_edge_cursor, 0, 0);
-    //        in_edge_cursor->set_value(in_edge_cursor, 0, 0);
+    // out_edge_cursor->set_value(out_edge_cursor, 0, 0);
+    ekey_set_node_value(out_edge_cursor, 0, 0);
   }
   //    auto in_ret =
   //        error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor));
@@ -195,17 +189,18 @@ int SplitEdgeKey::add_node_txn(node to_insert,
     {
       if (indeg_change > 0 || outdeg_change > 0)
       {  // New node, but the degrees are not zero
-        out_edge_cursor->set_value(
-            out_edge_cursor, indeg_change, outdeg_change);
+        // out_edge_cursor->set_value(
+        // out_edge_cursor, indeg_change, outdeg_change);
+        ekey_set_node_value(out_edge_cursor, indeg_change, outdeg_change);
       }
       else
       {
-        out_edge_cursor->set_value(out_edge_cursor, 0, 0);
+        ekey_set_node_value(out_edge_cursor, 0, 0);
       }
     }
     else
     {
-      out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
+      ekey_set_node_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
     }
     int ret =
         error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor), false);
@@ -282,12 +277,13 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   CommonUtil::ekey_set_key(out_edge_cursor, to_insert.src_id, to_insert.dst_id);
   if (opts.is_weighted)
   {
-    out_edge_cursor->set_value(
-        out_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
+    // out_edge_cursor->set_value(
+    // out_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
+    ekey_set_edge_value(out_edge_cursor, to_insert.edge_weight);
   }
   else
   {
-    out_edge_cursor->set_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
+    ekey_set_edge_value(out_edge_cursor, 0.0);
   }
 
   if (error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor), false))
@@ -298,12 +294,13 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   CommonUtil::ekey_set_key(in_edge_cursor, to_insert.dst_id, to_insert.src_id);
   if (opts.is_weighted)
   {
-    in_edge_cursor->set_value(
-        in_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
+    // in_edge_cursor->set_value(
+    //     in_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
+    ekey_set_edge_value(in_edge_cursor, to_insert.edge_weight);
   }
   else
   {
-    in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_ID_MAX);
+    ekey_set_edge_value(in_edge_cursor, 0.0);
   }
   if (error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor), false))
     return ret;
@@ -331,7 +328,8 @@ edge SplitEdgeKey::get_edge(node_id_t src_id, node_id_t dst_id)
     found.src_id = src_id;
     found.dst_id = dst_id;
     if (opts.is_weighted)
-      CommonUtil::record_to_edge_ekey(out_edge_cursor, &found);
+      // CommonUtil::record_to_edge_ekey(out_edge_cursor, &found);
+      ekey_get_edge_value(out_edge_cursor, &found.edge_weight);
   }
   return found;
 }
@@ -352,16 +350,18 @@ bool SplitEdgeKey::update_edge(edge to_update)
   if (out_edge_cursor->search(out_edge_cursor) == 0)
   {
     edge found = {0};
-    CommonUtil::record_to_edge_ekey(out_edge_cursor, &found);
+    ekey_get_edge_value(out_edge_cursor, &found.edge_weight);
     found.edge_weight += to_update.edge_weight;
-    CommonUtil::ekey_set_key(out_edge_cursor, found.src_id, found.dst_id);
-    out_edge_cursor->set_value(
-        out_edge_cursor, found.edge_weight, OutOfBand_ID_MAX);
+    CommonUtil::ekey_set_key(
+        out_edge_cursor, to_update.src_id, to_update.dst_id);
+    // out_edge_cursor->set_value(
+    //     out_edge_cursor, found.edge_weight, OutOfBand_ID_MAX);
+    to_update.edge_weight += found.edge_weight;
+    ekey_set_edge_value(out_edge_cursor, to_update.edge_weight);
   }
   else
   {
-    out_edge_cursor->set_value(
-        out_edge_cursor, to_update.edge_weight, OutOfBand_ID_MAX);
+    ekey_set_edge_value(out_edge_cursor, to_update.edge_weight);
   }
   if (error_check_insert_txn(out_edge_cursor->update(out_edge_cursor), false))
   {
@@ -409,8 +409,9 @@ std::vector<node> SplitEdgeKey::get_nodes()
       n.id = src;
       if (opts.read_optimize)
       {
-        out_edge_cursor->get_value(
-            out_edge_cursor, &n.in_degree, &n.out_degree);
+        // out_edge_cursor->get_value(
+        //     out_edge_cursor, &n.in_degree, &n.out_degree);
+        ekey_get_node_value(out_edge_cursor, &n.in_degree, &n.out_degree);
       }
       else
       {
@@ -453,7 +454,7 @@ std::vector<edge> SplitEdgeKey::get_edges()
     {
       if (opts.is_weighted)
       {
-        CommonUtil::record_to_edge_ekey(out_edge_cursor, &found);
+        ekey_get_edge_value(out_edge_cursor, &found.edge_weight);
       }
       edges.push_back(found);
     }
@@ -479,7 +480,8 @@ node SplitEdgeKey::get_node(node_id_t node_id)
   if (out_edge_cursor->search(out_edge_cursor) == 0)
   {
     found.id = node_id;
-    CommonUtil::record_to_node_ekey(out_edge_cursor, &found);
+    // CommonUtil::record_to_node_ekey(out_edge_cursor, &found);
+    ekey_get_node_value(out_edge_cursor, &found.in_degree, &found.out_degree);
   }
   out_edge_cursor->reset(out_edge_cursor);
   return found;
@@ -513,7 +515,8 @@ node SplitEdgeKey::get_random_node()
     if (dst == OutOfBand_ID_MIN)
     {
       rando.id = src;
-      CommonUtil::record_to_node_ekey(random_node_cursor, &rando);
+      ekey_get_node_value(
+          random_node_cursor, &rando.in_degree, &rando.out_degree);
       break;
     }
   }
@@ -537,7 +540,7 @@ degree_t SplitEdgeKey::get_in_degree(node_id_t node_id)
                            " does not exist");
     }
     node found = {0};
-    CommonUtil::record_to_node_ekey(out_edge_cursor, &found);
+    ekey_get_node_value(out_edge_cursor, &found.in_degree, &found.out_degree);
     out_edge_cursor->reset(out_edge_cursor);
     return found.in_degree;
   }
@@ -590,7 +593,7 @@ degree_t SplitEdgeKey::get_out_degree(node_id_t node_id)
     {
       node found = {0};
       found.id = node_id;
-      CommonUtil::record_to_node_ekey(out_edge_cursor, &found);
+      ekey_get_node_value(out_edge_cursor, &found.in_degree, &found.out_degree);
       out_edge_cursor->reset(out_edge_cursor);
       out_deg = found.out_degree;
     }
@@ -638,7 +641,7 @@ std::vector<edge> SplitEdgeKey::get_out_edges(node_id_t node_id)
       CommonUtil::ekey_get_key(out_edge_cursor, &found.src_id, &found.dst_id);
       if ((found.src_id == node_id) & (found.dst_id != OutOfBand_ID_MIN))
       {
-        out_edge_cursor->get_value(out_edge_cursor, &found.edge_weight, &temp);
+        ekey_get_edge_value(out_edge_cursor, &found.edge_weight);
         out_edges.push_back(found);
       }
       else
@@ -776,7 +779,7 @@ std::vector<edge> SplitEdgeKey::get_in_edges(node_id_t node_id)
     CommonUtil::ekey_get_key(in_edge_cursor, &found.dst_id, &found.src_id);
     if ((found.dst_id == node_id) & (found.src_id != OutOfBand_ID_MIN))
     {
-      in_edge_cursor->get_value(in_edge_cursor, &found.edge_weight, &temp);
+      ekey_get_edge_value(in_edge_cursor, &found.edge_weight);
       in_edges.push_back(found);
     }
     else
@@ -910,8 +913,10 @@ int SplitEdgeKey::update_node_degree(node_id_t node_id,
   CommonUtil::ekey_set_key(out_cursor, node_id, OutOfBand_ID_MIN);
   if (!(ret = out_cursor->search(out_cursor)))
   {
-    out_cursor->get_value(out_cursor, &in, &out);
-    out_cursor->set_value(out_cursor, in + in_change, out + out_change);
+    // out_cursor->get_value(out_cursor, &in, &out);
+    ekey_get_node_value(out_cursor, &in, &out);
+    // out_cursor->set_value(out_cursor, in + in_change, out + out_change);
+    ekey_set_node_value(out_cursor, in + in_change, out + out_change);
     ret = out_cursor->update(out_cursor);
   }
   else
@@ -978,7 +983,8 @@ void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
     if (dst == OutOfBand_ID_MIN)
     {
       std::cout << "Random starting vertex: " << src << std::endl;
-      random_node_cursor->get_value(random_node_cursor, &in_deg, &out_deg);
+      // random_node_cursor->get_value(random_node_cursor, &in_deg, &out_deg);
+      ekey_get_node_value(random_node_cursor, &in_deg, &out_deg);
       if (out_deg > 0)
       {
         randoms.emplace_back(src);
@@ -1235,34 +1241,6 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
       num_edges_to_add -= 1;
     } while (incursor->next(incursor) == 0);
     in_edge_cursor->reset(in_edge_cursor);
-
-    //    // We now need to remove the src->node_id edges from the out_edge
-    //    table,
-    //    // using an index
-    //    WT_CURSOR *idx_cursor = get_node_index_cursor();
-    //    CommonUtil::ekey_set_key(idx_cursor, node_id, OutOfBand_ID_MIN);
-    //    int search_near;
-    //    idx_cursor->search_near(idx_cursor, &search_near);
-    //    if (search_near < 0)
-    //    {
-    //      idx_cursor->next(idx_cursor);
-    //    }
-    //    do
-    //    {
-    //      CommonUtil::ekey_get_key(idx_cursor, &dst, &src);
-    //      if (dst != node_id)
-    //      {
-    //        break;
-    //      }
-    //      // Delete the edge OUTGOING FROM the deleted node
-    //      CommonUtil::ekey_set_key(out_edge_cursor, src, node_id);
-    //      ret = out_edge_cursor->remove(out_edge_cursor);
-    //      if (ret != 0)
-    //      {
-    //        session->rollback_transaction(session, nullptr);
-    //        return ret;  // panic
-    //      }
-    //    } while (idx_cursor->next(idx_cursor) == 0);
     incursor->close(incursor);
   }
 
@@ -1356,35 +1334,6 @@ WT_CURSOR *SplitEdgeKey::get_new_in_cursor()
 
   return new_in_cursor;
 }
-
-// Removed get_new_node_index_cursor() - no longer using DST_SRC_INDEX
-// WT_CURSOR *SplitEdgeKey::get_new_node_index_cursor()
-// {
-//   WT_CURSOR *new_dst_src_idx_cursor = nullptr;
-//   string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
-//   if (_get_index_cursor(OUT_EDGES,
-//                         DST_SRC_INDEX,
-//                         projection,
-//                         opts.checkpoint_name,
-//                         &new_dst_src_idx_cursor) != 0)
-//   {
-//     throw GraphException("Could not get a cursor to DST_SRC_INDEX");
-//   }
-//
-//   return new_dst_src_idx_cursor;
-// }
-// void SplitEdgeKey::create_indices(WT_SESSION *session)
-// {
-//   std::string idx_name, idx_conf;
-//   // Index on (DST,SRC) columns of the edge table
-//   // Used for adjacency neighbourhood iterators
-//   idx_name = "index:" + OUT_EDGES + ":" + DST_SRC_INDEX;
-//   idx_conf = "columns=(" + DST + "," + SRC + ")";
-//   if (session->create(session, idx_name.c_str(), idx_conf.c_str()) != 0)
-//   {
-//     throw GraphException("Failed to create DST_SRC_INDEX on the edge table");
-//   }
-// }
 
 void SplitEdgeKey::dump_table(string &table_name, int num_records)
 {

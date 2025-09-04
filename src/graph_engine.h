@@ -36,7 +36,7 @@ class GraphEngine
   graph_opts opts;
   node_id_t last_node_id{};
 
-  void check_opts_valid() const ;
+  void check_opts_valid() const;
   void create_new_graph();
   void open_connection();
   void close_connection();
@@ -48,6 +48,5 @@ class GraphEngine
   void _calculate_thread_offsets_fast(int thread_max, GraphBase *graph_stats);
   void _calculate_thread_offsets_edge(int thread_max, GraphBase *graph_stats);
 };
-
 
 #endif

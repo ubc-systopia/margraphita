@@ -30,12 +30,16 @@
 #define DEBUG_MSG(msg)                                        \
   std::cerr << "DEBUG: " << msg << " (Function: " << __func__ \
             << ", Line: " << __LINE__ << ")" << std::endl;
-#define LOG_MSG(msg, ...)                                                      \
-  do                                                                           \
-  {                                                                            \
-    /* The format string itself should be a literal. */                        \
-    /* Pass the dynamic parts as separate arguments. */                        \
-    fmt::print(stderr, "DEBUG: [{}:{}] " msg "\n", __func__, __LINE__, ##__VA_ARGS__); \
+#define LOG_MSG(msg, ...)                               \
+  do                                                    \
+  {                                                     \
+    /* The format string itself should be a literal. */ \
+    /* Pass the dynamic parts as separate arguments. */ \
+    fmt::print(stderr,                                  \
+               "DEBUG: [{}:{}] " msg "\n",              \
+               __func__,                                \
+               __LINE__,                                \
+               ##__VA_ARGS__);                          \
   } while (0)
 #define LOG_ROLLBACK_LOCATION(func_name, edge)      \
                                                     \
@@ -155,7 +159,8 @@ inline void CommonUtil::set_key(WT_CURSOR *cursor, node_id_t key)
 #else
   uint32_t a = __builtin_bswap32(key);
 #endif
-  WT_ITEM k = {.data = &a, .size = sizeof(a)};
+  WT_ITEM k = {.data = reinterpret_cast<const unsigned *>(&a),
+               .size = sizeof(a)};
   cursor->set_key(cursor, &k);
 }
 
@@ -170,8 +175,10 @@ inline void CommonUtil::set_key(WT_CURSOR *cursor,
   uint32_t a = __builtin_bswap32(key1);
   uint32_t b = __builtin_bswap32(key2);
 #endif
-  WT_ITEM k1 = {.data = &a, .size = sizeof(a)};
-  WT_ITEM k2 = {.data = &b, .size = sizeof(b)};
+  WT_ITEM k1 = {.data = reinterpret_cast<const unsigned *>(&a),
+                .size = sizeof(a)};
+  WT_ITEM k2 = {.data = reinterpret_cast<const unsigned *>(&b),
+                .size = sizeof(b)};
   cursor->set_key(cursor, &k1, &k2);
 }
 
@@ -321,7 +328,7 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
   int ret = cursor->search(cursor);
 
   WT_ITEM item;
-  item.data = to_insert.edgelist.data();
+  item.data = reinterpret_cast<const unsigned *>(to_insert.edgelist.data());
   item.size = to_insert.edgelist.size() * sizeof(node_id_t);
 
   cursor->set_value(cursor, to_insert.degree, &item);
@@ -387,30 +394,6 @@ inline void CommonUtil::record_to_node_ekey(WT_CURSOR *cur, node *found)
   found->in_degree = a;
   found->out_degree = b;
 }
-
-// inline void CommonUtil::record_to_node_ekey_new(WT_CURSOR *cur,
-//                                                 node *found,
-//                                                 bool directed)
-//{
-//   // std::cout << cur->value_format << std::endl;
-//   //! checked that it works for negative int32_t values.
-//   degree_t a = 0, b = 0;
-//   int ret = cur->get_value(cur, &a, &b);
-//   if (ret != 0)
-//   {
-//     throw GraphException("Failed to get node attributes");
-//   }
-//   if (directed)
-//   {
-//     found->in_degree = a;
-//     found->out_degree = b;
-//   }
-//   else
-//   {
-//     found->out_degree = b;
-//     found->in_degree = 0;
-//   }
-// }
 
 inline void CommonUtil::record_to_edge_ekey(WT_CURSOR *cur, edge *found)
 {

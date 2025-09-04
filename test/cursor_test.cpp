@@ -11,8 +11,9 @@
 #include <unordered_map>
 
 #include "common_util.h"
-#include "edgekey.h"
+#include "edgekey_split.h"
 
+WT_SESSION *session = nullptr;
 #define error_check(call)                                                   \
   do                                                                        \
   {                                                                         \
@@ -43,6 +44,40 @@ void testutil_die(int e, const char *fmt, ...)
 
   /* Drop core. */
   fprintf(stderr, "%s: process aborting\n", __FILE__);
+}
+
+template <typename T, typename... Args>
+inline int pack_degrees(WT_ITEM *item, const T &first, const Args &...args)
+{
+  constexpr size_t count = 1 + sizeof...(Args);
+  T *buffer = new T[count];  // dynamic allocation for correct alignment
+
+  buffer[0] = first;
+  size_t idx = 1;
+  ((buffer[idx++] = args), ...);
+
+  item->data = reinterpret_cast<const unsigned *>(buffer);
+  item->size = sizeof(T) * count;
+  return 0;
+}
+template <typename T, typename... Args>
+inline int unpack_degrees(const WT_ITEM *item, T *first, Args... args)
+{
+  constexpr size_t count = 1 + sizeof...(Args);
+  if (item->size != sizeof(T) * count)
+  {
+    return -1;
+  }
+  size_t offset = 0;
+  auto unpack = [&](auto *value)
+  {
+    memcpy(
+        value, reinterpret_cast<const char *>(item->data) + offset, sizeof(T));
+    offset += sizeof(T);
+  };
+  unpack(first);
+  (unpack(args), ...);
+  return 0;
 }
 
 int main(int argc, char *argv[])
@@ -92,19 +127,42 @@ int main(int argc, char *argv[])
   }
   cursor->close(cursor);
 
+  // nowe make a new table with key I and value as 'u'
   error_check(
-      session->create(session, "index:world:srcdst", "columns=(src,dst)"));
+      session->create(session, "table:degrees", "key_format=i,value_format=u"));
+  error_check(
+      session->open_cursor(session, "table:degrees", NULL, NULL, &cursor));
 
-  error_check(session->open_cursor(
-      session, "file:world_dstsrc.wti", NULL, NULL, &cursor));
-  error_check(cursor->largest_key(cursor));
-  error_check(cursor->get_key(cursor, &src, &dst));
-  printf("largest key is (%d, %d) \n", src, dst);
-  cursor->close(cursor);
+  // now insert some values
+  for (int i = 0; i < 10; i++)
+  {
+    float in_deg = i + 100.04;
+    float out_deg = i + 200.04;
+    WT_ITEM item;
+    pack_degrees(&item, in_deg, out_deg);
+    cursor->set_key(cursor, i);
+    cursor->set_value(cursor, &item);
+    error_check(cursor->insert(cursor));
+  }
+
+  // now read them back
+  for (int i = 0; i < 10; i++)
+  {
+    float in_deg, out_deg;
+    cursor->set_key(cursor, i);
+    if ((cursor->search(cursor)) == 0)
+    {
+      WT_ITEM item;
+      error_check(cursor->get_value(cursor, &item));
+      unpack_degrees(&item, &in_deg, &out_deg);
+      printf("Vertex id: %d, in_deg: %f, out_deg: %f\n", i, in_deg, out_deg);
+    }
+    else
+    {
+      printf("Vertex id: %d not found\n", i);
+    }
+  }
 
   error_check(conn->close(conn, NULL));
-  return 0;
-  error_check(conn->close(conn, NULL));
-
   return (EXIT_SUCCESS);
 }
