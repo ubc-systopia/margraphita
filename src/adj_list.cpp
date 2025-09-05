@@ -481,7 +481,8 @@ int AdjList::add_adjlist(WT_CURSOR *cursor,
   // Now, initialize the in/out degree to 0 and adjlist to empty list
   WT_ITEM item;
   // item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
-  item.data = reinterpret_cast<const unsigned*>(list.data());
+
+  item.data = reinterpret_cast<const unsigned *>(list.data());
   item.size = list.size() * sizeof(node_id_t);
   cursor->set_value(cursor,
                     list.size(),
@@ -734,10 +735,10 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
   }
   GraphBase::increment_nodes(num_nodes_added);
   GraphBase::increment_edges(1);
-  if (!opts.is_directed)
-  {
-    GraphBase::increment_edges(1);
-  }
+  // if (!opts.is_directed)
+  // {
+  //   GraphBase::increment_edges(1);
+  // }
 #ifdef DEBUG
   std::cout << "number of nodes after:" << GraphBase::get_num_nodes()
             << std::endl;
@@ -1639,7 +1640,8 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
 
   CommonUtil::set_key(cursor, node_id);
   WT_ITEM item;
-  item.data = reinterpret_cast<const unsigned*>(to_add.edgelist.data());
+
+  item.data = reinterpret_cast<const unsigned *>(to_add.edgelist.data());
   item.size = to_add.edgelist.size() * sizeof(node_id_t);
   cursor->set_value(cursor, to_add.degree, &item);
 
