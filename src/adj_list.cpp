@@ -481,6 +481,7 @@ int AdjList::add_adjlist(WT_CURSOR *cursor,
   // Now, initialize the in/out degree to 0 and adjlist to empty list
   WT_ITEM item;
   // item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
+
   item.data = reinterpret_cast<const unsigned *>(list.data());
   item.size = list.size() * sizeof(node_id_t);
   cursor->set_value(cursor,
@@ -1639,6 +1640,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
 
   CommonUtil::set_key(cursor, node_id);
   WT_ITEM item;
+
   item.data = reinterpret_cast<const unsigned *>(to_add.edgelist.data());
   item.size = to_add.edgelist.size() * sizeof(node_id_t);
   cursor->set_value(cursor, to_add.degree, &item);
