@@ -66,3 +66,7 @@ install(DIRECTORY ${WT_INSTALL_DIR}/lib DESTINATION ${PATH_INSTALL}
         PATTERN ".git" EXCLUDE
         PATTERN ".DS_Store" EXCLUDE
         PATTERN "CMakeLists.txt" EXCLUDE)
+# Install fmt library
+install(TARGETS fmt
+        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+        LIBRARY DESTINATION ${INSTALL_LIB_DIR})

@@ -282,7 +282,7 @@ typedef struct adjlist
   {
     edgelist.emplace_back(id);
     degree++;
-    std::ranges::sort(edgelist.begin(), edgelist.end(), std::less<>());
+    std::sort(edgelist.begin(), edgelist.end());
   }
 } adjlist;
 #endif
