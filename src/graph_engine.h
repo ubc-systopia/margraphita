@@ -18,7 +18,7 @@ class GraphEngine
   GraphEngine();
   ~GraphEngine();
   GraphBase *create_graph_handle();
-  GraphBase *create_ro_graph_handle(const string &checkpoint_name = "");
+  GraphBase *create_ro_graph_handle (std::string &checkpoint_name);
   void create_indices();
   void calculate_thread_offsets(bool make_edge = false);
   key_range get_key_range(int thread_id);
@@ -44,7 +44,7 @@ class GraphEngine
  private:
   std::string last_checkpoint;
   void force_metadata_sync();
-  void _calculate_thread_offsets(int thread_max, GraphBase *graph_stats);
+  node_id_t _calculate_exact_node_count(GraphBase *graph_stats);
   void _calculate_thread_offsets_fast(int thread_max, GraphBase *graph_stats);
   void _calculate_thread_offsets_edge(int thread_max, GraphBase *graph_stats);
 };

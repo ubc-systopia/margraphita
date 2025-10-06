@@ -21,36 +21,83 @@ GraphEngine::~GraphEngine() { close_connection(); }
 std::string GraphEngine::make_checkpoint()
 {
   WT_SESSION *session;
-  // use timestamp
-  auto now =
-      std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-  std::tm localTime = *std::localtime(&now);
-  char cpt_name[27];
-  std::strftime(cpt_name, 27, "name=%Y_%m_%d_%H_%M_%S", &localTime);
-
-  std::cout << "Creating checkpoint " << cpt_name << std::endl;
-  conn->open_session(conn, nullptr, nullptr, &session);
-  if (session->checkpoint(session, cpt_name))
+  int ret = conn->open_session(conn, nullptr, nullptr, &session);
+  if (ret != 0)
   {
-    throw GraphException("Failed to create checkpoint");
+    throw GraphException("Failed to open session for checkpoint");
   }
-  // the checkpoint name without the name= prefix
-  std::strftime(cpt_name, 27, "%Y_%m_%d_%H_%M_%S", &localTime);
-  last_checkpoint = cpt_name;
-  session->close(session, nullptr);
-  return last_checkpoint;
+
+  try
+  {
+    // Generate timestamp-based checkpoint name
+    auto now =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm localTime = *std::localtime(&now);
+    char cpt_name_clean[27];
+    std::strftime(cpt_name_clean, 27, "%Y_%m_%d_%H_%M_%S", &localTime);
+
+    // Now create the actual WiredTiger checkpoint
+    char checkpoint_config[64];
+    std::snprintf(checkpoint_config,
+                  sizeof(checkpoint_config),
+                  "name=%s",
+                  cpt_name_clean);
+
+    ret = session->checkpoint(session, checkpoint_config);
+    if (ret != 0)
+    {
+      session->close(session, nullptr);
+      throw GraphException("Failed to create checkpoint");
+    }
+
+    last_checkpoint = cpt_name_clean;
+    session->close(session, nullptr);
+
+    // // *** CRITICAL SECTION: Capture counts atomically within transaction ***
+    // node_id_t nnodes = GraphBase::get_atomic_nnodes();
+    // edge_id_t nedges = GraphBase::get_atomic_nedges();
+
+    // std::cout << "Atomic counts at checkpoint " << last_checkpoint
+    //           << " are: nnodes=" << nnodes << " nedges=" << nedges
+    //           << std::endl;
+
+    std::cout << "Successfully created checkpoint: " << last_checkpoint
+              << std::endl;
+    return last_checkpoint;
+  }
+  catch (...)
+  {
+    session->close(session, nullptr);
+    throw;
+  }
 }
 
-GraphBase *GraphEngine::create_ro_graph_handle(
-    const std::string &checkpoint_name)
+GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
 {
+  LOG_MSG("Making read-only graph handle");
   GraphBase *ptr;
   graph_opts new_opts = opts;
-  if (checkpoint_name.empty() && this->last_checkpoint.empty())
-    make_checkpoint();
+
+  // Determine which checkpoint to use
+  std::string target_checkpoint = checkpoint_name;
+  if (target_checkpoint.empty())
+  {
+    if (this->last_checkpoint.empty())
+    {
+      target_checkpoint = make_checkpoint();
+    }
+    checkpoint_name = this->last_checkpoint;
+  }
+
   new_opts.read_only = true;
   new_opts.create_new = false;
-  new_opts.checkpoint_name = this->last_checkpoint;
+  new_opts.checkpoint_name = target_checkpoint;
+
+  #ifdef DEBUG
+  std::cout << "Creating read-only handle for checkpoint: " << target_checkpoint
+            << " (overestimated) atomic counts: nnodes=" << new_opts.num_nodes
+            << " nedges=" << new_opts.num_edges << std::endl;
+  #endif
 
   if (new_opts.type == GraphType::Adj)
     ptr = new AdjList(new_opts, conn);
@@ -58,6 +105,18 @@ GraphBase *GraphEngine::create_ro_graph_handle(
     ptr = new SplitEdgeKey(new_opts, conn);
   else
     throw GraphException("Failed to create graph object");
+
+  node_id_t max_node_id = ptr->get_max_node_id();
+  node_id_t min_node_id = ptr->get_min_node_id();
+
+  opts.num_nodes = _calculate_exact_node_count(ptr);
+  
+  #ifdef DEBUG
+  std::cout << "Min node count in checkpoint " << target_checkpoint
+            << " is: " << min_node_id << std::endl;
+  std::cout << "Max node count in checkpoint " << target_checkpoint
+            << " is: " << max_node_id << std::endl;
+  #endif
 
   return ptr;
 }
@@ -81,7 +140,7 @@ void GraphEngine::create_indices()
   CommonUtil::open_session(conn, &sess);
   if (opts.type == GraphType::SplitEKey)
   {
-    //SplitEdgeKey::create_indices(sess);
+    // SplitEdgeKey::create_indices(sess);
   }
   else
   {
@@ -92,7 +151,7 @@ void GraphEngine::create_indices()
 void GraphEngine::calculate_thread_offsets(bool make_edge)
 {
   // Create snapshot here first?
-  GraphBase *graph_stats = create_graph_handle();
+  GraphBase *graph_stats = create_ro_graph_handle(last_checkpoint);
   //_calculate_thread_offsets(num_threads, graph_stats);
   _calculate_thread_offsets_fast(num_threads, graph_stats);
   if (make_edge) _calculate_thread_offsets_edge(num_threads, graph_stats);
@@ -107,50 +166,23 @@ void GraphEngine::calculate_thread_offsets(bool make_edge)
  * GraphAPI calls: get_min_node, get_max_node.
  * This function only works correctly if the max_node_id is the last node_id.
  */
-void GraphEngine::_calculate_thread_offsets(int thread_max,
-                                            GraphBase *graph_stats)
+node_id_t GraphEngine::_calculate_exact_node_count(GraphBase *graph_stats )
 {
-  node_ranges.clear();
-  node_id_t num_nodes = graph_stats->get_num_nodes();
-
-  node_id_t per_partition_nodes =
-      (num_nodes / thread_max) +
-      ((num_nodes % thread_max) != 0);  // ceil division
-
   NodeCursor *n_cur = graph_stats->get_node_iter();
 
-  // iterate over the cursor, and then assign the node id when the count is
-  // equal to the per_partition
-  node_id_t i = 0;
+  node_id_t num_nodes{0};
   node found;
   n_cur->next(&found);
-
   while (found.id != OutOfBand_ID_MAX)
   {
-    if (i % per_partition_nodes == 0)
-    {
-      node_ranges.push_back(found.id);
-      //            std::cout << "Node offset: " << found.id << "at offset
-      //            " << i
-      //                      << std::endl;
-    }
-    if (i == num_nodes - 1)
-    {
-      node_ranges.push_back(found.id);
-    }
+    num_nodes++;
     n_cur->next(&found);
-    i++;
   }
-  std::cout << "the iterator count is: " << i << std::endl;
-  std::cout << "The number of nodes is: " << num_nodes << std::endl;
-  std::cout << "The number of partitions is: " << node_ranges.size()
-            << std::endl;
-  assert(num_nodes == i);
   n_cur->close();
-  for (auto x : node_ranges)
-  {
-    std::cout << x << std::endl;
-  }
+  std::cout << "The number of nodes is: " << num_nodes << std::endl;
+  graph_stats->set_ro_num_nodes(num_nodes);
+
+  return num_nodes;
 }
 
 /**
@@ -275,7 +307,9 @@ void GraphEngine::check_opts_valid() const
     std::cerr << "Number of threads is zero" << std::endl;
   }
 
-  if (opts.type == GraphType::Adj || opts.type == GraphType::SplitEKey)  {/*no-op*/}
+  if (opts.type == GraphType::Adj || opts.type == GraphType::SplitEKey)
+  { /*no-op*/
+  }
   else
   {
     throw GraphException("Graph type is not set");

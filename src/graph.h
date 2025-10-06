@@ -75,10 +75,20 @@ class GraphBase
   virtual node_id_t get_max_node_id() = 0;
   virtual node_id_t get_min_node_id() = 0;
 
-  static node_id_t get_num_nodes();
-  static edge_id_t get_num_edges();
+  node_id_t get_num_nodes() const;
+  edge_id_t get_num_edges() const;
   static void increment_nodes(int increment);
   static void increment_edges(int increment);
+
+  // Public accessors for checkpoint operations
+  static node_id_t get_atomic_nnodes()
+  {
+    return local_nnodes.load(std::memory_order_acquire);
+  }
+  static edge_id_t get_atomic_nedges()
+  {
+    return local_nedges.load(std::memory_order_acquire);
+  }
 
   [[nodiscard]] std::string get_db_name() const { return opts.db_name; };
   static int _get_table_cursor(const std::string &table,
@@ -87,6 +97,8 @@ class GraphBase
                                bool is_random,
                                bool overwrite_allowed,
                                const std::string &checkpoint_name = "");
+  virtual void dump_table(const std::string &table_name, int limit) = 0;
+  virtual void set_ro_num_nodes(node_id_t num) = 0;
 
  protected:
   graph_opts opts;
@@ -104,10 +116,11 @@ class GraphBase
                         const std::string &idx_name,
                         const std::string &projection,
                         const std::string &checkpoint_name,
-                        WT_CURSOR **cursor);
+                        WT_CURSOR **cursor) const;
   [[maybe_unused]] void _restore_from_db();
   [[maybe_unused]] void sync_metadata();
   virtual void close_all_cursors() = 0;
+
 };
 
 #endif

@@ -22,7 +22,13 @@ GraphBase::GraphBase(graph_opts &opt_params, WT_CONNECTION *conn)
   {
     throw GraphException("Cannot open session");
   }
-  if (opts.create_new == false) _restore_from_db();
+
+  // If the graph is not being newly created, restore.
+  // In all other cases, defer the restoration to an explicit call.
+  if (opts.create_new == false)
+  {
+    _restore_from_db();
+  }
 }
 
 void GraphBase::create_metadata_table(graph_opts &opts, WT_CONNECTION *conn)
@@ -119,7 +125,7 @@ void GraphBase::insert_metadata(const int key,
 {
   cursor->set_key(cursor, key);
   WT_ITEM item;
-  item.data = reinterpret_cast<const unsigned*>(value);
+  item.data = reinterpret_cast<const unsigned *>(value);
   item.size = size;
   cursor->set_value(cursor, &item);
   int ret = cursor->insert(cursor);
@@ -300,6 +306,7 @@ void GraphBase::_restore_from_db()
  * @param idx_name The name of the index
  * @param projection The columns that are to be included in the index. This
  * is in the format "(col1,col2,..)"
+ * @param checkpoint_name
  * @param cursor This is the cursor variable that needs to be set.
  * @return 0 if the index could be set
  */
@@ -307,7 +314,7 @@ int GraphBase::_get_index_cursor(const std::string &table_name,
                                  const std::string &idx_name,
                                  const std::string &projection,
                                  const std::string &checkpoint_name,
-                                 WT_CURSOR **cursor)
+                                 WT_CURSOR **cursor) const
 {
   std::string index_name = "index:" + table_name + ":" + idx_name + projection;
   int ret;
@@ -334,27 +341,27 @@ void GraphBase::sync_metadata()
   node_id_t temp = GraphBase::get_num_nodes();
   std::cout << "number of nodes: " << temp << std::endl;
   insert_metadata(MetadataKey::num_nodes,
-                  (char *)&temp,
+                  reinterpret_cast<char *>(&temp),
                   sizeof(node_id_t),
                   metadata_cursor);
   temp = GraphBase::get_num_edges();
   std::cout << "number of edges: " << temp << std::endl;
   insert_metadata(MetadataKey::num_edges,
-                  (char *)&temp,
+                  reinterpret_cast<char *>(&temp),
                   sizeof(edge_id_t),
                   metadata_cursor);
 
   auto max_node = get_max_node_id();
   std::cout << "max_node: " << max_node << std::endl;
   insert_metadata(MetadataKey::max_node_id,
-                  (char *)&max_node,
+                  reinterpret_cast<char *>(&max_node),
                   sizeof(node_id_t),
                   metadata_cursor);
 
   auto min_node = get_min_node_id();
   std::cout << "min_node: " << min_node << std::endl;
   insert_metadata(MetadataKey::min_node_id,
-                  (char *)&min_node,
+                  reinterpret_cast<char *>(&min_node),
                   sizeof(node_id_t),
                   metadata_cursor);
 
@@ -363,7 +370,17 @@ void GraphBase::sync_metadata()
 #endif
 }
 
-node_id_t GraphBase::get_num_nodes() { return GraphBase::local_nnodes.load(); };
+node_id_t GraphBase::get_num_nodes() const
+{
+  if (opts.read_only)
+  {
+    return opts.num_nodes;
+  }
+  else
+  {
+    return GraphBase::local_nnodes.load(std::memory_order_acquire);
+  }
+}
 
 /**
  * This function is used to increment the number of nodes local to a connection.
@@ -375,7 +392,25 @@ void GraphBase::increment_nodes(int increment)
   GraphBase::local_nnodes += increment;
 }
 
-edge_id_t GraphBase::get_num_edges() { return GraphBase::local_nedges.load(); };
+/**
+ * This function returns the number of edges in the graph. In read-only mode,
+ * it returns the value stored in opts.num_edges, otherwise it returns the
+ * atomic value local_nedges.
+ * @return edge_id_t The number of edges in the graph
+ */
+edge_id_t GraphBase::get_num_edges() const
+{
+  if (opts.read_only)
+    return opts.num_edges;
+  else
+    return GraphBase::local_nedges.load(std::memory_order_acquire);
+}
+
+/**
+ * This function is used to increment the number of edges local to a connection.
+ * Updates are atomic but NOT transactional.
+ * @param increment
+ */
 void GraphBase::increment_edges(int increment)
 {
   GraphBase::local_nedges += increment;

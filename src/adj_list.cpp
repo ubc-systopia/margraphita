@@ -1545,12 +1545,6 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
  */
 bool AdjList::update_edge(edge to_update)
 {
-  // Check if the graph is weighted
-  if (!opts.is_weighted)
-  {
-    LOG_MSG("Graph is not weighted");
-    return false;
-  }
   session->begin_transaction(session, "isolation=snapshot");
   // Search for the edge in the edge table
   WT_CURSOR *edge_cur = get_edge_cursor();
@@ -1559,31 +1553,8 @@ bool AdjList::update_edge(edge to_update)
   if (ret == WT_NOTFOUND)
   {
     // Edge does not exist, insert it
-    /***** Insert edge *****/
-    CommonUtil::set_key(edge_cur, to_update.src_id, to_update.dst_id);
-    set_edge_wt(edge_cur, to_update.edge_weight);
-    if ((ret = error_check_insert_txn(edge_cur->insert(edge_cur))))
-    {
-      return false;
-    }
-    // insert the reverse edge if undirected
-    if (!opts.is_directed)
-    {
-      CommonUtil::set_key(edge_cur, to_update.dst_id, to_update.src_id);
-      if (opts.is_weighted)
-      {
-        set_edge_wt(edge_cur, to_update.edge_weight);
-      }
-      else
-      {
-        set_edge_wt(edge_cur, 0.0);
-      }
-      if ((ret = error_check_insert_txn(edge_cur->insert(edge_cur))))
-      {
-        LOG_ROLLBACK_LOCATION("update_edge(to_update)", to_update);
-        return false;
-      }
-    }
+    session->rollback_transaction(session, nullptr);
+    return (add_edge(to_update, false) == 0);
   }
   else
   {
@@ -2028,7 +1999,7 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
   return found;
 }
 
-[[maybe_unused]] void AdjList::dump_table(std::string &table_name,
+[[maybe_unused]] void AdjList::dump_table(const std::string &table_name,
                                           int num_records)
 {
   if (table_name == NODE_TABLE)

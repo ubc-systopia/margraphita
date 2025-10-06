@@ -84,9 +84,17 @@ class AdjList : public GraphBase
   int add_adjlist(WT_CURSOR *cursor,
                   node_id_t node_id,
                   std::vector<node_id_t> &list);
-  [[maybe_unused]] void dump_table(std::string &table_name, int limit = 0);
+  [[maybe_unused]] void dump_table(const std::string &table_name, int num_records = 0);
 
   bool update_edge(edge to_update) override;
+  void set_ro_num_nodes(node_id_t num) override
+  {
+    if(opts.read_only == false)
+    {
+      throw GraphException("set_ro_num_nodes can only be called on a read-only graph");
+    }
+    opts.num_nodes = num;
+  };
 
  private:
   friend class AdjNodeCursor;

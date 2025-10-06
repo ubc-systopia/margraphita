@@ -217,7 +217,7 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
   curr.reset();
   Bitmap front(num_nodes);
   front.reset();
-  int64_t edges_to_check = GraphBase::get_num_edges();
+  int64_t edges_to_check = graph_stat->get_num_edges();
   int64_t scout_count = graph_stat->get_out_degree(source);
   std::cout << "source: " << source << "\tscout_count: " << scout_count
             << "\tedges_to_check: " << edges_to_check << std::endl;
@@ -313,7 +313,7 @@ int main(int argc, char *argv[])
 
   t.start();
   GraphBase *g = graphEngine.create_graph_handle();
-  node_id_t num_nodes = GraphBase::get_num_nodes();
+  node_id_t num_nodes = g->get_num_nodes();
   node_id_t max_node_id = g->get_max_node_id();
   if (opts.start_vertex == OutOfBand_ID_MAX)
     opts.start_vertex = g->get_random_node().id;

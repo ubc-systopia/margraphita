@@ -171,7 +171,7 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
  * @return
  */
 int SplitEdgeKey::add_node_txn(node to_insert,
-                               int *num_nodes_added,
+                               int *num_nodes_added_ptr,
                                int32_t indeg_change,
                                int32_t outdeg_change)
 {
@@ -200,12 +200,15 @@ int SplitEdgeKey::add_node_txn(node to_insert,
     }
     else
     {
-      ekey_set_node_value(out_edge_cursor, 0, OutOfBand_ID_MAX);
+      ekey_set_node_value(out_edge_cursor, 0, 0);
     }
-    int ret =
-        error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor), false);
-    if (!ret) num_nodes_added++;
-    return ret;
+    int insert_result = out_edge_cursor->insert(out_edge_cursor);
+    int txn_result = error_check_insert_txn(insert_result, false);
+    if (!txn_result) {
+      (*num_nodes_added_ptr)++;
+    }
+    // Return value: 0 on success, WT_DUPLICATE_KEY if node already exists, nonzero for other errors.
+        return txn_result;
   }
 
   //    // UPDATE IN_EDGE TABLE
@@ -243,6 +246,8 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   int num_edges_to_add = 0;
   int ret;
   session->begin_transaction(session, "isolation=snapshot");
+  out_edge_cursor->reset(out_edge_cursor);
+  in_edge_cursor->reset(in_edge_cursor);
   node src{.id = to_insert.src_id};
   opts.is_directed ? (ret = add_node_txn(src, &num_nodes_to_add, 0, 1))
                    : (ret = add_node_txn(src, &num_nodes_to_add, 1, 1));
@@ -286,9 +291,8 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
     ekey_set_edge_value(out_edge_cursor, 0.0);
   }
 
-  if (error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor), false))
-    return ret;  // the session has been rolled back already. The final
-                 // commit on success must be called by caller function
+  if (ret = error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor), false))
+    return ret;
 
   // Insert into the in-edges table
   CommonUtil::ekey_set_key(in_edge_cursor, to_insert.dst_id, to_insert.src_id);
@@ -302,10 +306,9 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   {
     ekey_set_edge_value(in_edge_cursor, 0.0);
   }
-  if (error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor), false))
+  if (ret = error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor), false))
     return ret;
-  {
-  }
+
   num_edges_to_add++;
   session->commit_transaction(session, nullptr);
   GraphBase::increment_nodes(num_nodes_to_add);
@@ -347,6 +350,7 @@ bool SplitEdgeKey::update_edge(edge to_update)
   int ret;
   session->begin_transaction(session, "isolation=snapshot");
   CommonUtil::ekey_set_key(out_edge_cursor, to_update.src_id, to_update.dst_id);
+  //edge found, update the weight
   if (out_edge_cursor->search(out_edge_cursor) == 0)
   {
     edge found = {0};
@@ -354,21 +358,26 @@ bool SplitEdgeKey::update_edge(edge to_update)
     found.edge_weight += to_update.edge_weight;
     CommonUtil::ekey_set_key(
         out_edge_cursor, to_update.src_id, to_update.dst_id);
-    // out_edge_cursor->set_value(
-    //     out_edge_cursor, found.edge_weight, OutOfBand_ID_MAX);
-    to_update.edge_weight += found.edge_weight;
-    ekey_set_edge_value(out_edge_cursor, to_update.edge_weight);
+    ekey_set_edge_value(out_edge_cursor, found.edge_weight);
+    ret = error_check_insert_txn(out_edge_cursor->update(out_edge_cursor), false);
+    if (ret) return false; // OK, error_check rolls back TXN
+
+    //do the reverse edge too
+    CommonUtil::ekey_set_key(
+        in_edge_cursor, to_update.dst_id, to_update.src_id);
+    ekey_set_edge_value(in_edge_cursor, found.edge_weight);
+    ret = error_check_insert_txn(in_edge_cursor->update(in_edge_cursor), false);
+    if (ret) return false; // OK, error_check rolls back TXN
+
+    session->commit_transaction(session, nullptr);
+    return true;
   }
-  else
-  {
-    ekey_set_edge_value(out_edge_cursor, to_update.edge_weight);
+  else{
+    session->rollback_transaction(session, nullptr);
+    //edge not found, insert it
+    ret = add_edge(to_update, false);
+    return (ret == 0);
   }
-  if (error_check_insert_txn(out_edge_cursor->update(out_edge_cursor), false))
-  {
-    return false;
-  }
-  session->commit_transaction(session, nullptr);
-  return true;
 }
 
 std::vector<node> SplitEdgeKey::get_nodes()
@@ -1307,6 +1316,7 @@ WT_CURSOR *SplitEdgeKey::get_new_out_cursor()
   {
     throw GraphException("Could not get a cursor to the OutEdge table");
   }
+  new_out_cursor->reset(new_out_cursor);
   return new_out_cursor;
 }
 
@@ -1335,43 +1345,65 @@ WT_CURSOR *SplitEdgeKey::get_new_in_cursor()
   return new_in_cursor;
 }
 
-void SplitEdgeKey::dump_table(string &table_name, int num_records)
+void SplitEdgeKey::dump_table(const string &table_name, int num_records)
 {
-  ofstream out = ofstream("S_EKey_dump_" + table_name + ".txt");
+  // ofstream out = ofstream("S_EKey_dump_" + table_name + ".txt");
+  in_edge_cursor->reset(in_edge_cursor);
   if (table_name == IN_EDGES)
   {
+    std::cout << "Dumping IN_EDGES table:" << std::endl;
     while (in_edge_cursor->next(in_edge_cursor) == 0 && num_records > 0)
     {
       node_id_t src, dst;
+      edgeweight_t edge_weight=0.0;
       CommonUtil::ekey_get_key(in_edge_cursor, &dst, &src);
-      if (dst == OutOfBand_ID_MIN)
+      if(opts.is_weighted)
       {
-        out << "NODE ID\t" << src << std::endl;
+        
+        ekey_get_edge_value(in_edge_cursor, &edge_weight);
       }
-      else
+      if(src!=0) // skip node entries in this dump.
       {
-        out << "SRC id is:\t" << src << std::endl;
-        out << "DST id is:\t" << dst << std::endl;
+        std::cout << "(" << dst << ", " << src ;
+        if (opts.is_weighted) std::cout << ", " << edge_weight;
+        std::cout << ")" << std::endl;
+        std::cout << "---------------------------\n";
       }
       num_records--;
     }
   }
   else
   {
+    out_edge_cursor->reset(out_edge_cursor);
+    std::cout << "Dumping OUT_EDGES table:" << std::endl;
     while (out_edge_cursor->next(out_edge_cursor) == 0 && num_records > 0)
     {
       node_id_t src, dst;
       CommonUtil::ekey_get_key(out_edge_cursor, &src, &dst);
       if (dst == OutOfBand_ID_MIN)
       {
-        out << "NODE ID\t" << src << std::endl;
+        std::cout << "NODE ID\t" << src << std::endl;
+        degree_t d_in, d_out;
+        // out_edge_cursor->get_value(out_edge_cursor, &in, &out);
+        ekey_get_node_value(out_edge_cursor, &d_in, &d_out);
+        std::cout << "In-degree:\t" << d_in << "\nOut-degree:\t" << d_out
+                  << std::endl;
       }
       else
       {
-        out << "SRC id is:\t" << src << std::endl;
-        out << "DST id is:\t" << dst << std::endl;
+        std::cout << "EDGE\t(" << src << ", " << dst;
+        if (opts.is_weighted)
+        {
+          edgeweight_t edge_weight=0.0;
+          // out_edge_cursor->get_value(out_edge_cursor, &edge_weight);
+          ekey_get_edge_value(out_edge_cursor, &edge_weight);
+          std::cout << ", " << edge_weight;
+        }
+        std::cout << ")" << std::endl;
       }
+      std::cout << "---------------------------\n";
       num_records--;
     }
   }
 }
+

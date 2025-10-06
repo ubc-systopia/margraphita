@@ -66,7 +66,15 @@ class SplitEdgeKey : public GraphBase
   [[nodiscard]] WT_CURSOR *get_in_edge_cursor() const { return in_edge_cursor; }
   WT_CURSOR *get_new_in_cursor();
   static void create_indices(WT_SESSION *session);
-  void dump_table(std::string &table_name, int num_records);
+  void dump_table(const std::string &table_name, int num_records);
+  void set_ro_num_nodes(node_id_t num) override
+  {
+    if(opts.read_only == false)
+    {
+      throw GraphException("set_ro_num_nodes can only be called on a read-only graph");
+    }
+    opts.num_nodes = num;
+  };
 
  private:
   WT_CURSOR *out_edge_cursor = nullptr;

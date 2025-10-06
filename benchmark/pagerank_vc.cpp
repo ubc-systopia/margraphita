@@ -16,6 +16,7 @@ typedef float ScoreT;
 const float kDamp = 0.85;
 
 pvector<ScoreT> pagerank(GraphEngine& graph_engine,
+                         std::string& chkpt,
                          int thread_num,
                          int max_iters,
                          node_id_t num_nodes,
@@ -29,7 +30,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
 #pragma omp parallel for
   for (int i = 0; i < thread_num; i++)
   {
-    GraphBase* graph = graph_engine.create_ro_graph_handle();
+    GraphBase* graph = graph_engine.create_ro_graph_handle(chkpt);
     NodeCursor* node_cursor = graph->get_node_iter();
     node_cursor->set_key_range(graph_engine.get_key_range(i));
 
@@ -50,7 +51,7 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
 #pragma omp parallel for reduction(+ : error)
     for (int i = 0; i < thread_num; i++)
     {
-      GraphBase* graph = graph_engine.create_ro_graph_handle();
+      GraphBase* graph = graph_engine.create_ro_graph_handle(chkpt);
       InCursor* in_cursor = graph->get_innbd_iter();
       in_cursor->set_key_range(graph_engine.get_key_range(i));
 
@@ -165,6 +166,7 @@ int main(int argc, char* argv[])
     node_id_t max_node_id = g->get_max_node_id();
     g->close(false);
     pvector<ScoreT> score = pagerank(graphEngine,
+                                      checkpt,
                                      THREAD_NUM,
                                      opts.iterations,
                                      num_nodes,

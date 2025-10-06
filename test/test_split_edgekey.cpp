@@ -392,15 +392,15 @@ void test_EdgeCursor(SplitEdgeKey &graph, bool directed)
 {
   INFO()
   EdgeCursor *edge_cursor = graph.get_edge_iter();
-  edge found;
+  edge found{};
   std::vector<std::pair<node_id_t, node_id_t>> expected;
   if (directed)
   {
-    expected = {{1, 3}, {1, 7}, {5, 6}, {7, 8}, {8, 7}};
+    expected = {{1, 3}, {1, 7}, {5, 6}, {7, 8}, {8, 7}, {222, 333}};
   }
   else
   {
-    expected = {{1, 3}, {1, 7}, {3, 1}, {5, 6}, {6, 5}, {7, 1}, {7, 8}, {8, 7}};
+    expected = {{1, 3}, {1, 7}, {3, 1}, {5, 6}, {6, 5}, {7, 1}, {7, 8}, {8, 7}, {222, 333}, {333, 222}};
   }
 
   int i = 0;
@@ -483,7 +483,7 @@ void test_NodeCursor(SplitEdgeKey &graph)
   INFO()
   NodeCursor *node_cursor = graph.get_node_iter();
   node found = {0, 0, 0};
-  node_id_t nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 11};
+  node_id_t nodeIdList[] = {1, 3, 4, 5, 6, 7, 8, 11, 222, 333};
   int i = 0;
   node_cursor->next(&found);
   while (found.id != OutOfBand_ID_MAX)
@@ -608,8 +608,8 @@ int main()
   graph_opts opts;
   opts.create_new = true;
   opts.optimize_create = false;
-  opts.is_directed = false;
-  //  opts.is_directed = true;
+  // opts.is_directed = false;
+  opts.is_directed = true;
   opts.read_optimize = true;
   opts.is_weighted = true;
   opts.type = GraphType::SplitEKey;
@@ -649,6 +649,12 @@ int main()
   test_update_edge(graph, opts.is_directed);
   test_delete_node(graph, opts.is_directed);
 
+  std::cout << "Dumping tables:" << std::endl<< std::endl;  
+  std::string table_name = "edge_out";
+  graph.dump_table(table_name, 200);
+  table_name = "edge_in";
+  graph.dump_table(table_name, 200);
+
   test_get_edges(graph);
   test_EdgeCursor(graph, opts.is_directed);
   test_EdgeCursor_Range(graph, opts.is_directed);
@@ -658,8 +664,15 @@ int main()
   test_NodeCursor(graph);
   test_NodeCursor_Range(graph);
   test_delete_edge(graph, opts.is_directed);
-
   test_get_edges(graph);
+
+  std::cout << "Dumping tables:" << std::endl<< std::endl;  
+  table_name = "edge_out";
+  graph.dump_table(table_name, 200);
+  table_name = "edge_in";
+  graph.dump_table(table_name, 200);
+
+  std::cout << "Number of nodes in graph: " << graph.get_num_nodes() << std::endl;
 
   tearDown(graph);
   myEngine.close_graph();
@@ -668,8 +681,19 @@ int main()
   opts.create_new = false;
   opts.read_only = true;
   GraphEngine roEngine(THREAD_NUM, opts);
-  GraphBase *rograph = roEngine.create_graph_handle();
+  std::string chkpt_name;
+  GraphBase *rograph = roEngine.create_ro_graph_handle(chkpt_name);
   test_ro_get_nodes(rograph);
-  rograph->close(false);
-  roEngine.close_graph();
+
+  std::cout << "Number of nodes in RO graph: " << rograph->get_num_nodes() << std::endl;
+
+  std::cout << "Dumping (RO)tables:" << std::endl<< std::endl;  
+  table_name = "edge_out";
+  rograph->dump_table(table_name, 200);
+  table_name = "edge_in";
+  rograph->dump_table(table_name, 200);
+
+
+  // rograph->close(false);
+  // roEngine.close_graph();
 }

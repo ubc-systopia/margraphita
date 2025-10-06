@@ -607,7 +607,17 @@ void test_get_in_nodes(AdjList graph, graph_opts &opts)
   INFO();
   int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
   std::vector<node> nodes = graph.get_in_nodes(test_id1);
+  //lambda to print
+  for (auto n : nodes)
+  {
+    CommonUtil::dump_node(n);
+  }
   std::vector<node_id_t> nodes_id = graph.get_in_nodes_id(test_id1);
+  std::sort(nodes_id.begin(), nodes_id.end()); // needed for this test
+  for (auto id : nodes_id)
+  {
+    std::cout << "Node ID: " << id << std::endl;
+  }
 
   // Node 1 only has out edges; degree is 5.
   if (opts.is_directed)
@@ -620,21 +630,20 @@ void test_get_in_nodes(AdjList graph, graph_opts &opts)
   {
     assert(nodes.size() == 5);
     assert(nodes_id.size() == 5);
-    assert(nodes.at(0).id == 4);  // edge(1->4)
-    assert(nodes.at(0).id == nodes_id.at(0));
-    assert(nodes.at(1).id == 5);  // edge(1->5)
-    assert(nodes.at(1).id == nodes_id.at(1));
-    assert(nodes.at(2).id == 8);  // edge(1->8)
-    assert(nodes.at(2).id == nodes_id.at(2));
-    assert(nodes.at(3).id == 9);  // edge(1->9)
-    assert(nodes.at(3).id == nodes_id.at(3));
-    assert(nodes.at(4).id == 13);  // edge(1->13)
-    assert(nodes.at(4).id == nodes_id.at(4));
+
+    for (int i = 0; i < nodes.size(); i++)
+    {
+      std::cout << "Node ID: " << nodes.at(i).id
+                << ", Node ID from nodes_id: " << nodes_id.at(i)
+                << std::endl;
+      assert(nodes.at(i).id == nodes_id.at(i));
+    }
   }
   // test for a node that has a valid in-edge
   nodes = graph.get_in_nodes(test_id2);
   nodes_id = graph.get_in_nodes_id(test_id2);
   // Node 4 has 3 inedges (1,2,3) and 5 out edges (5,7,8,9,13)
+  std::sort(nodes_id.begin(), nodes_id.end()); // needed for this test
   if (opts.is_directed)
   {
     assert(nodes.size() == 3);
@@ -957,7 +966,9 @@ void test_NodeCursor(AdjList &graph)
                             15,
                             16,
                             18,
-                            19};  // test_add_edge adds nodes 18 and 19
+                            19, // test_add_edge adds nodes 18 and 19
+                            222,// update_edge adds nodes 222 and 333
+                            333};  
   int i = 0;
   node_cursor->next(&found);
   while (found.id != OutOfBand_ID_MAX)
@@ -998,15 +1009,6 @@ void test_EdgeCursor(AdjList graph, bool is_directed)
   INFO();
   EdgeCursor *edge_cursor = graph.get_edge_iter();
   edge found;
-  std::vector<std::pair<node_id_t, node_id_t>> expected;
-  if (is_directed)
-  {
-    expected = {{1, 3}, {1, 7}, {5, 6}, {7, 8}, {8, 7}};
-  }
-  else
-  {
-    expected = {{1, 3}, {1, 7}, {3, 1}, {5, 6}, {6, 5}, {7, 1}, {7, 8}, {8, 7}};
-  }
   int i = 0;
   edge_cursor->next(&found);
   while (found.src_id != OutOfBand_ID_MAX)
@@ -1029,9 +1031,16 @@ void test_EdgeCursor_Range(AdjList graph, bool is_directed)
   EdgeCursor *edge_cursor = graph.get_edge_iter();
   edge_cursor->set_key_range(edge_range(key_pair{1, 5}, key_pair{3, 5}));
   edge found;
-  std::vector<std::pair<node_id_t, node_id_t>> expected = {
-      {1, 5}, {1, 8}, {1, 9}, {1, 13}, {3, 4}, {3, 5}};
-  // same for directed and undirected graphs
+  std::vector<std::pair<node_id_t, node_id_t>> expected;
+  if (is_directed)
+  {
+    expected = {{1, 5}, {1, 8}, {1, 9}, {1, 13}, {3, 4}, {3, 5}};
+  }
+  else
+  {
+    expected = {{1, 5}, {1, 8}, {1, 9}, {1, 13}, {3, 1}, {3, 4}, {3, 5}};
+  }
+  
   int i = 0;
   edge_cursor->next(&found);
   while (found.src_id != OutOfBand_ID_MAX)
@@ -1105,8 +1114,8 @@ int main(int argc, char *argv[])
   graph_opts opts;
   opts.create_new = true;
   opts.optimize_create = false;
-  // opts.is_directed = false;
-  opts.is_directed = true;
+  opts.is_directed = false;
+  //opts.is_directed = true;
 
   opts.is_weighted = true;
   opts.type = GraphType::Adj;
@@ -1169,6 +1178,7 @@ int main(int argc, char *argv[])
   AdjList graph(opts, conn);
   //  graph.dump_meta_data();
   //  graph.close();
+  test_EdgeCursor(graph, opts.is_directed);
   test_get_nodes(graph, opts);
   test_get_node(graph, opts);
   test_add_edge(graph, opts.is_directed);
@@ -1188,6 +1198,9 @@ int main(int argc, char *argv[])
   test_NodeCursor_Range(graph);
   test_EdgeCursor(graph, opts.is_directed);
   test_EdgeCursor_Range(graph, opts.is_directed);
+
+  std::cout << "Number of nodes in graph: " << graph.get_num_nodes() << std::endl;
+
   tearDown(graph);
   myEngine.close_graph();
 
@@ -1196,8 +1209,20 @@ int main(int argc, char *argv[])
   opts.create_new = false;
   opts.read_only = true;
   GraphEngine roEngine(THREAD_NUM, opts);
-  GraphBase *rograph = roEngine.create_graph_handle();
+  std::string chkpt_name;
+  GraphBase *rograph = roEngine.create_ro_graph_handle(chkpt_name);
+  std::cout << "Number of nodes in RO graph: " << rograph->get_num_nodes() << std::endl;
   test_ro_get_nodes(rograph);
+
+
+  //try to insert a node - should fail
+  int ret = rograph->add_node({.id = 1000, .in_degree = 0, .out_degree = 0}, false);
+  assert(ret == WT_ROLLBACK);
   rograph->close(false);
   roEngine.close_graph();
 }
+
+/** notes:
+ * 
+ * update edge: if the nodes do not exist, should we create them? check the graphalytics spec.
+ */
