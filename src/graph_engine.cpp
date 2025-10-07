@@ -110,6 +110,11 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
   node_id_t min_node_id = ptr->get_min_node_id();
 
   opts.num_nodes = _calculate_exact_node_count(ptr);
+  node_id_t another_count = compute_nodes_and_partition(num_threads, ptr);
+  if (another_count != opts.num_nodes)
+  {
+    throw GraphException("Node count mismatch");
+  }
   
   #ifdef DEBUG
   std::cout << "Min node count in checkpoint " << target_checkpoint
@@ -207,22 +212,89 @@ void GraphEngine::_calculate_thread_offsets_fast(int thread_max,
   }
   // add the last node
   node_ranges.back() = max_node;
-  //  std::cout << "The number of nodes is: " << num_nodes << std::endl;
-  //  std::cout << "The number of partitions is: " << node_ranges.size()
-  //            << std::endl;
-  //  std::cout << "The min node is: " << min_node
-  //            << " and the max node is: " << max_node << std::endl;
-  //  for (auto x : node_ranges)
-  //  {
-  //    std::cout << x << std::endl;
-  //  }
-  //  std::cout << "printing the key ranges" << std::endl;
-  //  for (int i = 0; i < num_threads; i++)
-  //  {
-  //    auto x = get_key_range(i);
-  //    std::cout << "thread " << i << " [" << x.start << ", " << x.end <<
-  //    "]\n";
-  //  }
+   std::cout << "The number of nodes is: " << num_nodes << std::endl;
+   std::cout << "The number of partitions is: " << node_ranges.size()
+             << std::endl;
+   std::cout << "The min node is: " << min_node
+             << " and the max node is: " << max_node << std::endl;
+   for (auto x : node_ranges)
+   {
+     std::cout << x << std::endl;
+   }
+   std::cout << "printing the key ranges" << std::endl;
+   for (int i = 0; i < num_threads; i++)
+   {
+     auto x = get_key_range(i);
+     std::cout << "thread " << i << " [" << x.start << ", " << x.end <<
+     "]\n";
+   }
+}
+
+/**
+ * Computes the exact node count and creates balanced thread partitions in a
+ * single traversal. Each thread gets approximately equal number of nodes.
+ * @param thread_max The number of threads (partitions) to create
+ * @param graph_stats The graph object to traverse
+ * @return The exact number of nodes in the graph
+ */
+node_id_t GraphEngine::compute_nodes_and_partition(int thread_max,
+                                                   GraphBase *graph_stats)
+{
+  node_ranges.clear();
+
+  NodeCursor *n_cur = graph_stats->get_node_iter();
+  node found;
+  n_cur->next(&found);
+
+  // Collect all node IDs in a single pass
+  std::vector<node_id_t> all_node_ids(1000000); // preallocate for efficiency
+  size_t idx = 0;
+  while (found.id != OutOfBand_ID_MAX)
+  {
+    all_node_ids[idx++] = found.id;
+    n_cur->next(&found);
+  }
+  all_node_ids.resize(idx);
+  n_cur->close();
+
+  node_id_t num_nodes = all_node_ids.size();
+  std::cout << "The number of nodes is: " << num_nodes << std::endl;
+  graph_stats->set_ro_num_nodes(num_nodes);
+
+  // Create balanced partitions based on actual node count
+  if (num_nodes > 0 && thread_max > 0)
+  {
+    node_id_t nodes_per_partition = (num_nodes + thread_max - 1) / thread_max; // ceil division
+
+    // First partition starts at first node
+    node_ranges.push_back(all_node_ids[0]);
+
+    // Create partition boundaries at every nodes_per_partition interval
+    for (int i = 1; i < thread_max; i++)
+    {
+      node_id_t idx = i * nodes_per_partition;
+      if (idx < all_node_ids.size())
+      {
+        node_ranges.push_back(all_node_ids[idx]);
+      }
+    }
+
+    // Last partition boundary is the last node
+    node_ranges.push_back(all_node_ids.back());
+
+    #ifdef DEBUG
+    std::cout << "Balanced partitioning: " << num_nodes << " nodes across "
+              << thread_max << " threads (" << nodes_per_partition
+              << " nodes/partition)" << std::endl;
+    for (int i = 0; i < thread_max; i++)
+    {
+      auto x = get_key_range(i);
+      std::cout << "thread " << i << " [" << x.start << ", " << x.end << "]\n";
+    }
+    #endif
+  }
+
+  return num_nodes;
 }
 
 void GraphEngine::_calculate_thread_offsets_edge(int thread_max,

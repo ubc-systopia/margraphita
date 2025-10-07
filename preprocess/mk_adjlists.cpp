@@ -31,14 +31,15 @@ int main(int argc, char** argv)
   std::cout << "Num Per Chunk: " << num_per_chunk << std::endl;
   std::cout << "Num Threads: " << opts.num_threads << std::endl;
   std::cout << "dbname: " << opts.db_name << std::endl;
-
+  std::cout << "is weighted? " << opts.is_weighted << std::endl;
+  
 #pragma omp parallel for num_threads(opts.num_threads)
   for (int i = 0; i < opts.num_threads; i++)
   {
-    insert_edge_thread(i, "out");
+    insert_edge_thread(i, "out", opts.is_weighted);
   }
   // merge the conflicts
-  merge_conflicts("out", opts.num_threads);
+  merge_conflicts("out", opts.num_threads, opts.is_weighted);
 
   std::cout << "\n\nNow repeat this process for the reversed graph\n\n";
   // change the filename to the reversed graph
@@ -47,10 +48,10 @@ int main(int argc, char** argv)
 #pragma omp parallel for num_threads(opts.num_threads)
   for (int i = 0; i < opts.num_threads; i++)
   {
-    insert_edge_thread(i, "in");
+    insert_edge_thread(i, "in", opts.is_weighted);
   }
   // print the conflicts
   // print_conflict_map();
   // merge the conflicts
-  merge_conflicts("in", opts.num_threads);
+  merge_conflicts("in", opts.num_threads, opts.is_weighted);
 }

@@ -14,8 +14,10 @@ std::string dataset;
 int num_per_chunk;
 
 std::unordered_map<int, std::pair<adjlist, adjlist>> conflicts;
+std::unordered_map<int, std::pair<std::vector<edgeweight_t>, std::vector<edgeweight_t>>>
+    weights_conflicts;
 
-void insert_edge_thread(int _tid, const std::string& adjtype)
+void insert_edge_thread(int _tid, const std::string& adjtype, bool is_weighted = false)
 {
   int tid = _tid;
   std::string filename = dataset + "_";
@@ -28,11 +30,15 @@ void insert_edge_thread(int _tid, const std::string& adjtype)
   filename.push_back(c1);
   filename.push_back(c2);
 
-  reader::EdgeReader graph_reader(filename, 0, num_per_chunk, adjtype);
+  reader::EdgeReader graph_reader(filename, 0, num_per_chunk, adjtype, is_weighted);
   graph_reader.mk_adjlist();
   std::pair<adjlist, adjlist> conflict;
   conflict = graph_reader.get_conflict();
   conflicts[tid] = conflict;
+  if (is_weighted)
+  {
+    weights_conflicts[tid] = graph_reader.get_conflict_weights();
+  }
 }
 
 void delete_last_line(int _tid, const std::string& adjtype)
@@ -48,15 +54,28 @@ void delete_last_line(int _tid, const std::string& adjtype)
   filename.push_back(c1);
   filename.push_back(c2);
 
-  // run the sed command
+  //do the same for the weights file
+  std::string weights_filename =
+      dataset.substr(0, dataset.find_last_of('/')) + "/" + adjtype + "_weights_";
+  weights_filename.push_back(c1);
+  weights_filename.push_back(c2);
+
+  // Delete last line from adjlist file
   std::string command = "sed -i '$d' " + filename;
-  // std::cout << "Command: " << command << std::endl;
   system(command.c_str());
+
+  // Delete last line from weights file if it exists
+  if (weights_conflicts.find(tid) != weights_conflicts.end())
+  {
+    std::string weights_command = "sed -i '$d' " + weights_filename;
+    system(weights_command.c_str());
+  }
 }
 
 void replace_first_line(int _tid,
                         const std::string& adjtype,
-                        const adjlist& merged)
+                        const adjlist& merged,
+                        const std::vector<edgeweight_t>& merged_weights = {})
 {
   int tid = _tid;
   // construct the filename from the directory name and the thread id
@@ -69,19 +88,43 @@ void replace_first_line(int _tid,
   filename.push_back(c1);
   filename.push_back(c2);
 
-  // run the sed command
+  // Replace first line in adjlist file
   std::string command = "sed -i '1s/.*/" + std::to_string(merged.node_id) +
                         " " + std::to_string(merged.edgelist.size());
-  for (auto i : merged.edgelist)
+  for (size_t i = 0; i < merged.edgelist.size(); i++)
   {
-    command += " " + std::to_string(i);
+    command += " " + std::to_string(merged.edgelist[i]);
+    if (i != merged.edgelist.size() - 1)
+    {
+      command += ",";
+    }
   }
   command += "/' " + filename;
-  // std::cout <<"Command: " << command << std::endl;
   system(command.c_str());
+
+  // Replace first line in weights file if weights are provided
+  if (!merged_weights.empty())
+  {
+    std::string weights_filename =
+        dataset.substr(0, dataset.find_last_of('/')) + "/" + adjtype + "_weights_";
+    weights_filename.push_back(c1);
+    weights_filename.push_back(c2);
+
+    std::string weights_command = "sed -i '1s/.*/" + std::to_string(merged.node_id) + " ";
+    for (size_t i = 0; i < merged_weights.size(); i++)
+    {
+      weights_command += std::to_string(merged_weights[i]);
+      if (i != merged_weights.size() - 1)
+      {
+        weights_command += ",";
+      }
+    }
+    weights_command += "/' " + weights_filename;
+    system(weights_command.c_str());
+  }
 }
 
-void merge_conflicts(const std::string& adjtype, int NUM_THREADS)
+void merge_conflicts(const std::string& adjtype, int NUM_THREADS, bool is_weighted = false)
 {
   assert(conflicts.size() == NUM_THREADS);
   adjlist first_conflict, last_conflict;
@@ -93,13 +136,64 @@ void merge_conflicts(const std::string& adjtype, int NUM_THREADS)
 
     if (top.node_id == bottom.node_id)
     {
-      // merge the bottom list into the top
-      top.edgelist.insert(
-          top.edgelist.end(), bottom.edgelist.begin(), bottom.edgelist.end());
+      if (is_weighted && weights_conflicts.find(i) != weights_conflicts.end() &&
+          weights_conflicts.find(i - 1) != weights_conflicts.end())
+      {
+        // Merge edges and weights together
+        std::vector<edgeweight_t> top_weights = weights_conflicts[i].first;
+        std::vector<edgeweight_t> bottom_weights = weights_conflicts[i - 1].second;
+
+        // Create pairs of (edge, weight)
+        std::vector<std::pair<node_id_t, edgeweight_t>> edge_weight_pairs;
+        for (size_t j = 0; j < top.edgelist.size(); j++)
+        {
+          edge_weight_pairs.push_back({top.edgelist[j], top_weights[j]});
+        }
+        for (size_t j = 0; j < bottom.edgelist.size(); j++)
+        {
+          edge_weight_pairs.push_back({bottom.edgelist[j], bottom_weights[j]});
+        }
+
+        // Sort by edge id
+        std::sort(edge_weight_pairs.begin(), edge_weight_pairs.end(),
+                  [](const auto& a, const auto& b) { return a.first < b.first; });
+
+        // Extract sorted edges and weights
+        top.edgelist.clear();
+        top_weights.clear();
+        for (const auto& pair : edge_weight_pairs)
+        {
+          top.edgelist.push_back(pair.first);
+          top_weights.push_back(pair.second);
+        }
+
+        // Update weights_conflicts
+        weights_conflicts[i].first = top_weights;
+      }
+      else
+      {
+        // merge the bottom list into the top
+        top.edgelist.insert(
+            top.edgelist.end(), bottom.edgelist.begin(), bottom.edgelist.end());
+
+        // Sort the merged edgelist
+        std::sort(top.edgelist.begin(), top.edgelist.end());
+      }
+
+      // Update degree
+      top.degree = top.edgelist.size();
+
       // Now delete the last line of the i-1st file
       delete_last_line(i - 1, adjtype);
       // Now replace the first line of the i-th file
-      replace_first_line(i, adjtype, top);
+      if (is_weighted && weights_conflicts.find(i) != weights_conflicts.end())
+      {
+        replace_first_line(i, adjtype, top, weights_conflicts[i].first);
+      }
+      else
+      {
+        replace_first_line(i, adjtype, top);
+      }
     }
   }
 }

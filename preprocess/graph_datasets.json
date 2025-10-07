@@ -4,6 +4,7 @@
         "num_edges": 12711603,
         "dataset_name": "road_asia",
         "directed": false,
+        "weighted": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/road_asia/road_asia"
     },
     {
@@ -11,6 +12,7 @@
         "num_edges": 28854312,
         "dataset_name": "road_usa",
         "directed": false,
+        "weighted": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/road_usa/road_usa"
     },
     {
@@ -18,6 +20,7 @@
         "num_edges": 68993773,
         "dataset_name": "livejournal",
         "directed": true,
+        "weighted": false,
         "graph_path": "/drives/hdd_main/datasets_downloads/livejournal/livejournal"
     },
     {
@@ -25,6 +28,7 @@
         "num_edges": 117184899,
         "dataset_name": "orkut",
         "directed": false,
+        "weighted":false,
         "graph_path": "/drives/hdd_main/datasets_downloads/orkut/orkut"
     },
     {
@@ -32,6 +36,7 @@
         "num_edges": 50870313,
         "dataset_name": "dota_league",
         "directed": false,
+        "weighted": true,
         "graph_path": "/drives/hdd_main/datasets_downloads/dota_league/dota_league"
     },
     {
@@ -39,6 +44,7 @@
         "num_edges": 129333677,
         "dataset_name": "graph500_23",
         "directed": false,
+        "weighted":false,
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_23/graph500_23"
     },
     {
@@ -46,6 +52,7 @@
         "num_edges": 1051922853,
         "dataset_name": "graph500_26",
         "directed": false,
+        "weighted":false,
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_26/graph500_26"
     },
     {
@@ -53,6 +60,7 @@
         "num_edges": 4236163958,
         "dataset_name": "graph500_28",
         "directed": false,
+        "weighted":false,
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_28/graph500_28"
     },
     {
@@ -60,6 +68,7 @@
         "num_edges": 17022117362,
         "dataset_name": "graph500_30",
         "directed": "false",
+        "weighted":false,
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_30/graph500_30"
     },
     {
@@ -67,6 +76,7 @@
         "num_edges": 1963263821,
         "dataset_name": "twitter_mpi",
         "directed": "true",
+        "weighted":false,
         "graph_path": "/drives/hdd_main/datasets_downloads/twitter_mpi/twitter_mpi"
     }
 ]

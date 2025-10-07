@@ -32,6 +32,61 @@
   std::cerr << "Error inserting edge (" << (src) << ", " << (dst) \
             << "): " << (msg) << " (" << (ret) << ")" << std::endl;
 
+template <typename T, typename... Args>
+static inline int pack_values(WT_ITEM *item,
+                              const T &first,
+                              const Args &...args)
+{
+  constexpr size_t count = 1 + sizeof...(Args);
+  T *buffer = new T[count];  // dynamic allocation for correct alignment
+
+  buffer[0] = first;
+  size_t idx = 1;
+  ((buffer[idx++] = args), ...);
+
+  item->data = reinterpret_cast<const unsigned *>(buffer);
+  item->size = sizeof(T) * count;
+  return 0;
+}
+
+template <typename T, typename... Args>
+static inline int unpack_values(const WT_ITEM *item, T *first, Args... args)
+{
+  constexpr size_t count = 1 + sizeof...(Args);
+  if (item->size != sizeof(T) * count)
+  {
+    return -1;
+  }
+  size_t offset = 0;
+  auto unpack = [&](auto *value)
+  {
+    memcpy(
+        value, reinterpret_cast<const char *>(item->data) + offset, sizeof(T));
+    offset += sizeof(T);
+  };
+  unpack(first);
+  (unpack(args), ...);
+  return 0;
+}
+
+inline void ekey_set_edge_value(WT_CURSOR *cursor,
+                                              edgeweight_t weight)
+{
+  WT_ITEM item;
+  pack_values(&item, weight);
+  cursor->set_value(cursor, &item);
+  // free((void *)item.data);
+}
+inline void ekey_set_node_value(WT_CURSOR *cursor,
+                                              degree_t in_deg,
+                                              degree_t out_deg)
+{
+  WT_ITEM item;
+  pack_values(&item, in_deg, out_deg);
+  cursor->set_value(cursor, &item);
+  // free((void *)item.data);
+}
+
 size_t space = 0;
 graph_opts opts;
 int num_per_chunk;
@@ -178,18 +233,21 @@ degree_map node_degrees;
 std::tuple<node_id_t, node_id_t> get_min_max_key()
 {
   node_id_t min, max;
-  min = 0;
-  max = OutOfBand_ID_MAX;
+  if (node_degrees.empty())
+  {
+    return {OutOfBand_ID_MIN, OutOfBand_ID_MAX};
+  }
   // Reduction clause for finding the maximum
   auto it = node_degrees.cbegin();
-  node_id_t key_min = it->first;
-  node_id_t key_max = key_min;
-  while (++it != node_degrees.end())
+  min = it->first;
+  max = it->first;
+  ++it;
+  while (it != node_degrees.end())
   {
-    if (it->first > key_min)
-    {
-      key_max = it->first;
-    }
+    node_id_t temp = it->first;
+    if (temp < min) min = temp;
+    if (temp > max) max = temp;
+    ++it;
   }
   return {min, max};
 }
@@ -203,28 +261,9 @@ int check_cursors(worker_sessions &info)
   return 0;
 }
 
-// Overwrites existing weights with random from [1,255]
-int *InsertWeights(size_t n)
-{
-  // Set up random number generator
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<int> distribution(0, 255);
-
-  // Allocate memory for the array
-  int *randomArray = new int[n];
-
-  // Fill the array with random values
-  for (int i = 0; i < n; ++i)
-  {
-    randomArray[i] = distribution(gen);
-  }
-
-  return randomArray;
-}
-
 int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
 {
+  assert(adj.node_id != OutOfBand_ID_MIN);
   CommonUtil::set_key(adjcur, adj.node_id);
   int ret;
   if (adjcur->search(adjcur) == 0)
@@ -264,57 +303,54 @@ int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
 int add_to_edge_table(WT_CURSOR *cur,
                       const node_id_t node_id,
                       const std::vector<node_id_t> &edgelist,
+                      const std::vector<edgeweight_t> &weights,
                       int *edge_count,
                       bool is_weighted = false)
 {
-  int *weight = InsertWeights(edgelist.size());
-
   int i = 0;
+  assert(node_id != OutOfBand_ID_MIN);
   for (node_id_t dst : edgelist)
   {
     CommonUtil::set_key(cur, node_id, dst);
     if (is_weighted)
-      cur->set_value(cur, weight[i], OutOfBand_ID_MAX);
+      cur->set_value(cur, weights[i], OutOfBand_ID_MAX);
     else
       cur->set_value(cur, 0, OutOfBand_ID_MAX);
     int ret = cur->insert(cur);
     if (ret != 0)
     {
       PRINT_EDGE_ERROR(node_id, dst, ret, wiredtiger_strerror(ret))
-      delete[] weight;
       return ret;
     }
     i++;
   }
   *edge_count += edgelist.size();
-  delete[] weight;
   return 0;
 }
 
 int add_to_edgekey(WT_CURSOR *ekey_cur,
                    const node_id_t node_id,
                    const std::vector<node_id_t> &edgelist,
+                   const std::vector<edgeweight_t> &weights,
                    bool is_weighted = false)
 {
   node_id_t src = node_id;
-  int *weight = InsertWeights(edgelist.size());
+  assert(src != OutOfBand_ID_MIN);
   for (int i = 0; i < edgelist.size(); i++)
   {
     CommonUtil::ekey_set_key(ekey_cur, src, edgelist[i]);
     if (is_weighted)
-      ekey_cur->set_value(ekey_cur, weight[i], OutOfBand_ID_MAX);
+      ekey_set_edge_value(ekey_cur, weights[i]);
     else
-      ekey_cur->set_value(ekey_cur, 0, OutOfBand_ID_MAX);
+      ekey_set_node_value(ekey_cur, 0, OutOfBand_ID_MAX);
 
     int ret = ekey_cur->insert(ekey_cur);
     if (ret != 0)
     {
       PRINT_EDGE_ERROR(node_id, edgelist[i], ret, wiredtiger_strerror(ret))
-      delete[] weight;
       return ret;
     }
   }
-  delete[] weight;
   return 0;
 }
 
@@ -323,6 +359,7 @@ inline int add_to_node_table(WT_CURSOR *cur,
                              const degree_t in_degree,
                              const degree_t out_degree)
 {
+  assert(id != OutOfBand_ID_MIN);
   CommonUtil::set_key(cur, id);
   if (opts.read_optimize)
   {
@@ -353,8 +390,9 @@ int add_node_to_ekey(WT_CURSOR *ekey_cur,
                      const degree_t in_degree,
                      const degree_t out_degree)
 {
+  assert(id != OutOfBand_ID_MIN);
   CommonUtil::ekey_set_key(ekey_cur, id, OutOfBand_ID_MIN);
-  ekey_cur->set_value(ekey_cur, in_degree, out_degree);
+  ekey_set_node_value(ekey_cur, in_degree, out_degree);
   int ret = ekey_cur->insert(ekey_cur);
   if (ret != 0)
   {

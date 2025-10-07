@@ -10,22 +10,29 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
   char c2 = (char)(97 + second_char);
   filename.push_back(c1);
   filename.push_back(c2);
-
+  std::string weights_filename;
+  if (is_weighted)
+  {
+    weights_filename = opts.dataset + "/out_weights_"+c1+c2;
+  }
   worker_sessions adj_obj(conn_adj, "table:adjlistout", GraphType::Adj);
   worker_sessions split_ekey_out(
       conn_split_ekey, "table:edge_out", GraphType::SplitEKey);
 
   reader::AdjReader adj_reader(filename);
+  reader::WeightsReader weights_reader(weights_filename, is_weighted);
   adjlist adj_list;
+  reader::weight_array weights_list;
   int edge_count = 0;
   int adj_count = 0;
-  while (adj_reader.get_next_adjlist(adj_list) == 0)
+  while (adj_reader.get_next_adjlist(adj_list) == 0 | (is_weighted && weights_reader.get_next_adjlist(weights_list) == 0))
   {
     add_to_edgekey(
-        split_ekey_out.e_cur, adj_list.node_id, adj_list.edgelist, is_weighted);
+        split_ekey_out.e_cur, adj_list.node_id, adj_list.edgelist, weights_list.arr, is_weighted);
     add_to_edge_table(adj_obj.e_cur,
                       adj_list.node_id,
                       adj_list.edgelist,
+                      weights_list.arr,
                       &edge_count,
                       is_weighted);
 
@@ -55,8 +62,6 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
 /**
  * THIS CAN OVERWRITE THE ADJACENCY LISTS OF THE NODES. GET the in_adjlist and
  * merge.
- * @param _tid
- * @param is_directed
  */
 void insert_rev_edge_thread(int _tid, bool is_directed)
 {
@@ -68,6 +73,11 @@ void insert_rev_edge_thread(int _tid, bool is_directed)
   char c2 = (char)(97 + second_char);
   filename.push_back(c1);
   filename.push_back(c2);
+  std::string weights_filename;
+  if (is_weighted)
+  {
+    weights_filename = opts.dataset + "/in_weights_"+c1+c2;
+  }
 
   std::string adj_table_name, ekey_table_name;
   if (is_directed)
@@ -85,12 +95,14 @@ void insert_rev_edge_thread(int _tid, bool is_directed)
       conn_split_ekey, ekey_table_name, GraphType::SplitEKey);
 
   reader::AdjReader adj_reader(filename);
+  reader::WeightsReader weights_reader(weights_filename, is_weighted);
   adjlist adj_list;
-  while (adj_reader.get_next_adjlist(adj_list) == 0)
+  reader::weight_array weights_list;
+  while (adj_reader.get_next_adjlist(adj_list) == 0 | (is_weighted && weights_reader.get_next_adjlist(weights_list) == 0))
   {
     // insert into ADJ: inadjlist table
     add_to_adjlist(adj_obj.cur, adj_list);
-    add_to_edgekey(split_ekey_in.e_cur, adj_list.node_id, adj_list.edgelist);
+    add_to_edgekey(split_ekey_in.e_cur, adj_list.node_id, adj_list.edgelist, weights_list.arr,is_weighted);
     // get the node degree from the map and update the in_degree
     {
       degree_map::accessor acc;

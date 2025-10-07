@@ -121,7 +121,7 @@ void print_top_scores(pvector<ScoreT>& score, node_id_t n_nodes, GraphBase* g)
   node_id_t k = 100;
   vector<pair<ScoreT, node_id_t>> top_k = TopK(score_pairs, k);
   node_id_t it = 0;
-  std::cout << "Top " << k << " nodes by PageRank:" << std::endl;
+  std::cout << "Top " << k << " nodes by PageRank:" << std::endl; 
   for (auto kvp : top_k)
   {
     it++;

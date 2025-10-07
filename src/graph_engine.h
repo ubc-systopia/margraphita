@@ -46,6 +46,7 @@ class GraphEngine
   void force_metadata_sync();
   node_id_t _calculate_exact_node_count(GraphBase *graph_stats);
   void _calculate_thread_offsets_fast(int thread_max, GraphBase *graph_stats);
+  node_id_t compute_nodes_and_partition(int thread_max, GraphBase *graph_stats);
   void _calculate_thread_offsets_edge(int thread_max, GraphBase *graph_stats);
 };
 

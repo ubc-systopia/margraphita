@@ -184,7 +184,7 @@ class Preprocess:
         self.log(
             f"Splitting the graph into NUM_THREAD({self.config_data['num_threads']}) files")
         split_cmd = (
-            f"split --number=l/{self.config_data['num_threads']} {self.config_data['sorted_graph']} "
+            f"split --number=l/{self.config_data['num_threads']} {self.config_data['graph_path']} "
             f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_")
         self.log(f"Running split command: {split_cmd}\n")
         if (not self.config_data['dry_run']):
@@ -248,7 +248,7 @@ class Preprocess:
         # reverse the graph
         ##################################
         self.log("Reversing the graph")
-        reverse_cmd = (f"awk '{{print $2\"\\t\"$1}}' {self.config_data['graph_path']} > "
+        reverse_cmd = (f"awk '{{print $2\"\\t\"$1\"\\t\"$3}}' {self.config_data['graph_path']} > "
                        f"{self.config_data['output_dir']}/{self.config_data['dataset_name']}_reverse")
         print(reverse_cmd)
 
@@ -312,6 +312,8 @@ class Preprocess:
             f"-m {self.config_data['num_threads']}")
         if self.config_data['directed']:
             cmd += " -D"
+        if self.config_data['weighted']:
+            cmd += " -w"
         self.log(f"Running command: {cmd}\n")
         if (not self.config_data['dry_run']):
             st = time.time()
