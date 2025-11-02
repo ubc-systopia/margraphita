@@ -198,7 +198,7 @@ class EdgeReader
 
     adj_file << node_adj_list.node_id << " " << node_adj_list.edgelist.size()
              << " ";
-    for (int i = 0; i < node_adj_list.edgelist.size(); i++)
+    for (size_t i = 0; i < node_adj_list.edgelist.size(); i++)
     {
       adj_file << node_adj_list.edgelist[i];
       if (i != node_adj_list.edgelist.size() - 1)
@@ -213,7 +213,7 @@ class EdgeReader
   {
     assert(node_adj_list.edgelist.size() == weights.arr.size());
     weights_file << node_adj_list.node_id << " ";
-    for (int i = 0; i < weights.arr.size(); i++)
+    for (size_t i = 0; i < weights.arr.size(); i++)
       {
         weights_file << weights.arr[i];
         if (i != weights.arr.size() - 1)

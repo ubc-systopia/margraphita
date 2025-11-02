@@ -232,7 +232,7 @@ class SplitEkeyInCursor : public InCursor
       keys.end = _keys.end;
     }
 
-    CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID_MIN);
+    CommonUtil::ekey_set_node_key(cursor, keys.start);
     // Advance the cursor to the first record >= start
 
     int status;
@@ -335,7 +335,7 @@ class SplitEKeyOutCursor : public OutCursor
       keys.end = _keys.end;
     }
 
-    CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID_MIN);
+    CommonUtil::ekey_set_node_key(cursor, keys.start);
     // Advance the cursor to the first record >= start
 
     int status;
@@ -416,7 +416,7 @@ class SplitEKeyNodeCursor : public NodeCursor
     // Use main edge table with (src, OutOfBand_ID_MIN) pattern
     if (keys.start != OutOfBand_ID_MIN)
     {
-      CommonUtil::ekey_set_key(cursor, keys.start, OutOfBand_ID_MIN);
+      CommonUtil::ekey_set_node_key(cursor, keys.start);
       cursor->search_near(cursor, &status);
       if (status < 0)
       {

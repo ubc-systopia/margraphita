@@ -125,6 +125,13 @@ class CommonUtil
 
   static void ekey_set_key(WT_CURSOR *cursor, node_id_t key1, node_id_t key2);
   static int ekey_get_key(WT_CURSOR *cursor, node_id_t *key1, node_id_t *key2);
+
+  // Specialized ekey functions for node and edge entries
+  static void ekey_set_node_key(WT_CURSOR *cursor, node_id_t node_id);
+  static void ekey_set_edge_key(WT_CURSOR *cursor, node_id_t src_id, node_id_t dst_id);
+  static int ekey_get_node_key(WT_CURSOR *cursor, node_id_t *node_id);
+  static int ekey_get_edge_key(WT_CURSOR *cursor, node_id_t *src_id, node_id_t *dst_id);
+
   //  static void record_to_node_ekey_new(WT_CURSOR *cur,
   //                                      node *found,
   //                                      bool directed);
@@ -424,6 +431,83 @@ inline int CommonUtil::ekey_get_key(WT_CURSOR *cursor,
   if (*key2 != OutOfBand_ID_MIN) *key2 = OG_KEY(*key2);
   return ret;
 }
+
+/**
+ * @brief Set the key for a node entry in the edge table (ekey representation).
+ * Node entries are stored as (MAKE_EKEY(node_id), OutOfBand_ID_MIN).
+ * This function always transforms the node_id, ensuring node 0 is stored as (1, 0).
+ *
+ * @param cursor The cursor to set the key on
+ * @param node_id The node ID
+ */
+inline void CommonUtil::ekey_set_node_key(WT_CURSOR *cursor, node_id_t node_id)
+{
+  node_id_t key1 = MAKE_EKEY(node_id);
+  node_id_t key2 = OutOfBand_ID_MIN;  // Always 0, never transformed
+  CommonUtil::set_key(cursor, key1, key2);
+}
+
+/**
+ * @brief Set the key for an edge entry in the edge table (ekey representation).
+ * Edge entries are stored as (MAKE_EKEY(src_id), MAKE_EKEY(dst_id)).
+ * This function always transforms both keys.
+ *
+ * @param cursor The cursor to set the key on
+ * @param src_id The source node ID
+ * @param dst_id The destination node ID
+ */
+inline void CommonUtil::ekey_set_edge_key(WT_CURSOR *cursor,
+                                           node_id_t src_id,
+                                           node_id_t dst_id)
+{
+  node_id_t key1 = MAKE_EKEY(src_id);
+  node_id_t key2 = MAKE_EKEY(dst_id);
+  CommonUtil::set_key(cursor, key1, key2);
+}
+
+/**
+ * @brief Get the key from a node entry in the edge table (ekey representation).
+ * Reverses the transformation applied by ekey_set_node_key.
+ *
+ * @param cursor The cursor to get the key from
+ * @param node_id Pointer to store the node ID
+ * @return int Return code from get_key
+ */
+inline int CommonUtil::ekey_get_node_key(WT_CURSOR *cursor, node_id_t *node_id)
+{
+  node_id_t key1, key2;
+  int ret = CommonUtil::get_key(cursor, &key1, &key2);
+  if (ret != 0) return ret;
+
+  // key2 should be OutOfBand_ID_MIN for node entries
+  // Only transform key1 back to original node_id
+  *node_id = OG_KEY(key1);
+  return ret;
+}
+
+/**
+ * @brief Get the key from an edge entry in the edge table (ekey representation).
+ * Reverses the transformation applied by ekey_set_edge_key.
+ *
+ * @param cursor The cursor to get the key from
+ * @param src_id Pointer to store the source node ID
+ * @param dst_id Pointer to store the destination node ID
+ * @return int Return code from get_key
+ */
+inline int CommonUtil::ekey_get_edge_key(WT_CURSOR *cursor,
+                                          node_id_t *src_id,
+                                          node_id_t *dst_id)
+{
+  node_id_t key1, key2;
+  int ret = CommonUtil::get_key(cursor, &key1, &key2);
+  if (ret != 0) return ret;
+
+  // Both keys are transformed for edges
+  *src_id = OG_KEY(key1);
+  *dst_id = OG_KEY(key2);
+  return ret;
+}
+
 
 inline void CommonUtil::dump_node(node to_print, std::ostream &os = std::cout)
 {

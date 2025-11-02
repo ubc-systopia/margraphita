@@ -25,7 +25,8 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
   reader::weight_array weights_list;
   int edge_count = 0;
   int adj_count = 0;
-  while (adj_reader.get_next_adjlist(adj_list) == 0 | (is_weighted && weights_reader.get_next_adjlist(weights_list) == 0))
+  while (adj_reader.get_next_adjlist(adj_list) == 0 ||
+         (is_weighted && weights_reader.get_next_adjlist(weights_list) == 0))
   {
     add_to_edgekey(
         split_ekey_out.e_cur, adj_list.node_id, adj_list.edgelist, weights_list.arr, is_weighted);
@@ -63,7 +64,9 @@ void insert_edge_thread(int _tid, bool is_weighted = false)
  * THIS CAN OVERWRITE THE ADJACENCY LISTS OF THE NODES. GET the in_adjlist and
  * merge.
  */
-void insert_rev_edge_thread(int _tid, bool is_directed)
+void insert_rev_edge_thread(int _tid,
+                            bool is_directed,
+                            bool is_weighted = false)
 {
   int tid = _tid;
   std::string filename = opts.dataset + "/in_";
@@ -98,7 +101,8 @@ void insert_rev_edge_thread(int _tid, bool is_directed)
   reader::WeightsReader weights_reader(weights_filename, is_weighted);
   adjlist adj_list;
   reader::weight_array weights_list;
-  while (adj_reader.get_next_adjlist(adj_list) == 0 | (is_weighted && weights_reader.get_next_adjlist(weights_list) == 0))
+  while (adj_reader.get_next_adjlist(adj_list) == 0 ||
+         (is_weighted && weights_reader.get_next_adjlist(weights_list) == 0))
   {
     // insert into ADJ: inadjlist table
     add_to_adjlist(adj_obj.cur, adj_list);
@@ -243,7 +247,6 @@ int main(int argc, char *argv[])
     return -1;
   }
   opts = params.make_graph_opts();
-  assert(opts.is_directed == false);
   std::string conn_config = "create,cache_size=10GB";
   if (std::thread::hardware_concurrency() > 100)
   {
@@ -279,7 +282,7 @@ int main(int argc, char *argv[])
 #pragma omp parallel for num_threads(opts.num_threads)
   for (int i = 0; i < opts.num_threads; i++)
   {
-    insert_rev_edge_thread(i, opts.is_directed);
+    insert_rev_edge_thread(i, opts.is_directed, opts.is_weighted);
   }
   t.stop();
   std::cout << "Time taken to insert rev edges: " << t.t_secs() << "s"

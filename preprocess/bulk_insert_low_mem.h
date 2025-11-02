@@ -38,7 +38,9 @@ static inline int pack_values(WT_ITEM *item,
                               const Args &...args)
 {
   constexpr size_t count = 1 + sizeof...(Args);
-  T *buffer = new T[count];  // dynamic allocation for correct alignment
+  // Use thread-local static buffer to avoid repeated allocations and memory leaks
+  // Each template instantiation gets its own thread-local buffer
+  thread_local static T buffer[count > 0 ? count : 1];
 
   buffer[0] = first;
   size_t idx = 1;
@@ -75,7 +77,6 @@ inline void ekey_set_edge_value(WT_CURSOR *cursor,
   WT_ITEM item;
   pack_values(&item, weight);
   cursor->set_value(cursor, &item);
-  // free((void *)item.data);
 }
 inline void ekey_set_node_value(WT_CURSOR *cursor,
                                               degree_t in_deg,
@@ -84,7 +85,6 @@ inline void ekey_set_node_value(WT_CURSOR *cursor,
   WT_ITEM item;
   pack_values(&item, in_deg, out_deg);
   cursor->set_value(cursor, &item);
-  // free((void *)item.data);
 }
 
 size_t space = 0;
@@ -263,7 +263,7 @@ int check_cursors(worker_sessions &info)
 
 int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
 {
-  assert(adj.node_id != OutOfBand_ID_MIN);
+  // assert(adj.node_id != OutOfBand_ID_MIN); // node_id 0 is valid
   CommonUtil::set_key(adjcur, adj.node_id);
   int ret;
   if (adjcur->search(adjcur) == 0)
@@ -308,7 +308,7 @@ int add_to_edge_table(WT_CURSOR *cur,
                       bool is_weighted = false)
 {
   int i = 0;
-  assert(node_id != OutOfBand_ID_MIN);
+  // assert(node_id != OutOfBand_ID_MIN); // node_id 0 is valid
   for (node_id_t dst : edgelist)
   {
     CommonUtil::set_key(cur, node_id, dst);
@@ -335,7 +335,7 @@ int add_to_edgekey(WT_CURSOR *ekey_cur,
                    bool is_weighted = false)
 {
   node_id_t src = node_id;
-  assert(src != OutOfBand_ID_MIN);
+  // assert(src != OutOfBand_ID_MIN); // node_id 0 is valid and is handled in ekey_set_key
   for (int i = 0; i < edgelist.size(); i++)
   {
     CommonUtil::ekey_set_key(ekey_cur, src, edgelist[i]);
@@ -359,7 +359,7 @@ inline int add_to_node_table(WT_CURSOR *cur,
                              const degree_t in_degree,
                              const degree_t out_degree)
 {
-  assert(id != OutOfBand_ID_MIN);
+  //assert(id != OutOfBand_ID_MIN);
   CommonUtil::set_key(cur, id);
   if (opts.read_optimize)
   {
@@ -390,7 +390,7 @@ int add_node_to_ekey(WT_CURSOR *ekey_cur,
                      const degree_t in_degree,
                      const degree_t out_degree)
 {
-  assert(id != OutOfBand_ID_MIN);
+  // assert(id != OutOfBand_ID_MIN); // node_id 0 is valid and is handled in ekey_set_key
   CommonUtil::ekey_set_key(ekey_cur, id, OutOfBand_ID_MIN);
   ekey_set_node_value(ekey_cur, in_degree, out_degree);
   int ret = ekey_cur->insert(ekey_cur);

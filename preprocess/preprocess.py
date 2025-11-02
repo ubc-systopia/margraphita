@@ -109,10 +109,11 @@ class Preprocess:
         for graph_type in ["split_ekey"]:
             # for is_ro in [True, False]:
             index_cmd = self.build_index_cmd(graph_type)
-            self.log(f"Creating index: {index_cmd}\n")
+            self.log(f"Creating index: {index_cmd}\n. Not executing this -- index dependency removed.")
             print(index_cmd)
-            if (not self.config_data['dry_run']):
-                os.system(index_cmd)
+            print("Not running this -- index dependency removed.")
+            #if (not self.config_data['dry_run']):
+            #    os.system(index_cmd)
 
     def dump_config(self):
         # dump the config data

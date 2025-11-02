@@ -8,30 +8,6 @@
         "graph_path": "/drives/hdd_main/datasets_downloads/road_asia/road_asia"
     },
     {
-        "num_nodes": 23947347,
-        "num_edges": 28854312,
-        "dataset_name": "road_usa",
-        "directed": false,
-        "weighted": false,
-        "graph_path": "/drives/hdd_main/datasets_downloads/road_usa/road_usa"
-    },
-    {
-        "num_nodes": 4847571,
-        "num_edges": 68993773,
-        "dataset_name": "livejournal",
-        "directed": true,
-        "weighted": false,
-        "graph_path": "/drives/hdd_main/datasets_downloads/livejournal/livejournal"
-    },
-    {
-        "num_nodes": 3072441,
-        "num_edges": 117184899,
-        "dataset_name": "orkut",
-        "directed": false,
-        "weighted":false,
-        "graph_path": "/drives/hdd_main/datasets_downloads/orkut/orkut"
-    },
-    {
         "num_nodes": 317727,
         "num_edges": 50870313,
         "dataset_name": "dota_league",
@@ -67,16 +43,40 @@
         "num_nodes": 44797986,
         "num_edges": 17022117362,
         "dataset_name": "graph500_30",
-        "directed": "false",
+        "directed": false,
         "weighted":false,
         "graph_path": "/drives/hdd_main/datasets_downloads/graph500_30/graph500_30"
+    },
+    {
+        "num_nodes":    105153952,
+        "num_edges":    3301876564,
+        "dataset_name": "uk-2007",
+        "directed": false,
+        "weighted":false,
+        "graph_path": "/drives/hdd_main/datasets_downloads/uk-2007/uk-2007.e"
+    },
+    {
+        "num_nodes":    65608366,
+        "num_edges":    1806067135,
+        "dataset_name": "com-friendster",
+        "directed": false,
+        "weighted":false,
+        "graph_path": "/drives/hdd_main/datasets_downloads/com-friendster/com-friendster.e"
     },
     {
         "num_nodes": 52579682,
         "num_edges": 1963263821,
         "dataset_name": "twitter_mpi",
-        "directed": "true",
+        "directed": true,
         "weighted":false,
         "graph_path": "/drives/hdd_main/datasets_downloads/twitter_mpi/twitter_mpi"
+    },
+    {
+        "num_nodes": 4847571,
+        "num_edges": 68993773,
+        "dataset_name": "soc-LiveJournal",
+        "directed": true,
+        "weighted":false,
+        "graph_path": "/drives/hdd_main/datasets_downloads/soc-LiveJournal/soc-LiveJournal.e"
     }
 ]
