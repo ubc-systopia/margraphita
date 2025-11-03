@@ -539,7 +539,6 @@ class SplitEKeyEdgeCursor : public EdgeCursor
     }
     else  // the range is empty
     {
-      std::cout << "here" << std::endl;
       // Advance the cursor to the first record
       if (cursor->next(cursor) != 0)
       {

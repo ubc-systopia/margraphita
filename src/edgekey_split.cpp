@@ -843,7 +843,9 @@ std::vector<node> SplitEdgeKey::get_in_nodes(node_id_t node_id)
     node found;
     node_id_t src_id, dst_id;
     CommonUtil::ekey_get_key(in_cur, &dst_id, &src_id);
+    #ifdef DEBUG
     std::cout << "src_id: " << src_id << " dst_id: " << dst_id << std::endl;
+    #endif
     if (dst_id == node_id)
     {
       found = get_node(src_id);
@@ -999,7 +1001,9 @@ void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
     }
     if (dst == OutOfBand_ID_MIN)
     {
+      #ifdef DEBUG
       std::cout << "Random starting vertex: " << src << std::endl;
+      #endif
       // random_node_cursor->get_value(random_node_cursor, &in_deg, &out_deg);
       ekey_get_node_value(random_node_cursor, &in_deg, &out_deg);
       if (out_deg > 0)
@@ -1026,8 +1030,11 @@ void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
     throw GraphException("Issue with random cursor iteration:" +
                          string(wiredtiger_strerror(ret)));
   }
+  
+  #ifdef DEBUG
   std::cout << "wasted iterations: " << waste << std::endl;
   std::cout << "ids size: " << randoms.size() << std::endl;
+  #endif
 }
 int SplitEdgeKey::error_check_insert_txn(int return_val,
                                          bool ignore_duplicate_key)
