@@ -161,8 +161,8 @@ void GraphEngine::calculate_thread_offsets(bool make_edge)
   // Create snapshot here first?
   GraphBase *graph_stats = create_ro_graph_handle(last_checkpoint);
   //_calculate_thread_offsets(num_threads, graph_stats);
-  _calculate_thread_offsets_fast(num_threads, graph_stats);
-  if (make_edge) _calculate_thread_offsets_edge(num_threads, graph_stats);
+  // _calculate_thread_offsets_fast(num_threads, graph_stats);
+  // if (make_edge) _calculate_thread_offsets_edge(num_threads, graph_stats);
   graph_stats->close(false);
 }
 
@@ -272,7 +272,7 @@ node_id_t GraphEngine::compute_nodes_and_partition(int thread_max,
   graph_stats->set_ro_num_nodes(num_nodes);
 
   // check if node_ranges needs to be populated
-  if (node_ranges.size() > 0)
+  if (!node_ranges.empty())
   {
     return num_nodes;  // already populated; can return
   }
