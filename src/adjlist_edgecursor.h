@@ -29,7 +29,9 @@ class AdjEdgeCursor : public EdgeCursor
 
   void set_key_range(edge_range range) override
   {
+    #ifdef DEBUG
     std::cout << "setting keys" << std::endl;
+    #endif
     start_edge = range.start;
     end_edge = range.end;
     is_first = false;
@@ -38,8 +40,10 @@ class AdjEdgeCursor : public EdgeCursor
     if (start_edge.src_id != OutOfBand_ID_MAX &&
         start_edge.dst_id != OutOfBand_ID_MAX)
     {
+      #ifdef DEBUG
       std::cout << "HERE: " << start_edge.src_id << " "
                 << start_edge.dst_id << std::endl;
+      #endif
       int status;
       #ifdef MK_NEDGES
       CommonUtil::set_key(cursor, start_edge.src_id, start_edge.dst_id);
@@ -75,25 +79,31 @@ class AdjEdgeCursor : public EdgeCursor
         }
       }
       //now advance the position to the first edge in range.
+      #ifdef DEBUG
       std::cout << "start_edge.dst_id: " << start_edge.dst_id
                 << " current_adjlist size: "
                 << current_adjlist.edgelist.size() 
                 << "pos = " << pos 
                 << " has value: "<< current_adjlist.edgelist[pos] << std::endl;
+      #endif
       while (pos < current_adjlist.edgelist.size() &&
               current_adjlist.edgelist[pos] < start_edge.dst_id)
       {
         pos++;
       }
+      #ifdef DEBUG
       std::cout << "pos: " << pos
                 << " current_adjlist size: "
                 << current_adjlist.edgelist.size() << std::endl;
       #endif
+      #endif
     }
     else
     {
+      #ifdef DEBUG
       std::cout <<"HEREHERE: " << start_edge.src_id << " "
                 << start_edge.dst_id << std::endl;
+      #endif
       // Advances the cursor to the first position in the table.
       if (cursor->next(cursor) != 0)
       {

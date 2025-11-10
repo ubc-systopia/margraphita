@@ -29,8 +29,8 @@ class table_iterator
     int ret = cursor->reset(cursor);
     if (ret != 0)
     {
-      std::cout << "Error in resetting cursor" << wiredtiger_strerror(ret)
-                << std::endl;
+      throw GraphException(
+          "Error in resetting cursor: " + std::string(wiredtiger_strerror(ret)));
     }
     is_first = true;
     has_next = true;

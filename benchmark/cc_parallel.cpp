@@ -10,6 +10,7 @@
 #include "omp.h"
 #include "pvector.h"
 #include "times.h"
+#include "mem_usage.h"
 /*
 GAP Benchmark Suite
 Kernel: Connected Components (CC)
@@ -39,6 +40,7 @@ const int THREAD_NUM = omp_get_max_threads();
 // direction, so we use a min-max swap such that lower component IDs propagate
 // independent of the edge's direction.
 pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
+                                  std::string& chkpt,
                                    node_id_t numNodes,
                                    node_id_t maxNodeID)
 {
@@ -55,7 +57,7 @@ pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)
     {
-      GraphBase* graph = g.create_graph_handle();
+      GraphBase* graph = g.create_ro_graph_handle(chkpt);
       auto* out_nbd_cur = graph->get_outnbd_iter();
       out_nbd_cur->set_key_range(g.get_key_range(i));
 
@@ -149,6 +151,7 @@ void print_comp_to_file(const pvector<node_id_t>& comp)
 int main(int argc, char* argv[])
 {
   std::cout << "Running CC" << std::endl;
+  mem_util::mem_usage memory_usage;
   CmdLineApp cc_cli(argc, argv);
   if (!cc_cli.parse_args())
   {
@@ -157,25 +160,28 @@ int main(int argc, char* argv[])
 
   cmdline_opts opts = cc_cli.get_parsed_opts();
   opts.stat_log += "/" + opts.db_name;
+  opts.read_only = true;
+  opts.create_new = false;
 
   Times t;
   t.start();
   GraphEngine graphEngine(THREAD_NUM, opts);
+  std::string checkpoint = graphEngine.make_checkpoint();
   graphEngine.calculate_thread_offsets();
 
-  GraphBase* graph = graphEngine.create_graph_handle();
+  GraphBase* graph = graphEngine.create_ro_graph_handle(checkpoint);
   node_id_t numNodes = graph->get_num_nodes();
   node_id_t maxNodeID = graph->get_max_node_id();
   graph->close(false);
 
   t.stop();
-  std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+  std::cout << "Graph loaded in " << t.t_secs() << std::endl;
 
   long double total_seconds = 0;
   for (int i = 0; i < opts.num_trials; i++)
   {
     t.start();
-    auto result = ShiloachVishkin(graphEngine, numNodes, maxNodeID);
+    auto result = ShiloachVishkin(graphEngine, checkpoint, numNodes, maxNodeID);
     t.stop();
     std::cout << "CC took " << t.t_secs() << " s" << std::endl;
     total_seconds += t.t_secs();

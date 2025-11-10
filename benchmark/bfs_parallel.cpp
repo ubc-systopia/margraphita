@@ -11,6 +11,7 @@
 #include "pvector.h"
 #include "sliding_queue.h"
 #include "times.h"
+#include "mem_usage.h"
 
 /**
 /*
@@ -44,6 +45,8 @@ them in parent array as negative numbers. Thus the encoding of parent is:
 typedef int64_t NodeID;
 bool logging_enabled = true;
 
+std::vector<GraphBase *> graph_handles;
+
 int64_t BUStep(GraphEngine *graph_engine,
                pvector<NodeID> &parent,
                Bitmap &front,
@@ -56,7 +59,7 @@ int64_t BUStep(GraphEngine *graph_engine,
 #pragma omp parallel for reduction(+ : awake_count) num_threads(thread_num)
   for (int i = 0; i < thread_num; i++)
   {
-    GraphBase *graph = graph_engine->create_graph_handle();
+    GraphBase *graph = graph_handles[i];
     InCursor *in_cursor = graph->get_innbd_iter();
     adjlist found{0, 0};
     in_cursor->set_key_range(graph_engine->get_key_range(i));
@@ -80,26 +83,26 @@ int64_t BUStep(GraphEngine *graph_engine,
       }
       in_cursor->next(&found);
     }
-    graph->close(false);
+    in_cursor->close();
   }
 
   return awake_count;
 }
 
-int64_t TDStep(GraphEngine *graph_engine,
-               pvector<NodeID> &parent,
-               SlidingQueue<node_id_t> &queue)
+// the pragma will fail if the number of initialized graph handles is less than
+// thread_num
+int64_t TDStep(pvector<NodeID> &parent, SlidingQueue<node_id_t> &queue)
 {
   int64_t scout_count = 0;
 
-#pragma omp parallel
+#pragma omp parallel num_threads(graph_handles.size())
   {
     QueueBuffer<node_id_t> lqueue(queue);
 #pragma omp for reduction(+ : scout_count) nowait
     for (auto q_iter = queue.begin(); q_iter < queue.end(); q_iter++)
     {
       node_id_t u = *q_iter;
-      GraphBase *graph = graph_engine->create_graph_handle();
+      GraphBase *graph = graph_handles[omp_get_thread_num()];
       for (node_id_t v : graph->get_out_nodes_id(u))
       {
         NodeID curr_val = parent[v];
@@ -112,7 +115,7 @@ int64_t TDStep(GraphEngine *graph_engine,
           }
         }
       }
-      graph->close(false);
+      // graph->close(false);
     }
     lqueue.flush();
   }
@@ -140,7 +143,7 @@ void BitmapToQueue(GraphEngine *graph_engine,
 #pragma omp for nowait
     for (int i = 0; i < thread_num; i++)
     {
-      GraphBase *graph = graph_engine->create_graph_handle();
+      GraphBase *graph = graph_handles[i];
       NodeCursor *node_cursor = graph->get_node_iter();
       node_cursor->set_key_range(graph_engine->get_key_range(i));
 
@@ -151,7 +154,7 @@ void BitmapToQueue(GraphEngine *graph_engine,
         if (bm.get_bit(found.id)) lqueue.push_back(found.id);
         node_cursor->next(&found);
       }
-      graph->close(false);
+      //graph->close(false);
     }
     lqueue.flush();
   }
@@ -167,7 +170,7 @@ pvector<NodeID> InitParent(GraphEngine *graph_engine,
 #pragma omp parallel for num_threads(thread_num)
   for (int i = 0; i < thread_num; i++)
   {
-    GraphBase *graph = graph_engine->create_graph_handle();
+    GraphBase *graph = graph_handles[i];
     NodeCursor *node_cursor = graph->get_node_iter();
     node found = {0};
     node_cursor->set_key_range(graph_engine->get_key_range(i));
@@ -180,9 +183,22 @@ pvector<NodeID> InitParent(GraphEngine *graph_engine,
 
       node_cursor->next(&found);
     }
-    graph->close(false);
+    // graph->close(false);
   }
   return parent;
+}
+
+void create_graph_handles(GraphEngine *graph_engine,
+                          std::string &checkpoint_name,
+                          int thread_num)
+{
+  graph_handles.resize(thread_num);
+  #pragma omp parallel for num_threads(thread_num)
+  for (int i = 0; i < thread_num; i++)
+  {
+    GraphBase *graph = graph_engine->create_ro_graph_handle(checkpoint_name);
+    graph_handles[i] = graph;
+  }
 }
 
 /**
@@ -193,6 +209,7 @@ pvector<NodeID> InitParent(GraphEngine *graph_engine,
  * push, begin, end, etc.) and therefore can be created with size = num_nodes
  */
 pvector<NodeID> DOBFS(GraphEngine *graph_engine,
+                      std::string &checkpoint_name,
                       node_id_t source,
                       node_id_t num_nodes,
                       node_id_t max_node_id,
@@ -202,7 +219,8 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
                       bool verify = false)
 {
   if (logging_enabled) std::cout << "Source" << source << std::endl;
-  GraphBase *graph_stat = graph_engine->create_graph_handle();
+  create_graph_handles(graph_engine, checkpoint_name, thread_num);
+  GraphBase *graph_stat = graph_handles[0];
   Times t;
   t.start();
   pvector<NodeID> parent = InitParent(graph_engine, max_node_id, thread_num);
@@ -218,10 +236,14 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
   Bitmap front(num_nodes);
   front.reset();
   int64_t edges_to_check = graph_stat->get_num_edges();
+  std::cout << "Total edges to check: " << edges_to_check << std::endl; 
   int64_t scout_count = graph_stat->get_out_degree(source);
-  std::cout << "source: " << source << "\tscout_count: " << scout_count
-            << "\tedges_to_check: " << edges_to_check << std::endl;
-  queue.dump_stdout();
+  if (logging_enabled)
+  {
+    std::cout << "source: " << source << "\tscout_count: " << scout_count
+              << "\tedges_to_check: " << edges_to_check << std::endl;
+    queue.dump_stdout();
+  }
 
   while (!queue.empty())
   {
@@ -255,7 +277,7 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
     {
       t.start();
       edges_to_check -= scout_count;
-      scout_count = TDStep(graph_engine, parent, queue);
+      scout_count = TDStep(parent, queue);
       queue.slide_window();
       t.stop();
       printf("%5s%23.5Lf\n", "td", t.t_secs());
@@ -287,13 +309,18 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
               << "edges" << std::endl;
   }
 
-  graph_stat->close(false);
+  // Clean up graph handles
+  for (int i = 0; i < thread_num; i++)
+  {
+    graph_handles[i]->close(false);
+  }
   return parent;
 }
 
 int main(int argc, char *argv[])
 {
   cout << "Running BFS" << endl;
+  mem_util::mem_usage memory_usage;
   CmdLineApp bfs_cli(argc, argv);
   if (!bfs_cli.parse_args())
   {
@@ -301,24 +328,32 @@ int main(int argc, char *argv[])
   }
   cmdline_opts opts = bfs_cli.get_parsed_opts();
   opts.stat_log += "/" + opts.db_name;
+  opts.read_only = true;
+  opts.create_new = false;
 
   const int THREAD_NUM = omp_get_max_threads();
   std::cout << "THREAD_NUM: " << THREAD_NUM << std::endl;
+  graph_handles.reserve(THREAD_NUM);
   Times t;
   t.start();
   GraphEngine graphEngine(THREAD_NUM, opts);
+  std::string checkpt = graphEngine.make_checkpoint();
   graphEngine.calculate_thread_offsets();
   t.stop();
-  std::cout << "Graph loaded in " << t.t_micros() << std::endl;
+  std::cout << "Graph loaded in " << t.t_secs() << std::endl;
 
-  t.start();
-  GraphBase *g = graphEngine.create_graph_handle();
+  long double total_time{};
+  for (int i =0; i < opts.num_trials; i++)
+  {
+ t.start();
+  GraphBase *g = graphEngine.create_ro_graph_handle(checkpt);
   node_id_t num_nodes = g->get_num_nodes();
   node_id_t max_node_id = g->get_max_node_id();
   if (opts.start_vertex == OutOfBand_ID_MAX)
     opts.start_vertex = g->get_random_node().id;
   g->close(false);
   auto bfs_tree = DOBFS(&graphEngine,
+                        checkpt,
                         opts.start_vertex,
                         num_nodes,
                         max_node_id,
@@ -327,6 +362,10 @@ int main(int argc, char *argv[])
                         18,
                         opts.verify);
   t.stop();
-  std::cout << "BFS completed in " << t.t_micros() << std::endl;
+  total_time += t.t_secs();
+  std::cout << "BFS completed in " << t.t_secs() << "s" << std::endl;
+  }
+
+  std::cout << "Average BFS time: " << total_time / opts.num_trials << "s" << std::endl;
   graphEngine.close_graph();
 }

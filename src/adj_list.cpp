@@ -721,7 +721,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
 
   if (session->commit_transaction(session, nullptr) != 0)
   {
-    std::cout << "Failed to commit transaction for add_edge" << std::endl;
+    LOG_ROLLBACK_LOCATION("commit_transaction(session, nullptr)", to_insert);
     return WT_ROLLBACK;
   }
 #ifdef DEBUG
@@ -1246,15 +1246,18 @@ int AdjList::update_node_degree(WT_CURSOR *cursor,
   CommonUtil::record_to_node(
       cursor, &found, opts.read_optimize, opts.is_directed);
 
+#ifdef DEBUG
   std::cout << "before update: ";
   CommonUtil::dump_node(found);
+#endif
 
   found.out_degree += outdeg_change;
   opts.is_directed ? found.in_degree += indeg_change
                    : found.out_degree += indeg_change;
+#ifdef DEBUG
   std::cout << "after update: ";
   CommonUtil::dump_node(found);
-
+#endif
   opts.is_directed
       ? cursor->set_value(cursor, found.in_degree, found.out_degree)
       : cursor->set_value(cursor, found.out_degree);
@@ -2131,7 +2134,9 @@ node_id_t AdjList::get_max_node_id()
   assert(cursor != nullptr);
   cursor->prev(cursor);
   CommonUtil::get_key(cursor, &to_return);
+#ifdef DEBUG
   std::cout << "Max node id: " << to_return << std::endl;
+#endif
   cursor->close(cursor);
   return to_return;
 }
@@ -2143,7 +2148,9 @@ node_id_t AdjList::get_min_node_id()
   assert(cursor != nullptr);
   cursor->next(cursor);
   CommonUtil::get_key(cursor, &to_return);
+#ifdef DEBUG
   std::cout << "Min node id: " << to_return << std::endl;
+#endif
   cursor->close(cursor);
   return to_return;
 }
