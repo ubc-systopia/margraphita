@@ -54,6 +54,14 @@ class BenchmarkRunner:
         cmd+= f">> {self.config_data['LOG_DIR']}/{ds}_bfs_{graph_type}.log"
         return cmd
 
+    def make_bc_cmd(self, binary_name: str, ds: str, graph_type: str, vert: int):
+        props_reader = self.get_properties_reader(ds)
+        direction_suffix = "rd" if props_reader.is_directed() else "d"
+        cmd = f"{binary_name} -m {graph_type}_{direction_suffix}_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
+        cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
+        cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_bc_{graph_type}.log"
+        return cmd
+
     def make_tc_cmd(self, binary_name: str, ds: str, graph_type: str):
         props_reader = self.get_properties_reader(ds)
         direction_suffix = "rd" if props_reader.is_directed() else "d"
@@ -99,12 +107,8 @@ class BenchmarkRunner:
             props = props_reader.read()
 
             if props is None or props['bfs_source'] is None:
-                print(f"Warning: Could not find BFS source vertex for {ds}, falling back to .bfsver file")
-                # Fallback to old method
-                random_verts = None
-                with open(f"{self.config_data['DB_DIR']}/{ds}/{ds}.bfsver", "r") as random_file:
-                    random_verts = random_file.readlines()
-                random_verts = [int(v.strip()) for v in random_verts]
+                print(f"Warning: Could not find BFS source vertex for {ds}, Skipping")
+                continue
             else:
                 # Use the source vertex from properties file
                 random_verts = [int(props['bfs_source'])]
@@ -112,6 +116,29 @@ class BenchmarkRunner:
             for graph_type in self.types:
                 for vert in random_verts:
                     cmd = self.make_bfs_cmd(f"{self.config_data['RELEASE_PATH']}/benchmark/bfs_parallel", ds, graph_type, vert)
+                    self.log(cmd)
+                    if(self.config_data['dry_run']):
+                        continue
+                    os.system(cmd)
+    
+    def bc(self):
+        for ds in self.datasets:
+            # Use PropertiesReader to get the source vertex
+            props_reader = self.get_properties_reader(ds)
+            props = props_reader.read()
+
+            if props is None or props['bfs_source'] is None:
+                print(f"Warning: Could not find BC source vertex for {ds}, Skipping")
+                continue
+            else:
+                # Use the source vertex from properties file (BC can use same as BFS)
+                source = props['bfs_source']
+                random_verts = [int(source)]
+
+            for graph_type in self.types:
+                for vert in random_verts:
+                    cmd = self.make_bc_cmd(
+                        f"{self.config_data['RELEASE_PATH']}/benchmark/bc_parallel", ds, graph_type, vert)
                     self.log(cmd)
                     if(self.config_data['dry_run']):
                         continue
@@ -272,9 +299,12 @@ def main():
 
                     # Betweenness Centrality
                     if 'bc_parallel' in benchmarks_with_source and source_vertex is not None:
-                        # BC uses the same interface as BFS (assuming similar command structure)
-                        # You may need to add a make_bc_cmd method if the interface is different
-                        print(f"  Note: BC benchmark found but no make_bc_cmd method exists")
+                        cmd = runner.make_bc_cmd(
+                            f"{config_data['RELEASE_PATH']}/benchmark/bc_parallel", ds, graph_type, int(source_vertex))
+                        print(f"\nRunning BC: {cmd}")
+                        runner.log(cmd)
+                        if not config_data['dry_run']:
+                            os.system(cmd)
 
     runner.log_handle.write(f"Benchmark run completed at {datetime.now()}\n")
     runner.log_handle.close()
