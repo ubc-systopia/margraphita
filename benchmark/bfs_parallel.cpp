@@ -11,6 +11,7 @@
 #include "pvector.h"
 #include "sliding_queue.h"
 #include "times.h"
+#include "mem_usage.h"
 
 /**
 /*
@@ -319,6 +320,7 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
 int main(int argc, char *argv[])
 {
   cout << "Running BFS" << endl;
+  mem_util::mem_usage memory_usage;
   CmdLineApp bfs_cli(argc, argv);
   if (!bfs_cli.parse_args())
   {
