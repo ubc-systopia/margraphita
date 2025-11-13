@@ -53,10 +53,10 @@ std::string GraphEngine::make_checkpoint()
     last_checkpoint = cpt_name_clean;
     session->close(session, nullptr);
 
-    #ifdef DEBUG
+#ifdef DEBUG
     std::cout << "Successfully created checkpoint: " << last_checkpoint
               << std::endl;
-    #endif
+#endif
     return last_checkpoint;
   }
   catch (...)
@@ -112,6 +112,7 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
   else
   {
     opts.num_nodes = compute_nodes_and_partition(num_threads, ptr);
+    checkpoint_node_count = opts.num_nodes;
   }
 
   // if (another_count != opts.num_nodes)
@@ -187,9 +188,9 @@ node_id_t GraphEngine::_calculate_exact_node_count(GraphBase *graph_stats)
     n_cur->next(&found);
   }
   n_cur->close();
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cout << "The number of nodes is: " << num_nodes << std::endl;
-  #endif
+#endif
   graph_stats->set_ro_num_nodes(num_nodes);
 
   return num_nodes;
@@ -217,7 +218,7 @@ void GraphEngine::_calculate_thread_offsets_fast(int thread_max,
   }
   // add the last node
   node_ranges.back() = max_node;
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cout << "The number of nodes is: " << num_nodes << std::endl;
   std::cout << "The number of partitions is: " << node_ranges.size()
             << std::endl;
@@ -233,7 +234,7 @@ void GraphEngine::_calculate_thread_offsets_fast(int thread_max,
     auto x = get_key_range(i);
     std::cout << "thread " << i << " [" << x.start << ", " << x.end << "]\n";
   }
-  #endif
+#endif
 }
 
 /**
@@ -266,9 +267,9 @@ node_id_t GraphEngine::compute_nodes_and_partition(int thread_max,
   n_cur->close();
 
   node_id_t num_nodes = all_node_ids.size();
-  #ifdef DEBUG
+#ifdef DEBUG
   std::cout << "The number of nodes is: " << num_nodes << std::endl;
-  #endif
+#endif
   graph_stats->set_ro_num_nodes(num_nodes);
 
   // check if node_ranges needs to be populated

@@ -47,9 +47,15 @@ class AdjEdgeCursor : public EdgeCursor
       int status;
       #ifdef MK_NEDGES
       CommonUtil::set_key(cursor, start_edge.src_id, start_edge.dst_id);
-      cursor->search_near(cursor, &status);
-      if (status < 0)
+      int ret = cursor->search_near(cursor, &status);
+      if (ret != 0)
       {
+        // search_near failed, cursor is not positioned
+        this->has_next = false;
+      }
+      else if (status < 0)
+      {
+        // search_near succeeded but found a record before the search key
         // Advances the cursor
         if (cursor->next(cursor) != 0)
         {
@@ -59,9 +65,15 @@ class AdjEdgeCursor : public EdgeCursor
       #else
       //The cursor is to the out_adj table.
       CommonUtil::set_key(cursor, start_edge.src_id);
-      cursor->search_near(cursor, &status);
-      if (status < 0)
+      int ret = cursor->search_near(cursor, &status);
+      if (ret != 0)
       {
+        // search_near failed, cursor is not positioned
+        this->has_next = false;
+      }
+      else if (status < 0)
+      {
+        // search_near succeeded but found a record before the search key
         // Advances the cursor to the first position in the table.
         if (cursor->next(cursor) != 0)
         {

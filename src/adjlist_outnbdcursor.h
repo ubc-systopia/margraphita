@@ -2,11 +2,14 @@
 #define ADJLIST_OUTNBDCURSOR_H
 #include "common_util.h"
 
-/** * @brief This class is used to iterate over the adjacency list in the out * direction.
- * The constructor accepts a cursor to the out table and a session object, and additionally
- * can take parameters to indicate if the graph is directed and if it is read optimized.
- * The setAllNodes method allows the user to specify if all nodes should be returned,
- * regardless of whether they have any outgoing edges or not. This method is useful only when the graph is created in a way that all nodes are present in the out adjacency list table, even if they have no outgoing edges. This is not always true.
+/** * @brief This class is used to iterate over the adjacency list in the out *
+ * direction. The constructor accepts a cursor to the out table and a session
+ * object, and additionally can take parameters to indicate if the graph is
+ * directed and if it is read optimized. The setAllNodes method allows the user
+ * to specify if all nodes should be returned, regardless of whether they have
+ * any outgoing edges or not. This method is useful only when the graph is
+ * created in a way that all nodes are present in the out adjacency list table,
+ * even if they have no outgoing edges. This is not always true.
  */
 class AdjOutCursor : public OutCursor
 {
@@ -53,15 +56,23 @@ class AdjOutCursor : public OutCursor
     {
       int status;
       CommonUtil::set_key(cursor, keys.start);
-      cursor->search_near(cursor, &status);
-      if (status < 0)
+      int ret = cursor->search_near(cursor, &status);
+      if (ret != 0)
       {
+        // search_near failed, cursor is not positioned
+        this->has_next = false;
+      }
+      else if (status < 0)
+      {
+        // search_near succeeded but found a record before the search key
         // Advances the cursor
         if (cursor->next(cursor) != 0)
         {
           this->has_next = false;
         }
       }
+      // If ret == 0 and status >= 0, cursor is positioned at or after the
+      // search key
     }
     else
     {
@@ -72,6 +83,7 @@ class AdjOutCursor : public OutCursor
       }
     }
   }
+
   void next(adjlist *found) override
   {
     if (!has_next)
@@ -100,7 +112,7 @@ class AdjOutCursor : public OutCursor
       }
 
     } while (found->degree == 0 && all_nodes == false && has_next);
-    
+
     if (found->degree == 0 && !all_nodes)
     {
       return no_next(found);

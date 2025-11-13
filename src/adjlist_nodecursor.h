@@ -83,15 +83,22 @@ private:
     {
       int status;
       CommonUtil::set_key(cursor, keys.start);
-      cursor->search_near(cursor, &status);
-      if (status < 0)
+      int ret = cursor->search_near(cursor, &status);
+      if (ret != 0)
       {
+        // search_near failed, cursor is not positioned
+        this->has_next = false;
+      }
+      else if (status < 0)
+      {
+        // search_near succeeded but found a record before the search key
         // Advances the cursor
         if (cursor->next(cursor) != 0)
         {
           this->has_next = false;
         }
       }
+      // If ret == 0 and status >= 0, cursor is positioned at or after the search key
     }
     else
     {
@@ -154,13 +161,21 @@ private:
 
     CommonUtil::set_key(cursor, key);
     int status;
-    cursor->search_near(cursor, &status);
-    if (status < 0)
+    int ret = cursor->search_near(cursor, &status);
+    if (ret != 0)
+    {
+      // search_near failed
+      has_next = false;
+      no_next(found);
+      return;
+    }
+    else if (status < 0)
     {
       if (cursor->next(cursor) != 0)
       {
         has_next = false;
         no_next(found);
+        return;
       }
     }
     node_id_t curr_key;

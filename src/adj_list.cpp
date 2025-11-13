@@ -1826,16 +1826,18 @@ int AdjList::delete_edge_in_txn(node_id_t src_id,
 
 OutCursor *AdjList::get_outnbd_iter()
 {
+  WT_CURSOR *iter_cursor = get_out_adjlist_cursor();
   OutCursor *toReturn = new AdjOutCursor(
-      get_out_adjlist_cursor(), session, opts.is_directed, opts.read_optimize);
+      iter_cursor, session, opts.is_directed, opts.read_optimize);
   toReturn->set_key_range({OutOfBand_ID_MAX, OutOfBand_ID_MAX});
   return toReturn;
 }
 
 InCursor *AdjList::get_innbd_iter()
 {
+  WT_CURSOR *iter_cursor = get_in_adjlist_cursor();
   InCursor *toReturn = new AdjInCursor(
-      get_in_adjlist_cursor(), session, opts.is_directed, opts.read_optimize);
+      iter_cursor, session, opts.is_directed, opts.read_optimize);
   toReturn->set_key_range({OutOfBand_ID_MAX, OutOfBand_ID_MAX});
   return toReturn;
 }
