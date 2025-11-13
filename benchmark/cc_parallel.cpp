@@ -7,10 +7,10 @@
 #include "command_line.h"
 #include "common_util.h"
 #include "graph_engine.h"
+#include "mem_usage.h"
 #include "omp.h"
 #include "pvector.h"
 #include "times.h"
-#include "mem_usage.h"
 /*
 GAP Benchmark Suite
 Kernel: Connected Components (CC)
@@ -36,11 +36,13 @@ more consistent performance for undirected graphs.
 */
 
 const int THREAD_NUM = omp_get_max_threads();
+std::vector<GraphBase*> graph_handles(THREAD_NUM);
+
 // The hooking condition (comp_u < comp_v) may not coincide with the edge's
 // direction, so we use a min-max swap such that lower component IDs propagate
 // independent of the edge's direction.
 pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
-                                  std::string& chkpt,
+                                   std::string& chkpt,
                                    node_id_t numNodes,
                                    node_id_t maxNodeID)
 {
@@ -57,7 +59,7 @@ pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
 #pragma omp parallel for
     for (int i = 0; i < THREAD_NUM; i++)
     {
-      GraphBase* graph = g.create_ro_graph_handle(chkpt);
+      GraphBase* graph = graph_handles[omp_get_thread_num()];
       auto* out_nbd_cur = graph->get_outnbd_iter();
       out_nbd_cur->set_key_range(g.get_key_range(i));
 
@@ -83,7 +85,7 @@ pvector<node_id_t> ShiloachVishkin(GraphEngine& g,
       }
       out_nbd_cur->close();
       delete out_nbd_cur;
-      graph->close(false);
+      // graph->close(false);
     }
 #pragma omp parallel for
     for (node_id_t n = 0; n < maxNodeID; n++)
@@ -148,10 +150,23 @@ void print_comp_to_file(const pvector<node_id_t>& comp)
   comp_file.close();
 }
 
+void create_graph_handles(GraphEngine& graph_engine,
+                          std::string& checkpoint_name,
+                          int thread_num)
+{
+  graph_handles.resize(thread_num);
+#pragma omp parallel for num_threads(thread_num)
+  for (int i = 0; i < thread_num; i++)
+  {
+    GraphBase* graph = graph_engine.create_ro_graph_handle(checkpoint_name);
+    graph_handles[i] = graph;
+  }
+}
+
 int main(int argc, char* argv[])
 {
   std::cout << "Running CC" << std::endl;
-  mem_util::mem_usage memory_usage;
+  mem_util::MemoryCounter memory_usage;
   CmdLineApp cc_cli(argc, argv);
   if (!cc_cli.parse_args())
   {
@@ -168,19 +183,19 @@ int main(int argc, char* argv[])
   GraphEngine graphEngine(THREAD_NUM, opts);
   std::string checkpoint = graphEngine.make_checkpoint();
   graphEngine.calculate_thread_offsets();
-
-  GraphBase* graph = graphEngine.create_ro_graph_handle(checkpoint);
-  node_id_t numNodes = graph->get_num_nodes();
-  node_id_t maxNodeID = graph->get_max_node_id();
-  graph->close(false);
-
+  create_graph_handles(graphEngine, checkpoint, THREAD_NUM);
   t.stop();
+
   std::cout << "Graph loaded in " << t.t_secs() << std::endl;
 
   long double total_seconds = 0;
   for (int i = 0; i < opts.num_trials; i++)
   {
     t.start();
+    GraphBase* graph = graph_handles[0];
+    node_id_t numNodes = graph->get_num_nodes();
+    node_id_t maxNodeID = graph->get_max_node_id();
+
     auto result = ShiloachVishkin(graphEngine, checkpoint, numNodes, maxNodeID);
     t.stop();
     std::cout << "CC took " << t.t_secs() << " s" << std::endl;
@@ -188,7 +203,12 @@ int main(int argc, char* argv[])
     if (i == 0 && opts.print_stats == true)
       PrintCompStats(graph, result, numNodes, maxNodeID);
   }
+  for (int i = 0; i < THREAD_NUM; i++)
+  {
+    graph_handles[i]->close(false);
+  }
   std::cout << "Average CC took " << total_seconds / opts.num_trials << " s"
             << std::endl;
+  graphEngine.close_graph();
   return 0;
 }

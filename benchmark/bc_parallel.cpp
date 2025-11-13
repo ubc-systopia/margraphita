@@ -7,6 +7,7 @@
 #include "command_line.h"
 #include "csv_log.h"
 #include "graph_engine.h"
+#include "mem_usage.h"
 #include "omp.h"
 #include "platform_atomics.h"
 #include "pvector.h"
@@ -132,7 +133,6 @@ pvector<ScoreT> Brandes(GraphEngine &graph_engine,
 {
   Times t;
   t.start();
-  GraphBase *g = graph_handles[0];  //.create_graph_handle();
   pvector<ScoreT> scores(maxNodeID, 0);
   pvector<CountT> path_counts(maxNodeID);
   Bitmap succ(maxNodeID - minNodeID);
@@ -165,16 +165,20 @@ pvector<ScoreT> Brandes(GraphEngine &graph_engine,
 
 #ifdef DEBUG
     // Debug: Check BFS results
-    std::cout << "DEBUG: BFS reached " << depth_index.size() - 1 << " levels" << std::endl;
+    std::cout << "DEBUG: BFS reached " << depth_index.size() - 1 << " levels"
+              << std::endl;
     node_id_t nodes_reached = 0;
     CountT total_paths = 0;
-    for (node_id_t i = 0; i < maxNodeID; i++) {
-      if (path_counts[i] > 0) {
+    for (node_id_t i = 0; i < maxNodeID; i++)
+    {
+      if (path_counts[i] > 0)
+      {
         nodes_reached++;
         total_paths += path_counts[i];
       }
     }
-    std::cout << "DEBUG: BFS reached " << nodes_reached << " nodes, total paths: " << total_paths << std::endl;
+    std::cout << "DEBUG: BFS reached " << nodes_reached
+              << " nodes, total paths: " << total_paths << std::endl;
 #endif
 
     pvector<ScoreT> deltas(maxNodeID, 0);
@@ -207,10 +211,12 @@ pvector<ScoreT> Brandes(GraphEngine &graph_engine,
 #ifdef DEBUG
     // Debug: Check delta computation
     ScoreT total_delta = 0;
-    for (node_id_t i = 0; i < maxNodeID; i++) {
+    for (node_id_t i = 0; i < maxNodeID; i++)
+    {
       total_delta += deltas[i];
     }
-    std::cout << "DEBUG: Total delta after backprop: " << total_delta << std::endl;
+    std::cout << "DEBUG: Total delta after backprop: " << total_delta
+              << std::endl;
 #endif
   }
 
@@ -218,13 +224,16 @@ pvector<ScoreT> Brandes(GraphEngine &graph_engine,
   // Debug: Check scores before normalization
   ScoreT total_score = 0;
   node_id_t nonzero_scores = 0;
-  for (node_id_t i = 0; i < maxNodeID; i++) {
-    if (scores[i] != 0) {
+  for (node_id_t i = 0; i < maxNodeID; i++)
+  {
+    if (scores[i] != 0)
+    {
       nonzero_scores++;
       total_score += scores[i];
     }
   }
-  std::cout << "DEBUG: Before normalization - " << nonzero_scores << " non-zero scores, total: " << total_score << std::endl;
+  std::cout << "DEBUG: Before normalization - " << nonzero_scores
+            << " non-zero scores, total: " << total_score << std::endl;
 #endif
 
   // normalize scores
@@ -234,16 +243,22 @@ pvector<ScoreT> Brandes(GraphEngine &graph_engine,
     biggest_score = max(biggest_score, scores[n]);
 
 #ifdef DEBUG
-  std::cout << "DEBUG: Biggest score before normalization: " << biggest_score << std::endl;
+  std::cout << "DEBUG: Biggest score before normalization: " << biggest_score
+            << std::endl;
 #endif
 
-  if (biggest_score > 0) {
+  if (biggest_score > 0)
+  {
 #pragma omp parallel for
     for (node_id_t n = 0; n < maxNodeID; n++)
       scores[n] = scores[n] / biggest_score;
-  } else {
+  }
+  else
+  {
 #ifdef DEBUG
-    std::cout << "WARNING: biggest_score is 0 or negative, skipping normalization" << std::endl;
+    std::cout
+        << "WARNING: biggest_score is 0 or negative, skipping normalization"
+        << std::endl;
 #endif
   }
 
@@ -314,6 +329,8 @@ void create_graph_handles(GraphEngine &graph_engine,
 int main(int argc, char *argv[])
 {
   std::cout << "Running Betweenness Centrality" << std::endl;
+  mem_util::MemoryCounter memory_usage;
+
   CmdLineApp cli(argc, argv);
   if (!cli.parse_args())
   {

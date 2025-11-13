@@ -7,11 +7,11 @@
 #include "command_line.h"
 #include "common_util.h"
 #include "graph_engine.h"
+#include "mem_usage.h"
 #include "platform_atomics.h"
 #include "pvector.h"
 #include "sliding_queue.h"
 #include "times.h"
-#include "mem_usage.h"
 
 /**
 /*
@@ -154,7 +154,7 @@ void BitmapToQueue(GraphEngine *graph_engine,
         if (bm.get_bit(found.id)) lqueue.push_back(found.id);
         node_cursor->next(&found);
       }
-      //graph->close(false);
+      // graph->close(false);
     }
     lqueue.flush();
   }
@@ -193,7 +193,7 @@ void create_graph_handles(GraphEngine *graph_engine,
                           int thread_num)
 {
   graph_handles.resize(thread_num);
-  #pragma omp parallel for num_threads(thread_num)
+#pragma omp parallel for num_threads(thread_num)
   for (int i = 0; i < thread_num; i++)
   {
     GraphBase *graph = graph_engine->create_ro_graph_handle(checkpoint_name);
@@ -236,7 +236,7 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
   Bitmap front(num_nodes);
   front.reset();
   int64_t edges_to_check = graph_stat->get_num_edges();
-  std::cout << "Total edges to check: " << edges_to_check << std::endl; 
+  std::cout << "Total edges to check: " << edges_to_check << std::endl;
   int64_t scout_count = graph_stat->get_out_degree(source);
   if (logging_enabled)
   {
@@ -320,7 +320,7 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
 int main(int argc, char *argv[])
 {
   cout << "Running BFS" << endl;
-  mem_util::mem_usage memory_usage;
+  mem_util::MemoryCounter memory_usage;
   CmdLineApp bfs_cli(argc, argv);
   if (!bfs_cli.parse_args())
   {
@@ -343,29 +343,30 @@ int main(int argc, char *argv[])
   std::cout << "Graph loaded in " << t.t_secs() << std::endl;
 
   long double total_time{};
-  for (int i =0; i < opts.num_trials; i++)
+  for (int i = 0; i < opts.num_trials; i++)
   {
- t.start();
-  GraphBase *g = graphEngine.create_ro_graph_handle(checkpt);
-  node_id_t num_nodes = g->get_num_nodes();
-  node_id_t max_node_id = g->get_max_node_id();
-  if (opts.start_vertex == OutOfBand_ID_MAX)
-    opts.start_vertex = g->get_random_node().id;
-  g->close(false);
-  auto bfs_tree = DOBFS(&graphEngine,
-                        checkpt,
-                        opts.start_vertex,
-                        num_nodes,
-                        max_node_id,
-                        THREAD_NUM,
-                        15,
-                        18,
-                        opts.verify);
-  t.stop();
-  total_time += t.t_secs();
-  std::cout << "BFS completed in " << t.t_secs() << "s" << std::endl;
+    t.start();
+    GraphBase *g = graphEngine.create_ro_graph_handle(checkpt);
+    node_id_t num_nodes = g->get_num_nodes();
+    node_id_t max_node_id = g->get_max_node_id();
+    if (opts.start_vertex == OutOfBand_ID_MAX)
+      opts.start_vertex = g->get_random_node().id;
+    g->close(false);
+    auto bfs_tree = DOBFS(&graphEngine,
+                          checkpt,
+                          opts.start_vertex,
+                          num_nodes,
+                          max_node_id,
+                          THREAD_NUM,
+                          15,
+                          18,
+                          opts.verify);
+    t.stop();
+    total_time += t.t_secs();
+    std::cout << "BFS completed in " << t.t_secs() << "s" << std::endl;
   }
 
-  std::cout << "Average BFS time: " << total_time / opts.num_trials << "s" << std::endl;
+  std::cout << "Average BFS time: " << total_time / opts.num_trials << "s"
+            << std::endl;
   graphEngine.close_graph();
 }

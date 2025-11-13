@@ -7,6 +7,7 @@
 #include "command_line.h"
 #include "csv_log.h"
 #include "graph_engine.h"
+#include "mem_usage.h"
 #include "omp.h"
 #include "platform_atomics.h"
 #include "pvector.h"
@@ -16,6 +17,8 @@ const edgeweight_t DistInf = numeric_limits<edgeweight_t>::max() / 2;
 const size_t kMaxBin = numeric_limits<size_t>::max() / 2;
 const size_t kBinSizeThreshold = 1000;
 const int THREAD_NUM = omp_get_max_threads();
+
+std::vector<GraphBase *> graph_handles;
 
 inline void RelaxEdges(GraphBase *g,
                        node_id_t u,
@@ -42,9 +45,11 @@ inline void RelaxEdges(GraphBase *g,
   }
 }
 
-void PrintStep(size_t step, long double seconds, size_t count = -1)
+void PrintStep(size_t step,
+               long double seconds,
+               size_t count = OutOfBand_ID_MAX)
 {
-  if (count != -1)
+  if (count != OutOfBand_ID_MAX)
     printf("%5zu%11" PRId64 "  %10.5Lf\n", step, count, seconds);
   else
     printf("%5zu%23.5Lf\n", step, seconds);
@@ -67,7 +72,7 @@ pvector<edgeweight_t> DeltaStep(GraphEngine &graph_engine,
   t.start();
 #pragma omp parallel num_threads(THREAD_NUM)
   {
-    GraphBase *graph = graph_engine.create_graph_handle();
+    GraphBase *graph = graph_handles[omp_get_thread_num()];
     vector<vector<node_id_t>> local_bins(0);
     size_t iter = 0;
     while (shared_indexes[iter & 1] != kMaxBin)
@@ -126,14 +131,28 @@ pvector<edgeweight_t> DeltaStep(GraphEngine &graph_engine,
     {
       cout << "took " << iter << " iterations" << endl;
     }
-    graph->close(false);
+    // graph->close(false);
   }
   return dist;
+}
+
+void create_graph_handles(GraphEngine &graph_engine,
+                          std::string &checkpoint_name,
+                          int thread_num)
+{
+  graph_handles.resize(thread_num);
+#pragma omp parallel for num_threads(thread_num)
+  for (int i = 0; i < thread_num; i++)
+  {
+    GraphBase *graph = graph_engine.create_ro_graph_handle(checkpoint_name);
+    graph_handles[i] = graph;
+  }
 }
 
 int main(int argc, char *argv[])
 {
   std::cout << "Running SSSP" << std::endl;
+  mem_util::MemoryCounter memory_usage;
   SSSPOpts sssp_cli(argc, argv, 1);
   if (!sssp_cli.parse_args())
   {
@@ -142,49 +161,49 @@ int main(int argc, char *argv[])
 
   cmdline_opts opts = sssp_cli.get_parsed_opts();
   opts.stat_log += "/" + opts.db_name;
-  std::vector<node_id_t> random_nodes;
+  opts.read_only = true;
+  opts.create_new = false;
+
   Times t;
   t.start();
   GraphEngine graphEngine(THREAD_NUM, opts);
+  std::string checkpt = graphEngine.make_checkpoint();
   graphEngine.calculate_thread_offsets();
-  GraphBase *graph = graphEngine.create_graph_handle();
   t.stop();
   std::cout << "Graph loaded in " << t.t_secs() << std::endl;
 
-  if (opts.start_vertex == -1)
+  t.start();
+  create_graph_handles(graphEngine, checkpt, THREAD_NUM);
+  t.stop();
+  std::cout << "Graph handles created in " << t.t_secs() << " s" << std::endl;
+
+  if (opts.start_vertex == OutOfBand_ID_MAX)
   {
-    graph->get_random_node_ids(random_nodes, opts.num_trials);
-  }
-  else
-  {
-    random_nodes.push_back(opts.start_vertex);
-    opts.num_trials = 1;
+    opts.start_vertex = graph_handles[0]->get_random_node().id;
   }
 
-  node_id_t maxNodeID = graph->get_max_node_id();
-  node_id_t num_edges = graph->get_num_edges();
-  graph->close(false);
+  node_id_t maxNodeID = graph_handles[0]->get_max_node_id();
+  node_id_t num_edges = graph_handles[0]->get_num_edges();
 
   long double total_time = 0;
-  sssp_info info(0);
   for (int i = 0; i < opts.num_trials; i++)
   {
     t.start();
-    DeltaStep(graphEngine,
-              random_nodes.at(i),
-              opts.delta_value,
-              maxNodeID,
-              num_edges);
+    DeltaStep(
+        graphEngine, opts.start_vertex, opts.delta_value, maxNodeID, num_edges);
     t.stop();
 
-    info.time_taken = t.t_secs();
-    total_time += info.time_taken;
-    std::cout << "Single-Source Shortest Path completed in : "
-              << info.time_taken << std::endl;
-    print_csv_info(opts.db_name, info, opts.stat_log);
+    total_time += t.t_secs();
+    std::cout << "Single-Source Shortest Path completed in : " << t.t_secs()
+              << std::endl;
   }
   std::cout << "Average time taken for " << opts.num_trials
             << " trials: " << total_time / opts.num_trials << std::endl;
+
+  for (GraphBase *graph : graph_handles)
+  {
+    graph->close(false);
+  }
 
   graphEngine.close_graph();
   return 0;

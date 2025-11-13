@@ -141,8 +141,7 @@ void print_top_scores(pvector<ScoreT>& score, node_id_t n_nodes, GraphBase* g)
 int main(int argc, char* argv[])
 {
   cout << "Running PageRank" << endl;
-  mem_util::mem_usage memory_usage;
-  memory_usage.before();
+  mem_util::MemoryCounter memory_usage;
   PageRankOpts pr_cli(argc, argv, 1e-4, 10);
   if (!pr_cli.parse_args())
   {
@@ -189,6 +188,4 @@ int main(int argc, char* argv[])
 
   cout << "Average time: " << total_time / opts.num_trials << endl;
   graphEngine.close_graph();
-  memory_usage.after();
-  memory_usage.print_diff();
 }

@@ -10,69 +10,122 @@
 #include <iostream>
 namespace mem_util
 {
-class mem_usage
+// class mem_usage
+// {
+//  private:
+//   struct rusage pre, post;
+
+//  public:
+//   mem_usage() = default;
+
+//   void before()
+//   {
+//     if (getrusage(RUSAGE_SELF, &pre) != 0)
+//     {
+//       std::cerr << "Error getting resource usage\n";
+//     }
+//   }
+//   void after()
+//   {
+//     if (getrusage(RUSAGE_SELF, &post) != 0)
+//     {
+//       std::cerr << "Error getting resource usage\n";
+//     }
+//   }
+
+//   void print_diff()
+//   {
+//     std::cout << "Memory usage: " << post.ru_maxrss - pre.ru_maxrss << "
+//     KB\n"; std::cout << "User CPU time: " << post.ru_utime.tv_sec -
+//     pre.ru_utime.tv_sec
+//               << "s\n";
+//     std::cout << "System CPU time: "
+//               << post.ru_stime.tv_sec - pre.ru_stime.tv_sec << "s\n";
+//     std::cout << "Major Page Faults: " << post.ru_majflt - pre.ru_majflt
+//               << "\n";
+//     std::cout << "Minor Page Faults: " << post.ru_minflt - pre.ru_minflt
+//               << "\n";
+//     std::cout << "Block input operations: " << post.ru_inblock -
+//     pre.ru_inblock
+//               << "\n";
+//     std::cout << "Block output operations: " << post.ru_oublock -
+//     pre.ru_oublock
+//               << "\n";
+//     std::cout << "Voluntary context switches: " << post.ru_nvcsw -
+//     pre.ru_nvcsw
+//               << "\n";
+//     std::cout << "Involuntary context switches: "
+//               << post.ru_nivcsw - pre.ru_nivcsw << "\n";
+//   }
+
+//   void print_usage(struct rusage &usage)
+//   {
+//     // Peak resident set size (in kilobytes)
+//     std::cout << "Peak memory usage: " << usage.ru_maxrss << " KB\n";
+//     // User CPU time
+//     std::cout << "User CPU time: " << usage.ru_utime.tv_sec << "s\n";
+//     // System CPU time
+//     std::cout << "System CPU time: " << usage.ru_stime.tv_sec << "s\n";
+//     // Major and Minor Page Faults
+//     std::cout << "Major Page Faults: " << usage.ru_majflt << "\n";
+//     std::cout << "Minor Page Faults: " << usage.ru_minflt << "\n";
+//     // Block input and output operations
+//     std::cout << "Block input operations: " << usage.ru_inblock << "\n";
+//     std::cout << "Block output operations: " << usage.ru_oublock << "\n";
+//     // Context Switches
+//     std::cout << "Voluntary context switches: " << usage.ru_nvcsw << "\n";
+//     std::cout << "Involuntary context switches: " << usage.ru_nivcsw << "\n";
+//   }
+// };
+
+/**
+ * Copied from Blaze. This class is used to measure the memory usage of the
+ * program.
+ */
+class MemoryCounter
 {
- private:
-  struct rusage pre, post;
-
  public:
-  mem_usage() = default;
-
-  void before()
+  MemoryCounter()
   {
-    if (getrusage(RUSAGE_SELF, &pre) != 0)
-    {
-      std::cerr << "Error getting resource usage\n";
-    }
-  }
-  void after()
-  {
-    if (getrusage(RUSAGE_SELF, &post) != 0)
-    {
-      std::cerr << "Error getting resource usage\n";
-    }
+    getrusage(RUSAGE_SELF, &__memory);
+    __previous_mem = __memory.ru_maxrss;
+    __maj_faults = __memory.ru_majflt;
+    __min_faults = __memory.ru_minflt;
+    __inblock = __memory.ru_inblock;
+    __oublock = __memory.ru_oublock;
   }
 
-  void print_diff()
+  ~MemoryCounter()
   {
-    std::cout << "Memory usage: " << post.ru_maxrss - pre.ru_maxrss << " KB\n";
-    std::cout << "User CPU time: " << post.ru_utime.tv_sec - pre.ru_utime.tv_sec
-              << "s\n";
-    std::cout << "System CPU time: "
-              << post.ru_stime.tv_sec - pre.ru_stime.tv_sec << "s\n";
-    std::cout << "Major Page Faults: " << post.ru_majflt - pre.ru_majflt
-              << "\n";
-    std::cout << "Minor Page Faults: " << post.ru_minflt - pre.ru_minflt
-              << "\n";
-    std::cout << "Block input operations: " << post.ru_inblock - pre.ru_inblock
-              << "\n";
-    std::cout << "Block output operations: " << post.ru_oublock - pre.ru_oublock
-              << "\n";
-    std::cout << "Voluntary context switches: " << post.ru_nvcsw - pre.ru_nvcsw
-              << "\n";
-    std::cout << "Involuntary context switches: "
-              << post.ru_nivcsw - pre.ru_nivcsw << "\n";
+    getrusage(RUSAGE_SELF, &__memory);
+    uint64_t used_mem = __memory.ru_maxrss - __previous_mem;
+    uint64_t maj_faults = __memory.ru_majflt - __maj_faults;
+    uint64_t min_faults = __memory.ru_minflt - __min_faults;
+    uint64_t inblock = __memory.ru_inblock - __inblock;
+    uint64_t oublock = __memory.ru_oublock - __oublock;
+    printf("MemoryCounter: %lu MB -> %lu MB, %lu MB total\n",
+           __previous_mem / 1024,
+           __memory.ru_maxrss / 1024,
+           used_mem / 1024);
+    printf("MemoryCounter: %lu major faults, %lu minor faults\n",
+           maj_faults,
+           min_faults);
+    printf(
+        "MemoryCounter: %lu block input operations, %lu block output "
+        "operations\n",
+        inblock,
+        oublock);
   }
 
-  void print_usage(struct rusage &usage)
-  {
-    // Peak resident set size (in kilobytes)
-    std::cout << "Peak memory usage: " << usage.ru_maxrss << " KB\n";
-    // User CPU time
-    std::cout << "User CPU time: " << usage.ru_utime.tv_sec << "s\n";
-    // System CPU time
-    std::cout << "System CPU time: " << usage.ru_stime.tv_sec << "s\n";
-    // Major and Minor Page Faults
-    std::cout << "Major Page Faults: " << usage.ru_majflt << "\n";
-    std::cout << "Minor Page Faults: " << usage.ru_minflt << "\n";
-    // Block input and output operations
-    std::cout << "Block input operations: " << usage.ru_inblock << "\n";
-    std::cout << "Block output operations: " << usage.ru_oublock << "\n";
-    // Context Switches
-    std::cout << "Voluntary context switches: " << usage.ru_nvcsw << "\n";
-    std::cout << "Involuntary context switches: " << usage.ru_nivcsw << "\n";
-  }
+ private:
+  struct rusage __memory;
+  uint64_t __previous_mem;
+  uint64_t __maj_faults;
+  uint64_t __min_faults;
+  uint64_t __inblock;
+  uint64_t __oublock;
 };
+
 }  // namespace mem_util
 
 #endif  // GRAPHAPI_MEM_USAGE_H
