@@ -53,8 +53,9 @@ const int THREAD_NUM = omp_get_max_threads();
 size_t OrderedCount(GraphEngine &graph_engine)
 {
   size_t total = 0;
-#pragma omp parallel for reduction(+ : total) schedule(dynamic, 64)
-  for (int i = 0; i < THREAD_NUM; i++)
+  int total_work_chunks = graph_engine.get_total_partitions();
+#pragma omp parallel for reduction(+ : total) schedule(dynamic, 1)
+  for (int i = 0; i < total_work_chunks; i++)
   {
     GraphBase *graph = graph_handles[i];
     OutCursor *out_cursor = graph->get_outnbd_iter();
@@ -65,14 +66,15 @@ size_t OrderedCount(GraphEngine &graph_engine)
     {
       for (node_id_t v : found.edgelist)
       {
+        // std::sort(found.edgelist.begin(), found.edgelist.end());
         if (v > found.node_id) break;
         std::vector<node_id_t> v_nbd = graph->get_out_nodes_id(v);
+        // std::sort(v_nbd.begin(), v_nbd.end());
+
         auto it = v_nbd.begin();
         for (node_id_t w : found.edgelist)
         {
           if (w > v) break;
-          //                    while (it != v_nbd.end() && *it < w)
-          //                    it++; if (w == *it) total++;
           while (it != v_nbd.end() && *it < w) it++;
           if (it != v_nbd.end() && w == *it) total++;
         }

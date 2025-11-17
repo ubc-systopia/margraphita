@@ -146,7 +146,7 @@ void GraphBase::get_metadata(const int key, WT_ITEM &item, WT_CURSOR *cursor)
   int ret;
   if (cursor == nullptr)
   {
-    _get_table_cursor(METADATA, &metadata_cursor, session, false, false);
+    _get_table_cursor(METADATA, &cursor, session, false, false);
   }
   cursor->set_key(cursor, key);
   ret = cursor->search(cursor);

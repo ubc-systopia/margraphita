@@ -23,17 +23,35 @@ class GraphEngine
   void calculate_thread_offsets(bool make_edge = false);
   key_range get_key_range(int thread_id);
   edge_range get_edge_range(int thread_id);
+  std::vector<key_range> get_work_chunks(int chunk_size = 500000);
   void close_graph();
   WT_CONNECTION *get_connection();
   std::string make_checkpoint();
   std::string get_last_checkpoint() { return last_checkpoint; }
+  void set_partition_scale(int parts_per_thread)
+  {
+    this->partition_scale = parts_per_thread;
+  }
+  int get_total_partitions() const
+  {
+    // Return actual number of partitions created
+    // node_ranges has (num_partitions + 1) boundaries
+    if (node_ranges.size() <= 1)
+      return 0;
+    return node_ranges.size() - 1;
+  }
+  int get_min_partitions() const { return num_threads * partition_scale; }
 
  protected:
   WT_CONNECTION *conn = nullptr;
   std::vector<node_id_t> node_ranges;
+  std::vector<node_id_t> all_node_ids;  // All node IDs for chunk creation
   std::vector<edge> edge_ranges;
   int num_threads{};
   graph_opts opts;
+  int partition_scale{1};
+
+ protected:
   node_id_t last_node_id{};
 
   void check_opts_valid() const;
@@ -48,6 +66,9 @@ class GraphEngine
   node_id_t _calculate_exact_node_count(GraphBase *graph_stats);
   void _calculate_thread_offsets_fast(int thread_max, GraphBase *graph_stats);
   node_id_t compute_nodes_and_partition(int thread_max, GraphBase *graph_stats);
+  node_id_t new_parts(int thread_max,
+                      GraphBase *graph_stats,
+                      int mini_part_scale = 1);
   void _calculate_thread_offsets_edge(int thread_max, GraphBase *graph_stats);
 };
 
