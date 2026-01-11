@@ -158,6 +158,7 @@ int main(int argc, char* argv[])
   t.start();
   GraphEngine graphEngine(THREAD_NUM, opts);
   std::string checkpt = graphEngine.make_checkpoint();
+  graphEngine.set_partition_strategy(PartitionStrategy::NODE_COUNT);
   graphEngine.calculate_thread_offsets();
   t.stop();
   std::cout << "Graph loaded in " << t.t_secs() << "s" << std::endl;

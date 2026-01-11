@@ -231,9 +231,9 @@ pvector<NodeID> DOBFS(GraphEngine *graph_engine,
   SlidingQueue<node_id_t> queue(num_nodes);
   queue.push_back(source);
   queue.slide_window();
-  Bitmap curr(num_nodes);
+  Bitmap curr(max_node_id);
   curr.reset();
-  Bitmap front(num_nodes);
+  Bitmap front(max_node_id);
   front.reset();
   int64_t edges_to_check = graph_stat->get_num_edges();
   std::cout << "Total edges to check: " << edges_to_check << std::endl;
@@ -338,6 +338,7 @@ int main(int argc, char *argv[])
   t.start();
   GraphEngine graphEngine(THREAD_NUM, opts);
   std::string checkpt = graphEngine.make_checkpoint();
+  graphEngine.set_partition_strategy(PartitionStrategy::NODE_COUNT);
   graphEngine.calculate_thread_offsets();
   t.stop();
   std::cout << "Graph loaded in " << t.t_secs() << std::endl;

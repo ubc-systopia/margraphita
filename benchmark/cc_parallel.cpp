@@ -182,6 +182,7 @@ int main(int argc, char* argv[])
   t.start();
   GraphEngine graphEngine(THREAD_NUM, opts);
   std::string checkpoint = graphEngine.make_checkpoint();
+  graphEngine.set_partition_strategy(PartitionStrategy::NODE_COUNT);
   graphEngine.calculate_thread_offsets();
   create_graph_handles(graphEngine, checkpoint, THREAD_NUM);
   t.stop();

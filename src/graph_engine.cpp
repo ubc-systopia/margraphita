@@ -1,4 +1,5 @@
 #include "graph_engine.h"
+
 #include <stdexcept>
 
 GraphEngine::GraphEngine(int _num_threads, const graph_opts &engine_opts)
@@ -104,8 +105,20 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
   }
   else
   {
-    // opts.num_nodes = compute_nodes_and_partition(num_threads, ptr);
-    opts.num_nodes = new_parts(num_threads, ptr, partition_scale);
+    switch(partition_strategy)
+    {
+      case PartitionStrategy::NODE_COUNT:
+        opts.num_nodes = compute_nodes_and_partition(num_threads, ptr);
+        break;
+      case PartitionStrategy::EDGE_AWARE:
+        opts.num_nodes = new_parts(num_threads, ptr, partition_scale);
+        break;
+      case PartitionStrategy::NODE_COUNT_FINE:
+        opts.num_nodes = make_min_parts(num_threads, ptr, partition_scale);
+        break;
+      default:
+        throw GraphException("Invalid partition strategy");
+    }
     checkpoint_node_count = opts.num_nodes;
   }
 
@@ -146,6 +159,11 @@ void GraphEngine::calculate_thread_offsets(bool make_edge)
   //_calculate_thread_offsets(num_threads, graph_stats);
   // _calculate_thread_offsets_fast(num_threads, graph_stats);
   // if (make_edge) _calculate_thread_offsets_edge(num_threads, graph_stats);
+
+#ifdef DEBUG
+  std::cout << "Using partition strategy: " << get_strategy_name() << std::endl;
+#endif
+
   graph_stats->close(false);
 }
 
@@ -324,7 +342,8 @@ node_id_t GraphEngine::new_parts(int thread_max,
     // Create a new partition if:
     // 1. We've accumulated enough edges for this partition, AND
     // 2. There are more nodes to process
-    if (accumulated_edges >= edges_per_thread && found_node.id != OutOfBand_ID_MAX)
+    if (accumulated_edges >= edges_per_thread &&
+        found_node.id != OutOfBand_ID_MAX)
     {
       // Start new partition at the next node
       node_ranges.push_back(found_node.id);
@@ -350,6 +369,98 @@ node_id_t GraphEngine::new_parts(int thread_max,
             << thread_max << " threads (target " << edges_per_thread
             << " edges/partition, created " << partitions_created
             << " partitions, min required: " << min_parts << ")" << std::endl;
+  if (partitions_created < min_parts)
+  {
+    std::cout << "WARNING: Created fewer partitions (" << partitions_created
+              << ") than minimum (" << min_parts << ")" << std::endl;
+  }
+  for (int i = 0; i < partitions_created; i++)
+  {
+    auto x = get_key_range(i);
+    std::cout << "partition " << i << " [" << x.start << ", " << x.end << "]\n";
+  }
+#endif
+
+  graph_stats->set_ro_num_nodes(num_nodes);
+  return num_nodes;
+}
+
+node_id_t GraphEngine::make_min_parts(int thread_max,
+                                      GraphBase *graph_stats,
+                                      int mini_part_scale)
+{
+  NodeCursor *node_cursor = graph_stats->get_node_iter();
+  node found_node;
+
+  // Calculate target number of partitions
+  int target_partitions = thread_max * mini_part_scale;
+
+#ifdef DEBUG
+  std::cout << "Creating node-count balanced partitions with target "
+            << target_partitions << " partitions" << std::endl;
+#endif
+
+  // Collect all node IDs and create partitions based on node count
+  std::vector<node_id_t> node_ids_temp;
+  node_ids_temp.reserve(1000000);
+
+  node_cursor->next(&found_node);
+
+  node_id_t num_nodes = 0;
+  int min_parts = get_min_partitions();
+  node_ranges.clear();
+
+  // First pass: collect all node IDs
+  while (found_node.id != OutOfBand_ID_MAX)
+  {
+    node_ids_temp.push_back(found_node.id);
+    num_nodes++;
+    node_cursor->next(&found_node);
+  }
+
+  // Calculate nodes per partition
+  node_id_t nodes_per_partition =
+      (num_nodes + target_partitions - 1) / target_partitions;
+
+  // Second pass: create partition boundaries at fixed intervals
+  int partitions_created = 0;
+
+  if (!node_ids_temp.empty())
+  {
+    // First partition starts at first node
+    node_ranges.push_back(node_ids_temp[0]);
+    partitions_created = 1;
+
+    // Create partition boundaries at regular node intervals
+    for (int i = 1; i < target_partitions; i++)
+    {
+      node_id_t idx = i * nodes_per_partition;
+      if (idx < node_ids_temp.size())
+      {
+        node_ranges.push_back(node_ids_temp[idx]);
+        partitions_created++;
+      }
+    }
+  }
+
+  // Last partition boundary is the last node
+  if (!node_ids_temp.empty())
+  {
+    node_ranges.push_back(node_ids_temp.back());
+  }
+
+  node_cursor->close();
+  delete node_cursor;
+
+  // Save all node IDs for chunk creation
+  all_node_ids = node_ids_temp;
+
+#ifdef DEBUG
+  std::cout << "Node-count balanced partitioning: " << num_nodes
+            << " nodes across " << target_partitions << " partitions ("
+            << nodes_per_partition << " nodes/partition, created "
+            << partitions_created << " partitions, min required: " << min_parts
+            << ")" << std::endl;
   if (partitions_created < min_parts)
   {
     std::cout << "WARNING: Created fewer partitions (" << partitions_created
@@ -533,9 +644,10 @@ key_range GraphEngine::get_key_range(int thread_id)
   else
   {
     // thread_id is out of bounds for available partitions
-    throw std::runtime_error("get_key_range: thread_id " + std::to_string(thread_id) +
-                            " is out of bounds (node_ranges.size() = " +
-                            std::to_string(node_ranges.size()) + ")");
+    throw std::runtime_error("get_key_range: thread_id " +
+                             std::to_string(thread_id) +
+                             " is out of bounds (node_ranges.size() = " +
+                             std::to_string(node_ranges.size()) + ")");
   }
   return to_return;
 }

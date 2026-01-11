@@ -40,7 +40,7 @@ class BenchmarkRunner:
 
     def make_pr_cmd(self, binary_name: str, ds: str, graph_type: str):
         props_reader = self.get_properties_reader(ds)
-        direction_suffix = "rd" if props_reader.is_directed() else "d"
+        direction_suffix = "rd" if props_reader.is_directed() else "r"
         cmd = f"{binary_name} -m {graph_type}_{direction_suffix}_{ds} -g {graph_type} -p {self.config_data['DB_DIR']}/{ds} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_pr_{graph_type}.log"
@@ -48,7 +48,7 @@ class BenchmarkRunner:
 
     def make_bfs_cmd(self, binary_name: str, ds: str, graph_type: str, vert: int):
         props_reader = self.get_properties_reader(ds)
-        direction_suffix = "rd" if props_reader.is_directed() else "d"
+        direction_suffix = "rd" if props_reader.is_directed() else "r"
         cmd = f"{binary_name} -m {graph_type}_{direction_suffix}_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f">> {self.config_data['LOG_DIR']}/{ds}_bfs_{graph_type}.log"
@@ -56,7 +56,7 @@ class BenchmarkRunner:
 
     def make_bc_cmd(self, binary_name: str, ds: str, graph_type: str, vert: int):
         props_reader = self.get_properties_reader(ds)
-        direction_suffix = "rd" if props_reader.is_directed() else "d"
+        direction_suffix = "rd" if props_reader.is_directed() else "r"
         cmd = f"{binary_name} -m {graph_type}_{direction_suffix}_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_bc_{graph_type}.log"
@@ -64,7 +64,7 @@ class BenchmarkRunner:
 
     def make_tc_cmd(self, binary_name: str, ds: str, graph_type: str):
         props_reader = self.get_properties_reader(ds)
-        direction_suffix = "rd" if props_reader.is_directed() else "d"
+        direction_suffix = "rd" if props_reader.is_directed() else "r"
         cmd = f"{binary_name} -m {graph_type}_{direction_suffix}_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_tc_{graph_type}.log"
@@ -72,7 +72,7 @@ class BenchmarkRunner:
 
     def make_cc_cmd(self, binary_name: str, ds: str, graph_type: str, variant: str):
         props_reader = self.get_properties_reader(ds)
-        direction_suffix = "rd" if props_reader.is_directed() else "d"
+        direction_suffix = "rd" if props_reader.is_directed() else "r"
         cmd = f"{binary_name} -m {graph_type}_{direction_suffix}_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f">> {self.config_data['LOG_DIR']}/{ds}_cc_{graph_type}.log"
@@ -80,7 +80,7 @@ class BenchmarkRunner:
 
     def make_sssp_cmd(self, binary_name: str, ds: str, graph_type: str, vert: int):
         props_reader = self.get_properties_reader(ds)
-        direction_suffix = "rd" if props_reader.is_directed() else "d"
+        direction_suffix = "rd" if props_reader.is_directed() else "r"
         cmd = f"{binary_name} -m {graph_type}_{direction_suffix}_{ds} -p {self.config_data['DB_DIR']}/{ds} -g {graph_type} -v {vert} "
         cmd+= f"-z {self.config_data['config_string']} " if 'config_string' in self.config_data else ""
         cmd+= f" >> {self.config_data['LOG_DIR']}/{ds}_sssp_{graph_type}.log"
@@ -148,7 +148,7 @@ class BenchmarkRunner:
         for ds in self.datasets:
             for graph_type in self.types:
                 cmd = self.make_tc_cmd(
-                    f"{self.config_data['RELEASE_PATH']}/benchmark/tc", ds, graph_type)
+                    f"{self.config_data['RELEASE_PATH']}/benchmark/tc_gap_optimized", ds, graph_type)
                 self.log(cmd)
                 if(self.config_data['dry_run']):
                     continue

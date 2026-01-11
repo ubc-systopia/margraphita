@@ -2,6 +2,7 @@
 #define GRAPH_ENGINE
 
 #include <array>
+#include <string>
 
 #include "adj_list.h"
 #include "common_util.h"
@@ -10,6 +11,12 @@
 #include "graph.h"
 #include "graph_exception.h"
 // #include "standard_graph.h"
+
+enum class PartitionStrategy {
+  NODE_COUNT,         // Uses compute_nodes_and_partition() - simple, uniform partitioning
+  EDGE_AWARE,         // Uses new_parts() - accounts for non-uniform degree distribution
+  NODE_COUNT_FINE,    // Uses make_min_parts() - node-count with finer granularity
+};
 
 class GraphEngine
 {
@@ -41,6 +48,23 @@ class GraphEngine
     return node_ranges.size() - 1;
   }
   int get_min_partitions() const { return num_threads * partition_scale; }
+  void set_partition_strategy(PartitionStrategy strategy)
+  {
+    this->partition_strategy = strategy;
+  }
+  PartitionStrategy get_partition_strategy() const
+  {
+    return partition_strategy;
+  }
+  std::string get_strategy_name() const
+  {
+    switch(partition_strategy) {
+      case PartitionStrategy::NODE_COUNT: return "NODE_COUNT";
+      case PartitionStrategy::EDGE_AWARE: return "EDGE_AWARE";
+      case PartitionStrategy::NODE_COUNT_FINE: return "NODE_COUNT_FINE";
+    }
+    return "UNKNOWN";
+  }
 
  protected:
   WT_CONNECTION *conn = nullptr;
@@ -50,6 +74,7 @@ class GraphEngine
   int num_threads{};
   graph_opts opts;
   int partition_scale{1};
+  PartitionStrategy partition_strategy{PartitionStrategy::EDGE_AWARE};
 
  protected:
   node_id_t last_node_id{};
@@ -69,6 +94,9 @@ class GraphEngine
   node_id_t new_parts(int thread_max,
                       GraphBase *graph_stats,
                       int mini_part_scale = 1);
+  node_id_t make_min_parts(int thread_max,
+                           GraphBase *graph_stats,
+                           int mini_part_scale = 1);
   void _calculate_thread_offsets_edge(int thread_max, GraphBase *graph_stats);
 };
 

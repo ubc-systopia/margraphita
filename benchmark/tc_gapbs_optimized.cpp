@@ -23,7 +23,7 @@ We never relabel the graph and always use the ordered counting method.
 
 using namespace std;
 vector<GraphBase *> graph_handles;
-const int THREAD_NUM = 20;  // omp_get_max_threads();
+const int THREAD_NUM = omp_get_max_threads();
 
 size_t OrderedCount(GraphEngine &graph_engine)
 {
@@ -31,7 +31,7 @@ size_t OrderedCount(GraphEngine &graph_engine)
   int total_work_chunks = graph_engine.get_total_partitions();
   atomic<size_t> total_nodes_processed = 0;
 #pragma omp parallel for num_threads(THREAD_NUM) reduction(+ : total) \
-    schedule(dynamic, 1)
+    schedule(dynamic, 1000)
   for (int i = 0; i < total_work_chunks; i++)
   {
     Times chunk_timer;
@@ -190,12 +190,16 @@ int main(int argc, char *argv[])
   t.start();
   LOG_MSG("Loading graph from database...");
   GraphEngine graphEngine(THREAD_NUM, opts);
+  graphEngine.set_partition_strategy(PartitionStrategy::EDGE_AWARE);
   graphEngine.set_partition_scale(
-      150);  // finer partitions for better balancing
+      1600);  // finer partitions for better balancing
   std::string checkpt = graphEngine.make_checkpoint();
+  graphEngine.calculate_thread_offsets();
+
+  std::cout << "Partition strategy: " << graphEngine.get_strategy_name()
+            << std::endl;
   std::cout << "creating " << graphEngine.get_total_partitions()
             << " partitions for work chunks" << std::endl;
-  graphEngine.calculate_thread_offsets();
   t.stop();
   LOG_MSG("Graph loaded in {} seconds", t.t_secs());
   std::cout << "Graph loaded in " << t.t_secs() << std::endl;
