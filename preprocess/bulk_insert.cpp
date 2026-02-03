@@ -315,32 +315,49 @@ time_info insert_node(int _tid)
       }
 
       // Now insert into in and out tables.
+      // value_format=u: pack [degree (4 bytes) | edgelist bytes]
       CommonUtil::set_key(adj_incur, to_insert.id);
       CommonUtil::set_key(adj_outcur, to_insert.id);
       try
       {
+        auto &in_edges = in_adjlist.at(to_insert.id);
+        size_t edgelist_bytes = in_edges.size() * sizeof(node_id_t);
+        std::vector<uint8_t> buf(sizeof(degree_t) + edgelist_bytes);
+        degree_t deg = static_cast<degree_t>(to_insert.in_degree);
+        memcpy(buf.data(), &deg, sizeof(degree_t));
+        if (edgelist_bytes > 0)
+          memcpy(buf.data() + sizeof(degree_t), in_edges.data(), edgelist_bytes);
         WT_ITEM item;
-        item.data = in_adjlist.at(to_insert.id).data();
-        item.size = in_adjlist.at(to_insert.id).size() * sizeof(node_id_t);
-        adj_incur->set_value(adj_incur, to_insert.in_degree, &item);
+        item.data = buf.data();
+        item.size = buf.size();
+        adj_incur->set_value(adj_incur, &item);
       }
       catch (const std::out_of_range &oor)
       {
-        WT_ITEM item = {.data = {}, .size = 0};  // todo: check
-        adj_incur->set_value(adj_incur, 0, &item);
+        degree_t zero = 0;
+        WT_ITEM item = {.data = &zero, .size = sizeof(degree_t)};
+        adj_incur->set_value(adj_incur, &item);
       }
 
       try
       {
+        auto &out_edges = out_adjlist.at(to_insert.id);
+        size_t edgelist_bytes = out_edges.size() * sizeof(node_id_t);
+        std::vector<uint8_t> buf(sizeof(degree_t) + edgelist_bytes);
+        degree_t deg = static_cast<degree_t>(to_insert.out_degree);
+        memcpy(buf.data(), &deg, sizeof(degree_t));
+        if (edgelist_bytes > 0)
+          memcpy(buf.data() + sizeof(degree_t), out_edges.data(), edgelist_bytes);
         WT_ITEM item;
-        item.data = out_adjlist.at(to_insert.id).data();
-        item.size = out_adjlist.at(to_insert.id).size() * sizeof(node_id_t);
-        adj_outcur->set_value(adj_outcur, to_insert.out_degree, &item);
+        item.data = buf.data();
+        item.size = buf.size();
+        adj_outcur->set_value(adj_outcur, &item);
       }
       catch (const std::out_of_range &oor)
       {
-        WT_ITEM item = {.data = {}, .size = 0};
-        adj_outcur->set_value(adj_outcur, 0, &item);
+        degree_t zero = 0;
+        WT_ITEM item = {.data = &zero, .size = sizeof(degree_t)};
+        adj_outcur->set_value(adj_outcur, &item);
       }
 
       adj_incur->insert(adj_incur);

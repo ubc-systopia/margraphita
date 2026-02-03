@@ -29,7 +29,8 @@ void CommonUtil::set_table(WT_SESSION *session,
                            const std::string &prefix,
                            std::vector<std::string> columns,
                            const std::string &key_fmt,
-                           const std::string &val_fmt)
+                           const std::string &val_fmt, 
+                          const std::string &table_config)
 {
   if (!columns.empty())
   {
@@ -49,10 +50,21 @@ void CommonUtil::set_table(WT_SESSION *session,
     char *f = const_cast<char *>(wt_format_string.c_str());
     session->create(session, n, f);
   }
+  // else
+  // {
+  //   std::string table_name = "table:" + prefix;
+  //   std::string wt_format_string =
+  //       "key_format=" + key_fmt + ",value_format=" + val_fmt;
+  //   session->create(session, table_name.c_str(), wt_format_string.c_str());
+  // }
   else
   {
     std::string table_name = "table:" + prefix;
-    session->create(session, table_name.c_str(), "key_format=I,value_format=I");
+    std::string wt_format_string = "key_format=" + key_fmt + ",value_format=" + val_fmt;
+    if (!table_config.empty()) {
+      wt_format_string += "," + table_config;
+    }
+    session->create(session, table_name.c_str(), wt_format_string.c_str());
   }
 }
 

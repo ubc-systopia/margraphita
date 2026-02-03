@@ -87,7 +87,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   }
   // Now Create the Node Table
   CommonUtil::set_table(
-      sess, NODE_TABLE, node_columns, node_key_format, node_value_format);
+      sess, NODE_TABLE, node_columns, node_key_format, node_value_format, "");
 
   // ******** Now set up the Edge Table     **************
   // Edge Column Format : <src><dst><weight>
@@ -113,15 +113,19 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 
   // Create edge table
   CommonUtil::set_table(
-      sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format);
+      sess, EDGE_TABLE, edge_columns, edge_key_format, edge_value_format, "");
 #endif
 
   string adjlist_key_format = "u";  // int32_t
   string adjlist_value_format =
-      "Iu";  // uint32_t for in/out degree, and a variable length byte array
-             // for the adjacency list. This HAS to be u. S does not work. s
-             // needs the number.
-
+      "u";  // Single raw byte array: [degree (4 bytes) | node_id_t array].
+            // cursor->modify() requires value_format="u" (no structured fields)
+            // and no columns= specification.
+  std::string table_config =
+      "leaf_page_max=64KB,"
+      "internal_page_max=16KB,"
+      "memory_page_max=10MB,"
+      "split_pct=90";
   /**
    * We only make the in_adjlist table if the graph is directed.
    * The out_adjlist table is always created.
@@ -129,21 +133,21 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   if (opts.is_directed)
   {
     // Create adjlist_in_edges table for a directed graph
-    vector<string> in_adjlist_columns = {ID, IN_DEGREE, IN_ADJLIST};
+    // No columns -- required for cursor->modify() support
     CommonUtil::set_table(sess,
                           IN_ADJLIST,
-                          in_adjlist_columns,
+                          {},
                           adjlist_key_format,
-                          adjlist_value_format);
+                          adjlist_value_format, table_config);
   }
 
   // Create adjlist_out_edges table
-  vector<string> out_adjlist_columns = {ID, OUT_DEGREE, OUT_ADJLIST};
+  // No columns -- required for cursor->modify() support
   CommonUtil::set_table(sess,
                         OUT_ADJLIST,
-                        out_adjlist_columns,
+                        {},
                         adjlist_key_format,
-                        adjlist_value_format);
+                        adjlist_value_format, table_config);
   sess->close(sess, nullptr);
 }
 
@@ -457,9 +461,10 @@ int AdjList::add_adjlist(WT_CURSOR *cursor, node_id_t node_id)
 
   CommonUtil::set_key(cursor, node_id);
 
-  // Now, initialize the in/out degree to 0 and adjlist to empty list
-  WT_ITEM item = {.data = {}, .size = 0};  // todo: check
-  cursor->set_value(cursor, 0, &item);     // serialize the vector and send ""
+  // Initialize with degree=0 packed as raw bytes (value_format=u)
+  degree_t zero = 0;
+  WT_ITEM item = {.data = &zero, .size = sizeof(degree_t)};
+  cursor->set_value(cursor, &item);
 
   return error_check_insert_txn(cursor->insert(cursor));
 }
@@ -478,15 +483,20 @@ int AdjList::add_adjlist(WT_CURSOR *cursor,
 
   CommonUtil::set_key(cursor, node_id);
 
-  // Now, initialize the in/out degree to 0 and adjlist to empty list
-  WT_ITEM item;
-  // item.data = CommonUtil::pack_int_vector_wti(session, list, &item.size);
+  // Pack [degree (4 bytes) | edgelist bytes] into a single raw buffer
+  size_t edgelist_bytes = list.size() * sizeof(node_id_t);
+  std::vector<uint8_t> buf(sizeof(degree_t) + edgelist_bytes);
+  degree_t deg = static_cast<degree_t>(list.size());
+  memcpy(buf.data(), &deg, sizeof(degree_t));
+  if (edgelist_bytes > 0)
+  {
+    memcpy(buf.data() + sizeof(degree_t), list.data(), edgelist_bytes);
+  }
 
-  item.data = reinterpret_cast<const unsigned *>(list.data());
-  item.size = list.size() * sizeof(node_id_t);
-  cursor->set_value(cursor,
-                    list.size(),
-                    &item);  // serialize the vector and send ""
+  WT_ITEM item;
+  item.data = buf.data();
+  item.size = buf.size();
+  cursor->set_value(cursor, &item);
 
   return cursor->insert(cursor);
 }
@@ -1609,41 +1619,65 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
                              bool &node_added)
 {
   int ret;
-  adjlist to_add = adjlist(node_id, 0);
-  to_add.insert(to_insert);  // insert the edge to the edgelist
+
+  // Pack [degree=1 (4 bytes) | to_insert node_id] for the initial insert
+  degree_t initial_degree = 1;
+  std::vector<uint8_t> init_buf(sizeof(degree_t) + sizeof(node_id_t));
+  memcpy(init_buf.data(), &initial_degree, sizeof(degree_t));
+  memcpy(init_buf.data() + sizeof(degree_t), &to_insert, sizeof(node_id_t));
 
   CommonUtil::set_key(cursor, node_id);
   WT_ITEM item;
-
-  item.data = reinterpret_cast<const unsigned *>(to_add.edgelist.data());
-  item.size = to_add.edgelist.size() * sizeof(node_id_t);
-  cursor->set_value(cursor, to_add.degree, &item);
+  item.data = init_buf.data();
+  item.size = init_buf.size();
+  cursor->set_value(cursor, &item);
 
   ret = error_check_insert_txn(cursor->insert(cursor));
-  if (ret)  // this should  return a WT_DUPLICATE_KEY if the
+  if (ret)  // this should return a WT_DUPLICATE_KEY if the
   // node_id already exists in the table.
   {
     if (ret == WT_DUPLICATE_KEY)
     {
-      // if the node_id already exists, we need to update the edgelist
-      // and degree.
-      // on WT_DUPLICATE_KEY, the cursor is already positioned at the
-      // node_id, so we can just read the existing adjlist and insert
-      // the new edge to it.
-      node_added = false;  // this means that the node_id was already present
-      adjlist found = adjlist(to_add.node_id, 0);
-      CommonUtil::record_to_adjlist(cursor, &found);
+      // The node_id already exists. The cursor is positioned at the key.
+      node_added = false;
+
       if (opts.sort_edges)
       {
+        // Sorted insert requires a full read-modify-write (can't use
+        // cursor->modify to insert at an arbitrary position efficiently)
+        adjlist found = adjlist(node_id, 0);
+        CommonUtil::record_to_adjlist(cursor, &found);
         found.insert_sorted(to_insert);
+        return error_check_insert_txn(
+            CommonUtil::adjlist_to_record(session, cursor, found));
       }
-      else
+
+      // Use cursor->modify() for O(1) append
+      WT_ITEM current_val;
+      cursor->get_value(cursor, &current_val);
+
+      degree_t current_degree = 0;
+      if (current_val.size >= sizeof(degree_t))
       {
-        found.insert(to_insert);
+        memcpy(&current_degree, current_val.data, sizeof(degree_t));
       }
-      node_added = false;
-      return error_check_insert_txn(
-          CommonUtil::adjlist_to_record(session, cursor, found));
+      degree_t new_degree = current_degree + 1;
+
+      WT_MODIFY mods[2];
+      // Entry 0: Replace the degree field (first 4 bytes) with degree+1
+      mods[0].data.data = &new_degree;
+      mods[0].data.size = sizeof(degree_t);
+      mods[0].offset = 0;
+      mods[0].size = sizeof(degree_t);
+
+      // Entry 1: Append the new node_id at the end
+      mods[1].data.data = &to_insert;
+      mods[1].data.size = sizeof(node_id_t);
+      mods[1].offset = current_val.size;
+      mods[1].size = 0;  // replace 0 bytes = pure append
+
+      ret = cursor->modify(cursor, mods, 2);
+      return error_check_insert_txn(ret);
     }
     node_added = false;
     return ret;

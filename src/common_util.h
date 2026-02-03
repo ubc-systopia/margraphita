@@ -77,7 +77,8 @@ class CommonUtil
                         const std::string &prefix,
                         std::vector<std::string> columns,
                         const std::string &key_fmt,
-                        const std::string &val_fmt);
+                        const std::string &val_fmt, 
+                        const std::string &table_config);
 
   static std::string get_db_name(const std::string &prefix,
                                  const std::string &name);
@@ -334,11 +335,21 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
   CommonUtil::set_key(cursor, to_insert.node_id);
   int ret = cursor->search(cursor);
 
-  WT_ITEM item;
-  item.data = reinterpret_cast<const unsigned *>(to_insert.edgelist.data());
-  item.size = to_insert.edgelist.size() * sizeof(node_id_t);
+  // Pack [degree (4 bytes) | edgelist bytes] into a single raw buffer
+  size_t edgelist_bytes = to_insert.edgelist.size() * sizeof(node_id_t);
+  std::vector<uint8_t> buf(sizeof(degree_t) + edgelist_bytes);
+  degree_t deg = to_insert.degree;
+  memcpy(buf.data(), &deg, sizeof(degree_t));
+  if (edgelist_bytes > 0)
+  {
+    memcpy(buf.data() + sizeof(degree_t), to_insert.edgelist.data(),
+           edgelist_bytes);
+  }
 
-  cursor->set_value(cursor, to_insert.degree, &item);
+  WT_ITEM item;
+  item.data = buf.data();
+  item.size = buf.size();
+  cursor->set_value(cursor, &item);
 
   ret = cursor->update(cursor);
   if (ret)
@@ -359,20 +370,24 @@ inline int CommonUtil::adjlist_to_record(WT_SESSION *session,
  */
 inline void CommonUtil::record_to_adjlist(WT_CURSOR *cursor, adjlist *found)
 {
-  int32_t degree;
   WT_ITEM item;
-  cursor->get_value(cursor, &degree, &item);
-  found->edgelist.assign(
-      (node_id_t *)item.data,
-      (node_id_t *)item.data + item.size / sizeof(node_id_t));
-  if (degree == 1 && found->edgelist.empty())
+  cursor->get_value(cursor, &item);
+  degree_t degree = 0;
+  if (item.size >= sizeof(degree_t))
   {
-    found->degree = 0;
+    memcpy(&degree, item.data, sizeof(degree_t));
+    const uint8_t *adjlist_start =
+        (const uint8_t *)item.data + sizeof(degree_t);
+    size_t adjlist_bytes = item.size - sizeof(degree_t);
+    found->edgelist.assign(
+        (node_id_t *)adjlist_start,
+        (node_id_t *)adjlist_start + adjlist_bytes / sizeof(node_id_t));
   }
   else
   {
-    found->degree = degree;
+    found->edgelist.clear();
   }
+  found->degree = degree;
 }
 // Get and Set data from/to an edge table cursor
 /**

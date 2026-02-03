@@ -277,19 +277,32 @@ int add_to_adjlist(WT_CURSOR *adjcur, adjlist &adj)
                    old_adj.edgelist.begin(),
                    old_adj.edgelist.end(),
                    std::back_inserter(new_edgelist));
+    // Pack [degree (4 bytes) | edgelist bytes] into raw buffer
+    size_t edgelist_bytes = new_edgelist.size() * sizeof(node_id_t);
+    std::vector<uint8_t> buf(sizeof(degree_t) + edgelist_bytes);
+    degree_t deg = static_cast<degree_t>(new_edgelist.size());
+    memcpy(buf.data(), &deg, sizeof(degree_t));
+    if (edgelist_bytes > 0)
+      memcpy(buf.data() + sizeof(degree_t), new_edgelist.data(), edgelist_bytes);
     WT_ITEM item;
-    item.data = (unsigned *)new_edgelist.data();
-    item.size = new_edgelist.size() * sizeof(node_id_t);
-    adjcur->set_value(adjcur, new_edgelist.size(), &item);
+    item.data = buf.data();
+    item.size = buf.size();
+    adjcur->set_value(adjcur, &item);
     ret = adjcur->update(adjcur);
   }
   else
   {
+    // Pack [degree (4 bytes) | edgelist bytes] into raw buffer
+    size_t edgelist_bytes = adj.edgelist.size() * sizeof(node_id_t);
+    std::vector<uint8_t> buf(sizeof(degree_t) + edgelist_bytes);
+    degree_t deg = static_cast<degree_t>(adj.edgelist.size());
+    memcpy(buf.data(), &deg, sizeof(degree_t));
+    if (edgelist_bytes > 0)
+      memcpy(buf.data() + sizeof(degree_t), adj.edgelist.data(), edgelist_bytes);
     WT_ITEM item;
-    item.data = (unsigned *)adj.edgelist.data();
-    item.size = adj.edgelist.size() * sizeof(node_id_t);
-    // space += adj.edgelist.size() * sizeof(node_id_t);
-    adjcur->set_value(adjcur, adj.edgelist.size(), &item);
+    item.data = buf.data();
+    item.size = buf.size();
+    adjcur->set_value(adjcur, &item);
     ret = adjcur->insert(adjcur);
   }
   if (ret != 0)
