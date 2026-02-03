@@ -80,6 +80,7 @@ class SplitEdgeKey : public GraphBase
   WT_CURSOR *out_edge_cursor = nullptr;
   WT_CURSOR *random_node_cursor = nullptr;
   WT_CURSOR *in_edge_cursor = nullptr;
+  WT_CURSOR *degree_cursor = nullptr;  // Cached cursor for degree updates
   // WT_CURSOR *dst_src_idx_cursor = nullptr; // Removed dependency
 
   [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
@@ -94,9 +95,10 @@ class SplitEdgeKey : public GraphBase
 
   [[maybe_unused]] inline void close_all_cursors() override
   {
-    out_edge_cursor->close(out_edge_cursor);
-    random_node_cursor->close(random_node_cursor);
-    in_edge_cursor->close(in_edge_cursor);
+    if (out_edge_cursor) out_edge_cursor->close(out_edge_cursor);
+    if (random_node_cursor) random_node_cursor->close(random_node_cursor);
+    if (in_edge_cursor) in_edge_cursor->close(in_edge_cursor);
+    if (degree_cursor) degree_cursor->close(degree_cursor);
     // dst_src_idx_cursor->close(dst_src_idx_cursor); // Removed dependency
   }
 

@@ -27,29 +27,53 @@ SplitEdgeKey::SplitEdgeKey(graph_opts &opt_params, WT_CONNECTION *conn)
 
 void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 {
-  // ******** Now set up the Node Table     **************
+  // ******** Now set up the Edge Tables **************
   WT_SESSION *sess;
   if (CommonUtil::open_session(conn, &sess) != 0)
   {
     throw GraphException("Cannot open session");
   }
+
+  // Table tuning parameters for better concurrent write performance:
+  // - leaf_page_max=64KB: larger leaf pages reduce page splits
+  // - internal_page_max=16KB: reasonable internal page size
+  // - memory_page_max=10MB: defer page splits longer in memory
+  // - split_pct=90: pack pages tighter before splitting
+  std::string out_table_config =
+      "key_format=uu,value_format=u,"
+      "columns=(" + std::string(SRC) + "," + std::string(DST) + "," + std::string(ATTR) + "),"
+      "leaf_page_max=64KB,"
+      "internal_page_max=16KB,"
+      "memory_page_max=32MB,"
+      "split_pct=100";
+
   // Set up the out-edge table
-  // columns: SRC, DST, ATTR
-  vector<string> edge_columns = {SRC, DST, ATTR};
-  string edge_key_format = "uu";  // SRC DST
-  string edge_value_format =
-      "u";  // in/out degree(unit32_t) or weight/uninterpreted
-  CommonUtil::set_table(
-      sess, OUT_EDGES, edge_columns, edge_key_format, edge_value_format);
+  std::string out_table = "table:" + std::string(OUT_EDGES);
+  int ret = sess->create(sess, out_table.c_str(), out_table_config.c_str());
+  if (ret != 0)
+  {
+    throw GraphException("Failed to create OUT_EDGES table: " +
+                         std::string(wiredtiger_strerror(ret)));
+  }
 
   if (opts.is_directed)
   {
-    edge_columns.clear();
-    // Set up the in-edge table
-    // columns: DST, SRC, ATTR
-    edge_columns = {DST, SRC, ATTR};
-    CommonUtil::set_table(
-        sess, IN_EDGES, edge_columns, edge_key_format, edge_value_format);
+    // Set up the in-edge table with same tuning but different column order
+    std::string in_table_config =
+        "key_format=uu,value_format=u,"
+        "columns=(" + std::string(DST) + "," + std::string(SRC) + "," + std::string(ATTR) + "),"
+        "leaf_page_max=64KB,"
+        "internal_page_max=16KB,"
+        "memory_page_max=32MB,"
+        "split_pct=100";
+
+    std::string in_table = "table:" + std::string(IN_EDGES);
+    ret = sess->create(sess, in_table.c_str(), in_table_config.c_str());
+    if (ret != 0)
+    {
+      throw GraphException("Failed to create IN_EDGES table: " +
+                           std::string(wiredtiger_strerror(ret)));
+    }
   }
 
   sess->close(sess, nullptr);
@@ -167,6 +191,10 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
  * This method adds a node to the out-edge table, but must be called from within
  * a running transaction. It is used in the add_edge method where we must check
  * and add the src and dst nodes if they don't exist.
+ *
+ * OPTIMIZATION: Degree updates are now inlined here to avoid a separate
+ * search operation in update_node_degree.
+ *
  * @param to_insert
  * @return
  */
@@ -178,19 +206,21 @@ int SplitEdgeKey::add_node_txn(node to_insert,
   CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
   if (out_edge_cursor->search(out_edge_cursor) == 0)
   {
-    // The node already exists. We can update the degrees.
-    int ret = update_node_degree(to_insert.id, indeg_change, outdeg_change);
-    return ret;
+    // Node exists - inline the degree update here to avoid extra search
+    degree_t in_deg, out_deg;
+    ekey_get_node_value(out_edge_cursor, &in_deg, &out_deg);
+    ekey_set_node_value(out_edge_cursor, in_deg + indeg_change, out_deg + outdeg_change);
+    int ret = out_edge_cursor->update(out_edge_cursor);
+    return error_check_insert_txn(ret, false);
   }
   else
   {
+    // Node doesn't exist - insert it with initial degrees
     CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
     if (opts.read_optimize)
     {
       if (indeg_change > 0 || outdeg_change > 0)
-      {  // New node, but the degrees are not zero
-        // out_edge_cursor->set_value(
-        // out_edge_cursor, indeg_change, outdeg_change);
+      {
         ekey_set_node_value(out_edge_cursor, indeg_change, outdeg_change);
       }
       else
@@ -207,23 +237,8 @@ int SplitEdgeKey::add_node_txn(node to_insert,
     if (!txn_result) {
       (*num_nodes_added_ptr)++;
     }
-    // Return value: 0 on success, WT_DUPLICATE_KEY if node already exists, nonzero for other errors.
-        return txn_result;
+    return txn_result;
   }
-
-  //    // UPDATE IN_EDGE TABLE
-  //    CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id,
-  //    OutOfBand_ID_MIN);//    if (opts.read_optimize)
-  //    {
-  //        in_edge_cursor->set_value(
-  //            in_edge_cursor, to_insert.in_degree, to_insert.out_degree);
-  //    }
-  //    else
-  //    {
-  //        in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_ID_MAX);
-  //    }
-  //    return in_edge_cursor->insert(
-  //        in_edge_cursor);  // no need to check -- done in caller.
 }
 
 bool SplitEdgeKey::has_node(node_id_t node_id)
@@ -246,8 +261,6 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   int num_edges_to_add = 0;
   int ret;
   session->begin_transaction(session, "isolation=snapshot");
-  out_edge_cursor->reset(out_edge_cursor);
-  in_edge_cursor->reset(in_edge_cursor);
   node src{.id = to_insert.src_id};
   opts.is_directed ? (ret = add_node_txn(src, &num_nodes_to_add, 0, 1))
                    : (ret = add_node_txn(src, &num_nodes_to_add, 1, 1));
@@ -914,6 +927,10 @@ std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
  * out_change and updates the in and out degree of the node in the in_Edge and
  * out_Edge tables. This function must be called within a running transaction,
  * and does not commit the transaction.
+ *
+ * OPTIMIZATION: Uses cached degree_cursor instead of creating a new cursor
+ * each time. This significantly reduces cursor creation overhead.
+ *
  * @param node_id the node to be updated in both in and out edge tables
  * @param in_change the +/- value of the change in the node's in-degree
  * @param out_change the +/- value of the change in the node's out-degree
@@ -923,28 +940,30 @@ int SplitEdgeKey::update_node_degree(node_id_t node_id,
                                      int in_change,
                                      int out_change)
 {
-  // remember to do both the in and out edge tables
-  // no transaction needed
   degree_t in, out;
   int ret = 0;
-  //    WT_CURSOR *in_cursor = get_new_in_cursor();
-  WT_CURSOR *out_cursor = get_new_out_cursor();
-  CommonUtil::ekey_set_node_key(out_cursor, node_id);
-  if (!(ret = out_cursor->search(out_cursor)))
+
+  // Use cached cursor instead of creating new one each time
+  if (degree_cursor == nullptr)
   {
-    // out_cursor->get_value(out_cursor, &in, &out);
-    ekey_get_node_value(out_cursor, &in, &out);
-    // out_cursor->set_value(out_cursor, in + in_change, out + out_change);
-    ekey_set_node_value(out_cursor, in + in_change, out + out_change);
-    ret = out_cursor->update(out_cursor);
+    degree_cursor = get_new_out_cursor();
+  }
+  degree_cursor->reset(degree_cursor);
+
+  CommonUtil::ekey_set_node_key(degree_cursor, node_id);
+  if (!(ret = degree_cursor->search(degree_cursor)))
+  {
+    ekey_get_node_value(degree_cursor, &in, &out);
+    ekey_set_node_value(degree_cursor, in + in_change, out + out_change);
+    ret = degree_cursor->update(degree_cursor);
   }
   else
-  {  // This should never happen
+  {
     LOG_MSG("Failed to update the node degree: Node {} does not exist",
             node_id,
             wiredtiger_strerror(ret));
   }
-  out_cursor->close(out_cursor);
+  // Don't close - cursor is cached for reuse
   return error_check_insert_txn(ret, false);
 }
 
