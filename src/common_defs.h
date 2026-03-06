@@ -82,6 +82,8 @@ typedef enum GraphType
   META
 } GraphType;
 
+enum PropStorageMode { EMBEDDED, SPLIT };
+
 struct graph_opts
 {
   bool read_only = false;
@@ -101,6 +103,10 @@ struct graph_opts
   uint64_t num_edges{};  // we can have > 4B edges
   int num_threads = 1;
   bool sort_edges = false;  // sort edges in the edge table
+  bool has_node_props = false;
+  bool has_edge_props = false;
+  PropStorageMode prop_mode = EMBEDDED;
+  node_id_t person_count = 0;  // LDBC SNB: boundary between Person and Post IDs
   // make a default constructor
   graph_opts()
       : read_only(false),
@@ -119,7 +125,11 @@ struct graph_opts
         num_nodes(0),
         num_edges(0),
         num_threads(1),
-        sort_edges(false)
+        sort_edges(false),
+        has_node_props(false),
+        has_edge_props(false),
+        prop_mode(EMBEDDED),
+        person_count(0)
   {
   }
   ~graph_opts() = default;
@@ -154,6 +164,10 @@ struct graph_opts
     *out << "NUM_NODES: " << num_nodes << std::endl;
     *out << "NUM_EDGES: " << num_edges << std::endl;
     *out << "SORT_EDGES: " << sort_edges << std::endl;
+    *out << "HAS_NODE_PROPS: " << has_node_props << std::endl;
+    *out << "HAS_EDGE_PROPS: " << has_edge_props << std::endl;
+    *out << "PROP_MODE: " << prop_mode << std::endl;
+    *out << "PERSON_COUNT: " << person_count << std::endl;
 
     if (file.is_open())
     {
@@ -183,6 +197,10 @@ struct graph_opts
       num_threads = other.num_threads;
       checkpoint_name = other.checkpoint_name;
       sort_edges = other.sort_edges;  // copy sort_edges option
+      has_node_props = other.has_node_props;
+      has_edge_props = other.has_edge_props;
+      prop_mode = other.prop_mode;
+      person_count = other.person_count;
     }
     return *this;
   }
@@ -206,6 +224,10 @@ struct graph_opts
     num_threads = other.num_threads;
     dataset = other.dataset;
     sort_edges = other.sort_edges;  // copy sort_edges option
+    has_node_props = other.has_node_props;
+    has_edge_props = other.has_edge_props;
+    prop_mode = other.prop_mode;
+    person_count = other.person_count;
   }
 };
 

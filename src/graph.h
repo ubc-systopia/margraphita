@@ -13,6 +13,11 @@
 #include "common_util.h"
 #include "graph_exception.h"
 
+struct prop_blob {
+    const uint8_t* data = nullptr;
+    size_t size = 0;
+};
+
 class GraphBase
 {
  public:
@@ -99,6 +104,12 @@ class GraphBase
                                const std::string &checkpoint_name = "");
   virtual void dump_table(const std::string &table_name, int limit) = 0;
   virtual void set_ro_num_nodes(node_id_t num) = 0;
+
+  // Property storage API
+  virtual void set_node_properties(node_id_t id, const uint8_t* data, size_t size) = 0;
+  virtual prop_blob get_node_properties(node_id_t id) = 0;
+  virtual void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) = 0;
+  virtual prop_blob get_edge_properties(node_id_t src, node_id_t dst) = 0;
 
  protected:
   graph_opts opts;

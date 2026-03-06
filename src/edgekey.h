@@ -447,6 +447,19 @@ class EdgeKey : public GraphBase
 
   void dump_table(std::string &table_name, int num_lines);
 
+  void set_node_properties(node_id_t id, const uint8_t* data, size_t size) override {
+    throw GraphException("Property storage not implemented for EdgeKey");
+  }
+  prop_blob get_node_properties(node_id_t id) override {
+    throw GraphException("Property storage not implemented for EdgeKey");
+  }
+  void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override {
+    throw GraphException("Property storage not implemented for EdgeKey");
+  }
+  prop_blob get_edge_properties(node_id_t src, node_id_t dst) override {
+    throw GraphException("Property storage not implemented for EdgeKey");
+  }
+
  private:
   // Cursors
   WT_CURSOR *edge_cursor = nullptr;

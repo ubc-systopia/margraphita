@@ -76,6 +76,19 @@ class SplitEdgeKey : public GraphBase
     opts.num_nodes = num;
   };
 
+  void set_node_properties(node_id_t id, const uint8_t* data, size_t size) override {
+    throw GraphException("Property storage not implemented for SplitEdgeKey");
+  }
+  prop_blob get_node_properties(node_id_t id) override {
+    throw GraphException("Property storage not implemented for SplitEdgeKey");
+  }
+  void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override {
+    throw GraphException("Property storage not implemented for SplitEdgeKey");
+  }
+  prop_blob get_edge_properties(node_id_t src, node_id_t dst) override {
+    throw GraphException("Property storage not implemented for SplitEdgeKey");
+  }
+
  private:
   WT_CURSOR *out_edge_cursor = nullptr;
   WT_CURSOR *random_node_cursor = nullptr;
@@ -135,7 +148,7 @@ template <typename T, typename... Args>
 static inline int unpack_values(const WT_ITEM *item, T *first, Args... args)
 {
   constexpr size_t count = 1 + sizeof...(Args);
-  if (item->size != sizeof(T) * count)
+  if (item->size < sizeof(T) * count)
   {
     return -1;
   }
@@ -175,7 +188,7 @@ inline void SplitEdgeKey::ekey_get_node_value(WT_CURSOR *cursor,
 {
   WT_ITEM item;
   cursor->get_value(cursor, &item);
-  if (item.size != sizeof(degree_t) * 2)
+  if (item.size < sizeof(degree_t) * 2)
   {
     throw GraphException("Node degree size mismatch");
   }
@@ -188,7 +201,7 @@ inline void SplitEdgeKey::ekey_get_edge_value(WT_CURSOR *cursor,
 {
   WT_ITEM item;
   cursor->get_value(cursor, &item);
-  if (item.size != sizeof(edgeweight_t))
+  if (item.size < sizeof(edgeweight_t))
   {
     throw GraphException("Edge weight size mismatch");
   }
