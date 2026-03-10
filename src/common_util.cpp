@@ -95,6 +95,7 @@ void CommonUtil::check_graph_params(const graph_opts &params)
 
 int CommonUtil::close_cursor(WT_CURSOR *cursor)
 {
+  if (cursor == nullptr) return 0;
   if (int ret = cursor->close(cursor) != 0)
   {
     fprintf(stderr, "Failed to close the cursor\n ");

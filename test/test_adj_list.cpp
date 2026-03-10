@@ -250,7 +250,7 @@ void create_init_nodes(WT_CONNECTION *conn, graph_opts &opts)
   std::cout << "Inserted count: " << insert_cnt.load() << std::endl;
 }
 
-void test_node_add(AdjList graph, graph_opts &opts)
+void test_node_add(AdjList &graph, graph_opts &opts)
 {
   INFO();
   node new_node = {.id = 111, .in_degree = 0, .out_degree = 0};
@@ -275,7 +275,7 @@ void test_node_add(AdjList graph, graph_opts &opts)
   assert(out_adj_cur->search(out_adj_cur) == 0);
 }
 
-void test_get_node(AdjList graph, graph_opts &opts)
+void test_get_node(AdjList &graph, graph_opts &opts)
 {
   INFO();
   int test_id1 = 1, test_id2 = 55;
@@ -293,7 +293,7 @@ void test_get_node(AdjList graph, graph_opts &opts)
   CommonUtil::dump_node(found);
 }
 
-void test_get_nodes(AdjList graph, graph_opts &opts)
+void test_get_nodes(AdjList &graph, graph_opts &opts)
 {
   INFO();
   int n = 10;
@@ -309,7 +309,7 @@ void test_get_nodes(AdjList graph, graph_opts &opts)
   }
 }
 
-void test_get_edges(AdjList graph)
+void test_get_edges(AdjList &graph)
 {
   INFO();
   for (edge e : graph.get_edges())
@@ -318,7 +318,7 @@ void test_get_edges(AdjList graph)
   }
 }
 
-void test_get_adjlist(AdjList graph, int node_id)
+void test_get_adjlist(AdjList &graph, int node_id)
 {
   INFO();
   std::cout << "Printing the in_adjlist for node " << node_id << std::endl;
@@ -335,7 +335,7 @@ void test_get_adjlist(AdjList graph, int node_id)
   }
 }
 
-void test_get_edge(AdjList graph, bool is_directed)
+void test_get_edge(AdjList &graph, bool is_directed)
 {
   INFO();
   edge found = graph.get_edge(SampleGraphAdjList::edge1.src_id,
@@ -359,7 +359,7 @@ void test_get_edge(AdjList graph, bool is_directed)
   assert(found.edge_weight == 0);
 }
 
-void test_add_edge(AdjList graph, bool is_directed)
+void test_add_edge(AdjList &graph, bool is_directed)
 {
   INFO();
   edge to_insert = {
@@ -438,7 +438,7 @@ void test_add_edge(AdjList graph, bool is_directed)
   }
 }
 
-void test_get_out_edges(AdjList graph, graph_opts &opts)
+void test_get_out_edges(AdjList &graph, graph_opts &opts)
 {
   INFO();
   int test_id1 = 1, test_id2 = 111,
@@ -480,7 +480,7 @@ void test_get_out_edges(AdjList graph, graph_opts &opts)
   // assert(assert_fail);
 }
 
-void test_get_in_edges(AdjList graph, graph_opts &opts)
+void test_get_in_edges(AdjList &graph, graph_opts &opts)
 {
   INFO();
   int test_id1 = 4, test_id2 = 3, test_id3 = 1500;
@@ -549,7 +549,7 @@ void test_get_in_edges(AdjList graph, graph_opts &opts)
   assert(assert_fail);
 }
 
-void test_get_out_nodes(AdjList graph, graph_opts &opts)
+void test_get_out_nodes(AdjList &graph, graph_opts &opts)
 {
   INFO();
   int test_id1 = 1, test_id2 = 111, test_id3 = 1500;
@@ -602,7 +602,7 @@ void test_get_out_nodes(AdjList graph, graph_opts &opts)
   assert(assert_fail);
 }
 
-void test_get_in_nodes(AdjList graph, graph_opts &opts)
+void test_get_in_nodes(AdjList &graph, graph_opts &opts)
 {
   INFO();
   int test_id1 = 1, test_id2 = 4, test_id3 = 1500;
@@ -703,7 +703,7 @@ void test_get_in_nodes(AdjList graph, graph_opts &opts)
   assert(assert_fail);
 }
 
-void test_get_in_and_out_degree(AdjList graph, bool directed)
+void test_get_in_and_out_degree(AdjList &graph, bool directed)
 {
   //  INFO();
   //  // check in_degree for node3
@@ -737,7 +737,7 @@ void test_get_in_and_out_degree(AdjList graph, bool directed)
   }
 }
 
-void test_delete_node(AdjList graph, bool is_directed)
+void test_delete_node(AdjList &graph, bool is_directed)
 {
   INFO();
   int ret = 0;
@@ -815,7 +815,7 @@ void test_delete_node(AdjList graph, bool is_directed)
   }
 }
 
-void test_delete_isolated_node(AdjList graph, bool is_directed)
+void test_delete_isolated_node(AdjList &graph, bool is_directed)
 {
   INFO();
   int ret = 0;
@@ -878,7 +878,7 @@ void test_delete_isolated_node(AdjList graph, bool is_directed)
   }
 }
 
-void test_InCursor(AdjList graph)
+void test_InCursor(AdjList &graph)
 {
   INFO();
   auto *in_cursor = (AdjInCursor *)graph.get_innbd_iter();
@@ -913,7 +913,7 @@ void test_InCursor(AdjList graph)
   delete in_cursor;
 }
 
-void test_OutCursor(AdjList graph)
+void test_OutCursor(AdjList &graph)
 {
   INFO();
   adjlist found;
@@ -984,7 +984,7 @@ void test_NodeCursor(AdjList &graph)
   delete node_cursor;
 }
 
-void test_NodeCursor_Range(AdjList graph)
+void test_NodeCursor_Range(AdjList &graph)
 {
   INFO();
   NodeCursor *node_cursor = graph.get_node_iter();
@@ -1004,7 +1004,7 @@ void test_NodeCursor_Range(AdjList graph)
   delete node_cursor;
 }
 
-void test_EdgeCursor(AdjList graph, bool is_directed)
+void test_EdgeCursor(AdjList &graph, bool is_directed)
 {
   INFO();
   EdgeCursor *edge_cursor = graph.get_edge_iter();
@@ -1025,7 +1025,7 @@ void test_EdgeCursor(AdjList graph, bool is_directed)
   delete edge_cursor;
 }
 
-void test_EdgeCursor_Range(AdjList graph, bool is_directed)
+void test_EdgeCursor_Range(AdjList &graph, bool is_directed)
 {
   INFO();
   EdgeCursor *edge_cursor = graph.get_edge_iter();
@@ -1072,7 +1072,7 @@ void test_ro_get_nodes(GraphBase *graph)
   }
 }
 
-void test_update_edge(AdjList graph, bool is_directed)
+void test_update_edge(AdjList &graph, bool is_directed)
 {
   INFO();
   edge to_update = {

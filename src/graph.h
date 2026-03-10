@@ -24,6 +24,13 @@ class GraphBase
   GraphBase() = default;
   GraphBase(graph_opts &opt_params, WT_CONNECTION *conn);
 
+  // GraphBase holds raw WT_SESSION and WT_CURSOR pointers that must not be
+  // shared between instances.  Disable copy and move to prevent silent bugs.
+  GraphBase(const GraphBase &) = delete;
+  GraphBase &operator=(const GraphBase &) = delete;
+  GraphBase(GraphBase &&) = delete;
+  GraphBase &operator=(GraphBase &&) = delete;
+
   static void insert_metadata(int key,
                               const char *value,
                               size_t size,
