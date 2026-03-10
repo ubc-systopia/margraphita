@@ -60,37 +60,11 @@ static std::vector<std::string> csv_split(const std::string &line, char delim = 
     return fields;
 }
 
-// Parse an LDBC epoch-millisecond timestamp string → int64_t ms since epoch.
-// The CSVs store dates as "2010-02-14T22:14:32.522+0000" or "1983-09-06".
-// We convert to milliseconds since Unix epoch via strptime.
-#include <ctime>
-static int64_t parse_timestamp_ms(const std::string &s)
+// Parse an LDBC LongDateFormatter timestamp: raw epoch milliseconds as a decimal string.
+static int64_t parse_epoch_ms(const std::string &s)
 {
-    // Try full datetime first: "YYYY-MM-DDTHH:MM:SS.mmmZ"
-    struct tm t = {};
-    const char *end = strptime(s.c_str(), "%Y-%m-%dT%H:%M:%S", &t);
-    if (end == nullptr) {
-        // Try date-only: "YYYY-MM-DD"
-        end = strptime(s.c_str(), "%Y-%m-%d", &t);
-    }
-    if (end == nullptr)
-        return 0;
-    time_t epoch = timegm(&t);  // treat as UTC
-    // Grab milliseconds from ".mmm" suffix if present
-    int64_t ms = 0;
-    if (*end == '.') {
-        end++;
-        int len = 0;
-        int64_t frac = 0;
-        while (*end >= '0' && *end <= '9' && len < 3) {
-            frac = frac * 10 + (*end - '0');
-            end++; len++;
-        }
-        // Pad to 3 digits
-        while (len < 3) { frac *= 10; len++; }
-        ms = frac;
-    }
-    return static_cast<int64_t>(epoch) * 1000 + ms;
+    if (s.empty()) return 0;
+    return std::stoll(s);
 }
 
 // ---- LDBCLoader -------------------------------------------------------------
@@ -156,9 +130,9 @@ struct LDBCLoader {
             if (opts.has_node_props) {
                 uint8_t buf[SNBPersonSchema::TOTAL_SIZE] = {};
                 if (col_creation >= 0 && col_creation < (int)fields.size())
-                    SNBPersonSchema::set_creation_date(buf, parse_timestamp_ms(fields[col_creation]));
+                    SNBPersonSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
                 if (col_birthday >= 0 && col_birthday < (int)fields.size())
-                    SNBPersonSchema::set_birthday(buf, parse_timestamp_ms(fields[col_birthday]));
+                    SNBPersonSchema::set_birthday(buf, parse_epoch_ms(fields[col_birthday]));
                 if (col_gender >= 0 && col_gender < (int)fields.size()) {
                     // gender: "male" → 0, "female" → 1
                     int8_t g = (fields[col_gender] == "female") ? 1 : 0;
@@ -211,7 +185,7 @@ struct LDBCLoader {
             if (opts.has_node_props) {
                 uint8_t buf[SNBPostSchema::TOTAL_SIZE] = {};
                 if (col_creation >= 0 && col_creation < (int)fields.size())
-                    SNBPostSchema::set_creation_date(buf, parse_timestamp_ms(fields[col_creation]));
+                    SNBPostSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
                 if (col_length >= 0 && col_length < (int)fields.size())
                     SNBPostSchema::set_length(buf, std::stoi(fields[col_length]));
                 PendingNodeProp p;
@@ -280,7 +254,7 @@ struct LDBCLoader {
 
             if (opts.has_edge_props && col_creation >= 0 && col_creation < (int)fields.size()) {
                 uint8_t buf[SNBKnowsSchema::TOTAL_SIZE] = {};
-                SNBKnowsSchema::set_creation_date(buf, parse_timestamp_ms(fields[col_creation]));
+                SNBKnowsSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
                 PendingEdgeProp p;
                 p.src = src; p.dst = dst;
                 p.data.assign(buf, buf + SNBKnowsSchema::TOTAL_SIZE);
@@ -362,7 +336,7 @@ struct LDBCLoader {
 
             if (opts.has_edge_props && col_creation >= 0 && col_creation < (int)fields.size()) {
                 uint8_t buf[SNBLikesSchema::TOTAL_SIZE] = {};
-                SNBLikesSchema::set_creation_date(buf, parse_timestamp_ms(fields[col_creation]));
+                SNBLikesSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
                 PendingEdgeProp p;
                 p.src = src; p.dst = dst;
                 p.data.assign(buf, buf + SNBLikesSchema::TOTAL_SIZE);
