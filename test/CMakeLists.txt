@@ -60,3 +60,8 @@ TARGET_LINK_LIBRARIES(test_bulk_load PUBLIC ${NAME_LIB} ${wt_shared_lib})
 ADD_EXECUTABLE(test_pvector "${PATH_TEST}/pvector_test.cpp")
 INCLUDE_DIRECTORIES(test_pvector PRIVATE ${PATH_INCLUDE} ${UTILS} ${ITTAPI_INCLUDE_DIR} ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_pvector PUBLIC ${NAME_LIB})
+
+# LDBC SNB query harness
+ADD_EXECUTABLE(ldbc_snb_queries "${PATH_TEST}/ldbc_snb_queries.cpp")
+TARGET_INCLUDE_DIRECTORIES(ldbc_snb_queries PRIVATE ${PATH_SRC} ${PATH_TEST})
+TARGET_LINK_LIBRARIES(ldbc_snb_queries PUBLIC ${NAME_LIB} ${wt_shared_lib})
