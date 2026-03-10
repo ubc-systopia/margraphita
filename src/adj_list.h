@@ -96,18 +96,13 @@ class AdjList : public GraphBase
     opts.num_nodes = num;
   };
 
-  void set_node_properties(node_id_t id, const uint8_t* data, size_t size) override {
-    throw GraphException("Property storage not implemented for AdjList");
-  }
-  prop_blob get_node_properties(node_id_t id) override {
-    throw GraphException("Property storage not implemented for AdjList");
-  }
-  void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override {
-    throw GraphException("Property storage not implemented for AdjList");
-  }
-  prop_blob get_edge_properties(node_id_t src, node_id_t dst) override {
-    throw GraphException("Property storage not implemented for AdjList");
-  }
+  void set_node_properties(node_id_t id, const uint8_t* data, size_t size) override;
+  prop_blob get_node_properties(node_id_t id) override;
+  void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override;
+  prop_blob get_edge_properties(node_id_t src, node_id_t dst) override;
+
+  static constexpr char const *NODE_PROPS_TABLE = "node_props";
+  static constexpr char const *EDGE_PROPS_TABLE = "edge_props";
 
  private:
   friend class AdjNodeCursor;
@@ -120,6 +115,8 @@ class AdjList : public GraphBase
   WT_CURSOR *edge_cursor = nullptr;
   WT_CURSOR *in_adjlist_cursor = nullptr;
   WT_CURSOR *out_adjlist_cursor = nullptr;
+  WT_CURSOR *node_props_cursor = nullptr;
+  WT_CURSOR *edge_props_cursor = nullptr;
 
   // AdjList specific internal methods:
   [[maybe_unused]] node get_next_node(WT_CURSOR *n_cur);
@@ -157,6 +154,8 @@ class AdjList : public GraphBase
     CommonUtil::close_cursor(edge_cursor);
     CommonUtil::close_cursor(in_adjlist_cursor);
     CommonUtil::close_cursor(out_adjlist_cursor);
+    if (node_props_cursor) CommonUtil::close_cursor(node_props_cursor);
+    if (edge_props_cursor) CommonUtil::close_cursor(edge_props_cursor);
   }
 
   inline void get_edge_wt(WT_CURSOR *e_cur, edgeweight_t *edge_weight)

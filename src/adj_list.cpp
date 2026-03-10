@@ -148,6 +148,27 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
                         {},
                         adjlist_key_format,
                         adjlist_value_format, table_config);
+
+  // Property tables (separate from frozen adjlist tables)
+  if (opts.has_node_props)
+  {
+    string node_props_cfg = "key_format=u,value_format=u,leaf_page_max=64KB";
+    int ret = sess->create(
+        sess, ("table:" + string(NODE_PROPS_TABLE)).c_str(), node_props_cfg.c_str());
+    if (ret != 0)
+      throw GraphException("Failed to create NODE_PROPS table: " +
+                           string(wiredtiger_strerror(ret)));
+  }
+  if (opts.has_edge_props)
+  {
+    string edge_props_cfg = "key_format=uu,value_format=u,leaf_page_max=64KB";
+    int ret = sess->create(
+        sess, ("table:" + string(EDGE_PROPS_TABLE)).c_str(), edge_props_cfg.c_str());
+    if (ret != 0)
+      throw GraphException("Failed to create EDGE_PROPS table: " +
+                           string(wiredtiger_strerror(ret)));
+  }
+
   sess->close(sess, nullptr);
 }
 
@@ -231,6 +252,109 @@ void AdjList::init_cursors()
     throw GraphException("Could not get a cursor to the in_Adjlist table: " +
                          string(wiredtiger_strerror(ret)));
   }
+
+  // Property cursors — only opened when property tables exist
+  if (opts.has_node_props)
+  {
+    if ((ret = session->open_cursor(
+             session,
+             ("table:" + string(NODE_PROPS_TABLE)).c_str(),
+             nullptr,
+             nullptr,
+             &node_props_cursor)) != 0)
+      throw GraphException("Could not open node_props cursor: " +
+                           string(wiredtiger_strerror(ret)));
+  }
+  if (opts.has_edge_props)
+  {
+    if ((ret = session->open_cursor(
+             session,
+             ("table:" + string(EDGE_PROPS_TABLE)).c_str(),
+             nullptr,
+             nullptr,
+             &edge_props_cursor)) != 0)
+      throw GraphException("Could not open edge_props cursor: " +
+                           string(wiredtiger_strerror(ret)));
+  }
+}
+
+void AdjList::set_node_properties(node_id_t id,
+                                   const uint8_t *data,
+                                   size_t size)
+{
+  static const uint8_t placeholder = 0;
+  CommonUtil::set_key(node_props_cursor, id);
+  WT_ITEM item;
+  item.data = (data != nullptr && size > 0) ? static_cast<const void *>(data)
+                                             : static_cast<const void *>(&placeholder);
+  item.size = (size > 0) ? size : 1;
+  node_props_cursor->set_value(node_props_cursor, &item);
+  int ret = node_props_cursor->insert(node_props_cursor);
+  if (ret == WT_DUPLICATE_KEY)
+  {
+    node_props_cursor->set_value(node_props_cursor, &item);
+    ret = node_props_cursor->update(node_props_cursor);
+  }
+  if (ret != 0)
+    throw GraphException("set_node_properties failed for node " +
+                         std::to_string(id) + ": " +
+                         string(wiredtiger_strerror(ret)));
+}
+
+prop_blob AdjList::get_node_properties(node_id_t id)
+{
+  CommonUtil::set_key(node_props_cursor, id);
+  if (node_props_cursor->search(node_props_cursor) != 0)
+    return {nullptr, 0};
+  WT_ITEM item;
+  node_props_cursor->get_value(node_props_cursor, &item);
+  uint8_t *copy = new uint8_t[item.size];
+  memcpy(copy, item.data, item.size);
+  return {copy, item.size};
+}
+
+void AdjList::set_edge_properties(node_id_t src,
+                                   node_id_t dst,
+                                   const uint8_t *data,
+                                   size_t size)
+{
+  static const uint8_t placeholder = 0;
+  CommonUtil::set_key(edge_props_cursor, src, dst);
+  WT_ITEM item;
+  item.data = (data != nullptr && size > 0) ? static_cast<const void *>(data)
+                                             : static_cast<const void *>(&placeholder);
+  item.size = (size > 0) ? size : 1;
+  edge_props_cursor->set_value(edge_props_cursor, &item);
+  int ret = edge_props_cursor->insert(edge_props_cursor);
+  if (ret == WT_DUPLICATE_KEY)
+  {
+    edge_props_cursor->set_value(edge_props_cursor, &item);
+    ret = edge_props_cursor->update(edge_props_cursor);
+  }
+  if (ret != 0)
+    throw GraphException("set_edge_properties failed for edge (" +
+                         std::to_string(src) + ", " + std::to_string(dst) +
+                         "): " + string(wiredtiger_strerror(ret)));
+
+  // For undirected graphs also store the reverse direction
+  if (!opts.is_directed)
+  {
+    CommonUtil::set_key(edge_props_cursor, dst, src);
+    edge_props_cursor->set_value(edge_props_cursor, &item);
+    edge_props_cursor->insert(edge_props_cursor);  // best-effort reverse
+  }
+}
+
+prop_blob AdjList::get_edge_properties(node_id_t src, node_id_t dst)
+{
+  CommonUtil::set_key(edge_props_cursor, src, dst);
+  if (edge_props_cursor->search(edge_props_cursor) != 0)
+    return {nullptr, 0};
+  WT_ITEM item;
+  edge_props_cursor->get_value(edge_props_cursor, &item);
+  uint8_t *copy = new uint8_t[item.size];
+  memcpy(copy, item.data, item.size);
+  return {copy, item.size};
 }
 
 /**

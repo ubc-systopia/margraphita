@@ -128,18 +128,18 @@ void SplitEdgeKey::init_cursors()
     throw GraphException("Could not get an in edge cursor: " +
                          string(wiredtiger_strerror(ret)));
   }
-  // Removed dst_src index dependency
-  // std::string projection = "(" + ATTR_FIRST + "," + ATTR_SECOND + ")";
-  // ret = _get_index_cursor(OUT_EDGES,
-  //                         DST_SRC_INDEX,
-  //                         projection,
-  //                         opts.checkpoint_name,
-  //                         &dst_src_idx_cursor);
-  // if (ret != 0)
-  // {
-  //   throw GraphException("Could not get a cursor to the dst_src index" +
-  //                        string(wiredtiger_strerror(ret)));
-  // }
+  // degree_cursor: separate cursor on OUT_EDGES for node property read/write
+  // (avoids position conflicts with out_edge_cursor during load)
+  if ((ret = _get_table_cursor(OUT_EDGES,
+                               &degree_cursor,
+                               session,
+                               false,
+                               true,
+                               opts.checkpoint_name)))
+  {
+    throw GraphException("Could not get degree cursor: " +
+                         string(wiredtiger_strerror(ret)));
+  }
 }
 
 /**
@@ -295,9 +295,16 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   CommonUtil::ekey_set_edge_key(out_edge_cursor, to_insert.src_id, to_insert.dst_id);
   if (opts.is_weighted)
   {
-    // out_edge_cursor->set_value(
-    // out_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
     ekey_set_edge_value(out_edge_cursor, to_insert.edge_weight);
+  }
+  else if (opts.has_edge_props)
+  {
+    // Store a 1-byte sentinel so set_edge_properties can overwrite later.
+    // Never pass size=0 to WiredTiger: it frees the cursor's internal buffer
+    // but leaves the pointer non-null, causing a double-free on cursor close.
+    static const uint8_t placeholder = 0;
+    WT_ITEM empty = { &placeholder, 1 };
+    out_edge_cursor->set_value(out_edge_cursor, &empty);
   }
   else
   {
@@ -311,9 +318,13 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   CommonUtil::ekey_set_edge_key(in_edge_cursor, to_insert.dst_id, to_insert.src_id);
   if (opts.is_weighted)
   {
-    // in_edge_cursor->set_value(
-    //     in_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
     ekey_set_edge_value(in_edge_cursor, to_insert.edge_weight);
+  }
+  else if (opts.has_edge_props)
+  {
+    static const uint8_t placeholder = 0;
+    WT_ITEM empty = { &placeholder, 1 };
+    in_edge_cursor->set_value(in_edge_cursor, &empty);
   }
   else
   {
@@ -328,6 +339,114 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   GraphBase::increment_edges(num_edges_to_add);
   return 0;
 }
+
+void SplitEdgeKey::set_node_properties(node_id_t id,
+                                        const uint8_t *prop_data,
+                                        size_t prop_size)
+{
+  // Node sentinel lives in OUT_EDGES at key (MAKE_EKEY(id), OutOfBand_ID_MIN).
+  // We read the existing degrees, then rewrite the sentinel with
+  // [in_deg (4B) | out_deg (4B) | prop_data ...].
+  CommonUtil::ekey_set_node_key(degree_cursor, id);
+  int ret = degree_cursor->search(degree_cursor);
+  if (ret != 0)
+    throw GraphException("set_node_properties: node not found: " +
+                         std::to_string(id));
+
+  degree_t in_deg = 0, out_deg = 0;
+  ekey_get_node_value(degree_cursor, &in_deg, &out_deg);
+
+  size_t total = sizeof(degree_t) * 2 + prop_size;
+  std::vector<uint8_t> buf(total);
+  memcpy(buf.data(), &in_deg, sizeof(degree_t));
+  memcpy(buf.data() + sizeof(degree_t), &out_deg, sizeof(degree_t));
+  if (prop_size > 0)
+    memcpy(buf.data() + sizeof(degree_t) * 2, prop_data, prop_size);
+
+  WT_ITEM item;
+  item.data = buf.data();
+  item.size = total;
+  degree_cursor->set_value(degree_cursor, &item);
+  if (degree_cursor->update(degree_cursor) != 0)
+    throw GraphException("set_node_properties: update failed for node " +
+                         std::to_string(id));
+}
+
+prop_blob SplitEdgeKey::get_node_properties(node_id_t id)
+{
+  CommonUtil::ekey_set_node_key(degree_cursor, id);
+  if (degree_cursor->search(degree_cursor) != 0)
+    return {nullptr, 0};
+
+  WT_ITEM item;
+  degree_cursor->get_value(degree_cursor, &item);
+
+  // First 8 bytes are degrees; properties start at offset 8.
+  constexpr size_t HDR = sizeof(degree_t) * 2;
+  if (item.size <= HDR)
+    return {nullptr, 0};
+
+  size_t prop_size = item.size - HDR;
+  uint8_t *copy = new uint8_t[prop_size];
+  memcpy(copy, static_cast<const uint8_t *>(item.data) + HDR, prop_size);
+  return {copy, prop_size};
+}
+
+void SplitEdgeKey::set_edge_properties(node_id_t src,
+                                        node_id_t dst,
+                                        const uint8_t *data,
+                                        size_t size)
+{
+  // Never pass size=0 to WiredTiger — use a 1-byte sentinel for "no properties".
+  // Edges with no properties (e.g. hasCreator) call us with data=nullptr, size=0.
+  static const uint8_t placeholder = 0;
+  WT_ITEM item;
+  if (data == nullptr || size == 0) {
+    item.data = &placeholder;
+    item.size = 1;
+  } else {
+    item.data = data;
+    item.size = size;
+  }
+
+  // Update OUT_EDGES (src, dst)
+  CommonUtil::ekey_set_edge_key(out_edge_cursor, src, dst);
+  if (out_edge_cursor->search(out_edge_cursor) != 0)
+    throw GraphException("set_edge_properties: edge not found (" +
+                         std::to_string(src) + ", " + std::to_string(dst) + ")");
+  out_edge_cursor->set_value(out_edge_cursor, &item);
+  if (out_edge_cursor->update(out_edge_cursor) != 0)
+    throw GraphException("set_edge_properties: update failed on OUT_EDGES");
+
+  // For directed graphs also update IN_EDGES (stored as dst, src).
+  // For undirected graphs in_edge_cursor points to OUT_EDGES, so update
+  // the reverse direction (dst, src) there.
+  CommonUtil::ekey_set_edge_key(in_edge_cursor, dst, src);
+  if (in_edge_cursor->search(in_edge_cursor) != 0)
+    throw GraphException("set_edge_properties: reverse edge not found (" +
+                         std::to_string(dst) + ", " + std::to_string(src) + ")");
+  in_edge_cursor->set_value(in_edge_cursor, &item);
+  if (in_edge_cursor->update(in_edge_cursor) != 0)
+    throw GraphException("set_edge_properties: update failed on IN_EDGES");
+}
+
+prop_blob SplitEdgeKey::get_edge_properties(node_id_t src, node_id_t dst)
+{
+  CommonUtil::ekey_set_edge_key(out_edge_cursor, src, dst);
+  if (out_edge_cursor->search(out_edge_cursor) != 0)
+    return {nullptr, 0};
+
+  WT_ITEM item;
+  out_edge_cursor->get_value(out_edge_cursor, &item);
+  // size <= 1 means 1-byte "no properties" sentinel (or legacy size-0 value)
+  if (item.size <= 1)
+    return {nullptr, 0};
+
+  uint8_t *copy = new uint8_t[item.size];
+  memcpy(copy, item.data, item.size);
+  return {copy, item.size};
+}
+
 /**
  * Check if the edge between src_id and dst_id exists in the graph.
  * @param src_id

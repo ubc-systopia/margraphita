@@ -8,9 +8,12 @@
 #include <utility>
 #include <vector>
 
+#include <cstring>
+
 #include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
+#include "prop_schema.h"
 #include "sample_graph_adjlist.h"
 #include "test_utils.h"
 #include "times.h"
@@ -1108,6 +1111,74 @@ void test_update_edge(AdjList &graph, bool is_directed)
 }
 
 // accept read_opt, sort_edges from command line
+void test_embedded_node_props(AdjList &graph)
+{
+  std::cout << "Now running: test_embedded_node_props" << std::endl;
+  graph.add_node({.id = 100, .in_degree = 0, .out_degree = 0}, false);
+  graph.add_node({.id = 200, .in_degree = 0, .out_degree = 0}, false);
+
+  // Person properties for node 100
+  uint8_t person_buf[SNBPersonSchema::TOTAL_SIZE] = {};
+  SNBPersonSchema::set_creation_date(person_buf, 1000000LL);
+  SNBPersonSchema::set_birthday(person_buf, 2000000LL);
+  SNBPersonSchema::set_gender(person_buf, 1);
+  graph.set_node_properties(100, person_buf, SNBPersonSchema::TOTAL_SIZE);
+
+  // Post properties for node 200
+  uint8_t post_buf[SNBPostSchema::TOTAL_SIZE] = {};
+  SNBPostSchema::set_creation_date(post_buf, 3000000LL);
+  SNBPostSchema::set_length(post_buf, 42);
+  graph.set_node_properties(200, post_buf, SNBPostSchema::TOTAL_SIZE);
+
+  // Verify person round-trip
+  prop_blob pb = graph.get_node_properties(100);
+  assert(pb.data != nullptr && pb.size == SNBPersonSchema::TOTAL_SIZE);
+  assert(SNBPersonSchema::get_creation_date(pb.data) == 1000000LL);
+  assert(SNBPersonSchema::get_birthday(pb.data) == 2000000LL);
+  assert(SNBPersonSchema::get_gender(pb.data) == 1);
+  delete[] pb.data;
+
+  // Verify post round-trip
+  pb = graph.get_node_properties(200);
+  assert(pb.data != nullptr && pb.size == SNBPostSchema::TOTAL_SIZE);
+  assert(SNBPostSchema::get_creation_date(pb.data) == 3000000LL);
+  assert(SNBPostSchema::get_length(pb.data) == 42);
+  delete[] pb.data;
+
+  std::cout << "test_embedded_node_props: PASSED" << std::endl;
+}
+
+void test_embedded_edge_props(AdjList &graph)
+{
+  std::cout << "Now running: test_embedded_edge_props" << std::endl;
+  graph.add_node({.id = 300, .in_degree = 0, .out_degree = 0}, false);
+  graph.add_node({.id = 400, .in_degree = 0, .out_degree = 0}, false);
+  graph.add_node({.id = 500, .in_degree = 0, .out_degree = 0}, false);
+
+  // knows edge with properties
+  edge knows_edge = {.src_id = 300, .dst_id = 400, .edge_weight = 0.0};
+  graph.add_edge(knows_edge, false);
+  uint8_t knows_buf[SNBKnowsSchema::TOTAL_SIZE] = {};
+  SNBKnowsSchema::set_creation_date(knows_buf, 9999999LL);
+  graph.set_edge_properties(300, 400, knows_buf, SNBKnowsSchema::TOTAL_SIZE);
+
+  prop_blob pb = graph.get_edge_properties(300, 400);
+  assert(pb.data != nullptr && pb.size == SNBKnowsSchema::TOTAL_SIZE);
+  assert(SNBKnowsSchema::get_creation_date(pb.data) == 9999999LL);
+  delete[] pb.data;
+
+  // hasCreator-style edge: no properties (size=0 written as 1-byte sentinel)
+  edge hc_edge = {.src_id = 400, .dst_id = 500, .edge_weight = 0.0};
+  graph.add_edge(hc_edge, false);
+  graph.set_edge_properties(400, 500, nullptr, 0);
+  pb = graph.get_edge_properties(400, 500);
+  // size==1 is the 1-byte "no properties" sentinel stored by set_edge_properties
+  assert(pb.data != nullptr && pb.size <= 1);
+  delete[] pb.data;
+
+  std::cout << "test_embedded_edge_props: PASSED" << std::endl;
+}
+
 int main(int argc, char *argv[])
 {
   const int THREAD_NUM = 1;
@@ -1220,6 +1291,27 @@ int main(int argc, char *argv[])
   assert(ret == WT_ROLLBACK);
   rograph->close(false);
   roEngine.close_graph();
+
+  // Property storage tests
+  graph_opts prop_opts;
+  prop_opts.create_new    = true;
+  prop_opts.is_directed   = true;
+  prop_opts.is_weighted   = false;
+  prop_opts.has_node_props = true;
+  prop_opts.has_edge_props = true;
+  prop_opts.type          = GraphType::Adj;
+  prop_opts.db_name       = "test_adj_props";
+  prop_opts.db_dir        = "./db";
+  prop_opts.conn_config   = "cache_size=1GB";
+  prop_opts.stat_log      = "./";
+  GraphEngine propEngine(1, prop_opts);
+  WT_CONNECTION *prop_conn = propEngine.get_connection();
+  {
+    AdjList prop_graph(prop_opts, prop_conn);
+    test_embedded_node_props(prop_graph);
+    test_embedded_edge_props(prop_graph);
+  }
+  propEngine.close_graph();
 }
 
 /** notes:

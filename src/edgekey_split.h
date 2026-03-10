@@ -76,18 +76,10 @@ class SplitEdgeKey : public GraphBase
     opts.num_nodes = num;
   };
 
-  void set_node_properties(node_id_t id, const uint8_t* data, size_t size) override {
-    throw GraphException("Property storage not implemented for SplitEdgeKey");
-  }
-  prop_blob get_node_properties(node_id_t id) override {
-    throw GraphException("Property storage not implemented for SplitEdgeKey");
-  }
-  void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override {
-    throw GraphException("Property storage not implemented for SplitEdgeKey");
-  }
-  prop_blob get_edge_properties(node_id_t src, node_id_t dst) override {
-    throw GraphException("Property storage not implemented for SplitEdgeKey");
-  }
+  void set_node_properties(node_id_t id, const uint8_t* data, size_t size) override;
+  prop_blob get_node_properties(node_id_t id) override;
+  void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override;
+  prop_blob get_edge_properties(node_id_t src, node_id_t dst) override;
 
  private:
   WT_CURSOR *out_edge_cursor = nullptr;

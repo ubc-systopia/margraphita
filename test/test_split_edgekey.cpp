@@ -1,8 +1,10 @@
 #include <cassert>
+#include <cstring>
 
 #include "common_util.h"
 #include "graph_engine.h"
 #include "graph_exception.h"
+#include "prop_schema.h"
 #include "sample_graph_ekey.h"
 
 #define delim "--------------"
@@ -602,6 +604,72 @@ void test_update_edge(SplitEdgeKey &graph, bool is_directed)
   assert(found1.edge_weight == 44.44);
 }
 
+void test_embedded_node_props(SplitEdgeKey &graph)
+{
+  INFO();
+  // add two nodes, then set_node_properties, then get_node_properties
+  graph.add_node({.id = 100});
+  graph.add_node({.id = 200});
+
+  // Person at node 100
+  uint8_t person_buf[SNBPersonSchema::TOTAL_SIZE] = {};
+  SNBPersonSchema::set_creation_date(person_buf, 1000000LL);
+  SNBPersonSchema::set_birthday(person_buf, 2000000LL);
+  SNBPersonSchema::set_gender(person_buf, 1);
+  graph.set_node_properties(100, person_buf, SNBPersonSchema::TOTAL_SIZE);
+
+  // Post at node 200
+  uint8_t post_buf[SNBPostSchema::TOTAL_SIZE] = {};
+  SNBPostSchema::set_creation_date(post_buf, 3000000LL);
+  SNBPostSchema::set_length(post_buf, 42);
+  graph.set_node_properties(200, post_buf, SNBPostSchema::TOTAL_SIZE);
+
+  // Verify person
+  prop_blob pb = graph.get_node_properties(100);
+  assert(pb.data != nullptr);
+  assert(pb.size == SNBPersonSchema::TOTAL_SIZE);
+  assert(SNBPersonSchema::get_creation_date(pb.data) == 1000000LL);
+  assert(SNBPersonSchema::get_birthday(pb.data) == 2000000LL);
+  assert(SNBPersonSchema::get_gender(pb.data) == 1);
+  delete[] pb.data;
+
+  // Verify post
+  pb = graph.get_node_properties(200);
+  assert(pb.data != nullptr);
+  assert(pb.size == SNBPostSchema::TOTAL_SIZE);
+  assert(SNBPostSchema::get_creation_date(pb.data) == 3000000LL);
+  assert(SNBPostSchema::get_length(pb.data) == 42);
+  delete[] pb.data;
+
+  fprintf(stderr, "test_embedded_node_props: PASSED\n");
+}
+
+void test_embedded_edge_props(SplitEdgeKey &graph)
+{
+  INFO();
+  // nodes 100 and 200 already exist from test_embedded_node_props
+  // knows edge: 100 -> 200 (directed)
+  graph.add_edge({.src_id = 100, .dst_id = 200, .edge_weight = 0.0}, false);
+
+  uint8_t knows_buf[SNBKnowsSchema::TOTAL_SIZE] = {};
+  SNBKnowsSchema::set_creation_date(knows_buf, 9999999LL);
+  graph.set_edge_properties(100, 200, knows_buf, SNBKnowsSchema::TOTAL_SIZE);
+
+  prop_blob pb = graph.get_edge_properties(100, 200);
+  assert(pb.data != nullptr);
+  assert(pb.size == SNBKnowsSchema::TOTAL_SIZE);
+  assert(SNBKnowsSchema::get_creation_date(pb.data) == 9999999LL);
+  delete[] pb.data;
+
+  // hasCreator-style edge with no properties
+  graph.add_edge({.src_id = 200, .dst_id = 100, .edge_weight = 0.0}, false);
+  graph.set_edge_properties(200, 100, nullptr, 0);
+  pb = graph.get_edge_properties(200, 100);
+  assert(pb.data == nullptr && pb.size == 0);
+
+  fprintf(stderr, "test_embedded_edge_props: PASSED\n");
+}
+
 int main()
 {
   const int THREAD_NUM = 1;
@@ -696,4 +764,28 @@ int main()
 
   // rograph->close(false);
   // roEngine.close_graph();
+
+  // ---- Property storage tests (separate graph instance) ----
+  graph_opts prop_opts;
+  prop_opts.create_new = true;
+  prop_opts.optimize_create = false;
+  prop_opts.is_directed = true;
+  prop_opts.read_optimize = true;
+  prop_opts.is_weighted = false;
+  prop_opts.has_node_props = true;
+  prop_opts.has_edge_props = true;
+  prop_opts.type = GraphType::SplitEKey;
+  prop_opts.db_name = "test_split_ekey_props";
+  prop_opts.db_dir = "./db";
+  prop_opts.conn_config = "cache_size=1GB";
+  prop_opts.stat_log = "./";
+
+  GraphEngine propEngine(1, prop_opts);
+  WT_CONNECTION *prop_conn = propEngine.get_connection();
+  {
+    SplitEdgeKey prop_graph(prop_opts, prop_conn);
+    test_embedded_node_props(prop_graph);
+    test_embedded_edge_props(prop_graph);
+  }
+  propEngine.close_graph();
 }
