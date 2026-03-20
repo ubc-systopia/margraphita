@@ -5,9 +5,9 @@
 //
 // Loads the subset: Person + Post vertices, knows + hasCreator + likes edges.
 //
-// ID-space partitioning:
-//   Person IDs → [0,  person_count)
-//   Post   IDs → [person_count, person_count + post_count)
+// Typed vertex ID scheme (bit-reservation):
+//   Person IDs → MAKE_TYPED_ID(VT_PERSON, counter)  [0x0000…, 0x0100…)
+//   Post   IDs → MAKE_TYPED_ID(VT_POST,   counter)  [0x0100…, 0x0200…)
 //
 // Loading order requirement (critical for SplitEdgeKey):
 //   1. load_persons / load_posts  → add_node + enqueue prop write
@@ -71,10 +71,10 @@ static int64_t parse_epoch_ms(const std::string &s)
 
 struct LDBCLoader {
     GraphBase *graph;
-    graph_opts opts;  // copy so we can read person_count etc.
+    graph_opts opts;  // copy for has_node_props / has_edge_props checks
 
-    node_id_t person_count = 0;
-    node_id_t post_count   = 0;
+    node_id_t person_count = 0;   // counter only (for logging / assertions)
+    node_id_t post_count   = 0;   // counter only (for logging / assertions)
 
     // LDBC original ID → compact Flexograph node_id_t
     std::unordered_map<int64_t, node_id_t> person_id_map;
@@ -120,7 +120,7 @@ struct LDBCLoader {
             auto fields = csv_split(line);
 
             int64_t ldbc_id = std::stoll(fields[col_id]);
-            node_id_t fid = person_count++;
+            node_id_t fid = MAKE_TYPED_ID(VT_PERSON, person_count++);
             person_id_map[ldbc_id] = fid;
 
             node n;
@@ -174,8 +174,7 @@ struct LDBCLoader {
             auto fields = csv_split(line);
 
             int64_t ldbc_id = std::stoll(fields[col_id]);
-            node_id_t fid = person_count + post_count;
-            post_count++;
+            node_id_t fid = MAKE_TYPED_ID(VT_POST, post_count++);
             post_id_map[ldbc_id] = fid;
 
             node n;
@@ -357,23 +356,10 @@ struct LDBCLoader {
         pending_edge_props.clear();
     }
 
-    // ------------------------------------------------------------------
-    // Convenience: update opts with final counts (call after all loads)
-    // ------------------------------------------------------------------
-
-    void finalize_opts(graph_opts &out_opts) const
-    {
-        out_opts.person_count = person_count;
-        // post_count is implicitly person_count..person_count+post_count-1
-    }
-
     // Helper: is this node ID a Person?
-    bool is_person(node_id_t id) const { return id < person_count; }
+    static bool is_person(node_id_t id) { return VTYPE_OF(id) == VT_PERSON; }
     // Helper: is this node ID a Post?
-    bool is_post(node_id_t id) const
-    {
-        return id >= person_count && id < person_count + post_count;
-    }
+    static bool is_post(node_id_t id) { return VTYPE_OF(id) == VT_POST; }
 };
 
 #endif  // LDBC_SNB_LOADER_H

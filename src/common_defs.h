@@ -65,6 +65,22 @@ typedef uint32_t edge_id_t;
 typedef double edgeweight_t;
 typedef uint32_t degree_t;
 
+// ---- Typed vertex ID (bit-reservation) ----
+// Top 8 bits of node_id_t encode vertex type; bottom 56 bits are the counter.
+// Compatible with bswap64: after Flexograph's key encoding, the type byte lands
+// first in WiredTiger's lexicographic comparison, giving free per-type sort order.
+// MAKE_EKEY/OG_KEY (+/-1 on full uint64) are safe — 2^56 vertices per type before
+// counter bits overflow into type bits.
+#define VTYPE_BITS    8
+#define VTYPE_SHIFT   56
+#define VTYPE_MASK    (((node_id_t)0xFF) << VTYPE_SHIFT)
+#define MAKE_TYPED_ID(type, counter) \
+    (((node_id_t)(type) << VTYPE_SHIFT) | (node_id_t)(counter))
+#define VTYPE_OF(id)    ((id) >> VTYPE_SHIFT)
+#define VCOUNTER_OF(id) ((id) & ~VTYPE_MASK)
+
+enum VertexType : uint8_t { VT_PERSON = 0, VT_POST = 1 };
+
 /// @brief EdgeKey specific definitions
 const node_id_t OutOfBand_ID_MIN =
     0;  // Used to be -1. Changed to 0 to avoid issues with unsigned types.
@@ -106,7 +122,6 @@ struct graph_opts
   bool has_node_props = false;
   bool has_edge_props = false;
   PropStorageMode prop_mode = EMBEDDED;
-  node_id_t person_count = 0;  // LDBC SNB: boundary between Person and Post IDs
   // make a default constructor
   graph_opts()
       : read_only(false),
@@ -128,8 +143,7 @@ struct graph_opts
         sort_edges(false),
         has_node_props(false),
         has_edge_props(false),
-        prop_mode(EMBEDDED),
-        person_count(0)
+        prop_mode(EMBEDDED)
   {
   }
   ~graph_opts() = default;
@@ -167,7 +181,6 @@ struct graph_opts
     *out << "HAS_NODE_PROPS: " << has_node_props << std::endl;
     *out << "HAS_EDGE_PROPS: " << has_edge_props << std::endl;
     *out << "PROP_MODE: " << prop_mode << std::endl;
-    *out << "PERSON_COUNT: " << person_count << std::endl;
 
     if (file.is_open())
     {
@@ -200,7 +213,6 @@ struct graph_opts
       has_node_props = other.has_node_props;
       has_edge_props = other.has_edge_props;
       prop_mode = other.prop_mode;
-      person_count = other.person_count;
     }
     return *this;
   }
@@ -227,7 +239,6 @@ struct graph_opts
     has_node_props = other.has_node_props;
     has_edge_props = other.has_edge_props;
     prop_mode = other.prop_mode;
-    person_count = other.person_count;
   }
 };
 

@@ -36,19 +36,11 @@
 #include "prop_schema.h"
 
 // ============================================================
-// ID-space helpers
+// Typed-vertex-ID helpers (O(1), no runtime state)
 // ============================================================
 
-static inline bool is_person(node_id_t id, node_id_t person_count)
-{
-    return id < person_count;
-}
-
-static inline bool is_post(node_id_t id, node_id_t person_count,
-                           node_id_t post_count)
-{
-    return id >= person_count && id < person_count + post_count;
-}
+static inline bool is_person(node_id_t id) { return VTYPE_OF(id) == VT_PERSON; }
+static inline bool is_post(node_id_t id)   { return VTYPE_OF(id) == VT_POST; }
 
 // ============================================================
 // Property read helpers (decode blobs by ID range)
@@ -140,11 +132,11 @@ using Ms = std::chrono::duration<double, std::milli>;
 // ============================================================
 
 // W1: Insert a new Person vertex
-static void w1_insert_person(GraphBase &graph, node_id_t &person_count,
+static void w1_insert_person(GraphBase &graph, node_id_t &person_counter,
                              bool has_props)
 {
     SEP();
-    node_id_t new_id = person_count;  // append at end of person range
+    node_id_t new_id = MAKE_TYPED_ID(VT_PERSON, person_counter++);
     TIME_START(w1_insert_person)
 
     node n;
@@ -159,7 +151,6 @@ static void w1_insert_person(GraphBase &graph, node_id_t &person_count,
         graph.set_node_properties(new_id, buf, SNBPersonSchema::TOTAL_SIZE);
     }
 
-    person_count++;
     TIME_END(w1_insert_person)
     fprintf(stderr, "  inserted Person id=%llu\n", (unsigned long long)new_id);
 }
@@ -278,8 +269,7 @@ r2_friends_sorted_by_date(GraphBase &graph, node_id_t pid, bool has_props)
 }
 
 // R3: BFS shortest path — unweighted distance between two persons
-static int r3_bfs_shortest_path(GraphBase &graph, node_id_t src, node_id_t dst,
-                                node_id_t person_count)
+static int r3_bfs_shortest_path(GraphBase &graph, node_id_t src, node_id_t dst)
 {
     SEP();
     TIME_START(r3_bfs_shortest_path)
@@ -300,7 +290,7 @@ static int r3_bfs_shortest_path(GraphBase &graph, node_id_t src, node_id_t dst,
         std::vector<node_id_t> nbrs = graph.get_out_nodes_id(u);
         for (node_id_t v : nbrs) {
             // Only traverse knows edges (person→person)
-            if (!is_person(v, person_count)) continue;
+            if (!is_person(v)) continue;
             if (dist.count(v)) continue;
             dist[v] = dist[u] + 1;
             if (v == dst) { found_dist = dist[v]; break; }
@@ -336,8 +326,7 @@ static PostProps x1_post_profile(GraphBase &graph, node_id_t post_id)
 // X2: Post → author (hasCreator reverse lookup)
 // In our model: hasCreator is stored as Post→Person out-edge.
 // So: look at out-edges of a Post, find the one pointing to a Person.
-static node_id_t x2_post_author(GraphBase &graph, node_id_t post_id,
-                                 node_id_t person_count)
+static node_id_t x2_post_author(GraphBase &graph, node_id_t post_id)
 {
     SEP();
     TIME_START(x2_post_author)
@@ -345,7 +334,7 @@ static node_id_t x2_post_author(GraphBase &graph, node_id_t post_id,
     std::vector<node_id_t> out = graph.get_out_nodes_id(post_id);
     node_id_t author = OutOfBand_ID_MAX;
     for (node_id_t nb : out) {
-        if (is_person(nb, person_count)) {
+        if (is_person(nb)) {
             author = nb;
             break;
         }
@@ -366,7 +355,6 @@ static node_id_t x2_post_author(GraphBase &graph, node_id_t post_id,
 static std::vector<std::pair<node_id_t, int64_t>>
 x3_ic2_friends_recent_posts(GraphBase &graph, node_id_t pid,
                              int64_t cutoff_ms, int limit,
-                             node_id_t person_count, node_id_t post_count,
                              bool has_props)
 {
     SEP();
@@ -381,11 +369,11 @@ x3_ic2_friends_recent_posts(GraphBase &graph, node_id_t pid,
     // In our model: hasCreator is Post→Person out-edge, so we look at
     // in-edges of each friend (Person) — those are Posts whose hasCreator is this friend.
     for (node_id_t friend_id : friends) {
-        if (!is_person(friend_id, person_count)) continue;
+        if (!is_person(friend_id)) continue;
 
         std::vector<node_id_t> creators_in = graph.get_in_nodes_id(friend_id);
         for (node_id_t post_id : creators_in) {
-            if (!is_post(post_id, person_count, post_count)) continue;
+            if (!is_post(post_id)) continue;
 
             int64_t post_date = 0;
             if (has_props) {
@@ -441,7 +429,7 @@ static void x4_insert_likes(GraphBase &graph, node_id_t person_id,
 // X5: Count likes on a post within a date range [lo_ms, hi_ms]
 static int64_t x5_count_likes_in_range(GraphBase &graph, node_id_t post_id,
                                         int64_t lo_ms, int64_t hi_ms,
-                                        node_id_t person_count, bool has_props)
+                                        bool has_props)
 {
     SEP();
     TIME_START(x5_count_likes_in_range)
@@ -450,7 +438,7 @@ static int64_t x5_count_likes_in_range(GraphBase &graph, node_id_t post_id,
     std::vector<node_id_t> likers = graph.get_in_nodes_id(post_id);
     int64_t count = 0;
     for (node_id_t liker : likers) {
-        if (!is_person(liker, person_count)) continue;
+        if (!is_person(liker)) continue;
         if (!has_props) { count++; continue; }
         prop_blob pb = graph.get_edge_properties(liker, post_id);
         int64_t cd = decode_likes(pb).creation_date;
@@ -488,7 +476,7 @@ a1_degree_count(GraphBase &graph, node_id_t id)
 // A2: Count knows edges originating from a person within a date range
 static int64_t a2_knows_in_date_range(GraphBase &graph, node_id_t pid,
                                        int64_t lo_ms, int64_t hi_ms,
-                                       node_id_t person_count, bool has_props)
+                                       bool has_props)
 {
     SEP();
     TIME_START(a2_knows_in_date_range)
@@ -496,7 +484,7 @@ static int64_t a2_knows_in_date_range(GraphBase &graph, node_id_t pid,
     std::vector<node_id_t> friends = graph.get_out_nodes_id(pid);
     int64_t count = 0;
     for (node_id_t nb : friends) {
-        if (!is_person(nb, person_count)) continue;
+        if (!is_person(nb)) continue;
         if (!has_props) { count++; continue; }
         prop_blob pb = graph.get_edge_properties(pid, nb);
         int64_t cd = decode_knows(pb).creation_date;
@@ -513,7 +501,7 @@ static int64_t a2_knows_in_date_range(GraphBase &graph, node_id_t pid,
 // A3: Count posts liked by a person within a date range
 static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
                                         int64_t lo_ms, int64_t hi_ms,
-                                        node_id_t person_count, bool has_props)
+                                        bool has_props)
 {
     SEP();
     TIME_START(a3_posts_liked_in_range)
@@ -521,7 +509,7 @@ static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
     std::vector<node_id_t> liked = graph.get_out_nodes_id(pid);
     int64_t count = 0;
     for (node_id_t post_id : liked) {
-        if (is_person(post_id, person_count)) continue;  // skip knows edges
+        if (!is_post(post_id)) continue;  // skip knows edges
         if (!has_props) { count++; continue; }
         prop_blob pb = graph.get_edge_properties(pid, post_id);
         int64_t cd = decode_likes(pb).creation_date;
@@ -609,8 +597,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "done\n");
 
     node_id_t person_count = loader.person_count;
-    const node_id_t post_count   = loader.post_count;
-    const node_id_t post_base    = person_count;  // first post ID
+    node_id_t post_count   = loader.post_count;
 
     fprintf(stderr, "\n=== Graph loaded: %llu persons, %llu posts ===\n\n",
             (unsigned long long)person_count,
@@ -618,14 +605,16 @@ int main(int argc, char **argv)
 
     // ---- Pick sample IDs for queries ----
     // Use person 0 and person 1 as query subjects (always exist if SF > 0)
-    node_id_t sample_person0 = 0;
-    node_id_t sample_person1 = (person_count > 1) ? 1 : 0;
-    node_id_t sample_post0   = (post_count > 0) ? post_base : OutOfBand_ID_MAX;
+    node_id_t sample_person0 = MAKE_TYPED_ID(VT_PERSON, 0);
+    node_id_t sample_person1 = (person_count > 1) ? MAKE_TYPED_ID(VT_PERSON, 1)
+                                                   : sample_person0;
+    node_id_t sample_post0   = (post_count > 0) ? MAKE_TYPED_ID(VT_POST, 0)
+                                                 : OutOfBand_ID_MAX;
 
     fprintf(stderr, "=== WRITE QUERIES ===\n");
 
     // W1: insert a new person
-    w1_insert_person(graph, person_count, opts.has_node_props);
+    w1_insert_person(graph, person_count, opts.has_node_props);  // person_count used as counter only
 
     // W2: insert knows edge 0→1 (may already exist, but demonstrates the API)
     if (person_count >= 2) {
@@ -634,7 +623,7 @@ int main(int argc, char **argv)
     }
 
     // W3: insert a new post + hasCreator edge
-    node_id_t next_post_id = post_base + post_count;
+    node_id_t next_post_id = MAKE_TYPED_ID(VT_POST, post_count);
     w3_insert_post_with_creator(graph, next_post_id, sample_person0,
                                 1700000002000LL, 42, opts.has_node_props);
 
@@ -648,7 +637,7 @@ int main(int argc, char **argv)
 
     // R3: BFS shortest path (may be slow for large graphs — demo only)
     if (person_count >= 2)
-        r3_bfs_shortest_path(graph, sample_person0, sample_person1, person_count);
+        r3_bfs_shortest_path(graph, sample_person0, sample_person1);
 
     fprintf(stderr, "\n=== CROSS-TYPE READ QUERIES ===\n");
 
@@ -658,13 +647,12 @@ int main(int argc, char **argv)
 
     // X2: post → author
     if (sample_post0 != OutOfBand_ID_MAX)
-        x2_post_author(graph, sample_post0, person_count);
+        x2_post_author(graph, sample_post0);
 
     // X3: IC-2 friends' recent posts
     {
         int64_t cutoff = INT64_MAX;  // all posts before "now"
         x3_ic2_friends_recent_posts(graph, sample_person0, cutoff, 10,
-                                    person_count, post_count,
                                     opts.has_node_props);
     }
 
@@ -678,7 +666,7 @@ int main(int argc, char **argv)
     if (sample_post0 != OutOfBand_ID_MAX) {
         x5_count_likes_in_range(graph, sample_post0,
                                 0LL, INT64_MAX,
-                                person_count, opts.has_edge_props);
+                                opts.has_edge_props);
     }
 
     fprintf(stderr, "\n=== AGGREGATE QUERIES ===\n");
@@ -689,13 +677,13 @@ int main(int argc, char **argv)
     // A2: knows edges in date range for person 0
     a2_knows_in_date_range(graph, sample_person0,
                            0LL, INT64_MAX,
-                           person_count, opts.has_edge_props);
+                           opts.has_edge_props);
 
     // A3: posts liked in date range for person 1
     if (sample_person1 != sample_person0)
         a3_posts_liked_in_range(graph, sample_person1,
                                 0LL, INT64_MAX,
-                                person_count, opts.has_edge_props);
+                                opts.has_edge_props);
 
     fprintf(stderr, "\n=== All queries complete ===\n");
 
