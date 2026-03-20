@@ -98,17 +98,21 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   string edge_value_format;       // Make I if weighted , x otherwise
   if (opts.is_weighted)
   {
-    // edge_columns.push_back(WEIGHT);
     edge_columns.emplace_back("weight");
+    edge_value_format += "u";
+  }
+  else if (opts.has_edge_props)
+  {
+    // Use raw blob format so the edge value slot holds property bytes directly.
+    // get_edge_wt is always guarded by is_weighted, so repurposing this slot
+    // for props is safe.
+    edge_columns.emplace_back("props");
     edge_value_format += "u";
   }
   else
   {
     edge_columns.emplace_back("NA");
-    edge_value_format +=
-        "b";  // uses 8 bits, which is the smallest possible value (?) other
-              // than x -- padded byte which I don't fully understand
-    // TODO: check if this is referred anywhere in the unweighted code path
+    edge_value_format += "b";
   }
 
   // Create edge table
@@ -159,16 +163,6 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
       throw GraphException("Failed to create NODE_PROPS table: " +
                            string(wiredtiger_strerror(ret)));
   }
-  if (opts.has_edge_props)
-  {
-    string edge_props_cfg = "key_format=uu,value_format=u,leaf_page_max=64KB";
-    int ret = sess->create(
-        sess, ("table:" + string(EDGE_PROPS_TABLE)).c_str(), edge_props_cfg.c_str());
-    if (ret != 0)
-      throw GraphException("Failed to create EDGE_PROPS table: " +
-                           string(wiredtiger_strerror(ret)));
-  }
-
   sess->close(sess, nullptr);
 }
 
@@ -265,17 +259,6 @@ void AdjList::init_cursors()
       throw GraphException("Could not open node_props cursor: " +
                            string(wiredtiger_strerror(ret)));
   }
-  if (opts.has_edge_props)
-  {
-    if ((ret = session->open_cursor(
-             session,
-             ("table:" + string(EDGE_PROPS_TABLE)).c_str(),
-             nullptr,
-             nullptr,
-             &edge_props_cursor)) != 0)
-      throw GraphException("Could not open edge_props cursor: " +
-                           string(wiredtiger_strerror(ret)));
-  }
 }
 
 void AdjList::set_node_properties(node_id_t id,
@@ -318,40 +301,39 @@ void AdjList::set_edge_properties(node_id_t src,
                                    const uint8_t *data,
                                    size_t size)
 {
+  // Edge properties are stored directly in the edge table value slot.
+  // add_edge already inserted the row with a 1-byte placeholder, so we update.
   static const uint8_t placeholder = 0;
-  CommonUtil::set_key(edge_props_cursor, src, dst);
   WT_ITEM item;
   item.data = (data != nullptr && size > 0) ? static_cast<const void *>(data)
                                              : static_cast<const void *>(&placeholder);
   item.size = (size > 0) ? size : 1;
-  edge_props_cursor->set_value(edge_props_cursor, &item);
-  int ret = edge_props_cursor->insert(edge_props_cursor);
-  if (ret == WT_DUPLICATE_KEY)
-  {
-    edge_props_cursor->set_value(edge_props_cursor, &item);
-    ret = edge_props_cursor->update(edge_props_cursor);
-  }
+
+  CommonUtil::set_key(edge_cursor, src, dst);
+  edge_cursor->set_value(edge_cursor, &item);
+  int ret = edge_cursor->update(edge_cursor);
   if (ret != 0)
     throw GraphException("set_edge_properties failed for edge (" +
                          std::to_string(src) + ", " + std::to_string(dst) +
                          "): " + string(wiredtiger_strerror(ret)));
 
-  // For undirected graphs also store the reverse direction
+  // For undirected graphs also update the reverse direction
   if (!opts.is_directed)
   {
-    CommonUtil::set_key(edge_props_cursor, dst, src);
-    edge_props_cursor->set_value(edge_props_cursor, &item);
-    edge_props_cursor->insert(edge_props_cursor);  // best-effort reverse
+    CommonUtil::set_key(edge_cursor, dst, src);
+    edge_cursor->set_value(edge_cursor, &item);
+    edge_cursor->update(edge_cursor);  // best-effort reverse
   }
 }
 
 prop_blob AdjList::get_edge_properties(node_id_t src, node_id_t dst)
 {
-  CommonUtil::set_key(edge_props_cursor, src, dst);
-  if (edge_props_cursor->search(edge_props_cursor) != 0)
+  // Edge properties live in the edge table value slot.
+  CommonUtil::set_key(edge_cursor, src, dst);
+  if (edge_cursor->search(edge_cursor) != 0)
     return {nullptr, 0};
   WT_ITEM item;
-  edge_props_cursor->get_value(edge_props_cursor, &item);
+  edge_cursor->get_value(edge_cursor, &item);
   uint8_t *copy = new uint8_t[item.size];
   memcpy(copy, item.data, item.size);
   return {copy, item.size};
@@ -752,12 +734,18 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
 
   if (opts.is_weighted)
   {
-    // edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
     set_edge_wt(edge_cursor, to_insert.edge_weight);
+  }
+  else if (opts.has_edge_props)
+  {
+    // Store a 1-byte placeholder; real properties written later via
+    // set_edge_properties.  value_format="u" so we must provide a WT_ITEM.
+    static const uint8_t empty = 0;
+    WT_ITEM item = {.data = &empty, .size = 1};
+    edge_cursor->set_value(edge_cursor, &item);
   }
   else
   {
-    // edge_cursor->set_value(edge_cursor, 0);
     set_edge_wt(edge_cursor, 0.0);
   }
   if ((ret = error_check_insert_txn(edge_cursor->insert(edge_cursor))))
@@ -770,12 +758,16 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
     CommonUtil::set_key(edge_cursor, to_insert.dst_id, to_insert.src_id);
     if (opts.is_weighted)
     {
-      // edge_cursor->set_value(edge_cursor, to_insert.edge_weight);
       set_edge_wt(edge_cursor, to_insert.edge_weight);
+    }
+    else if (opts.has_edge_props)
+    {
+      static const uint8_t empty = 0;
+      WT_ITEM item = {.data = &empty, .size = 1};
+      edge_cursor->set_value(edge_cursor, &item);
     }
     else
     {
-      // edge_cursor->set_value(edge_cursor, 0.0);
       set_edge_wt(edge_cursor, 0.0);
     }
     if ((ret = error_check_insert_txn(edge_cursor->insert(edge_cursor))))
