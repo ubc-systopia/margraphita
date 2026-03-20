@@ -1,6 +1,8 @@
 // LDBC SNB benchmark queries on Flexograph
 //
-// Usage: ./ldbc_snb_queries <data_dir>
+// Usage: ./ldbc_snb_queries <data_dir> [graph_type]
+//
+// graph_type: adj | splitekey  (default: splitekey)
 //
 // Expects LDBC SNB CSV files (pipe-delimited) under <data_dir>/dynamic/:
 //   person_0_0.csv
@@ -30,7 +32,6 @@
 #include <algorithm>
 
 #include "common_defs.h"
-#include "edgekey_split.h"
 #include "graph_engine.h"
 #include "ldbc_snb_loader.h"
 #include "prop_schema.h"
@@ -530,8 +531,9 @@ static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <data_dir>\n", argv[0]);
-        fprintf(stderr, "  data_dir should contain LDBC SNB dynamic/ CSV files\n");
+        fprintf(stderr, "Usage: %s <data_dir> [graph_type]\n", argv[0]);
+        fprintf(stderr, "  data_dir   should contain LDBC SNB dynamic/ CSV files\n");
+        fprintf(stderr, "  graph_type adj | splitekey  (default: splitekey)\n");
         return 1;
     }
 
@@ -542,6 +544,20 @@ int main(int argc, char **argv)
 
     std::string dyn = data_dir + "/dynamic";
 
+    // ---- Parse graph type ----
+    GraphType graph_type = GraphType::SplitEKey;
+    if (argc >= 3) {
+        std::string gt = argv[2];
+        if (gt == "adj")
+            graph_type = GraphType::Adj;
+        else if (gt == "splitekey")
+            graph_type = GraphType::SplitEKey;
+        else {
+            fprintf(stderr, "Unknown graph_type '%s'. Use: adj | splitekey\n", argv[2]);
+            return 1;
+        }
+    }
+
     // ---- Graph engine setup ----
     graph_opts opts;
     opts.create_new      = true;
@@ -551,15 +567,17 @@ int main(int argc, char **argv)
     opts.is_weighted     = false;
     opts.has_node_props  = true;
     opts.has_edge_props  = true;
-    opts.type            = GraphType::SplitEKey;
+    opts.type            = graph_type;
     opts.db_name         = "ldbc_snb_queries";
     opts.db_dir          = "./db";
     opts.conn_config     = "cache_size=2GB";
     opts.stat_log        = "./";
 
+    fprintf(stderr, "=== Graph type: %s ===\n", graph_type == GraphType::Adj ? "adj" : "splitekey");
+
     GraphEngine engine(1, opts);
-    WT_CONNECTION *conn = engine.get_connection();
-    SplitEdgeKey graph(opts, conn);
+    GraphBase *graph_ptr = engine.create_graph_handle();
+    GraphBase &graph = *graph_ptr;
 
     // ---- Load data ----
     fprintf(stderr, "=== Loading LDBC SNB data from %s ===\n", data_dir.c_str());
@@ -687,7 +705,7 @@ int main(int argc, char **argv)
 
     fprintf(stderr, "\n=== All queries complete ===\n");
 
-    graph.close(false);
+    graph_ptr->close(false);
     engine.close_graph();
     return 0;
 }
