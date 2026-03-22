@@ -51,8 +51,10 @@ inline std::vector<std::streamoff> compute_byte_ranges(const std::string& path,
 //   Only the first and last src-node adjlists are kept in memory for the
 //   boundary merge step.  Memory = O(buffer_size) not O(E/N).
 //
-// In-adjacency: accumulated in in_map (unordered_map<dst, adjlist>).
-//   Caller merges across threads after the parallel phase.
+// In-adjacency (Phase 1): count_and_build_out() atomically increments a
+//   shared in_degree[dst] array for every edge seen.  No per-thread map.
+//   The actual neighbor lists are filled in K scatter passes after the
+//   count phase (see scatter_band_range() below).
 // ---------------------------------------------------------------------------
 class ByteRangeEdgeReader
 {
@@ -64,9 +66,6 @@ class ByteRangeEdgeReader
   adjlist last_out_conflict;
   bool    has_data         = false;  // any src nodes processed
   bool    last_is_separate = false;  // last != first (2+ distinct src nodes)
-
-  // In-adjacency: full map for this thread's src range.
-  std::unordered_map<node_id_t, adjlist> in_map;
 
   ByteRangeEdgeReader(const std::string& input_path,
                       std::streamoff byte_start,
@@ -87,7 +86,15 @@ class ByteRangeEdgeReader
     out_buffer_.reserve(OUT_BUFFER_SIZE + 1);
   }
 
-  void build_adjlists()
+  // count_and_build_out: single pass over this thread's byte range.
+  //
+  // Out-adjacency: same streaming-to-disk logic as before (unchanged).
+  // In-adjacency: for every edge (src, dst), atomically increments
+  //   in_degree[dst].  Multiple threads share the same in_degree array;
+  //   #pragma omp atomic ensures correctness without a mutex.
+  //
+  // in_degree must be pre-allocated to size max_node_id+1 and zeroed.
+  void count_and_build_out(std::vector<uint32_t>& in_degree)
   {
     std::string line;
     adjlist cur_out;
@@ -106,7 +113,7 @@ class ByteRangeEdgeReader
       node_id_t dst = static_cast<node_id_t>(strtoull(end_ptr, &end_ptr, 10));
       if (is_weighted_) strtod(end_ptr, nullptr);  // weight unused for now
 
-      // --- Out-adjacency ---
+      // --- Out-adjacency (unchanged) ---
       if (!has_cur)
       {
         cur_out.node_id = src;
@@ -124,10 +131,13 @@ class ByteRangeEdgeReader
         cur_out.edgelist.push_back(dst);
       }
 
-      // --- In-adjacency ---
-      auto& in_adj = in_map[dst];
-      in_adj.node_id = dst;
-      in_adj.edgelist.push_back(src);
+      // --- In-adjacency: count only ---
+      // Bounds-check in case the file contains dst IDs beyond max_node_id.
+      if (dst < static_cast<node_id_t>(in_degree.size()))
+      {
+#pragma omp atomic
+        in_degree[dst]++;
+      }
     }
 
     if (has_cur && !cur_out.edgelist.empty())
@@ -194,6 +204,65 @@ class ByteRangeEdgeReader
     }
   }
 };
+
+// ---------------------------------------------------------------------------
+// scatter_band_range: Phase 4 scatter pass for one band [lo, hi].
+//
+// Reads edges from [byte_start, byte_end) of input_path a second time.
+// For each edge (src, dst) where lo <= dst <= hi:
+//   - Atomically grab the next available slot in write_pos[dst - lo].
+//   - Write src into in_adj_band[slot - band_base].
+//
+// Preconditions (set up by the caller before the parallel scatter loop):
+//   write_pos[dst - lo]  is initialized to offset[dst] for each dst in [lo, hi].
+//   band_base            = offset[lo]  (converts global slot → band-local index).
+//   in_adj_band          has size  offset[hi+1] - offset[lo]  (or equivalent).
+//
+// Thread safety: multiple threads call this with disjoint byte ranges.
+// write_pos is shared; the atomic capture gives each edge a unique slot, so
+// writes to in_adj_band never collide.
+// ---------------------------------------------------------------------------
+static void scatter_band_range(const std::string& input_path,
+                                std::streamoff byte_start,
+                                std::streamoff byte_end,
+                                bool is_weighted,
+                                node_id_t*  in_adj_band,
+                                uint64_t*   write_pos,   // size: hi - lo + 1
+                                node_id_t   lo,
+                                node_id_t   hi,
+                                uint64_t    band_base)
+{
+  std::ifstream f(input_path, std::ios::in);
+  if (!f.is_open())
+    throw GraphException("scatter_band_range: cannot open " + input_path);
+  f.seekg(byte_start);
+
+  std::string line;
+  while (true)
+  {
+    std::streamoff pos = f.tellg();
+    if (pos < 0 || pos >= byte_end) break;
+    if (!std::getline(f, line)) break;
+    if (line.empty()) continue;
+
+    const char* ptr = line.c_str();
+    char* end_ptr;
+    node_id_t src = static_cast<node_id_t>(strtoull(ptr, &end_ptr, 10));
+    node_id_t dst = static_cast<node_id_t>(strtoull(end_ptr, nullptr, 10));
+    // Weight field (if present) is not needed for scatter — skip it.
+
+    if (dst < lo || dst > hi) continue;  // outside this band
+
+    // Atomically claim the next slot for dst's in-neighbor list.
+    // #pragma omp atomic capture gives us the pre-increment value (the slot
+    // index to write to), ensuring no two threads write to the same position.
+    uint64_t slot;
+#pragma omp atomic capture
+    { slot = write_pos[dst - lo]; write_pos[dst - lo]++; }
+
+    in_adj_band[slot - band_base] = src;
+  }
+}
 
 namespace reader
 {

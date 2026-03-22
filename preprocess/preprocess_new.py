@@ -233,6 +233,49 @@ class Preprocess:
         if not vertexcount_line_found:
             raise FileNotFoundError(f"Could not find vertices count in properties file: {properties_file}")
 
+        ##############################
+        # determine max_node_id
+        ##############################
+        # max_node_id is the highest vertex ID in the graph.  It is NOT the
+        # same as num_nodes - 1 for sparse graphs (e.g. graph500-26 has
+        # ~32.8M distinct IDs spanning 0..67.1M).  We read the last line of
+        # the vertex file, which is sorted ascending, to get the exact value.
+        #
+        # Lookup order:
+        #   1. vertex-file path from the .properties file (relative to graph_dir)
+        #   2. <graph_dir>/<dataset_name>.v  (natural naming convention)
+        #   3. Fallback: num_nodes - 1  (correct only for dense 0-based IDs)
+        self.log("Reading max_node_id from vertex file")
+        vertex_filename_from_props = None
+        if os.path.exists(properties_file):
+            with open(properties_file, 'r') as f:
+                for line in f:
+                    if 'vertex-file' in line and '=' in line:
+                        vertex_filename_from_props = line.split('=')[1].strip()
+                        break
+
+        vertex_file = None
+        candidates = [
+            os.path.join(graph_dir, vertex_filename_from_props) if vertex_filename_from_props else None,
+            os.path.join(graph_dir, f"{self.config_data['dataset_name']}.v"),
+        ]
+        for candidate in candidates:
+            if candidate and os.path.exists(candidate):
+                vertex_file = candidate
+                break
+
+        if vertex_file:
+            max_node_id = int(check_output(['tail', '-1', vertex_file]).decode().strip())
+            self.config_data['max_node_id'] = max_node_id
+            self.log(f"max_node_id = {max_node_id} (from {vertex_file})")
+            print(f"Max node ID: {max_node_id}")
+        else:
+            max_node_id = self.config_data['num_nodes'] - 1
+            self.config_data['max_node_id'] = max_node_id
+            self.log(f"Vertex file not found; falling back to max_node_id = num_nodes - 1 = {max_node_id}")
+            print(f"Warning: vertex file not found; using max_node_id = {max_node_id} "
+                  f"(may be incorrect for sparse graphs)")
+
         # Reverse/sort/split steps removed: mk_adjlists builds both forward and
         # reverse adjacency lists in a single pass over the original input file.
 
@@ -244,7 +287,10 @@ class Preprocess:
             f"-n {self.config_data['num_nodes']} -f {self.config_data['output_dir']}/{self.config_data['dataset_name']} -t {graph_type} "
             f"-p {self.config_data['db_dir']} -l {self.config_data['log_dir']}/{graph_type}_rd_{self.config_data['dataset_name']}.log "
             f"-m {self.config_data['num_threads']} "
-            f"-i {self.config_data['graph_path']}")
+            f"-i {self.config_data['graph_path']}"
+            f" -N {self.config_data['max_node_id']}")
+        if 'mem_gb' in self.config_data:
+            cmd += f" -M {self.config_data['mem_gb']}"
         if self.config_data['directed']:
             cmd += " -D"
         if self.config_data['weighted']:
