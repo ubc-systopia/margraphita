@@ -1,4 +1,5 @@
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/preprocess.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/preprocess_new.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/insert_kron.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/graph_datasets.json ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/paths.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
@@ -45,6 +46,12 @@ target_link_libraries(init_db PUBLIC ${NAME_LIB} graph_utils)
 add_executable(mk_adjlists mk_adjlists.cpp reader.h mk_adjlists.h)
 target_include_directories(mk_adjlists PRIVATE ${PATH_SRC})
 target_link_libraries(mk_adjlists PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
+
+# ###################################################################################
+# mk_adjlists_new: single-pass byte-range variant (no external split/sort/awk)
+add_executable(mk_adjlists_new mk_adjlist_new.cpp reader_new.h mk_adjlists_new.h)
+target_include_directories(mk_adjlists_new PRIVATE ${PATH_SRC})
+target_link_libraries(mk_adjlists_new PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_utils)
 
 # ###################################################################################
 add_executable(dump_graph dump_graph.cpp reader.h)
