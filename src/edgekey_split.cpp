@@ -376,11 +376,13 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   {
     ekey_set_edge_value(out_edge_cursor, to_insert.edge_weight);
   }
-  else if (opts.has_edge_props)
+  else if (opts.has_edge_props && opts.prop_mode != COLUMNAR)
   {
-    // Store a 1-byte sentinel so set_edge_properties can overwrite later.
-    // Never pass size=0 to WiredTiger: it frees the cursor's internal buffer
-    // but leaves the pointer non-null, causing a double-free on cursor close.
+    // EMBEDDED mode: store a 1-byte sentinel so set_edge_properties can
+    // overwrite the value later.  Never pass size=0 to WiredTiger (double-free).
+    // In COLUMNAR mode this branch is skipped because set_edge_properties writes
+    // to separate per-type tables and never touches the edge table value, so we
+    // must store a properly-sized weight here or EdgeCursor will throw on read.
     static const uint8_t placeholder = 0;
     WT_ITEM empty = { &placeholder, 1 };
     out_edge_cursor->set_value(out_edge_cursor, &empty);
@@ -399,7 +401,7 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   {
     ekey_set_edge_value(in_edge_cursor, to_insert.edge_weight);
   }
-  else if (opts.has_edge_props)
+  else if (opts.has_edge_props && opts.prop_mode != COLUMNAR)
   {
     static const uint8_t placeholder = 0;
     WT_ITEM empty = { &placeholder, 1 };

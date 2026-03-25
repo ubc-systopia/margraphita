@@ -623,6 +623,118 @@ static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts)
     }
 }
 
+// BI-12 (optimised): Message Distribution by Person — two sequential scans, no point lookups.
+//
+// PROBLEM WITH THE NAIVE VERSION
+// --------------------------------
+// bi12_message_distribution() opens a colgroup cursor on post_props:temporal and,
+// for each of the N_posts rows, calls get_out_nodes_id(post_id) to find the creator.
+// get_out_nodes_id() issues one WT cursor seek per post, so the total cost is:
+//
+//   O(N_posts × point_lookup_latency)
+//
+// On SF3 (2.5M posts) this takes ~33 s because each seek hits a random leaf page in
+// the OUT_EDGES B-tree.  The colgroup scan itself (334 ms) is not the bottleneck.
+//
+// THE OPTIMISATION: TWO SEQUENTIAL SCANS
+// ----------------------------------------
+// hasCreator edges are POST→PERSON edges in the OUT_EDGES topology table.  Because
+// vertex types are encoded in the top 8 bits of every node_id_t (bit-reservation
+// scheme), we can identify them without any secondary index:
+//
+//   VTYPE_OF(src) == VT_POST  &&  VTYPE_OF(dst) == VT_PERSON  →  hasCreator edge
+//
+// Pass 1  [colgroup scan, O(N_posts)]:
+//   Scan colgroup:post_props:temporal.  For each row, check creationDate and length
+//   against the query filters.  Record qualifying post IDs in an unordered_set.
+//   Cost: one sequential read of the temporal B-tree (≈12B/row, no content pages).
+//
+// Pass 2  [topology scan, O(N_edges)]:
+//   Scan OUT_EDGES via get_edge_iter().  For each POST→PERSON edge whose src is in
+//   the qualifying set, increment creator_count[dst].
+//   Cost: one sequential read of the OUT_EDGES B-tree.
+//
+// Both passes are fully sequential; no random seeks.  Total cost:
+//
+//   O(N_posts + N_edges)   ≈ O(N_posts)  since N_hasCreator = N_posts
+//
+// MEMORY TRADE-OFF
+// -----------------
+// Pass 1 materialises the qualifying post set in an unordered_set<node_id_t>.
+// Worst case (no filter): N_posts × 8B ≈ 20 MB for SF3.  Acceptable.
+// With a tight date range the set is much smaller.
+//
+// WHY NOT A SINGLE PASS?
+// -----------------------
+// A single pass over OUT_EDGES would miss the date/length filter from post_props.
+// We need the property scan to know which posts qualify before we count by creator.
+// If no filter is needed, Pass 1 can be skipped and OUT_EDGES scanned alone.
+//
+// Parameters:
+//   max_date       — include posts with creationDate <= max_date
+//                    (INT64_MAX = no filter)
+//   min_length     — include posts with length >= min_length
+//                    (0 = no filter)
+static void bi12_message_distribution_fast(GraphBase &graph,
+                                            node_id_t total_posts,
+                                            int64_t max_date  = INT64_MAX,
+                                            int32_t min_length = 0)
+{
+    TIME_START(bi12_message_distribution_fast)
+
+    // Pass 1: build qualifying post set from temporal colgroup.
+    std::unordered_set<node_id_t> qualifying;
+    qualifying.reserve(total_posts);
+
+    bool no_filter = (max_date == INT64_MAX && min_length == 0);
+    if (!no_filter) {
+        WT_CURSOR *prop_cur = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        while (prop_cur->next(prop_cur) == 0) {
+            uint64_t vid, cDate; int32_t length;
+            prop_cur->get_key(prop_cur, &vid);
+            prop_cur->get_value(prop_cur, &cDate, &length);
+            if ((int64_t)cDate <= max_date && length >= min_length)
+                qualifying.insert((node_id_t)vid);
+        }
+        prop_cur->close(prop_cur);
+    }
+
+    // Pass 2: scan topology once, accumulate creator counts for qualifying posts.
+    std::unordered_map<node_id_t, int64_t> creator_count;
+
+    EdgeCursor *ec = graph.get_edge_iter();
+    edge found;
+    ec->next(&found);
+    while (found.src_id != OutOfBand_ID_MAX) {
+        node_id_t src = found.src_id;
+        node_id_t dst = found.dst_id;
+        if (VTYPE_OF(src) == VT_POST && VTYPE_OF(dst) == VT_PERSON) {
+            if (no_filter || qualifying.count(src))
+                creator_count[dst]++;
+        }
+        ec->next(&found);
+    }
+    delete ec;
+
+    TIME_END(bi12_message_distribution_fast)
+
+    // Sort by count descending, then personId ascending.
+    std::vector<std::pair<node_id_t, int64_t>> ranked(creator_count.begin(), creator_count.end());
+    std::sort(ranked.begin(), ranked.end(), [](const auto &a, const auto &b) {
+        if (a.second != b.second) return a.second > b.second;
+        return a.first < b.first;
+    });
+
+    fprintf(stderr, "  BI-12-fast Message Distribution (%llu posts, %zu creators):\n",
+            (unsigned long long)total_posts, ranked.size());
+    int shown = 0;
+    for (auto &[pid, cnt] : ranked) {
+        if (shown++ >= 10) { fprintf(stderr, "  ... (showing top 10)\n"); break; }
+        fprintf(stderr, "  person %llu: %lld posts\n",
+                (unsigned long long)VCOUNTER_OF(pid), (long long)cnt);
+    }
+}
+
 // ============================================================
 // main
 // ============================================================
@@ -894,6 +1006,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "\n=== BI QUERIES (COLUMNAR mode) ===\n");
         bi1_posting_summary(graph, post_count);
         bi12_message_distribution(graph, post_count);
+        bi12_message_distribution_fast(graph, post_count);
     }
 
     fprintf(stderr, "\n=== All queries complete ===\n");
