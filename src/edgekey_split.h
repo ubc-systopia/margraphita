@@ -80,6 +80,8 @@ class SplitEdgeKey : public GraphBase
   prop_blob get_node_properties(node_id_t id) override;
   void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override;
   prop_blob get_edge_properties(node_id_t src, node_id_t dst) override;
+  WT_CURSOR* open_colgroup_cursor(const std::string& table,
+                                   const std::string& colgroup) override;
 
  private:
   WT_CURSOR *out_edge_cursor = nullptr;
@@ -87,6 +89,12 @@ class SplitEdgeKey : public GraphBase
   WT_CURSOR *in_edge_cursor = nullptr;
   WT_CURSOR *degree_cursor = nullptr;  // Cached cursor for degree updates
   // WT_CURSOR *dst_src_idx_cursor = nullptr; // Removed dependency
+
+  // COLUMNAR mode: per-type property table cursors
+  WT_CURSOR *person_props_cursor  = nullptr;
+  WT_CURSOR *post_props_cursor    = nullptr;
+  WT_CURSOR *knows_props_cursor   = nullptr;
+  WT_CURSOR *likes_props_cursor   = nullptr;
 
   [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
   int delete_node_and_related_edges(node_id_t node_id, int *num_edges_to_del);
@@ -100,11 +108,14 @@ class SplitEdgeKey : public GraphBase
 
   [[maybe_unused]] inline void close_all_cursors() override
   {
-    if (out_edge_cursor) out_edge_cursor->close(out_edge_cursor);
-    if (random_node_cursor) random_node_cursor->close(random_node_cursor);
-    if (in_edge_cursor) in_edge_cursor->close(in_edge_cursor);
-    if (degree_cursor) degree_cursor->close(degree_cursor);
-    // dst_src_idx_cursor->close(dst_src_idx_cursor); // Removed dependency
+    if (out_edge_cursor)       out_edge_cursor->close(out_edge_cursor);
+    if (random_node_cursor)    random_node_cursor->close(random_node_cursor);
+    if (in_edge_cursor)        in_edge_cursor->close(in_edge_cursor);
+    if (degree_cursor)         degree_cursor->close(degree_cursor);
+    if (person_props_cursor)   person_props_cursor->close(person_props_cursor);
+    if (post_props_cursor)     post_props_cursor->close(post_props_cursor);
+    if (knows_props_cursor)    knows_props_cursor->close(knows_props_cursor);
+    if (likes_props_cursor)    likes_props_cursor->close(likes_props_cursor);
   }
 
  public:

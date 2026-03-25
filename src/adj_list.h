@@ -100,6 +100,8 @@ class AdjList : public GraphBase
   prop_blob get_node_properties(node_id_t id) override;
   void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override;
   prop_blob get_edge_properties(node_id_t src, node_id_t dst) override;
+  WT_CURSOR* open_colgroup_cursor(const std::string& table,
+                                   const std::string& colgroup) override;
 
   static constexpr char const *NODE_PROPS_TABLE = "node_props";
 
@@ -115,6 +117,12 @@ class AdjList : public GraphBase
   WT_CURSOR *in_adjlist_cursor = nullptr;
   WT_CURSOR *out_adjlist_cursor = nullptr;
   WT_CURSOR *node_props_cursor = nullptr;
+
+  // COLUMNAR mode: per-type property table cursors
+  WT_CURSOR *person_props_cursor  = nullptr;
+  WT_CURSOR *post_props_cursor    = nullptr;
+  WT_CURSOR *knows_props_cursor   = nullptr;
+  WT_CURSOR *likes_props_cursor   = nullptr;
 
   // AdjList specific internal methods:
   [[maybe_unused]] node get_next_node(WT_CURSOR *n_cur);
@@ -152,7 +160,11 @@ class AdjList : public GraphBase
     CommonUtil::close_cursor(edge_cursor);
     CommonUtil::close_cursor(in_adjlist_cursor);
     CommonUtil::close_cursor(out_adjlist_cursor);
-    if (node_props_cursor) CommonUtil::close_cursor(node_props_cursor);
+    if (node_props_cursor)  CommonUtil::close_cursor(node_props_cursor);
+    if (person_props_cursor) CommonUtil::close_cursor(person_props_cursor);
+    if (post_props_cursor)   CommonUtil::close_cursor(post_props_cursor);
+    if (knows_props_cursor)  CommonUtil::close_cursor(knows_props_cursor);
+    if (likes_props_cursor)  CommonUtil::close_cursor(likes_props_cursor);
   }
 
   inline void get_edge_wt(WT_CURSOR *e_cur, edgeweight_t *edge_weight)

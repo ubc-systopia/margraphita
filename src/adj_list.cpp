@@ -6,6 +6,7 @@
 #include <thread>
 
 #include "common_util.h"
+#include "prop_schema.h"
 using namespace std;
 
 [[maybe_unused]] const std::string GRAPH_PREFIX = "adj";
@@ -154,7 +155,7 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
                         adjlist_value_format, table_config);
 
   // Property tables (separate from frozen adjlist tables)
-  if (opts.has_node_props)
+  if (opts.has_node_props && opts.prop_mode != COLUMNAR)
   {
     string node_props_cfg = "key_format=u,value_format=u,leaf_page_max=64KB";
     int ret = sess->create(
@@ -163,6 +164,52 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
       throw GraphException("Failed to create NODE_PROPS table: " +
                            string(wiredtiger_strerror(ret)));
   }
+
+  // COLUMNAR mode: per-type property tables with column groups (same schema as SplitEdgeKey)
+  if (opts.prop_mode == COLUMNAR)
+  {
+    int ret;
+    ret = sess->create(sess, ("table:" + PERSON_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=QQb,columns=(vid,creationDate,birthday,gender)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create person_props: " + string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate,birthday)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create person_props:temporal: " + string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_IDENTITY).c_str(),
+        "columns=(gender)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create person_props:identity: " + string(wiredtiger_strerror(ret)));
+
+    ret = sess->create(sess, ("table:" + POST_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=Qi,columns=(vid,creationDate,length)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create post_props: " + string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + POST_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate,length)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create post_props:temporal: " + string(wiredtiger_strerror(ret)));
+
+    ret = sess->create(sess, ("table:" + KNOWS_PROPS_TABLE).c_str(),
+        "key_format=QQ,value_format=Q,columns=(src,dst,creationDate)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create knows_props: " + string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + KNOWS_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create knows_props:temporal: " + string(wiredtiger_strerror(ret)));
+
+    ret = sess->create(sess, ("table:" + LIKES_PROPS_TABLE).c_str(),
+        "key_format=QQ,value_format=Q,columns=(src,dst,creationDate)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create likes_props: " + string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + LIKES_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create likes_props:temporal: " + string(wiredtiger_strerror(ret)));
+  }
+
   sess->close(sess, nullptr);
 }
 
@@ -248,7 +295,7 @@ void AdjList::init_cursors()
   }
 
   // Property cursors — only opened when property tables exist
-  if (opts.has_node_props)
+  if (opts.has_node_props && opts.prop_mode != COLUMNAR)
   {
     if ((ret = session->open_cursor(
              session,
@@ -259,12 +306,74 @@ void AdjList::init_cursors()
       throw GraphException("Could not open node_props cursor: " +
                            string(wiredtiger_strerror(ret)));
   }
+
+  if (opts.prop_mode == COLUMNAR)
+  {
+    if ((ret = _get_table_cursor(PERSON_PROPS_TABLE, &person_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("AdjList: could not open person_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(POST_PROPS_TABLE, &post_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("AdjList: could not open post_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(KNOWS_PROPS_TABLE, &knows_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("AdjList: could not open knows_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(LIKES_PROPS_TABLE, &likes_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("AdjList: could not open likes_props cursor: " + string(wiredtiger_strerror(ret)));
+  }
 }
 
 void AdjList::set_node_properties(node_id_t id,
                                    const uint8_t *data,
                                    size_t size)
 {
+  if (opts.prop_mode == COLUMNAR)
+  {
+    switch (VTYPE_OF(id))
+    {
+      case VT_PERSON: {
+        uint64_t cDate  = (uint64_t)SNBPersonSchema::get_creation_date(data);
+        uint64_t bday   = (uint64_t)SNBPersonSchema::get_birthday(data);
+        int8_t   gender = SNBPersonSchema::get_gender(data);
+        person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
+        person_props_cursor->set_value(person_props_cursor, cDate, bday, gender);
+        int ret = person_props_cursor->insert(person_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
+          person_props_cursor->set_value(person_props_cursor, cDate, bday, gender);
+          ret = person_props_cursor->update(person_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("AdjList: set_node_properties person failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      case VT_POST: {
+        uint64_t cDate  = (uint64_t)SNBPostSchema::get_creation_date(data);
+        int32_t  length = SNBPostSchema::get_length(data);
+        post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
+        post_props_cursor->set_value(post_props_cursor, cDate, length);
+        int ret = post_props_cursor->insert(post_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
+          post_props_cursor->set_value(post_props_cursor, cDate, length);
+          ret = post_props_cursor->update(post_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("AdjList: set_node_properties post failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      default:
+        break;
+    }
+    return;
+  }
+
+  // EMBEDDED / SPLIT mode
   static const uint8_t placeholder = 0;
   CommonUtil::set_key(node_props_cursor, id);
   WT_ITEM item;
@@ -286,6 +395,39 @@ void AdjList::set_node_properties(node_id_t id,
 
 prop_blob AdjList::get_node_properties(node_id_t id)
 {
+  if (opts.prop_mode == COLUMNAR)
+  {
+    switch (VTYPE_OF(id))
+    {
+      case VT_PERSON: {
+        person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
+        if (person_props_cursor->search(person_props_cursor) != 0)
+          return {nullptr, 0};
+        uint64_t cDate, bday; int8_t gender;
+        person_props_cursor->get_value(person_props_cursor, &cDate, &bday, &gender);
+        uint8_t *buf = new uint8_t[SNBPersonSchema::TOTAL_SIZE];
+        SNBPersonSchema::set_creation_date(buf, (int64_t)cDate);
+        SNBPersonSchema::set_birthday(buf, (int64_t)bday);
+        SNBPersonSchema::set_gender(buf, gender);
+        return {buf, SNBPersonSchema::TOTAL_SIZE};
+      }
+      case VT_POST: {
+        post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
+        if (post_props_cursor->search(post_props_cursor) != 0)
+          return {nullptr, 0};
+        uint64_t cDate; int32_t length;
+        post_props_cursor->get_value(post_props_cursor, &cDate, &length);
+        uint8_t *buf = new uint8_t[SNBPostSchema::TOTAL_SIZE];
+        SNBPostSchema::set_creation_date(buf, (int64_t)cDate);
+        SNBPostSchema::set_length(buf, length);
+        return {buf, SNBPostSchema::TOTAL_SIZE};
+      }
+      default:
+        return {nullptr, 0};
+    }
+  }
+
+  // EMBEDDED / SPLIT mode
   CommonUtil::set_key(node_props_cursor, id);
   if (node_props_cursor->search(node_props_cursor) != 0)
     return {nullptr, 0};
@@ -301,8 +443,34 @@ void AdjList::set_edge_properties(node_id_t src,
                                    const uint8_t *data,
                                    size_t size)
 {
-  // Edge properties are stored directly in the edge table value slot.
-  // add_edge already inserted the row with a 1-byte placeholder, so we update.
+  if (opts.prop_mode == COLUMNAR)
+  {
+    uint8_t s = (uint8_t)VTYPE_OF(src);
+    uint8_t d = (uint8_t)VTYPE_OF(dst);
+    WT_CURSOR *cur = nullptr;
+    if (s == VT_PERSON && d == VT_PERSON) cur = knows_props_cursor;
+    else if (s == VT_PERSON && d == VT_POST) cur = likes_props_cursor;
+    // POST→PERSON = hasCreator, no props
+    if (cur == nullptr || data == nullptr || size == 0)
+      return;
+    uint64_t cDate = (uint64_t)SNBKnowsSchema::get_creation_date(data);
+    cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
+    cur->set_value(cur, cDate);
+    int ret = cur->insert(cur);
+    if (ret == WT_DUPLICATE_KEY)
+    {
+      cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
+      cur->set_value(cur, cDate);
+      ret = cur->update(cur);
+    }
+    if (ret != 0)
+      throw GraphException("AdjList: set_edge_properties failed (" +
+                           std::to_string(src) + ", " + std::to_string(dst) + "): " +
+                           wiredtiger_strerror(ret));
+    return;
+  }
+
+  // EMBEDDED / SPLIT mode
   static const uint8_t placeholder = 0;
   WT_ITEM item;
   item.data = (data != nullptr && size > 0) ? static_cast<const void *>(data)
@@ -317,18 +485,36 @@ void AdjList::set_edge_properties(node_id_t src,
                          std::to_string(src) + ", " + std::to_string(dst) +
                          "): " + string(wiredtiger_strerror(ret)));
 
-  // For undirected graphs also update the reverse direction
   if (!opts.is_directed)
   {
     CommonUtil::set_key(edge_cursor, dst, src);
     edge_cursor->set_value(edge_cursor, &item);
-    edge_cursor->update(edge_cursor);  // best-effort reverse
+    edge_cursor->update(edge_cursor);
   }
 }
 
 prop_blob AdjList::get_edge_properties(node_id_t src, node_id_t dst)
 {
-  // Edge properties live in the edge table value slot.
+  if (opts.prop_mode == COLUMNAR)
+  {
+    uint8_t s = (uint8_t)VTYPE_OF(src);
+    uint8_t d = (uint8_t)VTYPE_OF(dst);
+    WT_CURSOR *cur = nullptr;
+    if (s == VT_PERSON && d == VT_PERSON) cur = knows_props_cursor;
+    else if (s == VT_PERSON && d == VT_POST) cur = likes_props_cursor;
+    if (cur == nullptr)
+      return {nullptr, 0};
+    cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
+    if (cur->search(cur) != 0)
+      return {nullptr, 0};
+    uint64_t cDate;
+    cur->get_value(cur, &cDate);
+    uint8_t *buf = new uint8_t[SNBKnowsSchema::TOTAL_SIZE];
+    SNBKnowsSchema::set_creation_date(buf, (int64_t)cDate);
+    return {buf, SNBKnowsSchema::TOTAL_SIZE};
+  }
+
+  // EMBEDDED / SPLIT mode
   CommonUtil::set_key(edge_cursor, src, dst);
   if (edge_cursor->search(edge_cursor) != 0)
     return {nullptr, 0};
@@ -337,6 +523,20 @@ prop_blob AdjList::get_edge_properties(node_id_t src, node_id_t dst)
   uint8_t *copy = new uint8_t[item.size];
   memcpy(copy, item.data, item.size);
   return {copy, item.size};
+}
+
+WT_CURSOR *AdjList::open_colgroup_cursor(const std::string &table,
+                                          const std::string &colgroup)
+{
+  if (opts.prop_mode != COLUMNAR)
+    throw GraphException("open_colgroup_cursor: only valid in COLUMNAR mode");
+  std::string uri = "colgroup:" + table + ":" + colgroup;
+  WT_CURSOR *cur = nullptr;
+  int ret = session->open_cursor(session, uri.c_str(), nullptr, nullptr, &cur);
+  if (ret != 0)
+    throw GraphException("AdjList: open_colgroup_cursor failed to open " + uri + ": " +
+                         wiredtiger_strerror(ret));
+  return cur;
 }
 
 /**

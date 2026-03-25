@@ -11,12 +11,14 @@
 //   post_hasCreator_person_0_0.csv
 //   person_likes_post_0_0.csv
 //
-// Implements 14 queries across 4 categories:
+// Implements 16 queries across 5 categories:
 //   Writes          (3): insert Person, insert knows, insert Post+hasCreator
 //   Single-type (3): person profile, friends list by date, BFS shortest path
 //   Cross-type  (5): post profile, post→author, IC-2 friends' posts,
 //                    insert likes, count likes in date range
 //   Aggregates  (3): degree count, knows edges in date range, posts liked in range
+//   BI queries  (2): BI-1 posting summary, BI-12 message distribution per person
+//                    (COLUMNAR mode only — demonstrate colgroup I/O benefit)
 
 #include <cassert>
 #include <cstdio>
@@ -24,6 +26,7 @@
 #include <deque>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <queue>
 #include <string>
 #include <unordered_map>
@@ -525,6 +528,102 @@ static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
 }
 
 // ============================================================
+// BI queries (COLUMNAR mode only)
+// ============================================================
+
+// BI-1: Posting Summary
+// Scan all posts, group by (year, lengthCategory), output counts and lengths.
+// lengthCategory: 0 = short (<40), 1 = medium (40-79), 2 = long (80-254), 3 = very long (>=255)
+// Only valid when prop_mode == COLUMNAR; falls back to stderr notice otherwise.
+static void bi1_posting_summary(GraphBase &graph, node_id_t total_posts)
+{
+    TIME_START(bi1_posting_summary)
+
+    struct Key { int year; int cat; };
+    struct Stats { int64_t count = 0; int64_t sum_len = 0; };
+    std::map<std::pair<int,int>, Stats> groups;
+
+    auto year_of = [](uint64_t epoch_ms) -> int {
+        // Rough year extraction: epoch_ms / (365.25 * 24 * 3600 * 1000) + 1970
+        return (int)(epoch_ms / 31557600000ULL) + 1970;
+    };
+    auto classify_length = [](int32_t len) -> int {
+        if (len < 40)  return 0;
+        if (len < 80)  return 1;
+        if (len < 255) return 2;
+        return 3;
+    };
+
+    WT_CURSOR *cur = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+    while (cur->next(cur) == 0) {
+        uint64_t vid, cDate; int32_t length;
+        cur->get_key(cur, &vid);
+        cur->get_value(cur, &cDate, &length);
+        int yr  = year_of(cDate);
+        int cat = classify_length(length);
+        auto &s = groups[{yr, cat}];
+        s.count++;
+        s.sum_len += length;
+    }
+    cur->close(cur);
+
+    TIME_END(bi1_posting_summary)
+
+    fprintf(stderr, "  BI-1 Posting Summary (%llu posts scanned):\n",
+            (unsigned long long)total_posts);
+    fprintf(stderr, "  %-6s  %-3s  %-9s  %-8s  %-14s  %-12s\n",
+            "year", "cat", "count", "sum_len", "avg_len", "pct_of_total");
+    for (auto &[k, s] : groups) {
+        double avg = s.count > 0 ? (double)s.sum_len / s.count : 0.0;
+        double pct = total_posts > 0 ? 100.0 * s.count / total_posts : 0.0;
+        fprintf(stderr, "  %-6d  %-3d  %-9lld  %-8lld  %-14.2f  %-12.2f%%\n",
+                k.first, k.second,
+                (long long)s.count, (long long)s.sum_len, avg, pct);
+    }
+}
+
+// BI-12: Message Distribution by Person
+// Scan all posts, join via hasCreator out-edge, count posts per person.
+// Uses the temporal colgroup to scan post creation dates; joins topology for creator.
+static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts)
+{
+    TIME_START(bi12_message_distribution)
+
+    std::unordered_map<node_id_t, int64_t> creator_count;
+
+    WT_CURSOR *cur = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+    while (cur->next(cur) == 0) {
+        uint64_t vid;
+        cur->get_key(cur, &vid);
+        // Find the hasCreator out-edge for this post (POST→PERSON edge)
+        std::vector<node_id_t> creators = graph.get_out_nodes_id((node_id_t)vid);
+        for (node_id_t c : creators) {
+            if (VTYPE_OF(c) == VT_PERSON)
+                creator_count[c]++;
+        }
+    }
+    cur->close(cur);
+
+    TIME_END(bi12_message_distribution)
+
+    // Sort by count descending, then personId ascending
+    std::vector<std::pair<node_id_t, int64_t>> ranked(creator_count.begin(), creator_count.end());
+    std::sort(ranked.begin(), ranked.end(), [](const auto &a, const auto &b) {
+        if (a.second != b.second) return a.second > b.second;
+        return a.first < b.first;
+    });
+
+    fprintf(stderr, "  BI-12 Message Distribution (%llu posts, %zu creators):\n",
+            (unsigned long long)total_posts, ranked.size());
+    int shown = 0;
+    for (auto &[pid, cnt] : ranked) {
+        if (shown++ >= 10) { fprintf(stderr, "  ... (showing top 10)\n"); break; }
+        fprintf(stderr, "  person %llu: %lld posts\n",
+                (unsigned long long)VCOUNTER_OF(pid), (long long)cnt);
+    }
+}
+
+// ============================================================
 // main
 // ============================================================
 
@@ -580,6 +679,7 @@ int main(int argc, char **argv)
     opts.is_weighted     = false;
     opts.has_node_props  = true;
     opts.has_edge_props  = true;
+    opts.prop_mode       = COLUMNAR;
     opts.type            = graph_type;
     opts.db_name         = "ldbc_snb_queries";
     opts.db_dir          = "./db";
@@ -789,6 +889,12 @@ int main(int argc, char **argv)
         a3_posts_liked_in_range(graph, sample_person1,
                                 0LL, INT64_MAX,
                                 opts.has_edge_props);
+
+    if (opts.prop_mode == COLUMNAR && !dry_run) {
+        fprintf(stderr, "\n=== BI QUERIES (COLUMNAR mode) ===\n");
+        bi1_posting_summary(graph, post_count);
+        bi12_message_distribution(graph, post_count);
+    }
 
     fprintf(stderr, "\n=== All queries complete ===\n");
 

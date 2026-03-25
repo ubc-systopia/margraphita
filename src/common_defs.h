@@ -98,7 +98,20 @@ typedef enum GraphType
   META
 } GraphType;
 
-enum PropStorageMode { EMBEDDED, SPLIT };
+enum PropStorageMode { EMBEDDED, SPLIT, COLUMNAR };
+
+// ---- COLUMNAR mode: per-type property table names ----
+const std::string PERSON_PROPS_TABLE   = "person_props";
+const std::string POST_PROPS_TABLE     = "post_props";
+const std::string KNOWS_PROPS_TABLE    = "knows_props";
+const std::string LIKES_PROPS_TABLE    = "likes_props";
+const std::string PERSON_EMAIL_TABLE   = "person_email";
+const std::string PERSON_SPEAKS_TABLE  = "person_speaks";
+
+// Colgroup name suffixes
+const std::string CG_TEMPORAL  = "temporal";
+const std::string CG_IDENTITY  = "identity";
+const std::string CG_CONTENT   = "content";
 
 struct graph_opts
 {

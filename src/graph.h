@@ -118,6 +118,12 @@ class GraphBase
   virtual void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) = 0;
   virtual prop_blob get_edge_properties(node_id_t src, node_id_t dst) = 0;
 
+  // Columnar scan API: open a cursor on a specific column group for bulk reads.
+  // Caller owns the cursor and must close it after use.
+  // Only valid when prop_mode == COLUMNAR; throws otherwise.
+  virtual WT_CURSOR* open_colgroup_cursor(const std::string& table,
+                                           const std::string& colgroup) = 0;
+
  protected:
   graph_opts opts;
   WT_CONNECTION *connection = nullptr;

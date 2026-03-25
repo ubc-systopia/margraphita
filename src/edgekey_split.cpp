@@ -5,6 +5,7 @@
 #include <string>
 
 #include "common_util.h"
+#include "prop_schema.h"
 
 using namespace std;
 
@@ -76,6 +77,58 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     }
   }
 
+  // ---- COLUMNAR mode: per-type property tables with column groups ----
+  if (opts.prop_mode == COLUMNAR)
+  {
+    // person_props: key=typed_id(Q), value=creationDate(Q) birthday(Q) gender(b)
+    ret = sess->create(sess, ("table:" + PERSON_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=QQb,"
+        "columns=(vid,creationDate,birthday,gender)");
+    if (ret != 0)
+      throw GraphException("Failed to create person_props: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate,birthday)");
+    if (ret != 0)
+      throw GraphException("Failed to create person_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_IDENTITY).c_str(),
+        "columns=(gender)");
+    if (ret != 0)
+      throw GraphException("Failed to create person_props:identity colgroup: " + std::string(wiredtiger_strerror(ret)));
+
+    // post_props: key=typed_id(Q), value=creationDate(Q) length(i)
+    ret = sess->create(sess, ("table:" + POST_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=Qi,"
+        "columns=(vid,creationDate,length)");
+    if (ret != 0)
+      throw GraphException("Failed to create post_props: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + POST_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate,length)");
+    if (ret != 0)
+      throw GraphException("Failed to create post_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+
+    // knows_props: key=(src Q, dst Q), value=creationDate(Q)
+    ret = sess->create(sess, ("table:" + KNOWS_PROPS_TABLE).c_str(),
+        "key_format=QQ,value_format=Q,"
+        "columns=(src,dst,creationDate)");
+    if (ret != 0)
+      throw GraphException("Failed to create knows_props: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + KNOWS_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate)");
+    if (ret != 0)
+      throw GraphException("Failed to create knows_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+
+    // likes_props: same schema as knows_props
+    ret = sess->create(sess, ("table:" + LIKES_PROPS_TABLE).c_str(),
+        "key_format=QQ,value_format=Q,"
+        "columns=(src,dst,creationDate)");
+    if (ret != 0)
+      throw GraphException("Failed to create likes_props: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + LIKES_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate)");
+    if (ret != 0)
+      throw GraphException("Failed to create likes_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+  }
+
   sess->close(sess, nullptr);
 }
 
@@ -139,6 +192,23 @@ void SplitEdgeKey::init_cursors()
   {
     throw GraphException("Could not get degree cursor: " +
                          string(wiredtiger_strerror(ret)));
+  }
+
+  // COLUMNAR mode: open per-type property table cursors
+  if (opts.prop_mode == COLUMNAR)
+  {
+    if ((ret = _get_table_cursor(PERSON_PROPS_TABLE, &person_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open person_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(POST_PROPS_TABLE, &post_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open post_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(KNOWS_PROPS_TABLE, &knows_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open knows_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(LIKES_PROPS_TABLE, &likes_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open likes_props cursor: " + string(wiredtiger_strerror(ret)));
   }
 }
 
@@ -349,9 +419,52 @@ void SplitEdgeKey::set_node_properties(node_id_t id,
                                         const uint8_t *prop_data,
                                         size_t prop_size)
 {
-  // Node sentinel lives in OUT_EDGES at key (MAKE_EKEY(id), OutOfBand_ID_MIN).
-  // We read the existing degrees, then rewrite the sentinel with
-  // [in_deg (4B) | out_deg (4B) | prop_data ...].
+  if (opts.prop_mode == COLUMNAR)
+  {
+    switch (VTYPE_OF(id))
+    {
+      case VT_PERSON: {
+        uint64_t cDate  = (uint64_t)SNBPersonSchema::get_creation_date(prop_data);
+        uint64_t bday   = (uint64_t)SNBPersonSchema::get_birthday(prop_data);
+        int8_t   gender = SNBPersonSchema::get_gender(prop_data);
+        person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
+        person_props_cursor->set_value(person_props_cursor, cDate, bday, gender);
+        int ret = person_props_cursor->insert(person_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
+          person_props_cursor->set_value(person_props_cursor, cDate, bday, gender);
+          ret = person_props_cursor->update(person_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("set_node_properties: person failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      case VT_POST: {
+        uint64_t cDate  = (uint64_t)SNBPostSchema::get_creation_date(prop_data);
+        int32_t  length = SNBPostSchema::get_length(prop_data);
+        post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
+        post_props_cursor->set_value(post_props_cursor, cDate, length);
+        int ret = post_props_cursor->insert(post_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
+          post_props_cursor->set_value(post_props_cursor, cDate, length);
+          ret = post_props_cursor->update(post_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("set_node_properties: post failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      default:
+        break;
+    }
+    return;
+  }
+
+  // EMBEDDED / SPLIT mode: node sentinel in OUT_EDGES at (MAKE_EKEY(id), 0).
   CommonUtil::ekey_set_node_key(degree_cursor, id);
   int ret = degree_cursor->search(degree_cursor);
   if (ret != 0)
@@ -379,6 +492,39 @@ void SplitEdgeKey::set_node_properties(node_id_t id,
 
 prop_blob SplitEdgeKey::get_node_properties(node_id_t id)
 {
+  if (opts.prop_mode == COLUMNAR)
+  {
+    switch (VTYPE_OF(id))
+    {
+      case VT_PERSON: {
+        person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
+        if (person_props_cursor->search(person_props_cursor) != 0)
+          return {nullptr, 0};
+        uint64_t cDate, bday; int8_t gender;
+        person_props_cursor->get_value(person_props_cursor, &cDate, &bday, &gender);
+        uint8_t *buf = new uint8_t[SNBPersonSchema::TOTAL_SIZE];
+        SNBPersonSchema::set_creation_date(buf, (int64_t)cDate);
+        SNBPersonSchema::set_birthday(buf, (int64_t)bday);
+        SNBPersonSchema::set_gender(buf, gender);
+        return {buf, SNBPersonSchema::TOTAL_SIZE};
+      }
+      case VT_POST: {
+        post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
+        if (post_props_cursor->search(post_props_cursor) != 0)
+          return {nullptr, 0};
+        uint64_t cDate; int32_t length;
+        post_props_cursor->get_value(post_props_cursor, &cDate, &length);
+        uint8_t *buf = new uint8_t[SNBPostSchema::TOTAL_SIZE];
+        SNBPostSchema::set_creation_date(buf, (int64_t)cDate);
+        SNBPostSchema::set_length(buf, length);
+        return {buf, SNBPostSchema::TOTAL_SIZE};
+      }
+      default:
+        return {nullptr, 0};
+    }
+  }
+
+  // EMBEDDED / SPLIT mode
   CommonUtil::ekey_set_node_key(degree_cursor, id);
   if (degree_cursor->search(degree_cursor) != 0)
     return {nullptr, 0};
@@ -386,7 +532,6 @@ prop_blob SplitEdgeKey::get_node_properties(node_id_t id)
   WT_ITEM item;
   degree_cursor->get_value(degree_cursor, &item);
 
-  // First 8 bytes are degrees; properties start at offset 8.
   constexpr size_t HDR = sizeof(degree_t) * 2;
   if (item.size <= HDR)
     return {nullptr, 0};
@@ -397,13 +542,46 @@ prop_blob SplitEdgeKey::get_node_properties(node_id_t id)
   return {copy, prop_size};
 }
 
+// Route (src,dst) to the right edge prop cursor based on vertex types.
+// Returns nullptr for hasCreator (POST→PERSON): no properties to store.
+static WT_CURSOR *route_edge_cursor(node_id_t src, node_id_t dst,
+                                    WT_CURSOR *knows, WT_CURSOR *likes)
+{
+  uint8_t s = (uint8_t)VTYPE_OF(src);
+  uint8_t d = (uint8_t)VTYPE_OF(dst);
+  if (s == VT_PERSON && d == VT_PERSON) return knows;
+  if (s == VT_PERSON && d == VT_POST)   return likes;
+  return nullptr;  // POST→PERSON = hasCreator, no props
+}
+
 void SplitEdgeKey::set_edge_properties(node_id_t src,
                                         node_id_t dst,
                                         const uint8_t *data,
                                         size_t size)
 {
-  // Never pass size=0 to WiredTiger — use a 1-byte sentinel for "no properties".
-  // Edges with no properties (e.g. hasCreator) call us with data=nullptr, size=0.
+  if (opts.prop_mode == COLUMNAR)
+  {
+    WT_CURSOR *cur = route_edge_cursor(src, dst, knows_props_cursor, likes_props_cursor);
+    if (cur == nullptr || data == nullptr || size == 0)
+      return;  // hasCreator or no-prop edge
+    uint64_t cDate = (uint64_t)SNBKnowsSchema::get_creation_date(data);
+    cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
+    cur->set_value(cur, cDate);
+    int ret = cur->insert(cur);
+    if (ret == WT_DUPLICATE_KEY)
+    {
+      cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
+      cur->set_value(cur, cDate);
+      ret = cur->update(cur);
+    }
+    if (ret != 0)
+      throw GraphException("set_edge_properties: failed (" +
+                           std::to_string(src) + ", " + std::to_string(dst) + "): " +
+                           wiredtiger_strerror(ret));
+    return;
+  }
+
+  // EMBEDDED / SPLIT mode
   static const uint8_t placeholder = 0;
   WT_ITEM item;
   if (data == nullptr || size == 0) {
@@ -414,7 +592,6 @@ void SplitEdgeKey::set_edge_properties(node_id_t src,
     item.size = size;
   }
 
-  // Update OUT_EDGES (src, dst)
   CommonUtil::ekey_set_edge_key(out_edge_cursor, src, dst);
   if (out_edge_cursor->search(out_edge_cursor) != 0)
     throw GraphException("set_edge_properties: edge not found (" +
@@ -423,9 +600,6 @@ void SplitEdgeKey::set_edge_properties(node_id_t src,
   if (out_edge_cursor->update(out_edge_cursor) != 0)
     throw GraphException("set_edge_properties: update failed on OUT_EDGES");
 
-  // For directed graphs also update IN_EDGES (stored as dst, src).
-  // For undirected graphs in_edge_cursor points to OUT_EDGES, so update
-  // the reverse direction (dst, src) there.
   CommonUtil::ekey_set_edge_key(in_edge_cursor, dst, src);
   if (in_edge_cursor->search(in_edge_cursor) != 0)
     throw GraphException("set_edge_properties: reverse edge not found (" +
@@ -437,19 +611,48 @@ void SplitEdgeKey::set_edge_properties(node_id_t src,
 
 prop_blob SplitEdgeKey::get_edge_properties(node_id_t src, node_id_t dst)
 {
+  if (opts.prop_mode == COLUMNAR)
+  {
+    WT_CURSOR *cur = route_edge_cursor(src, dst, knows_props_cursor, likes_props_cursor);
+    if (cur == nullptr)
+      return {nullptr, 0};
+    cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
+    if (cur->search(cur) != 0)
+      return {nullptr, 0};
+    uint64_t cDate;
+    cur->get_value(cur, &cDate);
+    uint8_t *buf = new uint8_t[SNBKnowsSchema::TOTAL_SIZE];
+    SNBKnowsSchema::set_creation_date(buf, (int64_t)cDate);
+    return {buf, SNBKnowsSchema::TOTAL_SIZE};
+  }
+
+  // EMBEDDED / SPLIT mode
   CommonUtil::ekey_set_edge_key(out_edge_cursor, src, dst);
   if (out_edge_cursor->search(out_edge_cursor) != 0)
     return {nullptr, 0};
 
   WT_ITEM item;
   out_edge_cursor->get_value(out_edge_cursor, &item);
-  // size <= 1 means 1-byte "no properties" sentinel (or legacy size-0 value)
   if (item.size <= 1)
     return {nullptr, 0};
 
   uint8_t *copy = new uint8_t[item.size];
   memcpy(copy, item.data, item.size);
   return {copy, item.size};
+}
+
+WT_CURSOR *SplitEdgeKey::open_colgroup_cursor(const std::string &table,
+                                               const std::string &colgroup)
+{
+  if (opts.prop_mode != COLUMNAR)
+    throw GraphException("open_colgroup_cursor: only valid in COLUMNAR mode");
+  std::string uri = "colgroup:" + table + ":" + colgroup;
+  WT_CURSOR *cur = nullptr;
+  int ret = session->open_cursor(session, uri.c_str(), nullptr, nullptr, &cur);
+  if (ret != 0)
+    throw GraphException("open_colgroup_cursor: failed to open " + uri + ": " +
+                         wiredtiger_strerror(ret));
+  return cur;
 }
 
 /**
