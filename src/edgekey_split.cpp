@@ -83,7 +83,8 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // person_props: key=typed_id(Q), value=creationDate(Q) birthday(Q) gender(b)
     ret = sess->create(sess, ("table:" + PERSON_PROPS_TABLE).c_str(),
         "key_format=Q,value_format=QQb,"
-        "columns=(vid,creationDate,birthday,gender)");
+        "columns=(vid,creationDate,birthday,gender),"
+        "colgroups=(temporal,identity)");
     if (ret != 0)
       throw GraphException("Failed to create person_props: " + std::string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
@@ -98,7 +99,8 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // post_props: key=typed_id(Q), value=creationDate(Q) length(i)
     ret = sess->create(sess, ("table:" + POST_PROPS_TABLE).c_str(),
         "key_format=Q,value_format=Qi,"
-        "columns=(vid,creationDate,length)");
+        "columns=(vid,creationDate,length),"
+        "colgroups=(temporal)");
     if (ret != 0)
       throw GraphException("Failed to create post_props: " + std::string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + POST_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
@@ -109,7 +111,8 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // knows_props: key=(src Q, dst Q), value=creationDate(Q)
     ret = sess->create(sess, ("table:" + KNOWS_PROPS_TABLE).c_str(),
         "key_format=QQ,value_format=Q,"
-        "columns=(src,dst,creationDate)");
+        "columns=(src,dst,creationDate),"
+        "colgroups=(temporal)");
     if (ret != 0)
       throw GraphException("Failed to create knows_props: " + std::string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + KNOWS_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
@@ -120,7 +123,8 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     // likes_props: same schema as knows_props
     ret = sess->create(sess, ("table:" + LIKES_PROPS_TABLE).c_str(),
         "key_format=QQ,value_format=Q,"
-        "columns=(src,dst,creationDate)");
+        "columns=(src,dst,creationDate),"
+        "colgroups=(temporal)");
     if (ret != 0)
       throw GraphException("Failed to create likes_props: " + std::string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + LIKES_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),

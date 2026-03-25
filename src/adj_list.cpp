@@ -170,7 +170,9 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   {
     int ret;
     ret = sess->create(sess, ("table:" + PERSON_PROPS_TABLE).c_str(),
-        "key_format=Q,value_format=QQb,columns=(vid,creationDate,birthday,gender)");
+        "key_format=Q,value_format=QQb,"
+        "columns=(vid,creationDate,birthday,gender),"
+        "colgroups=(temporal,identity)");
     if (ret != 0)
       throw GraphException("AdjList: failed to create person_props: " + string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
@@ -183,7 +185,9 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
       throw GraphException("AdjList: failed to create person_props:identity: " + string(wiredtiger_strerror(ret)));
 
     ret = sess->create(sess, ("table:" + POST_PROPS_TABLE).c_str(),
-        "key_format=Q,value_format=Qi,columns=(vid,creationDate,length)");
+        "key_format=Q,value_format=Qi,"
+        "columns=(vid,creationDate,length),"
+        "colgroups=(temporal)");
     if (ret != 0)
       throw GraphException("AdjList: failed to create post_props: " + string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + POST_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
@@ -192,7 +196,9 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
       throw GraphException("AdjList: failed to create post_props:temporal: " + string(wiredtiger_strerror(ret)));
 
     ret = sess->create(sess, ("table:" + KNOWS_PROPS_TABLE).c_str(),
-        "key_format=QQ,value_format=Q,columns=(src,dst,creationDate)");
+        "key_format=QQ,value_format=Q,"
+        "columns=(src,dst,creationDate),"
+        "colgroups=(temporal)");
     if (ret != 0)
       throw GraphException("AdjList: failed to create knows_props: " + string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + KNOWS_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
@@ -201,7 +207,9 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
       throw GraphException("AdjList: failed to create knows_props:temporal: " + string(wiredtiger_strerror(ret)));
 
     ret = sess->create(sess, ("table:" + LIKES_PROPS_TABLE).c_str(),
-        "key_format=QQ,value_format=Q,columns=(src,dst,creationDate)");
+        "key_format=QQ,value_format=Q,"
+        "columns=(src,dst,creationDate),"
+        "colgroups=(temporal)");
     if (ret != 0)
       throw GraphException("AdjList: failed to create likes_props: " + string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + LIKES_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
