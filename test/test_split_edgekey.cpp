@@ -553,6 +553,54 @@ void tearDown(SplitEdgeKey &graph)
   graph.close(true);
 }
 
+// Test what happens when a node or edge that already exists is inserted again.
+// SplitEdgeKey::error_check_insert_txn(ret, /*ignore_duplicate_key=*/false)
+// rolls back the active transaction on WT_DUPLICATE_KEY, so the session is
+// clean after each call and both tests can share the same graph instance.
+void test_duplicate_additions(SplitEdgeKey &graph)
+{
+  INFO();
+
+  // --- duplicate node ---
+  // node7 (id=7) still exists at this point (not deleted by any prior test).
+  // Check its degrees before and after to observe the corruption.
+  node dup_node = {.id = SampleGraph::node7.id};
+  degree_t in_before  = graph.get_in_degree(dup_node.id);
+  degree_t out_before = graph.get_out_degree(dup_node.id);
+  int ret = graph.add_node(dup_node);
+  degree_t in_after   = graph.get_in_degree(dup_node.id);
+  degree_t out_after  = graph.get_out_degree(dup_node.id);
+  fprintf(stderr,
+          "add_node(existing id=%lu):  ret=%d  wiredtiger says: \"%s\"\n"
+          "  out_edge_cursor is opened with overwrite=true, so cursor->insert()\n"
+          "  silently overwrites the existing node sentinel with (in=0, out=0).\n"
+          "  Degree before: in=%u out=%u  |  Degree after: in=%u out=%u\n"
+          "  BUG: non-zero degrees are corrupted to 0.\n",
+          (unsigned long)dup_node.id, ret, wiredtiger_strerror(ret),
+          in_before, out_before, in_after, out_after);
+
+  // --- duplicate edge ---
+  // edge4 (1->7) still exists at this point (node2 was deleted, not node1/7).
+  edge dup_edge = {.src_id = SampleGraph::edge4.src_id,
+                   .dst_id = SampleGraph::edge4.dst_id,
+                   .edge_weight = 99.99};
+  degree_t src_out_before = graph.get_out_degree(dup_edge.src_id);
+  degree_t dst_in_before  = graph.get_in_degree(dup_edge.dst_id);
+  ret = graph.add_edge(dup_edge, false);
+  degree_t src_out_after  = graph.get_out_degree(dup_edge.src_id);
+  degree_t dst_in_after   = graph.get_in_degree(dup_edge.dst_id);
+  fprintf(stderr,
+          "add_edge(existing %lu->%lu):  ret=%d  wiredtiger says: \"%s\"\n"
+          "  Cursors opened with overwrite=true: the edge weight is silently\n"
+          "  updated to %.2f, but add_node_txn still increments degrees,\n"
+          "  so they are double-counted.\n"
+          "  src out-degree: %u -> %u  |  dst in-degree: %u -> %u\n",
+          (unsigned long)dup_edge.src_id, (unsigned long)dup_edge.dst_id,
+          ret, wiredtiger_strerror(ret),
+          dup_edge.edge_weight,
+          src_out_before, src_out_after, dst_in_before, dst_in_after);
+}
+
 void test_ro_get_nodes(GraphBase *graph)
 {
   INFO();
@@ -741,6 +789,8 @@ int main()
   graph.dump_table(table_name, 200);
 
   std::cout << "Number of nodes in graph: " << graph.get_num_nodes() << std::endl;
+
+  test_duplicate_additions(graph);
 
   tearDown(graph);
   myEngine.close_graph();

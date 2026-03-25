@@ -155,32 +155,28 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
 {
   session->begin_transaction(session, "isolation=snapshot");
   CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
-  // CommonUtil::ekey_set_node_key(in_edge_cursor, to_insert.id);
-  if (opts.read_optimize)
+  if (out_edge_cursor->search(out_edge_cursor) == 0)
   {
-    // out_edge_cursor->set_value(
-    //     out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
-    ekey_set_node_value(
-        out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
-  }
-  else
-  {
-    // out_edge_cursor->set_value(out_edge_cursor, 0, 0);
-    ekey_set_node_value(out_edge_cursor, 0, 0);
-  }
-  //    auto in_ret =
-  //        error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor));
-  auto out_ret = out_edge_cursor->insert(out_edge_cursor);
-
-  if (error_check_insert_txn(out_ret, false))
-  {
-    if (out_ret == WT_DUPLICATE_KEY)
+    //node exists, rollback and return WT_DUPLICATE_KEY
+    session->rollback_transaction(session, nullptr);
+    return WT_DUPLICATE_KEY;
+  }else{
+    //node doesn't exist, insert it with degree 0
+    if (opts.read_optimize)
     {
-      LOG_MSG("Duplicate key -- Node {} already exists: {}",
-              to_insert.id,
-              wiredtiger_strerror(out_ret));
+      ekey_set_node_value(out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
     }
-    return out_ret;
+    else
+    {
+      ekey_set_node_value(out_edge_cursor, 0, 0);
+    }
+    
+    int ret = out_edge_cursor->insert(out_edge_cursor);
+    if (ret != 0)
+    {
+      session->rollback_transaction(session, nullptr);
+      return ret;
+    }
   }
   session->commit_transaction(session, nullptr);
   GraphBase::increment_nodes(1);
@@ -291,8 +287,17 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
     return WT_ROLLBACK;
   }
 
-  // Now add the edge into out-edges table
+  // Now add the edge into out-edges table.
+  // Check for a duplicate edge first: if the key already exists, roll back
+  // the entire transaction (which also undoes the degree increments above)
+  // and return WT_DUPLICATE_KEY to the caller.
   CommonUtil::ekey_set_edge_key(out_edge_cursor, to_insert.src_id, to_insert.dst_id);
+  if (out_edge_cursor->search(out_edge_cursor) == 0)
+  {
+    session->rollback_transaction(session, nullptr);
+    return WT_DUPLICATE_KEY;
+  }
+
   if (opts.is_weighted)
   {
     ekey_set_edge_value(out_edge_cursor, to_insert.edge_weight);

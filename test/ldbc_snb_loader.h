@@ -29,6 +29,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cstdio>
 
 #include "common_defs.h"
 #include "graph.h"
@@ -83,7 +84,36 @@ struct LDBCLoader {
     std::vector<PendingNodeProp> pending_node_props;
     std::vector<PendingEdgeProp> pending_edge_props;
 
+    // Optional insertion log: records every node/edge about to be inserted.
+    // Format: "NODE <id>" or "EDGE <src> <dst>", one per line.
+    // Enable via enable_insertion_log(path).
+    // Set dry_run = true to parse CSVs and build the log without touching the DB.
+    FILE *insertion_log_fp = nullptr;
+    bool dry_run = false;
+
     explicit LDBCLoader(GraphBase *g, const graph_opts &o) : graph(g), opts(o) {}
+
+    void enable_insertion_log(const std::string &path) {
+        insertion_log_fp = std::fopen(path.c_str(), "w");
+        if (!insertion_log_fp)
+            throw std::runtime_error("Cannot open insertion log: " + path);
+    }
+
+    ~LDBCLoader() {
+        if (insertion_log_fp) std::fclose(insertion_log_fp);
+    }
+
+private:
+    void log_node(node_id_t id) {
+        if (insertion_log_fp)
+            std::fprintf(insertion_log_fp, "NODE %llu\n", (unsigned long long)id);
+    }
+    void log_edge(node_id_t src, node_id_t dst) {
+        if (insertion_log_fp)
+            std::fprintf(insertion_log_fp, "EDGE %llu %llu\n",
+                         (unsigned long long)src, (unsigned long long)dst);
+    }
+public:
 
     // ------------------------------------------------------------------
     // Phase 1: load vertices (add_node + enqueue prop write)
@@ -125,9 +155,12 @@ struct LDBCLoader {
 
             node n;
             n.id = fid;
-            graph->add_node(n, false);
+            log_node(fid);
+            if (!dry_run) {
+                graph->add_node(n, false);
+            }
 
-            if (opts.has_node_props) {
+            if (!dry_run && opts.has_node_props) {
                 uint8_t buf[SNBPersonSchema::TOTAL_SIZE] = {};
                 if (col_creation >= 0 && col_creation < (int)fields.size())
                     SNBPersonSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
@@ -179,9 +212,12 @@ struct LDBCLoader {
 
             node n;
             n.id = fid;
-            graph->add_node(n, false);
+            log_node(fid);
+            if (!dry_run) {
+                graph->add_node(n, false);
+            }
 
-            if (opts.has_node_props) {
+            if (!dry_run && opts.has_node_props) {
                 uint8_t buf[SNBPostSchema::TOTAL_SIZE] = {};
                 if (col_creation >= 0 && col_creation < (int)fields.size())
                     SNBPostSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
@@ -249,15 +285,18 @@ struct LDBCLoader {
             edge e;
             e.src_id = src;
             e.dst_id = dst;
-            graph->add_edge(e, false);
+            log_edge(src, dst);
+            if (!dry_run) {
+                graph->add_edge(e, false);
 
-            if (opts.has_edge_props && col_creation >= 0 && col_creation < (int)fields.size()) {
-                uint8_t buf[SNBKnowsSchema::TOTAL_SIZE] = {};
-                SNBKnowsSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
-                PendingEdgeProp p;
-                p.src = src; p.dst = dst;
-                p.data.assign(buf, buf + SNBKnowsSchema::TOTAL_SIZE);
-                pending_edge_props.push_back(std::move(p));
+                if (opts.has_edge_props && col_creation >= 0 && col_creation < (int)fields.size()) {
+                    uint8_t buf[SNBKnowsSchema::TOTAL_SIZE] = {};
+                    SNBKnowsSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
+                    PendingEdgeProp p;
+                    p.src = src; p.dst = dst;
+                    p.data.assign(buf, buf + SNBKnowsSchema::TOTAL_SIZE);
+                    pending_edge_props.push_back(std::move(p));
+                }
             }
         }
     }
@@ -290,7 +329,10 @@ struct LDBCLoader {
             edge e;
             e.src_id = pit->second;
             e.dst_id = ait->second;
-            graph->add_edge(e, false);
+            log_edge(pit->second, ait->second);
+            if (!dry_run) {
+                graph->add_edge(e, false);
+            }
             // No edge properties for hasCreator — no pending write.
         }
     }
@@ -331,15 +373,18 @@ struct LDBCLoader {
             edge e;
             e.src_id = src;
             e.dst_id = dst;
-            graph->add_edge(e, false);
+            log_edge(src, dst);
+            if (!dry_run) {
+                graph->add_edge(e, false);
 
-            if (opts.has_edge_props && col_creation >= 0 && col_creation < (int)fields.size()) {
-                uint8_t buf[SNBLikesSchema::TOTAL_SIZE] = {};
-                SNBLikesSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
-                PendingEdgeProp p;
-                p.src = src; p.dst = dst;
-                p.data.assign(buf, buf + SNBLikesSchema::TOTAL_SIZE);
-                pending_edge_props.push_back(std::move(p));
+                if (opts.has_edge_props && col_creation >= 0 && col_creation < (int)fields.size()) {
+                    uint8_t buf[SNBLikesSchema::TOTAL_SIZE] = {};
+                    SNBLikesSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
+                    PendingEdgeProp p;
+                    p.src = src; p.dst = dst;
+                    p.data.assign(buf, buf + SNBLikesSchema::TOTAL_SIZE);
+                    pending_edge_props.push_back(std::move(p));
+                }
             }
         }
     }

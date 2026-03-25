@@ -1059,6 +1059,52 @@ void test_EdgeCursor_Range(AdjList &graph, bool is_directed)
 }
 void tearDown(AdjList &graph) { graph.close(true); }
 
+// Test what happens when a node or edge that already exists is inserted again.
+// Each sub-test uses its own AdjList instance (own session) so that an open
+// transaction left by one failure does not contaminate the next call.
+void test_duplicate_additions(graph_opts opts, WT_CONNECTION *conn)
+{
+  INFO();
+  opts.create_new = false;  // open the already-created db
+
+  // --- duplicate node ---
+  // Node 1 was created implicitly by create_init_nodes (via add_edge).
+  {
+    AdjList g(opts, conn);
+    node dup = {.id = 1, .in_degree = 0, .out_degree = 0};
+    int ret = g.add_node(dup);
+    fprintf(stdout,
+            "add_node(existing id=1):  ret=%d  wiredtiger says: \"%s\"\n"
+            "  AdjList (no MK_NEDGES): adjlist tables use overwrite=false so\n"
+            "  cursor->insert() returns WT_DUPLICATE_KEY for an existing key.\n"
+            "  AdjList::error_check_insert_txn does NOT call rollback_transaction\n"
+            "  on WT_DUPLICATE_KEY, so the session transaction is left open.\n",
+            ret, wiredtiger_strerror(ret));
+    g.close(false);
+  }
+
+  // --- duplicate edge ---
+  // Edge (1->4, weight=8.88) was inserted by create_init_nodes
+  // (parallel_insert_edges id=15).
+  // Without MK_NEDGES there is no separate edge table; edges live in
+  // adjacency-list blobs written via WT_MODIFY (O(1) append).  The append
+  // has no duplicate-detection — the second insertion silently appends
+  // neighbour 4 a second time to node 1's out-adjlist and vice-versa,
+  // and returns 0 (success).  The caller has no way to distinguish a
+  // first insertion from a duplicate one.
+  {
+    AdjList g(opts, conn);
+    edge dup = {.src_id = 1, .dst_id = 4, .edge_weight = 99.99};
+    int ret = g.add_edge(dup, false);
+    fprintf(stdout,
+            "add_edge(existing 1->4):  ret=%d  wiredtiger says: \"%s\"\n"
+            "  Without MK_NEDGES, edges are stored as adjacency-list blobs;\n"
+            "  duplicate edges are silently appended (no WT_DUPLICATE_KEY).\n",
+            ret, wiredtiger_strerror(ret));
+    g.close(false);
+  }
+}
+
 void test_ro_get_nodes(GraphBase *graph)
 {
   INFO();
@@ -1271,6 +1317,8 @@ int main(int argc, char *argv[])
   test_EdgeCursor_Range(graph, opts.is_directed);
 
   std::cout << "Number of nodes in graph: " << graph.get_num_nodes() << std::endl;
+
+  test_duplicate_additions(opts, conn);
 
   tearDown(graph);
   myEngine.close_graph();

@@ -531,9 +531,11 @@ static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <data_dir> [graph_type]\n", argv[0]);
-        fprintf(stderr, "  data_dir   should contain LDBC SNB dynamic/ CSV files\n");
-        fprintf(stderr, "  graph_type adj | splitekey  (default: splitekey)\n");
+        fprintf(stderr, "Usage: %s <data_dir> [graph_type] [--log <file>] [--dry-run]\n", argv[0]);
+        fprintf(stderr, "  data_dir    directory containing LDBC SNB dynamic/ CSV files\n");
+        fprintf(stderr, "  graph_type  adj | splitekey  (default: splitekey)\n");
+        fprintf(stderr, "  --log <f>   write every NODE/EDGE insertion to <f> (converted IDs)\n");
+        fprintf(stderr, "  --dry-run   parse CSVs and write log without inserting into the DB\n");
         return 1;
     }
 
@@ -544,18 +546,29 @@ int main(int argc, char **argv)
 
     std::string dyn = data_dir + "/dynamic";
 
-    // ---- Parse graph type ----
+    // ---- Parse optional flags ----
     GraphType graph_type = GraphType::SplitEKey;
-    if (argc >= 3) {
-        std::string gt = argv[2];
-        if (gt == "adj")
+    std::string insertion_log_path;
+    bool dry_run = false;
+
+    for (int i = 2; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "adj")
             graph_type = GraphType::Adj;
-        else if (gt == "splitekey")
+        else if (arg == "splitekey")
             graph_type = GraphType::SplitEKey;
+        else if (arg == "--log" && i + 1 < argc)
+            insertion_log_path = argv[++i];
+        else if (arg == "--dry-run")
+            dry_run = true;
         else {
-            fprintf(stderr, "Unknown graph_type '%s'. Use: adj | splitekey\n", argv[2]);
+            fprintf(stderr, "Unknown argument '%s'\n", argv[i]);
             return 1;
         }
+    }
+
+    if (dry_run && insertion_log_path.empty()) {
+        fprintf(stderr, "Note: --dry-run without --log produces no output. Adding --log is recommended.\n");
     }
 
     // ---- Graph engine setup ----
@@ -574,6 +587,8 @@ int main(int argc, char **argv)
     opts.stat_log        = "./";
 
     fprintf(stderr, "=== Graph type: %s ===\n", graph_type == GraphType::Adj ? "adj" : "splitekey");
+    if (dry_run)
+        fprintf(stderr, "=== DRY RUN: CSV parsing only, no DB insertions ===\n");
 
     GraphEngine engine(1, opts);
     GraphBase *graph_ptr = engine.create_graph_handle();
@@ -583,6 +598,11 @@ int main(int argc, char **argv)
     fprintf(stderr, "=== Loading LDBC SNB data from %s ===\n", data_dir.c_str());
 
     LDBCLoader loader(&graph, opts);
+    loader.dry_run = dry_run;
+    if (!insertion_log_path.empty()) {
+        loader.enable_insertion_log(insertion_log_path);
+        fprintf(stderr, "=== Insertion log: %s ===\n", insertion_log_path.c_str());
+    }
 
     fprintf(stderr, "[LOAD] persons ... ");
     loader.load_persons(dyn + "/person_0_0.csv");
@@ -620,6 +640,73 @@ int main(int argc, char **argv)
     fprintf(stderr, "\n=== Graph loaded: %llu persons, %llu posts ===\n\n",
             (unsigned long long)person_count,
             (unsigned long long)post_count);
+
+    // ---- Node count verification ----
+    // Cross-check three sources:
+    //   (a) loader counters  — what we tried to insert
+    //   (b) get_num_nodes()  — in-memory atomic counter incremented by add_node
+    //   (c) get_nodes()      — full WT cursor scan (ground truth in the table)
+    // Also breaks down (c) by vertex type to catch ID-partitioning bugs where
+    // Post IDs lose their type bits and collide with Person IDs.
+    if (!dry_run) {
+        node_id_t expected_nodes = person_count + post_count;
+        node_id_t atomic_count   = graph.get_num_nodes();
+
+        fprintf(stderr, "=== Node count verification ===\n");
+        fprintf(stderr, "  loader inserted:   %llu persons + %llu posts = %llu total\n",
+                (unsigned long long)person_count,
+                (unsigned long long)post_count,
+                (unsigned long long)expected_nodes);
+        fprintf(stderr, "  get_num_nodes():   %llu  (in-memory atomic counter)\n",
+                (unsigned long long)atomic_count);
+
+        // Full WT scan — counts what is actually stored
+        std::vector<node> all_nodes = graph.get_nodes();
+        node_id_t scanned_persons = 0, scanned_posts = 0, scanned_unknown = 0;
+        for (const node &nd : all_nodes) {
+            uint64_t vtype = VTYPE_OF(nd.id);
+            if (vtype == VT_PERSON)      scanned_persons++;
+            else if (vtype == VT_POST)   scanned_posts++;
+            else                         scanned_unknown++;
+        }
+        node_id_t scanned_total = (node_id_t)all_nodes.size();
+
+        fprintf(stderr, "  get_nodes() scan:  %llu total  "
+                "(%llu persons, %llu posts, %llu unknown type)\n",
+                (unsigned long long)scanned_total,
+                (unsigned long long)scanned_persons,
+                (unsigned long long)scanned_posts,
+                (unsigned long long)scanned_unknown);
+
+        if (atomic_count != expected_nodes)
+            fprintf(stderr, "  MISMATCH: atomic counter %llu != expected %llu\n",
+                    (unsigned long long)atomic_count,
+                    (unsigned long long)expected_nodes);
+        if (scanned_total != expected_nodes)
+            fprintf(stderr, "  MISMATCH: scanned %llu nodes != expected %llu\n",
+                    (unsigned long long)scanned_total,
+                    (unsigned long long)expected_nodes);
+        if (scanned_persons != person_count)
+            fprintf(stderr, "  MISMATCH: scanned %llu person nodes != inserted %llu\n",
+                    (unsigned long long)scanned_persons,
+                    (unsigned long long)person_count);
+        if (scanned_posts != post_count)
+            fprintf(stderr, "  MISMATCH: scanned %llu post nodes != inserted %llu "
+                    "(type bits may have been dropped — is B64 active?)\n",
+                    (unsigned long long)scanned_posts,
+                    (unsigned long long)post_count);
+        if (atomic_count == expected_nodes && scanned_total == expected_nodes &&
+            scanned_persons == person_count && scanned_posts == post_count)
+            fprintf(stderr, "  OK: all counts match\n");
+
+        // Metadata table state — num_nodes is written only on close(true).
+        // It will read 0 here because sync_metadata() has not been called yet.
+        fprintf(stderr, "\n=== Metadata table (WT) ===\n");
+        graph.dump_meta_data();
+        fprintf(stderr, "  Note: num_nodes/num_edges above are 0 because sync_metadata()\n"
+                "  is only called by close(true) — close(false) skips the flush.\n");
+        fprintf(stderr, "\n");
+    }
 
     // ---- Pick sample IDs for queries ----
     // Use person 0 and person 1 as query subjects (always exist if SF > 0)

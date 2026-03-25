@@ -195,7 +195,7 @@ void AdjList::init_cursors()
                                &node_cursor,
                                session,
                                false,
-                               false,
+                               false, //no overwrite for node table
                                opts.checkpoint_name)))
   {
     throw GraphException("Could not get a cursor to the node table:" +
@@ -207,7 +207,7 @@ void AdjList::init_cursors()
                                &edge_cursor,
                                session,
                                false,
-                               true,
+                               true, // allow overwrite for edge table 
                                opts.checkpoint_name)))
 
   {
@@ -353,6 +353,7 @@ prop_blob AdjList::get_edge_properties(node_id_t src, node_id_t dst)
 int AdjList::add_node(node to_insert, bool is_bulk)
 {
   (void)is_bulk;
+  // LOG_MSG("Adding node with ID {}", to_insert.id);
   session->begin_transaction(session, "isolation=snapshot");
   int ret;
 #ifdef MK_NEDGES
@@ -379,12 +380,14 @@ int AdjList::add_node(node to_insert, bool is_bulk)
       return WT_ROLLBACK;
     }
     else if (ret == WT_DUPLICATE_KEY)
+    //The node already exists, so we need to rollback this transaction and return WT_DUPLICATE_KEY so that the caller can know that the node already exists. It is up to the caller to decide what's next.
     {
       LOG_MSG(
-          "Duplicate node in node table. Node {} already exists.\n\tWT_ERROR: "
+          "Duplicate node in node table. Node {} already exists. Rolling back.\n\tWT_ERROR: "
           "{}",
           to_string(to_insert.id),
           wiredtiger_strerror(ret));
+      session->rollback_transaction(session, nullptr);
       return WT_DUPLICATE_KEY;
     }
     else
@@ -403,6 +406,8 @@ int AdjList::add_node(node to_insert, bool is_bulk)
         DEBUG_MSG("Duplicate key in add_adjlist. An adjlist for node " +
                   to_string(to_insert.id) +
                   " already exists. : " + wiredtiger_strerror(ret));
+        session->rollback_transaction(session, nullptr);
+        
       }
       return ret;
     }
@@ -416,6 +421,7 @@ int AdjList::add_node(node to_insert, bool is_bulk)
       DEBUG_MSG("Duplicate key in add_adjlist. An adjlist for node " +
                 to_string(to_insert.id) +
                 " already exists. : " + wiredtiger_strerror(ret));
+      session->rollback_transaction(session, nullptr);
     }
     return ret;
   }
@@ -1095,6 +1101,7 @@ std::vector<node> AdjList::get_nodes()
 #ifdef MK_NEDGES
   if (opts.read_optimize)
   {
+    node_cursor->reset(node_cursor);
     while ((node_cursor->next(node_cursor) == 0))
     {
       node found;

@@ -65,3 +65,13 @@ TARGET_LINK_LIBRARIES(test_pvector PUBLIC ${NAME_LIB})
 ADD_EXECUTABLE(ldbc_snb_queries "${PATH_TEST}/ldbc_snb_queries.cpp")
 TARGET_INCLUDE_DIRECTORIES(ldbc_snb_queries PRIVATE ${PATH_SRC} ${PATH_TEST})
 TARGET_LINK_LIBRARIES(ldbc_snb_queries PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+# Typed vertex-ID overflow / B64 sanity check
+ADD_EXECUTABLE(test_typed_id "${PATH_TEST}/test_typed_id.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_typed_id PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_typed_id PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+# IIu schema experiment: key=u, value=IIu with fixed-size blob
+ADD_EXECUTABLE(test_IIu_schema "${PATH_TEST}/test_IIu_schema.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_IIu_schema PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_IIu_schema PUBLIC ${NAME_LIB} ${wt_shared_lib})
