@@ -124,6 +124,23 @@ using Ms = std::chrono::duration<double, std::milli>;
         fprintf(stderr, "%.3f ms\n", _ms);                  \
     }
 
+// Like TIME_END but also writes elapsed ms into a double variable.
+#define TIME_END_CAP(label, ms_out)                             \
+    {                                                           \
+        (ms_out) = Ms(Clock::now() - _t0_##label).count();     \
+        fprintf(stderr, "%.3f ms\n", (ms_out));                 \
+    }
+
+// Holds per-query timings for the EMBEDDED vs COLUMNAR comparison table.
+// -1.0 means "not measured / N/A".
+struct QueryTimes {
+    double r2        = -1.0;
+    double a2        = -1.0;
+    double a3        = -1.0;
+    double bi1       = -1.0;
+    double bi12_fast = -1.0;
+};
+
 // ============================================================
 // Separator
 // ============================================================
@@ -239,28 +256,63 @@ static PersonProps r1_person_profile(GraphBase &graph, node_id_t pid)
 }
 
 // R2: Friends list — get all out-neighbors of a person, sorted by knows.creationDate
+//
+// EMBEDDED mode: fetches each edge's property blob individually via
+//   get_edge_properties(pid, nb) — one random seek per friend.
+//
+// COLUMNAR mode: opens colgroup:knows_props:temporal once and does a single
+//   forward range-scan from key (pid, 0).  Reads only the temporal B-tree;
+//   never touches the identity B-tree or topology tables.
 static std::vector<std::pair<node_id_t, int64_t>>
-r2_friends_sorted_by_date(GraphBase &graph, node_id_t pid, bool has_props)
+r2_friends_sorted_by_date(GraphBase &graph, node_id_t pid, bool has_props,
+                           PropStorageMode prop_mode = EMBEDDED,
+                           double *out_ms = nullptr)
 {
     SEP();
     TIME_START(r2_friends_sorted_by_date)
 
-    std::vector<node_id_t> neighbors = graph.get_out_nodes_id(pid);
     std::vector<std::pair<node_id_t, int64_t>> result;
-    result.reserve(neighbors.size());
 
-    for (node_id_t nb : neighbors) {
-        int64_t cd = 0;
-        if (has_props) {
-            prop_blob pb = graph.get_edge_properties(pid, nb);
-            cd = decode_knows(pb).creation_date;
+    if (has_props && prop_mode == COLUMNAR) {
+        // Range-scan colgroup:knows_props:temporal for all edges with src == pid.
+        WT_CURSOR *cur = graph.open_colgroup_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
+        cur->set_key(cur, (uint64_t)pid, (uint64_t)0);
+        int cmp = 0;
+        int ret = cur->search_near(cur, &cmp);
+        if (ret == 0) {
+            if (cmp < 0) ret = cur->next(cur);
+            while (ret == 0) {
+                uint64_t src, dst;
+                cur->get_key(cur, &src, &dst);
+                if (src != (uint64_t)pid) break;
+                uint64_t cDate;
+                cur->get_value(cur, &cDate);
+                result.emplace_back((node_id_t)dst, (int64_t)cDate);
+                ret = cur->next(cur);
+            }
         }
-        result.emplace_back(nb, cd);
+        cur->close(cur);
+    } else {
+        // One get_edge_properties (full blob) per knows neighbor.
+        std::vector<node_id_t> neighbors = graph.get_out_nodes_id(pid);
+        result.reserve(neighbors.size());
+        for (node_id_t nb : neighbors) {
+            if (!is_person(nb)) continue;  // skip likes (person→post) edges
+            int64_t cd = 0;
+            if (has_props) {
+                prop_blob pb = graph.get_edge_properties(pid, nb);
+                cd = decode_knows(pb).creation_date;
+            }
+            result.emplace_back(nb, cd);
+        }
     }
+
     std::sort(result.begin(), result.end(),
               [](const auto &a, const auto &b) { return a.second > b.second; });
 
-    TIME_END(r2_friends_sorted_by_date)
+    if (out_ms) { TIME_END_CAP(r2_friends_sorted_by_date, *out_ms) }
+    else        { TIME_END(r2_friends_sorted_by_date) }
+
     fprintf(stderr, "  Person %llu has %zu friends\n",
             (unsigned long long)pid, result.size());
     int printed = 0;
@@ -478,50 +530,110 @@ a1_degree_count(GraphBase &graph, node_id_t id)
 }
 
 // A2: Count knows edges originating from a person within a date range
+//
+// COLUMNAR mode: range-scans colgroup:knows_props:temporal — one B-tree read,
+//   no topology lookup, date filter applied inline.
+// EMBEDDED mode: one get_edge_properties blob fetch per knows neighbor.
 static int64_t a2_knows_in_date_range(GraphBase &graph, node_id_t pid,
                                        int64_t lo_ms, int64_t hi_ms,
-                                       bool has_props)
+                                       bool has_props,
+                                       PropStorageMode prop_mode = EMBEDDED,
+                                       double *out_ms = nullptr)
 {
     SEP();
     TIME_START(a2_knows_in_date_range)
 
-    std::vector<node_id_t> friends = graph.get_out_nodes_id(pid);
     int64_t count = 0;
-    for (node_id_t nb : friends) {
-        if (!is_person(nb)) continue;
-        if (!has_props) { count++; continue; }
-        prop_blob pb = graph.get_edge_properties(pid, nb);
-        int64_t cd = decode_knows(pb).creation_date;
-        if (cd >= lo_ms && cd <= hi_ms)
-            count++;
+
+    if (has_props && prop_mode == COLUMNAR) {
+        WT_CURSOR *cur = graph.open_colgroup_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
+        cur->set_key(cur, (uint64_t)pid, (uint64_t)0);
+        int cmp = 0;
+        int ret = cur->search_near(cur, &cmp);
+        if (ret == 0) {
+            if (cmp < 0) ret = cur->next(cur);
+            while (ret == 0) {
+                uint64_t src, dst;
+                cur->get_key(cur, &src, &dst);
+                if (src != (uint64_t)pid) break;
+                uint64_t cDate;
+                cur->get_value(cur, &cDate);
+                if ((int64_t)cDate >= lo_ms && (int64_t)cDate <= hi_ms)
+                    count++;
+                ret = cur->next(cur);
+            }
+        }
+        cur->close(cur);
+    } else {
+        std::vector<node_id_t> friends = graph.get_out_nodes_id(pid);
+        for (node_id_t nb : friends) {
+            if (!is_person(nb)) continue;
+            if (!has_props) { count++; continue; }
+            prop_blob pb = graph.get_edge_properties(pid, nb);
+            int64_t cd = decode_knows(pb).creation_date;
+            if (cd >= lo_ms && cd <= hi_ms)
+                count++;
+        }
     }
 
-    TIME_END(a2_knows_in_date_range)
+    if (out_ms) { TIME_END_CAP(a2_knows_in_date_range, *out_ms) }
+    else        { TIME_END(a2_knows_in_date_range) }
+
     fprintf(stderr, "  Person %llu knows edges in date range: %lld\n",
             (unsigned long long)pid, (long long)count);
     return count;
 }
 
 // A3: Count posts liked by a person within a date range
+//
+// COLUMNAR mode: range-scans colgroup:likes_props:temporal — one B-tree read,
+//   date filter applied inline.
+// EMBEDDED mode: one get_edge_properties blob fetch per liked post.
 static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
                                         int64_t lo_ms, int64_t hi_ms,
-                                        bool has_props)
+                                        bool has_props,
+                                        PropStorageMode prop_mode = EMBEDDED,
+                                        double *out_ms = nullptr)
 {
     SEP();
     TIME_START(a3_posts_liked_in_range)
 
-    std::vector<node_id_t> liked = graph.get_out_nodes_id(pid);
     int64_t count = 0;
-    for (node_id_t post_id : liked) {
-        if (!is_post(post_id)) continue;  // skip knows edges
-        if (!has_props) { count++; continue; }
-        prop_blob pb = graph.get_edge_properties(pid, post_id);
-        int64_t cd = decode_likes(pb).creation_date;
-        if (cd >= lo_ms && cd <= hi_ms)
-            count++;
+
+    if (has_props && prop_mode == COLUMNAR) {
+        WT_CURSOR *cur = graph.open_colgroup_cursor(LIKES_PROPS_TABLE, CG_TEMPORAL);
+        cur->set_key(cur, (uint64_t)pid, (uint64_t)0);
+        int cmp = 0;
+        int ret = cur->search_near(cur, &cmp);
+        if (ret == 0) {
+            if (cmp < 0) ret = cur->next(cur);
+            while (ret == 0) {
+                uint64_t src, dst;
+                cur->get_key(cur, &src, &dst);
+                if (src != (uint64_t)pid) break;
+                uint64_t cDate;
+                cur->get_value(cur, &cDate);
+                if ((int64_t)cDate >= lo_ms && (int64_t)cDate <= hi_ms)
+                    count++;
+                ret = cur->next(cur);
+            }
+        }
+        cur->close(cur);
+    } else {
+        std::vector<node_id_t> liked = graph.get_out_nodes_id(pid);
+        for (node_id_t post_id : liked) {
+            if (!is_post(post_id)) continue;  // skip knows edges
+            if (!has_props) { count++; continue; }
+            prop_blob pb = graph.get_edge_properties(pid, post_id);
+            int64_t cd = decode_likes(pb).creation_date;
+            if (cd >= lo_ms && cd <= hi_ms)
+                count++;
+        }
     }
 
-    TIME_END(a3_posts_liked_in_range)
+    if (out_ms) { TIME_END_CAP(a3_posts_liked_in_range, *out_ms) }
+    else        { TIME_END(a3_posts_liked_in_range) }
+
     fprintf(stderr, "  Person %llu posts-liked in date range: %lld\n",
             (unsigned long long)pid, (long long)count);
     return count;
@@ -535,7 +647,8 @@ static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
 // Scan all posts, group by (year, lengthCategory), output counts and lengths.
 // lengthCategory: 0 = short (<40), 1 = medium (40-79), 2 = long (80-254), 3 = very long (>=255)
 // Only valid when prop_mode == COLUMNAR; falls back to stderr notice otherwise.
-static void bi1_posting_summary(GraphBase &graph, node_id_t total_posts)
+static void bi1_posting_summary(GraphBase &graph, node_id_t total_posts,
+                                 double *out_ms = nullptr)
 {
     TIME_START(bi1_posting_summary)
 
@@ -567,7 +680,8 @@ static void bi1_posting_summary(GraphBase &graph, node_id_t total_posts)
     }
     cur->close(cur);
 
-    TIME_END(bi1_posting_summary)
+    if (out_ms) { TIME_END_CAP(bi1_posting_summary, *out_ms) }
+    else        { TIME_END(bi1_posting_summary) }
 
     fprintf(stderr, "  BI-1 Posting Summary (%llu posts scanned):\n",
             (unsigned long long)total_posts);
@@ -677,8 +791,9 @@ static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts)
 //                    (0 = no filter)
 static void bi12_message_distribution_fast(GraphBase &graph,
                                             node_id_t total_posts,
-                                            int64_t max_date  = INT64_MAX,
-                                            int32_t min_length = 0)
+                                            int64_t max_date   = INT64_MAX,
+                                            int32_t min_length = 0,
+                                            double *out_ms     = nullptr)
 {
     TIME_START(bi12_message_distribution_fast)
 
@@ -716,7 +831,8 @@ static void bi12_message_distribution_fast(GraphBase &graph,
     }
     delete ec;
 
-    TIME_END(bi12_message_distribution_fast)
+    if (out_ms) { TIME_END_CAP(bi12_message_distribution_fast, *out_ms) }
+    else        { TIME_END(bi12_message_distribution_fast) }
 
     // Sort by count descending, then personId ascending.
     std::vector<std::pair<node_id_t, int64_t>> ranked(creator_count.begin(), creator_count.end());
@@ -802,6 +918,49 @@ int main(int argc, char **argv)
     if (dry_run)
         fprintf(stderr, "=== DRY RUN: CSV parsing only, no DB insertions ===\n");
 
+    // ---- Timing comparison buckets ----
+    QueryTimes emb_times, col_times;
+
+    // ---- PASS 1: EMBEDDED (baseline for timing comparison) ----
+    // Load into a separate DB with blob-in-edge-table storage,
+    // then run only the three queries whose colgroup benefit we measure.
+    if (!dry_run) {
+        graph_opts emb_opts = opts;
+        emb_opts.prop_mode = EMBEDDED;
+        emb_opts.db_dir    = "./db_emb";
+
+        GraphEngine emb_engine(1, emb_opts);
+        GraphBase *emb_ptr = emb_engine.create_graph_handle();
+        GraphBase &emb_graph = *emb_ptr;
+
+        fprintf(stderr, "\n=== PASS 1 (EMBEDDED baseline): loading data ===\n");
+        LDBCLoader emb_loader(&emb_graph, emb_opts);
+        emb_loader.load_persons(dyn + "/person_0_0.csv");
+        emb_loader.load_posts(dyn + "/post_0_0.csv");
+        emb_loader.load_knows(dyn + "/person_knows_person_0_0.csv");
+        emb_loader.load_has_creator(dyn + "/post_hasCreator_person_0_0.csv");
+        emb_loader.load_likes(dyn + "/person_likes_post_0_0.csv");
+        emb_loader.flush_node_props();
+        emb_loader.flush_edge_props();
+
+        node_id_t emb_pc = emb_loader.person_count;
+        node_id_t emb_sp0 = MAKE_TYPED_ID(VT_PERSON, 0);
+        node_id_t emb_sp1 = (emb_pc > 1) ? MAKE_TYPED_ID(VT_PERSON, 1) : emb_sp0;
+
+        fprintf(stderr, "=== PASS 1 (EMBEDDED baseline): timing queries ===\n");
+        r2_friends_sorted_by_date(emb_graph, emb_sp0, emb_opts.has_edge_props,
+                                   EMBEDDED, &emb_times.r2);
+        a2_knows_in_date_range(emb_graph, emb_sp0, 0LL, INT64_MAX,
+                                emb_opts.has_edge_props, EMBEDDED, &emb_times.a2);
+        a3_posts_liked_in_range(emb_graph, emb_sp1, 0LL, INT64_MAX,
+                                 emb_opts.has_edge_props, EMBEDDED, &emb_times.a3);
+
+        emb_ptr->close(false);
+        emb_engine.close_graph();
+        fprintf(stderr, "=== PASS 1 complete ===\n\n");
+    }
+
+    // ---- PASS 2: COLUMNAR ----
     GraphEngine engine(1, opts);
     GraphBase *graph_ptr = engine.create_graph_handle();
     GraphBase &graph = *graph_ptr;
@@ -950,7 +1109,8 @@ int main(int argc, char **argv)
     r1_person_profile(graph, sample_person0);
 
     // R2: friends sorted by date
-    r2_friends_sorted_by_date(graph, sample_person0, opts.has_edge_props);
+    r2_friends_sorted_by_date(graph, sample_person0, opts.has_edge_props,
+                               opts.prop_mode, &col_times.r2);
 
     // R3: BFS shortest path (may be slow for large graphs — demo only)
     if (person_count >= 2)
@@ -994,22 +1154,50 @@ int main(int argc, char **argv)
     // A2: knows edges in date range for person 0
     a2_knows_in_date_range(graph, sample_person0,
                            0LL, INT64_MAX,
-                           opts.has_edge_props);
+                           opts.has_edge_props, opts.prop_mode, &col_times.a2);
 
     // A3: posts liked in date range for person 1
     if (sample_person1 != sample_person0)
         a3_posts_liked_in_range(graph, sample_person1,
                                 0LL, INT64_MAX,
-                                opts.has_edge_props);
+                                opts.has_edge_props, opts.prop_mode, &col_times.a3);
 
     if (opts.prop_mode == COLUMNAR && !dry_run) {
         fprintf(stderr, "\n=== BI QUERIES (COLUMNAR mode) ===\n");
-        bi1_posting_summary(graph, post_count);
+        bi1_posting_summary(graph, post_count, &col_times.bi1);
         bi12_message_distribution(graph, post_count);
-        bi12_message_distribution_fast(graph, post_count);
+        bi12_message_distribution_fast(graph, post_count, INT64_MAX, 0, &col_times.bi12_fast);
     }
 
     fprintf(stderr, "\n=== All queries complete ===\n");
+
+    // ---- EMBEDDED vs COLUMNAR timing comparison ----
+    if (!dry_run && opts.prop_mode == COLUMNAR) {
+        fprintf(stderr, "\n=== EMBEDDED vs COLUMNAR timing comparison ===\n");
+        fprintf(stderr, "%-36s  %14s  %14s  %10s\n",
+                "Query", "EMBEDDED (ms)", "COLUMNAR (ms)", "Speedup");
+        fprintf(stderr, "%-36s  %14s  %14s  %10s\n",
+                "-----", "-------------", "-------------", "-------");
+
+        auto print_row = [](const char *name, double emb, double col) {
+            if (emb < 0.0) {
+                fprintf(stderr, "%-36s  %14s  %14.3f  %10s\n", name, "N/A", col, "—");
+            } else if (col < 0.0) {
+                fprintf(stderr, "%-36s  %14.3f  %14s  %10s\n", name, emb, "N/A", "—");
+            } else {
+                double speedup = (col > 0.0) ? emb / col : 0.0;
+                fprintf(stderr, "%-36s  %14.3f  %14.3f  %9.2fx\n",
+                        name, emb, col, speedup);
+            }
+        };
+
+        print_row("r2_friends_sorted_by_date",    emb_times.r2,        col_times.r2);
+        print_row("a2_knows_in_date_range",        emb_times.a2,        col_times.a2);
+        print_row("a3_posts_liked_in_range",       emb_times.a3,        col_times.a3);
+        print_row("bi1_posting_summary",           -1.0,                col_times.bi1);
+        print_row("bi12_message_distribution_fast",-1.0,                col_times.bi12_fast);
+        fprintf(stderr, "\n");
+    }
 
     graph_ptr->close(false);
     engine.close_graph();
