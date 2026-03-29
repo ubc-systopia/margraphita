@@ -61,6 +61,15 @@ ADD_EXECUTABLE(test_pvector "${PATH_TEST}/pvector_test.cpp")
 INCLUDE_DIRECTORIES(test_pvector PRIVATE ${PATH_INCLUDE} ${UTILS} ${ITTAPI_INCLUDE_DIR} ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_pvector PUBLIC ${NAME_LIB})
 
+# COLUMNAR property storage tests
+ADD_EXECUTABLE(test_columnar_ekey "${PATH_TEST}/test_columnar_ekey.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_columnar_ekey PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_columnar_ekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+ADD_EXECUTABLE(test_columnar_adj "${PATH_TEST}/test_columnar_adj.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_columnar_adj PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_columnar_adj PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
 # LDBC SNB query harness
 ADD_EXECUTABLE(ldbc_snb_queries "${PATH_TEST}/ldbc_snb_queries.cpp")
 TARGET_INCLUDE_DIRECTORIES(ldbc_snb_queries PRIVATE ${PATH_SRC} ${PATH_TEST})
