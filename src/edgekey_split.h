@@ -82,6 +82,10 @@ class SplitEdgeKey : public GraphBase
   prop_blob get_edge_properties(node_id_t src, node_id_t dst) override;
   WT_CURSOR* open_colgroup_cursor(const std::string& table,
                                    const std::string& colgroup) override;
+  void add_person_email(node_id_t person_id, uint64_t idx, const char* email) override;
+  void add_person_language(node_id_t person_id, uint64_t idx, const char* lang) override;
+  std::vector<std::string> get_person_emails(node_id_t person_id) override;
+  std::vector<std::string> get_person_languages(node_id_t person_id) override;
 
  private:
   WT_CURSOR *out_edge_cursor = nullptr;
@@ -95,6 +99,8 @@ class SplitEdgeKey : public GraphBase
   WT_CURSOR *post_props_cursor    = nullptr;
   WT_CURSOR *knows_props_cursor   = nullptr;
   WT_CURSOR *likes_props_cursor   = nullptr;
+  WT_CURSOR *person_email_cursor  = nullptr;
+  WT_CURSOR *person_speaks_cursor = nullptr;
 
   [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
   int delete_node_and_related_edges(node_id_t node_id, int *num_edges_to_del);
@@ -116,6 +122,8 @@ class SplitEdgeKey : public GraphBase
     if (post_props_cursor)     post_props_cursor->close(post_props_cursor);
     if (knows_props_cursor)    knows_props_cursor->close(knows_props_cursor);
     if (likes_props_cursor)    likes_props_cursor->close(likes_props_cursor);
+    if (person_email_cursor)   person_email_cursor->close(person_email_cursor);
+    if (person_speaks_cursor)  person_speaks_cursor->close(person_speaks_cursor);
   }
 
  public:

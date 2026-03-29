@@ -189,15 +189,29 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
       throw GraphException("AdjList: failed to create person_props:contact: " + string(wiredtiger_strerror(ret)));
 
     ret = sess->create(sess, ("table:" + POST_PROPS_TABLE).c_str(),
-        "key_format=Q,value_format=Qi,"
-        "columns=(vid,creationDate,length),"
-        "colgroups=(temporal)");
+        "key_format=Q,value_format=QibS,"
+        "columns=(vid,creationDate,length,tag,content),"
+        "colgroups=(temporal,content)");
     if (ret != 0)
       throw GraphException("AdjList: failed to create post_props: " + string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + POST_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
         "columns=(creationDate,length)");
     if (ret != 0)
       throw GraphException("AdjList: failed to create post_props:temporal: " + string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + POST_PROPS_TABLE + ":" + CG_CONTENT).c_str(),
+        "columns=(tag,content)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create post_props:content: " + string(wiredtiger_strerror(ret)));
+
+    ret = sess->create(sess, ("table:" + PERSON_EMAIL_TABLE).c_str(),
+        "key_format=QQ,value_format=S,columns=(person_id,idx,email)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create person_email: " + string(wiredtiger_strerror(ret)));
+
+    ret = sess->create(sess, ("table:" + PERSON_SPEAKS_TABLE).c_str(),
+        "key_format=QQ,value_format=S,columns=(person_id,idx,language)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create person_speaks: " + string(wiredtiger_strerror(ret)));
 
     ret = sess->create(sess, ("table:" + KNOWS_PROPS_TABLE).c_str(),
         "key_format=QQ,value_format=Q,"
@@ -333,6 +347,12 @@ void AdjList::init_cursors()
     if ((ret = _get_table_cursor(LIKES_PROPS_TABLE, &likes_props_cursor,
                                  session, false, true, opts.checkpoint_name)))
       throw GraphException("AdjList: could not open likes_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(PERSON_EMAIL_TABLE, &person_email_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("AdjList: could not open person_email cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(PERSON_SPEAKS_TABLE, &person_speaks_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("AdjList: could not open person_speaks cursor: " + string(wiredtiger_strerror(ret)));
   }
 }
 
@@ -371,15 +391,17 @@ void AdjList::set_node_properties(node_id_t id,
         break;
       }
       case VT_POST: {
-        uint64_t cDate  = (uint64_t)SNBPostSchema::get_creation_date(data);
-        int32_t  length = SNBPostSchema::get_length(data);
+        uint64_t    cDate   = (uint64_t)SNBPostSchema::get_creation_date(data);
+        int32_t     length  = SNBPostSchema::get_length(data);
+        int8_t      tag     = SNBPostSchema::get_tag(data);
+        const char *content = SNBPostSchema::get_content(data, size);
         post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
-        post_props_cursor->set_value(post_props_cursor, cDate, length);
+        post_props_cursor->set_value(post_props_cursor, cDate, length, tag, content);
         int ret = post_props_cursor->insert(post_props_cursor);
         if (ret == WT_DUPLICATE_KEY)
         {
           post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
-          post_props_cursor->set_value(post_props_cursor, cDate, length);
+          post_props_cursor->set_value(post_props_cursor, cDate, length, tag, content);
           ret = post_props_cursor->update(post_props_cursor);
         }
         if (ret != 0)
@@ -443,12 +465,16 @@ prop_blob AdjList::get_node_properties(node_id_t id)
         post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
         if (post_props_cursor->search(post_props_cursor) != 0)
           return {nullptr, 0};
-        uint64_t cDate; int32_t length;
-        post_props_cursor->get_value(post_props_cursor, &cDate, &length);
-        uint8_t *buf = new uint8_t[SNBPostSchema::TOTAL_SIZE];
+        uint64_t cDate; int32_t length; int8_t tag; const char *content;
+        post_props_cursor->get_value(post_props_cursor, &cDate, &length, &tag, &content);
+        size_t content_len = (content && *content) ? strlen(content) : 0;
+        size_t total = SNBPostSchema::TOTAL_SIZE + content_len + 1;
+        uint8_t *buf = new uint8_t[total]();
         SNBPostSchema::set_creation_date(buf, (int64_t)cDate);
         SNBPostSchema::set_length(buf, length);
-        return {buf, SNBPostSchema::TOTAL_SIZE};
+        SNBPostSchema::set_tag(buf, tag);
+        SNBPostSchema::set_content(buf, content ? content : "");
+        return {buf, total};
       }
       default:
         return {nullptr, 0};
@@ -565,6 +591,62 @@ WT_CURSOR *AdjList::open_colgroup_cursor(const std::string &table,
     throw GraphException("AdjList: open_colgroup_cursor failed to open " + uri + ": " +
                          wiredtiger_strerror(ret));
   return cur;
+}
+
+void AdjList::add_person_email(node_id_t person_id, uint64_t idx, const char *email)
+{
+  if (opts.prop_mode != COLUMNAR || !person_email_cursor) return;
+  person_email_cursor->set_key(person_email_cursor, (uint64_t)person_id, idx);
+  person_email_cursor->set_value(person_email_cursor, email ? email : "");
+  person_email_cursor->insert(person_email_cursor);
+}
+
+void AdjList::add_person_language(node_id_t person_id, uint64_t idx, const char *lang)
+{
+  if (opts.prop_mode != COLUMNAR || !person_speaks_cursor) return;
+  person_speaks_cursor->set_key(person_speaks_cursor, (uint64_t)person_id, idx);
+  person_speaks_cursor->set_value(person_speaks_cursor, lang ? lang : "");
+  person_speaks_cursor->insert(person_speaks_cursor);
+}
+
+std::vector<std::string> AdjList::get_person_emails(node_id_t person_id)
+{
+  std::vector<std::string> result;
+  if (!person_email_cursor) return result;
+  int cmp = 0;
+  person_email_cursor->set_key(person_email_cursor, (uint64_t)person_id, (uint64_t)0);
+  int ret = person_email_cursor->search_near(person_email_cursor, &cmp);
+  if (ret == 0 && cmp < 0) ret = person_email_cursor->next(person_email_cursor);
+  while (ret == 0) {
+    uint64_t pid, idx;
+    person_email_cursor->get_key(person_email_cursor, &pid, &idx);
+    if (pid != (uint64_t)person_id) break;
+    const char *val;
+    person_email_cursor->get_value(person_email_cursor, &val);
+    result.emplace_back(val ? val : "");
+    ret = person_email_cursor->next(person_email_cursor);
+  }
+  return result;
+}
+
+std::vector<std::string> AdjList::get_person_languages(node_id_t person_id)
+{
+  std::vector<std::string> result;
+  if (!person_speaks_cursor) return result;
+  int cmp = 0;
+  person_speaks_cursor->set_key(person_speaks_cursor, (uint64_t)person_id, (uint64_t)0);
+  int ret = person_speaks_cursor->search_near(person_speaks_cursor, &cmp);
+  if (ret == 0 && cmp < 0) ret = person_speaks_cursor->next(person_speaks_cursor);
+  while (ret == 0) {
+    uint64_t pid, idx;
+    person_speaks_cursor->get_key(person_speaks_cursor, &pid, &idx);
+    if (pid != (uint64_t)person_id) break;
+    const char *val;
+    person_speaks_cursor->get_value(person_speaks_cursor, &val);
+    result.emplace_back(val ? val : "");
+    ret = person_speaks_cursor->next(person_speaks_cursor);
+  }
+  return result;
 }
 
 /**

@@ -103,17 +103,34 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
     if (ret != 0)
       throw GraphException("Failed to create person_props:contact colgroup: " + std::string(wiredtiger_strerror(ret)));
 
-    // post_props: key=typed_id(Q), value=creationDate(Q) length(i)
+    // post_props: key=typed_id(Q), value=creationDate(Q) length(i) tag(b) content(S)
+    // colgroups: temporal=(creationDate,length)  content=(tag,content)
     ret = sess->create(sess, ("table:" + POST_PROPS_TABLE).c_str(),
-        "key_format=Q,value_format=Qi,"
-        "columns=(vid,creationDate,length),"
-        "colgroups=(temporal)");
+        "key_format=Q,value_format=QibS,"
+        "columns=(vid,creationDate,length,tag,content),"
+        "colgroups=(temporal,content)");
     if (ret != 0)
       throw GraphException("Failed to create post_props: " + std::string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + POST_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
         "columns=(creationDate,length)");
     if (ret != 0)
       throw GraphException("Failed to create post_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + POST_PROPS_TABLE + ":" + CG_CONTENT).c_str(),
+        "columns=(tag,content)");
+    if (ret != 0)
+      throw GraphException("Failed to create post_props:content colgroup: " + std::string(wiredtiger_strerror(ret)));
+
+    // person_email: key=(person_id Q, idx Q), value=email(S)
+    ret = sess->create(sess, ("table:" + PERSON_EMAIL_TABLE).c_str(),
+        "key_format=QQ,value_format=S,columns=(person_id,idx,email)");
+    if (ret != 0)
+      throw GraphException("Failed to create person_email: " + std::string(wiredtiger_strerror(ret)));
+
+    // person_speaks: key=(person_id Q, idx Q), value=language(S)
+    ret = sess->create(sess, ("table:" + PERSON_SPEAKS_TABLE).c_str(),
+        "key_format=QQ,value_format=S,columns=(person_id,idx,language)");
+    if (ret != 0)
+      throw GraphException("Failed to create person_speaks: " + std::string(wiredtiger_strerror(ret)));
 
     // knows_props: key=(src Q, dst Q), value=creationDate(Q)
     ret = sess->create(sess, ("table:" + KNOWS_PROPS_TABLE).c_str(),
@@ -220,6 +237,12 @@ void SplitEdgeKey::init_cursors()
     if ((ret = _get_table_cursor(LIKES_PROPS_TABLE, &likes_props_cursor,
                                  session, false, true, opts.checkpoint_name)))
       throw GraphException("Could not open likes_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(PERSON_EMAIL_TABLE, &person_email_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open person_email cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(PERSON_SPEAKS_TABLE, &person_speaks_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open person_speaks cursor: " + string(wiredtiger_strerror(ret)));
   }
 }
 
@@ -463,15 +486,17 @@ void SplitEdgeKey::set_node_properties(node_id_t id,
         break;
       }
       case VT_POST: {
-        uint64_t cDate  = (uint64_t)SNBPostSchema::get_creation_date(prop_data);
-        int32_t  length = SNBPostSchema::get_length(prop_data);
+        uint64_t    cDate   = (uint64_t)SNBPostSchema::get_creation_date(prop_data);
+        int32_t     length  = SNBPostSchema::get_length(prop_data);
+        int8_t      tag     = SNBPostSchema::get_tag(prop_data);
+        const char *content = SNBPostSchema::get_content(prop_data, prop_size);
         post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
-        post_props_cursor->set_value(post_props_cursor, cDate, length);
+        post_props_cursor->set_value(post_props_cursor, cDate, length, tag, content);
         int ret = post_props_cursor->insert(post_props_cursor);
         if (ret == WT_DUPLICATE_KEY)
         {
           post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
-          post_props_cursor->set_value(post_props_cursor, cDate, length);
+          post_props_cursor->set_value(post_props_cursor, cDate, length, tag, content);
           ret = post_props_cursor->update(post_props_cursor);
         }
         if (ret != 0)
@@ -541,12 +566,16 @@ prop_blob SplitEdgeKey::get_node_properties(node_id_t id)
         post_props_cursor->set_key(post_props_cursor, (uint64_t)id);
         if (post_props_cursor->search(post_props_cursor) != 0)
           return {nullptr, 0};
-        uint64_t cDate; int32_t length;
-        post_props_cursor->get_value(post_props_cursor, &cDate, &length);
-        uint8_t *buf = new uint8_t[SNBPostSchema::TOTAL_SIZE];
+        uint64_t cDate; int32_t length; int8_t tag; const char *content;
+        post_props_cursor->get_value(post_props_cursor, &cDate, &length, &tag, &content);
+        size_t content_len = (content && *content) ? strlen(content) : 0;
+        size_t total = SNBPostSchema::TOTAL_SIZE + content_len + 1;
+        uint8_t *buf = new uint8_t[total]();
         SNBPostSchema::set_creation_date(buf, (int64_t)cDate);
         SNBPostSchema::set_length(buf, length);
-        return {buf, SNBPostSchema::TOTAL_SIZE};
+        SNBPostSchema::set_tag(buf, tag);
+        SNBPostSchema::set_content(buf, content ? content : "");
+        return {buf, total};
       }
       default:
         return {nullptr, 0};
@@ -682,6 +711,52 @@ WT_CURSOR *SplitEdgeKey::open_colgroup_cursor(const std::string &table,
     throw GraphException("open_colgroup_cursor: failed to open " + uri + ": " +
                          wiredtiger_strerror(ret));
   return cur;
+}
+
+void SplitEdgeKey::add_person_email(node_id_t person_id, uint64_t idx, const char *email)
+{
+  if (opts.prop_mode != COLUMNAR || !person_email_cursor) return;
+  person_email_cursor->set_key(person_email_cursor, (uint64_t)person_id, idx);
+  person_email_cursor->set_value(person_email_cursor, email ? email : "");
+  person_email_cursor->insert(person_email_cursor);
+}
+
+void SplitEdgeKey::add_person_language(node_id_t person_id, uint64_t idx, const char *lang)
+{
+  if (opts.prop_mode != COLUMNAR || !person_speaks_cursor) return;
+  person_speaks_cursor->set_key(person_speaks_cursor, (uint64_t)person_id, idx);
+  person_speaks_cursor->set_value(person_speaks_cursor, lang ? lang : "");
+  person_speaks_cursor->insert(person_speaks_cursor);
+}
+
+static std::vector<std::string> scan_secondary_table(WT_CURSOR *cur, uint64_t person_id)
+{
+  std::vector<std::string> result;
+  if (!cur) return result;
+  int cmp = 0;
+  cur->set_key(cur, person_id, (uint64_t)0);
+  int ret = cur->search_near(cur, &cmp);
+  if (ret == 0 && cmp < 0) ret = cur->next(cur);
+  while (ret == 0) {
+    uint64_t pid, idx;
+    cur->get_key(cur, &pid, &idx);
+    if (pid != person_id) break;
+    const char *val;
+    cur->get_value(cur, &val);
+    result.emplace_back(val ? val : "");
+    ret = cur->next(cur);
+  }
+  return result;
+}
+
+std::vector<std::string> SplitEdgeKey::get_person_emails(node_id_t person_id)
+{
+  return scan_secondary_table(person_email_cursor, (uint64_t)person_id);
+}
+
+std::vector<std::string> SplitEdgeKey::get_person_languages(node_id_t person_id)
+{
+  return scan_secondary_table(person_speaks_cursor, (uint64_t)person_id);
 }
 
 /**

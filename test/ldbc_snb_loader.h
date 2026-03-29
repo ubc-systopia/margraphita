@@ -195,7 +195,7 @@ public:
 
     // post_0_0.csv expected columns (header '|' delimited):
     //   id|imageFile|creationDate|locationIP|browserUsed|language|content|length|...
-    // We parse: id, creationDate, length
+    // We parse: id, creationDate, length, imageFile, content
     void load_posts(const std::string &path)
     {
         std::ifstream f(path);
@@ -208,10 +208,13 @@ public:
 
         auto hdr = csv_split(line);
         int col_id = -1, col_creation = -1, col_length = -1;
+        int col_imagefile = -1, col_content = -1;
         for (int i = 0; i < (int)hdr.size(); i++) {
-            if (hdr[i] == "id")                  col_id       = i;
-            else if (hdr[i] == "creationDate")    col_creation = i;
-            else if (hdr[i] == "length")          col_length   = i;
+            if (hdr[i] == "id")               col_id        = i;
+            else if (hdr[i] == "creationDate")col_creation  = i;
+            else if (hdr[i] == "length")      col_length    = i;
+            else if (hdr[i] == "imageFile")   col_imagefile = i;
+            else if (hdr[i] == "content")     col_content   = i;
         }
         if (col_id < 0)
             throw std::runtime_error("post CSV missing 'id' column");
@@ -232,16 +235,92 @@ public:
             }
 
             if (!dry_run && opts.has_node_props) {
-                uint8_t buf[SNBPostSchema::TOTAL_SIZE] = {};
+                // Determine tag and content string
+                int8_t tag = 0;
+                std::string cstr;
+                bool has_image = col_imagefile >= 0 && col_imagefile < (int)fields.size()
+                                 && !fields[col_imagefile].empty();
+                if (has_image) {
+                    tag  = 1;
+                    cstr = fields[col_imagefile];
+                } else if (col_content >= 0 && col_content < (int)fields.size()) {
+                    tag  = 0;
+                    cstr = fields[col_content];
+                }
+                if (cstr.size() > SNBPostSchema::CONTENT_MAX_LEN)
+                    cstr.resize(SNBPostSchema::CONTENT_MAX_LEN);
+
+                // Build variable-length blob: fixed header + null-terminated content
+                size_t total = SNBPostSchema::TOTAL_SIZE + cstr.size() + 1;
+                std::vector<uint8_t> buf(total, 0);
                 if (col_creation >= 0 && col_creation < (int)fields.size())
-                    SNBPostSchema::set_creation_date(buf, parse_epoch_ms(fields[col_creation]));
+                    SNBPostSchema::set_creation_date(buf.data(), parse_epoch_ms(fields[col_creation]));
                 if (col_length >= 0 && col_length < (int)fields.size())
-                    SNBPostSchema::set_length(buf, std::stoi(fields[col_length]));
+                    SNBPostSchema::set_length(buf.data(), std::stoi(fields[col_length]));
+                SNBPostSchema::set_tag(buf.data(), tag);
+                SNBPostSchema::set_content(buf.data(), cstr.c_str());
+
                 PendingNodeProp p;
                 p.id = fid;
-                p.data.assign(buf, buf + SNBPostSchema::TOTAL_SIZE);
+                p.data = std::move(buf);
                 pending_node_props.push_back(std::move(p));
             }
+        }
+    }
+
+    // person_email_emailaddress_0_0.csv: Person.id|email
+    void load_person_emails(const std::string &path)
+    {
+        if (opts.prop_mode != COLUMNAR) return;
+        std::ifstream f(path);
+        if (!f.is_open())
+            throw std::runtime_error("Cannot open: " + path);
+
+        std::string line;
+        if (!std::getline(f, line)) return;  // skip header
+
+        std::unordered_map<node_id_t, uint64_t> idx_counter;
+        while (std::getline(f, line)) {
+            if (line.empty()) continue;
+            auto fields = csv_split(line);
+            if ((int)fields.size() < 2) continue;
+
+            int64_t ldbc_id = std::stoll(fields[0]);
+            auto it = person_id_map.find(ldbc_id);
+            if (it == person_id_map.end()) continue;
+
+            node_id_t fid = it->second;
+            uint64_t idx = idx_counter[fid]++;
+            if (!dry_run)
+                graph->add_person_email(fid, idx, fields[1].c_str());
+        }
+    }
+
+    // person_speaks_language_0_0.csv: Person.id|language
+    void load_person_speaks(const std::string &path)
+    {
+        if (opts.prop_mode != COLUMNAR) return;
+        std::ifstream f(path);
+        if (!f.is_open())
+            throw std::runtime_error("Cannot open: " + path);
+
+        std::string line;
+        if (!std::getline(f, line)) return;  // skip header
+
+        std::unordered_map<node_id_t, uint64_t> idx_counter;
+        while (std::getline(f, line)) {
+            if (line.empty()) continue;
+            auto fields = csv_split(line);
+            if ((int)fields.size() < 2) continue;
+
+            int64_t ldbc_id = std::stoll(fields[0]);
+            auto it = person_id_map.find(ldbc_id);
+            if (it == person_id_map.end()) continue;
+
+            node_id_t fid = it->second;
+            uint64_t idx = idx_counter[fid]++;
+            if (!dry_run)
+                graph->add_person_language(fid, idx, fields[1].c_str());
         }
     }
 

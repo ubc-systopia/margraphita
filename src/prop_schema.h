@@ -83,14 +83,21 @@ namespace SNBPersonSchema {
 }  // namespace SNBPersonSchema
 
 // --- Post vertex schema ---
-// | creationDate (int64) | length (int32) |
-// | offset 0             | offset 8       |
-// Total: 12 bytes
+// | creationDate (int64) | length (int32) | tag (uint8) | content (NUL-terminated) |
+// | offset 0             | offset 8       | offset 12   | offset 13                |
+// TOTAL_SIZE = 13 (minimum, with empty content).  Actual blob = 13 + strlen(content) + 1.
+// tag: 0 = text content, 1 = imageFile name.
+// content field: at most CONTENT_MAX_LEN chars (truncated on write).
+// In WT COLUMNAR: value_format=QibS  (colgroups: temporal=(creationDate,length),
+//                                                content=(tag,content))
 
 namespace SNBPostSchema {
+    constexpr size_t CONTENT_MAX_LEN      = 2000;
     constexpr size_t OFFSET_CREATION_DATE = 0;
     constexpr size_t OFFSET_LENGTH        = 8;
-    constexpr size_t TOTAL_SIZE           = 12;
+    constexpr size_t OFFSET_TAG           = 12;
+    constexpr size_t OFFSET_CONTENT       = 13;
+    constexpr size_t TOTAL_SIZE           = 13;  // minimum blob size
 
     inline void set_creation_date(uint8_t* buf, int64_t val) {
         std::memcpy(buf + OFFSET_CREATION_DATE, &val, sizeof(val));
@@ -108,6 +115,26 @@ namespace SNBPostSchema {
         int32_t val;
         std::memcpy(&val, buf + OFFSET_LENGTH, sizeof(val));
         return val;
+    }
+
+    inline void set_tag(uint8_t* buf, int8_t tag) {
+        buf[OFFSET_TAG] = static_cast<uint8_t>(tag);
+    }
+    inline int8_t get_tag(const uint8_t* buf) {
+        return static_cast<int8_t>(buf[OFFSET_TAG]);
+    }
+
+    // content must be NUL-terminated and at most CONTENT_MAX_LEN chars.
+    // buf must be large enough: TOTAL_SIZE + strlen(content) + 1.
+    inline void set_content(uint8_t* buf, const char* content) {
+        if (content)
+            std::strcpy(reinterpret_cast<char*>(buf + OFFSET_CONTENT), content);
+        else
+            buf[OFFSET_CONTENT] = 0;
+    }
+    inline const char* get_content(const uint8_t* buf, size_t blob_size) {
+        if (blob_size <= OFFSET_CONTENT) return "";
+        return reinterpret_cast<const char*>(buf + OFFSET_CONTENT);
     }
 }  // namespace SNBPostSchema
 

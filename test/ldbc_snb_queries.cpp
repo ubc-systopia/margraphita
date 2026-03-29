@@ -61,8 +61,10 @@ struct PersonProps {
 };
 
 struct PostProps {
-    int64_t creation_date = 0;
-    int32_t length = 0;
+    int64_t     creation_date = 0;
+    int32_t     length = 0;
+    int8_t      tag = 0;          // 0=content, 1=imageFile
+    std::string content;
 };
 
 struct KnowsProps {
@@ -94,6 +96,8 @@ static PostProps decode_post(const prop_blob &pb)
     if (pb.data && pb.size >= SNBPostSchema::TOTAL_SIZE) {
         p.creation_date = SNBPostSchema::get_creation_date(pb.data);
         p.length        = SNBPostSchema::get_length(pb.data);
+        p.tag           = SNBPostSchema::get_tag(pb.data);
+        p.content       = SNBPostSchema::get_content(pb.data, pb.size);
     }
     return p;
 }
@@ -255,12 +259,26 @@ static PersonProps r1_person_profile(GraphBase &graph, node_id_t pid)
     prop_blob pb = graph.get_node_properties(pid);
     PersonProps p = decode_person(pb);
     TIME_END(r1_person_profile)
+    auto emails = graph.get_person_emails(pid);
+    auto langs  = graph.get_person_languages(pid);
+
     fprintf(stderr, "  Person %llu: %s %s  gender=%d  birthday=%lld  creationDate=%lld\n"
                     "              browser=%s  ip=%s\n",
             (unsigned long long)pid,
             p.first_name, p.last_name, (int)p.gender,
             (long long)p.birthday, (long long)p.creation_date,
             p.browser_used, p.location_ip);
+
+    if (!emails.empty()) {
+        fprintf(stderr, "              emails:");
+        for (const auto &e : emails) fprintf(stderr, " %s", e.c_str());
+        fprintf(stderr, "\n");
+    }
+    if (!langs.empty()) {
+        fprintf(stderr, "              speaks:");
+        for (const auto &l : langs) fprintf(stderr, " %s", l.c_str());
+        fprintf(stderr, "\n");
+    }
     return p;
 }
 
@@ -383,8 +401,11 @@ static PostProps x1_post_profile(GraphBase &graph, node_id_t post_id)
     prop_blob pb = graph.get_node_properties(post_id);
     PostProps p = decode_post(pb);
     TIME_END(x1_post_profile)
-    fprintf(stderr, "  Post %llu: creationDate=%lld length=%d\n",
-            (unsigned long long)post_id, (long long)p.creation_date, p.length);
+    const char *type_str = (p.tag == 0) ? "content" : "imageFile";
+    std::string preview = p.content.substr(0, 60);
+    fprintf(stderr, "  Post %llu: creationDate=%lld length=%d [%s] \"%s%s\"\n",
+            (unsigned long long)post_id, (long long)p.creation_date, p.length,
+            type_str, preview.c_str(), p.content.size() > 60 ? "..." : "");
     return p;
 }
 
@@ -951,6 +972,8 @@ int main(int argc, char **argv)
         emb_loader.load_likes(dyn + "/person_likes_post_0_0.csv");
         emb_loader.flush_node_props();
         emb_loader.flush_edge_props();
+        emb_loader.load_person_emails(dyn + "/person_email_emailaddress_0_0.csv");
+        emb_loader.load_person_speaks(dyn + "/person_speaks_language_0_0.csv");
 
         node_id_t emb_pc = emb_loader.person_count;
         node_id_t emb_sp0 = MAKE_TYPED_ID(VT_PERSON, 0);
@@ -1012,6 +1035,14 @@ int main(int argc, char **argv)
 
     fprintf(stderr, "[LOAD] flushing edge properties ... ");
     loader.flush_edge_props();
+    fprintf(stderr, "done\n");
+
+    fprintf(stderr, "[LOAD] person emails ... ");
+    loader.load_person_emails(dyn + "/person_email_emailaddress_0_0.csv");
+    fprintf(stderr, "done\n");
+
+    fprintf(stderr, "[LOAD] person languages ... ");
+    loader.load_person_speaks(dyn + "/person_speaks_language_0_0.csv");
     fprintf(stderr, "done\n");
 
     node_id_t person_count = loader.person_count;

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "common_util.h"
 #include "graph_exception.h"
@@ -123,6 +124,13 @@ class GraphBase
   // Only valid when prop_mode == COLUMNAR; throws otherwise.
   virtual WT_CURSOR* open_colgroup_cursor(const std::string& table,
                                            const std::string& colgroup) = 0;
+
+  // Secondary multi-valued tables (COLUMNAR mode only; no-ops otherwise).
+  // idx is the insertion-order index for the value (0, 1, 2, …).
+  virtual void add_person_email(node_id_t person_id, uint64_t idx, const char* email) {}
+  virtual void add_person_language(node_id_t person_id, uint64_t idx, const char* lang) {}
+  virtual std::vector<std::string> get_person_emails(node_id_t person_id) { return {}; }
+  virtual std::vector<std::string> get_person_languages(node_id_t person_id) { return {}; }
 
  protected:
   graph_opts opts;
