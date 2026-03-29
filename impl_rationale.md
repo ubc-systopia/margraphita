@@ -31,11 +31,11 @@ Specifically, the following challenges described or implied by the thesis are **
 | Challenge | Status |
 |-----------|--------|
 | **Split/columnar property storage** | ✅ Implemented as `PropStorageMode::COLUMNAR` (commits `a01fb19`, `55e754a`, `8b74203`). Per-type typed tables (`person_props`, `post_props`, `knows_props`, `likes_props`) with WiredTiger column groups. `set/get_node/edge_properties` COLUMNAR branches in both SplitEdgeKey and AdjList. |
-| **Comparative benchmark study** | ⚠️ Partial. COLUMNAR mode works end-to-end and BI-1/BI-12 are timed. The EMBEDDED vs COLUMNAR head-to-head comparison for R2/A2/A3 (the thesis experiment) is not yet wired up. See Section G Phase 1. |
+| **Comparative benchmark study** | ✅ Done. Dual-mode EMBEDDED vs COLUMNAR timing comparison implemented in `main()` (commit `71398d9`). R2/A2/A3 have COLUMNAR colgroup-cursor variants; results printed as a side-by-side table. |
 | **API as specified in Table 6.2** | Not implemented. Raw byte blobs + hand-rolled schema namespaces. The string-key API is deferred. |
 | **Full LDBC SNB schema** | Not implemented. 2 of ~11 vertex types (Person, Post), 3 of 20 edge types. See Section G Phase 3. |
-| **String properties** | Not implemented. Fixed-size integers only; string fields silently dropped. |
-| **Multi-valued attributes** | Not implemented. `Person.email` and `Person.speaks` not stored. |
+| **String properties** | ✅ Done. Fixed-length `char[32]` columns for firstName, lastName, browserUsed, locationIP in `person_props` (commit `46e883f`). `SNBPersonSchema::TOTAL_SIZE` = 145B. |
+| **Multi-valued attributes** | ✅ Done. `person_email` and `person_speaks` secondary tables with `(person_id, idx)` key (commit `bea055f`). Loader parses and stores them; queries retrieve them. |
 | **Schema-agnostic serialization** | Not implemented. Hardcoded `SNBPersonSchema` / `SNBPostSchema` structs. |
 | **Delete operations** | Not implemented. |
 | **Indexing by label/property** | Not implemented. Explicitly deferred in the thesis. |
@@ -47,10 +47,10 @@ Specifically, the following challenges described or implied by the thesis are **
 Section 6.1 ("Example Property Graph Schema") lists six decisions required to translate a property graph schema into a Flexograph-compatible representation. Here is where each stands:
 
 ### Decision 1 — Vertex property storage (inline vs. column store)
-**Partially handled.** Embedded/inline storage is implemented: `set_node_properties` writes a fixed-size blob into the WiredTiger node row, and `get_node_properties` reads it back as a `prop_blob`. Split column-store storage (WT column groups with one column per property field) is **not implemented**. Reading a single field (e.g., `gender`) still requires deserializing the full 17-byte blob.
+**Fully handled.** Both modes are implemented. EMBEDDED: `set_node_properties` writes an opaque blob into the WiredTiger node row; `get_node_properties` reads it back. COLUMNAR: properties stored in separate typed tables (`person_props`, `post_props`) with WiredTiger column groups; a projection cursor on the `temporal` colgroup reads only the date B-tree, skipping all other columns.
 
 ### Decision 2 — Edge property storage (inline vs. column store)
-**Partially handled.** Same situation as Decision 1. `set_edge_properties` / `get_edge_properties` read and write a single opaque blob. The split variant is not implemented.
+**Fully handled.** Same as Decision 1. EMBEDDED: single opaque blob per edge. COLUMNAR: separate typed tables (`knows_props`, `likes_props`) with `temporal` column groups. R2/A2/A3 queries use the colgroup cursor for single-column edge scans.
 
 ### Decision 3 — Non-unique vertex IDs across vertex types
 **Fully handled.** We implement ID-space partitioning: Person IDs are assigned from `[0, person_count)` and Post IDs from `[person_count, person_count + post_count)`. The `LDBCLoader` maintains `unordered_map<int64_t, node_id_t>` remapping tables for both types, and the query harness uses `is_person(id)` / `is_post(id)` helpers to recover vertex type from the ID at query time. No additional column is needed in the storage layer.
@@ -236,19 +236,19 @@ The table name for edge properties was also split per type (`knows_props`,
 | 3 | `set/get_node_properties` COLUMNAR branch (both backends) | ✅ Done | `a01fb19` |
 | 4 | `set/get_edge_properties` COLUMNAR branch (both backends) | ✅ Done | `a01fb19` (+`8b74203` sentinel fix) |
 | 5 | Expose projection cursors from `SplitEdgeKey` | ✅ Done (via `open_colgroup_cursor`) | `a01fb19` |
-| 6 | Query variants using projection cursor: R2, A2, A3 | ❌ Not done | — |
-| 7 | Dual-mode timing comparison (EMBEDDED vs COLUMNAR) in `main()` | ❌ Not done | — |
+| 6 | Query variants using projection cursor: R2, A2, A3 | ✅ Done | `71398d9` |
+| 7 | Dual-mode timing comparison (EMBEDDED vs COLUMNAR) in `main()` | ✅ Done | `71398d9` |
 | 8 | BI-1 posting summary (colgroup sequential scan) | ✅ Done | `a01fb19` |
 | 9 | BI-12 slow baseline (point-lookup per post) | ✅ Done | `a01fb19` |
 | 10 | BI-12 fast (two-pass sequential scan, 26.7× speedup) | ✅ Done | `8b74203` |
 
-Items 6 and 7 are the remaining core work for the thesis comparison. See Section G.
+Items 6 and 7 are now complete (commit `71398d9`). All work items in this table are done.
 
 ### What the Comparison Will Measure
 
 The benchmark runs each property-reading query twice (once per mode) and prints both:
 
-- **EMBEDDED mode**: `get_node_properties(id)` reads the full 17-byte Person blob from `edge_out` (single B-tree read). For edge scans, reads the full 8-byte edge blob per edge.
+- **EMBEDDED mode**: `get_node_properties(id)` reads the full 145-byte Person blob (8+8+1+4×32B) from `edge_out` (single B-tree read). For edge scans, reads the full 8-byte edge blob per edge.
 - **COLUMNAR mode**: Full-row cursor reads all colgroup B-trees. A projection cursor for `creation_date` reads *only* the `temporal` B-tree (1 of 2–3 B-trees).
 
 Expected outcome: R1/X1 (read ALL properties of one vertex) — EMBEDDED wins or ties. R2/A2/A3 (read ONE property from many edges) — COLUMNAR wins once edge count is large enough to amortize setup. R3/BFS (zero property reads) — negligible difference.
@@ -258,71 +258,23 @@ Expected outcome: R1/X1 (read ALL properties of one vertex) — EMBEDDED wins or
 ## G. Remaining Work Plan
 
 This section describes the work items needed to complete the thesis PoC.
-Items are ordered by dependency; Phase 1 must precede Phase 2.
 
 ---
 
-### Phase 1 — Projection-cursor query variants (items 6 + 7)
+### Phase 1 — Projection-cursor query variants (items 6 + 7) ✅ COMPLETE
 
-**Goal**: demonstrate the actual I/O benefit of COLUMNAR mode by having R2, A2,
-and A3 read *only the `temporal` B-tree* instead of deserializing the full
-property blob. This is the experiment the thesis compares.
+**Completed in commit `71398d9`.**
 
-#### 1a. Add `open_projection_cursor` to `SplitEdgeKey` (and AdjList)
+All three goals were implemented:
+- `open_colgroup_cursor(table, colgroup)` exposes the temporal B-tree on both SplitEdgeKey and AdjList.
+- R2, A2, A3 have COLUMNAR variants that range-scan `knows_props:temporal` / `likes_props:temporal` directly, bypassing the full-blob path.
+- `main()` runs a dual-pass (EMBEDDED then COLUMNAR) and prints a side-by-side timing table with speedup column.
 
-`open_colgroup_cursor(table, colgroup)` opens `colgroup:table:colgroup`, which
-reads the entire colgroup row. WiredTiger also supports cursor projections opened
-as `table:person_props(creationDate)` — this is syntactically different but gives
-the same single-B-tree read. Either spelling works; the colgroup cursor is already
-sufficient. No new code needed here.
-
-#### 1b. Add COLUMNAR-aware variants of R2, A2, A3
-
-These three queries each scan many edge or node rows reading only `creationDate`.
-In EMBEDDED mode they call `get_edge_properties` / `get_node_properties` (full
-blob round-trip). In COLUMNAR mode they should open the `temporal` colgroup cursor
-once and iterate it directly, never touching the node/edge table.
-
-**R2 — friends sorted by creationDate**:
-- EMBEDDED: for each friend, call `get_edge_properties(person, friend)` → unpack 8-byte blob → extract creationDate. One random seek per friend.
-- COLUMNAR: open `colgroup:knows_props:temporal`, range-scan from `(person_id, 0)` to `(person_id+1, 0)` — reads only the temporal B-tree for all knows edges of this person.
-
-**A2 — count knows edges in date range**:
-- EMBEDDED: same per-edge blob lookup.
-- COLUMNAR: same `knows_props:temporal` range scan with date filter inline.
-
-**A3 — count likes in date range**:
-- EMBEDDED: per-likes-edge blob lookup.
-- COLUMNAR: `colgroup:likes_props:temporal` range scan from `(person_id, 0)`.
-
-Implementation: add a `_columnar` variant of each function (or add a `prop_mode`
-branch inside the existing function). The colgroup cursor is opened at function
-entry and closed on return — no shared cursor state needed.
-
-Files changed: `test/ldbc_snb_queries.cpp` only (~80 lines).
-
-#### 1c. Dual-mode comparison in `main()`
-
-Change `main()` to accept `--mode embedded|columnar|both` (default `both`).
-In `both` mode, load the graph once in EMBEDDED mode, run all property-reading
-queries and record times, then reload in COLUMNAR mode and run again. Print a
-two-column table:
-
-```
-Query                        EMBEDDED    COLUMNAR    speedup
-r2_friends_sorted_by_date    2.2 ms      0.8 ms      2.75×
-a2_knows_in_date_range       0.024 ms    0.018 ms    1.3×
-a3_posts_liked_in_range      0.030 ms    0.020 ms    1.5×
-bi1_posting_summary          345 ms      345 ms      1.0×   (no single-col benefit)
-bi12_fast                    1250 ms     1250 ms     1.0×   (already sequential)
-```
-
-Loading twice is acceptable for the PoC — it avoids any in-process cache warming
-between modes.
-
-Files changed: `test/ldbc_snb_queries.cpp` (~40 lines in `main()`).
-
-**Expected commit**: one commit covering 1b + 1c together.
+Additional work completed beyond Phase 1:
+- **TODO-3** (commit `46e883f`): String columns added to `person_props` — firstName, lastName, browserUsed, locationIP as `32s` fixed fields. `SNBPersonSchema::TOTAL_SIZE` = 145B.
+- **TODO-4** (commit `bea055f`): `post_props` gains `tag` (int8) + `content` (variable-length S) columns with a `content` colgroup.
+- **TODO-5** (commit `bea055f`): `person_email` and `person_speaks` secondary tables. Loader parses them; R1 displays them.
+- **TODO-6** (commit `54f81d9`): COLUMNAR unit tests — `test_columnar_ekey.cpp` and `test_columnar_adj.cpp`, 7 tests each, all passing.
 
 ---
 
@@ -375,8 +327,8 @@ for completeness but are out of scope for the current thesis evaluation.
 | Comment vertex type | `comment_props` table + loader CSV | Medium |
 | Forum vertex type | `forum_props` + hasMember edge | Medium |
 | Tag / TagClass / Place / Organisation | Dimension tables + FK columns in existing props | High |
-| String properties | Fixed-length `char[32]` columns in person_props | Medium |
-| Multi-valued attributes | `person_email`, `person_speaks` tables | Low |
+| String properties | ✅ Done — `char[32]` columns in person_props (commit `46e883f`) | — |
+| Multi-valued attributes | ✅ Done — `person_email`, `person_speaks` tables (commit `bea055f`) | — |
 | IC-3, IC-11 workAt/studyAt | New fact tables + 2 IC queries | High |
 | Full BI query set (BI-3 through BI-25) | Depends on all above | Very high |
 
@@ -384,13 +336,13 @@ for completeness but are out of scope for the current thesis evaluation.
 
 ### Summary
 
-| Phase | Items | Estimated lines | Blocks thesis? |
-|-------|-------|----------------|----------------|
-| **Phase 1** (projection variants + comparison) | 1b + 1c | ~120 lines, queries only | **Yes — core experiment** |
-| **Phase 2** (additional BI/IC queries) | BI-2, IC-7, IC-9 | ~150 lines | No — enriches results |
-| **Phase 3** (full schema) | everything else | thousands | No — future work |
+| Phase | Items | Status | Blocks thesis? |
+|-------|-------|--------|----------------|
+| **Phase 1** (projection variants + comparison + string cols + secondary tables + unit tests) | TODO-1 through TODO-6 | ✅ Complete | Was blocking — now done |
+| **Phase 2** (additional BI/IC queries) | BI-2, IC-7, IC-9 | Not started | No — enriches results |
+| **Phase 3** (full schema) | Comment/Forum/Tag types, full BI set | Not started | No — future work |
 
-Phase 1 is the only remaining item required for the thesis comparison result.
+Phase 1 is complete. The thesis experiment (EMBEDDED vs COLUMNAR comparison) is fully implemented.
 
 ---
 
