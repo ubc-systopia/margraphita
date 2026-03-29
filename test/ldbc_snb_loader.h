@@ -135,12 +135,19 @@ public:
 
         // Detect column positions from header
         auto hdr = csv_split(line);
-        int col_id = -1, col_gender = -1, col_birthday = -1, col_creation = -1;
+        int col_id        = -1, col_gender    = -1;
+        int col_birthday  = -1, col_creation  = -1;
+        int col_firstname = -1, col_lastname  = -1;
+        int col_browser   = -1, col_loc_ip    = -1;
         for (int i = 0; i < (int)hdr.size(); i++) {
-            if (hdr[i] == "id")           col_id       = i;
-            else if (hdr[i] == "gender")  col_gender   = i;
-            else if (hdr[i] == "birthday")col_birthday = i;
-            else if (hdr[i] == "creationDate") col_creation = i;
+            if (hdr[i] == "id")               col_id        = i;
+            else if (hdr[i] == "gender")      col_gender    = i;
+            else if (hdr[i] == "birthday")    col_birthday  = i;
+            else if (hdr[i] == "creationDate")col_creation  = i;
+            else if (hdr[i] == "firstName")   col_firstname = i;
+            else if (hdr[i] == "lastName")    col_lastname  = i;
+            else if (hdr[i] == "browserUsed") col_browser   = i;
+            else if (hdr[i] == "locationIP")  col_loc_ip    = i;
         }
         if (col_id < 0)
             throw std::runtime_error("person CSV missing 'id' column");
@@ -167,10 +174,17 @@ public:
                 if (col_birthday >= 0 && col_birthday < (int)fields.size())
                     SNBPersonSchema::set_birthday(buf, parse_epoch_ms(fields[col_birthday]));
                 if (col_gender >= 0 && col_gender < (int)fields.size()) {
-                    // gender: "male" → 0, "female" → 1
                     int8_t g = (fields[col_gender] == "female") ? 1 : 0;
                     SNBPersonSchema::set_gender(buf, g);
                 }
+                if (col_firstname >= 0 && col_firstname < (int)fields.size())
+                    SNBPersonSchema::set_first_name(buf, fields[col_firstname].c_str());
+                if (col_lastname >= 0 && col_lastname < (int)fields.size())
+                    SNBPersonSchema::set_last_name(buf, fields[col_lastname].c_str());
+                if (col_browser >= 0 && col_browser < (int)fields.size())
+                    SNBPersonSchema::set_browser_used(buf, fields[col_browser].c_str());
+                if (col_loc_ip >= 0 && col_loc_ip < (int)fields.size())
+                    SNBPersonSchema::set_location_ip(buf, fields[col_loc_ip].c_str());
                 PendingNodeProp p;
                 p.id = fid;
                 p.data.assign(buf, buf + SNBPersonSchema::TOTAL_SIZE);

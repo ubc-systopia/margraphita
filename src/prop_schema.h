@@ -12,15 +12,27 @@
 // ============================================================
 
 // --- Person vertex schema ---
-// | creationDate (int64) | birthday (int64) | gender (int8) |
-// | offset 0             | offset 8         | offset 16     |
-// Total: 17 bytes
+// | creationDate (int64)  | birthday (int64)    | gender (int8)     |
+// | offset 0              | offset 8            | offset 16         |
+// | firstName (char[32])  | lastName (char[32]) |
+// | offset 17             | offset 49           |
+// | browserUsed (char[32])| locationIP (char[32])|
+// | offset 81             | offset 113           |
+// Total: 8+8+1+32+32+32+32 = 145 bytes
+//
+// String fields are fixed 32-byte NUL-padded arrays (matching WT format "32s").
+// Strings longer than 31 chars are silently truncated.
 
 namespace SNBPersonSchema {
-    constexpr size_t OFFSET_CREATION_DATE = 0;
-    constexpr size_t OFFSET_BIRTHDAY      = 8;
-    constexpr size_t OFFSET_GENDER        = 16;
-    constexpr size_t TOTAL_SIZE           = 17;
+    constexpr size_t STR_LEN               = 32;
+    constexpr size_t OFFSET_CREATION_DATE  = 0;
+    constexpr size_t OFFSET_BIRTHDAY       = 8;
+    constexpr size_t OFFSET_GENDER         = 16;
+    constexpr size_t OFFSET_FIRST_NAME     = 17;
+    constexpr size_t OFFSET_LAST_NAME      = 17 + STR_LEN;
+    constexpr size_t OFFSET_BROWSER_USED   = 17 + STR_LEN * 2;
+    constexpr size_t OFFSET_LOCATION_IP    = 17 + STR_LEN * 3;
+    constexpr size_t TOTAL_SIZE            = 17 + STR_LEN * 4;  // 145 bytes
 
     inline void set_creation_date(uint8_t* buf, int64_t val) {
         std::memcpy(buf + OFFSET_CREATION_DATE, &val, sizeof(val));
@@ -46,6 +58,28 @@ namespace SNBPersonSchema {
     inline int8_t get_gender(const uint8_t* buf) {
         return static_cast<int8_t>(buf[OFFSET_GENDER]);
     }
+
+    // str must be a NUL-terminated C string; copied into a fixed 32-byte field.
+    inline void set_str_field(uint8_t* buf, size_t offset, const char* str) {
+        char tmp[STR_LEN] = {};
+        if (str) std::strncpy(tmp, str, STR_LEN - 1);
+        std::memcpy(buf + offset, tmp, STR_LEN);
+    }
+    // Returns a pointer to the 32-byte field inside buf (NUL-padded, not
+    // guaranteed NUL-terminated at byte 31 unless written via set_str_field).
+    inline const char* get_str_field(const uint8_t* buf, size_t offset) {
+        return reinterpret_cast<const char*>(buf + offset);
+    }
+
+    inline void set_first_name(uint8_t* buf, const char* s)    { set_str_field(buf, OFFSET_FIRST_NAME,   s); }
+    inline void set_last_name(uint8_t* buf, const char* s)     { set_str_field(buf, OFFSET_LAST_NAME,    s); }
+    inline void set_browser_used(uint8_t* buf, const char* s)  { set_str_field(buf, OFFSET_BROWSER_USED, s); }
+    inline void set_location_ip(uint8_t* buf, const char* s)   { set_str_field(buf, OFFSET_LOCATION_IP,  s); }
+
+    inline const char* get_first_name(const uint8_t* buf)   { return get_str_field(buf, OFFSET_FIRST_NAME);   }
+    inline const char* get_last_name(const uint8_t* buf)    { return get_str_field(buf, OFFSET_LAST_NAME);    }
+    inline const char* get_browser_used(const uint8_t* buf) { return get_str_field(buf, OFFSET_BROWSER_USED); }
+    inline const char* get_location_ip(const uint8_t* buf)  { return get_str_field(buf, OFFSET_LOCATION_IP);  }
 }  // namespace SNBPersonSchema
 
 // --- Post vertex schema ---

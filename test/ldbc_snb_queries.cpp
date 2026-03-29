@@ -54,6 +54,10 @@ struct PersonProps {
     int64_t creation_date = 0;
     int64_t birthday = 0;
     int8_t  gender = 0;
+    char    first_name[SNBPersonSchema::STR_LEN]   = {};
+    char    last_name[SNBPersonSchema::STR_LEN]    = {};
+    char    browser_used[SNBPersonSchema::STR_LEN] = {};
+    char    location_ip[SNBPersonSchema::STR_LEN]  = {};
 };
 
 struct PostProps {
@@ -76,6 +80,10 @@ static PersonProps decode_person(const prop_blob &pb)
         p.creation_date = SNBPersonSchema::get_creation_date(pb.data);
         p.birthday      = SNBPersonSchema::get_birthday(pb.data);
         p.gender        = SNBPersonSchema::get_gender(pb.data);
+        std::memcpy(p.first_name,   SNBPersonSchema::get_first_name(pb.data),   SNBPersonSchema::STR_LEN);
+        std::memcpy(p.last_name,    SNBPersonSchema::get_last_name(pb.data),    SNBPersonSchema::STR_LEN);
+        std::memcpy(p.browser_used, SNBPersonSchema::get_browser_used(pb.data), SNBPersonSchema::STR_LEN);
+        std::memcpy(p.location_ip,  SNBPersonSchema::get_location_ip(pb.data),  SNBPersonSchema::STR_LEN);
     }
     return p;
 }
@@ -247,11 +255,12 @@ static PersonProps r1_person_profile(GraphBase &graph, node_id_t pid)
     prop_blob pb = graph.get_node_properties(pid);
     PersonProps p = decode_person(pb);
     TIME_END(r1_person_profile)
-    fprintf(stderr, "  Person %llu: creationDate=%lld birthday=%lld gender=%d\n",
+    fprintf(stderr, "  Person %llu: %s %s  gender=%d  birthday=%lld  creationDate=%lld\n"
+                    "              browser=%s  ip=%s\n",
             (unsigned long long)pid,
-            (long long)p.creation_date,
-            (long long)p.birthday,
-            (int)p.gender);
+            p.first_name, p.last_name, (int)p.gender,
+            (long long)p.birthday, (long long)p.creation_date,
+            p.browser_used, p.location_ip);
     return p;
 }
 

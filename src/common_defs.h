@@ -110,7 +110,8 @@ const std::string PERSON_SPEAKS_TABLE  = "person_speaks";
 
 // Colgroup name suffixes
 const std::string CG_TEMPORAL  = "temporal";
-const std::string CG_IDENTITY  = "identity";
+const std::string CG_NAME      = "name";     // person firstName+lastName+gender
+const std::string CG_CONTACT   = "contact";  // person browserUsed+locationIP
 const std::string CG_CONTENT   = "content";
 
 struct graph_opts

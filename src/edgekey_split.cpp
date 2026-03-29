@@ -81,20 +81,27 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   if (opts.prop_mode == COLUMNAR)
   {
     // person_props: key=typed_id(Q), value=creationDate(Q) birthday(Q) gender(b)
+    //               firstName(32s) lastName(32s) browserUsed(32s) locationIP(32s)
+    // colgroups: temporal=(creationDate,birthday)  name=(firstName,lastName,gender)
+    //            contact=(browserUsed,locationIP)
     ret = sess->create(sess, ("table:" + PERSON_PROPS_TABLE).c_str(),
-        "key_format=Q,value_format=QQb,"
-        "columns=(vid,creationDate,birthday,gender),"
-        "colgroups=(temporal,identity)");
+        "key_format=Q,value_format=QQb32s32s32s32s,"
+        "columns=(vid,creationDate,birthday,gender,firstName,lastName,browserUsed,locationIP),"
+        "colgroups=(temporal,name,contact)");
     if (ret != 0)
       throw GraphException("Failed to create person_props: " + std::string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
         "columns=(creationDate,birthday)");
     if (ret != 0)
       throw GraphException("Failed to create person_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
-    ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_IDENTITY).c_str(),
-        "columns=(gender)");
+    ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_NAME).c_str(),
+        "columns=(firstName,lastName,gender)");
     if (ret != 0)
-      throw GraphException("Failed to create person_props:identity colgroup: " + std::string(wiredtiger_strerror(ret)));
+      throw GraphException("Failed to create person_props:name colgroup: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_CONTACT).c_str(),
+        "columns=(browserUsed,locationIP)");
+    if (ret != 0)
+      throw GraphException("Failed to create person_props:contact colgroup: " + std::string(wiredtiger_strerror(ret)));
 
     // post_props: key=typed_id(Q), value=creationDate(Q) length(i)
     ret = sess->create(sess, ("table:" + POST_PROPS_TABLE).c_str(),
@@ -430,16 +437,24 @@ void SplitEdgeKey::set_node_properties(node_id_t id,
     switch (VTYPE_OF(id))
     {
       case VT_PERSON: {
-        uint64_t cDate  = (uint64_t)SNBPersonSchema::get_creation_date(prop_data);
-        uint64_t bday   = (uint64_t)SNBPersonSchema::get_birthday(prop_data);
-        int8_t   gender = SNBPersonSchema::get_gender(prop_data);
+        uint64_t    cDate   = (uint64_t)SNBPersonSchema::get_creation_date(prop_data);
+        uint64_t    bday    = (uint64_t)SNBPersonSchema::get_birthday(prop_data);
+        int8_t      gender  = SNBPersonSchema::get_gender(prop_data);
+        const char *fname   = SNBPersonSchema::get_first_name(prop_data);
+        const char *lname   = SNBPersonSchema::get_last_name(prop_data);
+        const char *browser = SNBPersonSchema::get_browser_used(prop_data);
+        const char *loc_ip  = SNBPersonSchema::get_location_ip(prop_data);
         person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
-        person_props_cursor->set_value(person_props_cursor, cDate, bday, gender);
+        person_props_cursor->set_value(person_props_cursor,
+                                       cDate, bday, gender,
+                                       fname, lname, browser, loc_ip);
         int ret = person_props_cursor->insert(person_props_cursor);
         if (ret == WT_DUPLICATE_KEY)
         {
           person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
-          person_props_cursor->set_value(person_props_cursor, cDate, bday, gender);
+          person_props_cursor->set_value(person_props_cursor,
+                                         cDate, bday, gender,
+                                         fname, lname, browser, loc_ip);
           ret = person_props_cursor->update(person_props_cursor);
         }
         if (ret != 0)
@@ -506,12 +521,20 @@ prop_blob SplitEdgeKey::get_node_properties(node_id_t id)
         person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
         if (person_props_cursor->search(person_props_cursor) != 0)
           return {nullptr, 0};
-        uint64_t cDate, bday; int8_t gender;
-        person_props_cursor->get_value(person_props_cursor, &cDate, &bday, &gender);
-        uint8_t *buf = new uint8_t[SNBPersonSchema::TOTAL_SIZE];
+        uint64_t    cDate, bday;
+        int8_t      gender;
+        const char *fname, *lname, *browser, *loc_ip;
+        person_props_cursor->get_value(person_props_cursor,
+                                       &cDate, &bday, &gender,
+                                       &fname, &lname, &browser, &loc_ip);
+        uint8_t *buf = new uint8_t[SNBPersonSchema::TOTAL_SIZE]();
         SNBPersonSchema::set_creation_date(buf, (int64_t)cDate);
         SNBPersonSchema::set_birthday(buf, (int64_t)bday);
         SNBPersonSchema::set_gender(buf, gender);
+        SNBPersonSchema::set_first_name(buf, fname);
+        SNBPersonSchema::set_last_name(buf, lname);
+        SNBPersonSchema::set_browser_used(buf, browser);
+        SNBPersonSchema::set_location_ip(buf, loc_ip);
         return {buf, SNBPersonSchema::TOTAL_SIZE};
       }
       case VT_POST: {
