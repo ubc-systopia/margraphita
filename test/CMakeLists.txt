@@ -70,6 +70,15 @@ ADD_EXECUTABLE(test_columnar_adj "${PATH_TEST}/test_columnar_adj.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_columnar_adj PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_columnar_adj PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
+# Full-schema COLUMNAR tests (all 11 vertex types + new edge types)
+ADD_EXECUTABLE(test_columnar_full_ekey "${PATH_TEST}/test_columnar_full_ekey.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_columnar_full_ekey PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_columnar_full_ekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+ADD_EXECUTABLE(test_columnar_full_adj "${PATH_TEST}/test_columnar_full_adj.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_columnar_full_adj PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_columnar_full_adj PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
 # LDBC SNB query harness
 ADD_EXECUTABLE(ldbc_snb_queries "${PATH_TEST}/ldbc_snb_queries.cpp")
 TARGET_INCLUDE_DIRECTORIES(ldbc_snb_queries PRIVATE ${PATH_SRC} ${PATH_TEST})
