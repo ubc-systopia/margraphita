@@ -103,12 +103,24 @@ class SplitEdgeKey : public GraphBase
   WT_CURSOR *rd_in_cursor  = nullptr;  // IN_EDGES (directed) or OUT_EDGES (undirected), read-only
 
   // COLUMNAR mode: per-type property table cursors
-  WT_CURSOR *person_props_cursor  = nullptr;
-  WT_CURSOR *post_props_cursor    = nullptr;
-  WT_CURSOR *knows_props_cursor   = nullptr;
-  WT_CURSOR *likes_props_cursor   = nullptr;
-  WT_CURSOR *person_email_cursor  = nullptr;
-  WT_CURSOR *person_speaks_cursor = nullptr;
+  // Vertex property cursors
+  WT_CURSOR *person_props_cursor       = nullptr;
+  WT_CURSOR *post_props_cursor         = nullptr;
+  WT_CURSOR *comment_props_cursor      = nullptr;
+  WT_CURSOR *forum_props_cursor        = nullptr;
+  WT_CURSOR *tag_props_cursor          = nullptr;
+  WT_CURSOR *tagclass_props_cursor     = nullptr;
+  WT_CURSOR *place_props_cursor        = nullptr;
+  WT_CURSOR *organisation_props_cursor = nullptr;
+  // Edge property cursors
+  WT_CURSOR *knows_props_cursor        = nullptr;
+  WT_CURSOR *likes_props_cursor        = nullptr;
+  WT_CURSOR *hasmember_props_cursor    = nullptr;
+  WT_CURSOR *studyat_props_cursor      = nullptr;
+  WT_CURSOR *workat_props_cursor       = nullptr;
+  // Secondary (multi-valued) cursors
+  WT_CURSOR *person_email_cursor       = nullptr;
+  WT_CURSOR *person_speaks_cursor      = nullptr;
 
   [[maybe_unused]] WT_CURSOR *get_metadata_cursor();
   int delete_node_and_related_edges(node_id_t node_id, int *num_edges_to_del);
@@ -128,12 +140,21 @@ class SplitEdgeKey : public GraphBase
     if (degree_cursor)         degree_cursor->close(degree_cursor);
     if (rd_out_cursor)         rd_out_cursor->close(rd_out_cursor);
     if (rd_in_cursor)          rd_in_cursor->close(rd_in_cursor);
-    if (person_props_cursor)   person_props_cursor->close(person_props_cursor);
-    if (post_props_cursor)     post_props_cursor->close(post_props_cursor);
-    if (knows_props_cursor)    knows_props_cursor->close(knows_props_cursor);
-    if (likes_props_cursor)    likes_props_cursor->close(likes_props_cursor);
-    if (person_email_cursor)   person_email_cursor->close(person_email_cursor);
-    if (person_speaks_cursor)  person_speaks_cursor->close(person_speaks_cursor);
+    if (person_props_cursor)       person_props_cursor->close(person_props_cursor);
+    if (post_props_cursor)         post_props_cursor->close(post_props_cursor);
+    if (comment_props_cursor)      comment_props_cursor->close(comment_props_cursor);
+    if (forum_props_cursor)        forum_props_cursor->close(forum_props_cursor);
+    if (tag_props_cursor)          tag_props_cursor->close(tag_props_cursor);
+    if (tagclass_props_cursor)     tagclass_props_cursor->close(tagclass_props_cursor);
+    if (place_props_cursor)        place_props_cursor->close(place_props_cursor);
+    if (organisation_props_cursor) organisation_props_cursor->close(organisation_props_cursor);
+    if (knows_props_cursor)        knows_props_cursor->close(knows_props_cursor);
+    if (likes_props_cursor)        likes_props_cursor->close(likes_props_cursor);
+    if (hasmember_props_cursor)    hasmember_props_cursor->close(hasmember_props_cursor);
+    if (studyat_props_cursor)      studyat_props_cursor->close(studyat_props_cursor);
+    if (workat_props_cursor)       workat_props_cursor->close(workat_props_cursor);
+    if (person_email_cursor)       person_email_cursor->close(person_email_cursor);
+    if (person_speaks_cursor)      person_speaks_cursor->close(person_speaks_cursor);
   }
 
  public:

@@ -123,12 +123,24 @@ class AdjList : public GraphBase
   WT_CURSOR *node_props_cursor = nullptr;
 
   // COLUMNAR mode: per-type property table cursors
-  WT_CURSOR *person_props_cursor  = nullptr;
-  WT_CURSOR *post_props_cursor    = nullptr;
-  WT_CURSOR *knows_props_cursor   = nullptr;
-  WT_CURSOR *likes_props_cursor   = nullptr;
-  WT_CURSOR *person_email_cursor  = nullptr;
-  WT_CURSOR *person_speaks_cursor = nullptr;
+  // Vertex property cursors
+  WT_CURSOR *person_props_cursor       = nullptr;
+  WT_CURSOR *post_props_cursor         = nullptr;
+  WT_CURSOR *comment_props_cursor      = nullptr;
+  WT_CURSOR *forum_props_cursor        = nullptr;
+  WT_CURSOR *tag_props_cursor          = nullptr;
+  WT_CURSOR *tagclass_props_cursor     = nullptr;
+  WT_CURSOR *place_props_cursor        = nullptr;
+  WT_CURSOR *organisation_props_cursor = nullptr;
+  // Edge property cursors
+  WT_CURSOR *knows_props_cursor        = nullptr;
+  WT_CURSOR *likes_props_cursor        = nullptr;
+  WT_CURSOR *hasmember_props_cursor    = nullptr;
+  WT_CURSOR *studyat_props_cursor      = nullptr;
+  WT_CURSOR *workat_props_cursor       = nullptr;
+  // Secondary (multi-valued) cursors
+  WT_CURSOR *person_email_cursor       = nullptr;
+  WT_CURSOR *person_speaks_cursor      = nullptr;
 
   // AdjList specific internal methods:
   [[maybe_unused]] node get_next_node(WT_CURSOR *n_cur);
@@ -166,13 +178,22 @@ class AdjList : public GraphBase
     CommonUtil::close_cursor(edge_cursor);
     CommonUtil::close_cursor(in_adjlist_cursor);
     CommonUtil::close_cursor(out_adjlist_cursor);
-    if (node_props_cursor)   CommonUtil::close_cursor(node_props_cursor);
-    if (person_props_cursor) CommonUtil::close_cursor(person_props_cursor);
-    if (post_props_cursor)   CommonUtil::close_cursor(post_props_cursor);
-    if (knows_props_cursor)  CommonUtil::close_cursor(knows_props_cursor);
-    if (likes_props_cursor)  CommonUtil::close_cursor(likes_props_cursor);
-    if (person_email_cursor)  CommonUtil::close_cursor(person_email_cursor);
-    if (person_speaks_cursor) CommonUtil::close_cursor(person_speaks_cursor);
+    if (node_props_cursor)         CommonUtil::close_cursor(node_props_cursor);
+    if (person_props_cursor)       CommonUtil::close_cursor(person_props_cursor);
+    if (post_props_cursor)         CommonUtil::close_cursor(post_props_cursor);
+    if (comment_props_cursor)      CommonUtil::close_cursor(comment_props_cursor);
+    if (forum_props_cursor)        CommonUtil::close_cursor(forum_props_cursor);
+    if (tag_props_cursor)          CommonUtil::close_cursor(tag_props_cursor);
+    if (tagclass_props_cursor)     CommonUtil::close_cursor(tagclass_props_cursor);
+    if (place_props_cursor)        CommonUtil::close_cursor(place_props_cursor);
+    if (organisation_props_cursor) CommonUtil::close_cursor(organisation_props_cursor);
+    if (knows_props_cursor)        CommonUtil::close_cursor(knows_props_cursor);
+    if (likes_props_cursor)        CommonUtil::close_cursor(likes_props_cursor);
+    if (hasmember_props_cursor)    CommonUtil::close_cursor(hasmember_props_cursor);
+    if (studyat_props_cursor)      CommonUtil::close_cursor(studyat_props_cursor);
+    if (workat_props_cursor)       CommonUtil::close_cursor(workat_props_cursor);
+    if (person_email_cursor)       CommonUtil::close_cursor(person_email_cursor);
+    if (person_speaks_cursor)      CommonUtil::close_cursor(person_speaks_cursor);
   }
 
   inline void get_edge_wt(WT_CURSOR *e_cur, edgeweight_t *edge_weight)

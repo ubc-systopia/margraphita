@@ -155,6 +155,93 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
         "columns=(creationDate)");
     if (ret != 0)
       throw GraphException("Failed to create likes_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+
+    // comment_props: identical layout to post_props (same Message interface)
+    ret = sess->create(sess, ("table:" + COMMENT_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=QibS,"
+        "columns=(vid,creationDate,length,tag,content),"
+        "colgroups=(temporal,content)");
+    if (ret != 0)
+      throw GraphException("Failed to create comment_props: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + COMMENT_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate,length)");
+    if (ret != 0)
+      throw GraphException("Failed to create comment_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + COMMENT_PROPS_TABLE + ":" + CG_CONTENT).c_str(),
+        "columns=(tag,content)");
+    if (ret != 0)
+      throw GraphException("Failed to create comment_props:content colgroup: " + std::string(wiredtiger_strerror(ret)));
+
+    // forum_props: creationDate(Q) moderator_id(Q) title(S)
+    // colgroups: temporal=(creationDate)  info=(moderator_id,title)
+    ret = sess->create(sess, ("table:" + FORUM_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=QQS,"
+        "columns=(vid,creationDate,moderator_id,title),"
+        "colgroups=(temporal,info)");
+    if (ret != 0)
+      throw GraphException("Failed to create forum_props: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + FORUM_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate)");
+    if (ret != 0)
+      throw GraphException("Failed to create forum_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + FORUM_PROPS_TABLE + ":" + CG_INFO).c_str(),
+        "columns=(moderator_id,title)");
+    if (ret != 0)
+      throw GraphException("Failed to create forum_props:info colgroup: " + std::string(wiredtiger_strerror(ret)));
+
+    // tag_props: name(80s) url(80s) — no colgroup, dimension type
+    ret = sess->create(sess, ("table:" + TAG_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=80s80s,"
+        "columns=(vid,name,url)");
+    if (ret != 0)
+      throw GraphException("Failed to create tag_props: " + std::string(wiredtiger_strerror(ret)));
+
+    // tagclass_props: same layout as tag_props
+    ret = sess->create(sess, ("table:" + TAGCLASS_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=80s80s,"
+        "columns=(vid,name,url)");
+    if (ret != 0)
+      throw GraphException("Failed to create tagclass_props: " + std::string(wiredtiger_strerror(ret)));
+
+    // place_props: name(80s) url(80s) place_type(b) — no colgroup, dimension type
+    ret = sess->create(sess, ("table:" + PLACE_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=80s80sb,"
+        "columns=(vid,name,url,place_type)");
+    if (ret != 0)
+      throw GraphException("Failed to create place_props: " + std::string(wiredtiger_strerror(ret)));
+
+    // organisation_props: same layout as place_props (with org_type instead)
+    ret = sess->create(sess, ("table:" + ORGANISATION_PROPS_TABLE).c_str(),
+        "key_format=Q,value_format=80s80sb,"
+        "columns=(vid,name,url,org_type)");
+    if (ret != 0)
+      throw GraphException("Failed to create organisation_props: " + std::string(wiredtiger_strerror(ret)));
+
+    // hasmember_props: key=(src Q, dst Q), value=creationDate(Q)
+    ret = sess->create(sess, ("table:" + HASMEMBER_PROPS_TABLE).c_str(),
+        "key_format=QQ,value_format=Q,"
+        "columns=(src,dst,creationDate),"
+        "colgroups=(temporal)");
+    if (ret != 0)
+      throw GraphException("Failed to create hasmember_props: " + std::string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + HASMEMBER_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
+        "columns=(creationDate)");
+    if (ret != 0)
+      throw GraphException("Failed to create hasmember_props:temporal colgroup: " + std::string(wiredtiger_strerror(ret)));
+
+    // studyat_props: key=(src Q, dst Q), value=classYear(i)
+    ret = sess->create(sess, ("table:" + STUDYAT_PROPS_TABLE).c_str(),
+        "key_format=QQ,value_format=i,"
+        "columns=(src,dst,classYear)");
+    if (ret != 0)
+      throw GraphException("Failed to create studyat_props: " + std::string(wiredtiger_strerror(ret)));
+
+    // workat_props: key=(src Q, dst Q), value=workFrom(i)
+    ret = sess->create(sess, ("table:" + WORKAT_PROPS_TABLE).c_str(),
+        "key_format=QQ,value_format=i,"
+        "columns=(src,dst,workFrom)");
+    if (ret != 0)
+      throw GraphException("Failed to create workat_props: " + std::string(wiredtiger_strerror(ret)));
   }
 
   sess->close(sess, nullptr);
@@ -259,12 +346,39 @@ void SplitEdgeKey::init_cursors()
     if ((ret = _get_table_cursor(POST_PROPS_TABLE, &post_props_cursor,
                                  session, false, true, opts.checkpoint_name)))
       throw GraphException("Could not open post_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(COMMENT_PROPS_TABLE, &comment_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open comment_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(FORUM_PROPS_TABLE, &forum_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open forum_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(TAG_PROPS_TABLE, &tag_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open tag_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(TAGCLASS_PROPS_TABLE, &tagclass_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open tagclass_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(PLACE_PROPS_TABLE, &place_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open place_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(ORGANISATION_PROPS_TABLE, &organisation_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open organisation_props cursor: " + string(wiredtiger_strerror(ret)));
     if ((ret = _get_table_cursor(KNOWS_PROPS_TABLE, &knows_props_cursor,
                                  session, false, true, opts.checkpoint_name)))
       throw GraphException("Could not open knows_props cursor: " + string(wiredtiger_strerror(ret)));
     if ((ret = _get_table_cursor(LIKES_PROPS_TABLE, &likes_props_cursor,
                                  session, false, true, opts.checkpoint_name)))
       throw GraphException("Could not open likes_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(HASMEMBER_PROPS_TABLE, &hasmember_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open hasmember_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(STUDYAT_PROPS_TABLE, &studyat_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open studyat_props cursor: " + string(wiredtiger_strerror(ret)));
+    if ((ret = _get_table_cursor(WORKAT_PROPS_TABLE, &workat_props_cursor,
+                                 session, false, true, opts.checkpoint_name)))
+      throw GraphException("Could not open workat_props cursor: " + string(wiredtiger_strerror(ret)));
     if ((ret = _get_table_cursor(PERSON_EMAIL_TABLE, &person_email_cursor,
                                  session, false, true, opts.checkpoint_name)))
       throw GraphException("Could not open person_email cursor: " + string(wiredtiger_strerror(ret)));
@@ -532,6 +646,118 @@ void SplitEdgeKey::set_node_properties(node_id_t id,
                                std::to_string(id) + ": " + wiredtiger_strerror(ret));
         break;
       }
+      case VT_COMMENT: {
+        // Same layout as Post (SNBCommentSchema aliases SNBPostSchema)
+        uint64_t    cDate   = (uint64_t)SNBPostSchema::get_creation_date(prop_data);
+        int32_t     length  = SNBPostSchema::get_length(prop_data);
+        int8_t      tag     = SNBPostSchema::get_tag(prop_data);
+        const char *content = SNBPostSchema::get_content(prop_data, prop_size);
+        comment_props_cursor->set_key(comment_props_cursor, (uint64_t)id);
+        comment_props_cursor->set_value(comment_props_cursor, cDate, length, tag, content);
+        int ret = comment_props_cursor->insert(comment_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          comment_props_cursor->set_key(comment_props_cursor, (uint64_t)id);
+          comment_props_cursor->set_value(comment_props_cursor, cDate, length, tag, content);
+          ret = comment_props_cursor->update(comment_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("set_node_properties: comment failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      case VT_FORUM: {
+        uint64_t    cDate   = (uint64_t)SNBForumSchema::get_creation_date(prop_data);
+        uint64_t    mod_id  = (uint64_t)SNBForumSchema::get_moderator_id(prop_data);
+        const char *title   = SNBForumSchema::get_title(prop_data, prop_size);
+        forum_props_cursor->set_key(forum_props_cursor, (uint64_t)id);
+        forum_props_cursor->set_value(forum_props_cursor, cDate, mod_id, title ? title : "");
+        int ret = forum_props_cursor->insert(forum_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          forum_props_cursor->set_key(forum_props_cursor, (uint64_t)id);
+          forum_props_cursor->set_value(forum_props_cursor, cDate, mod_id, title ? title : "");
+          ret = forum_props_cursor->update(forum_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("set_node_properties: forum failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      case VT_TAG: {
+        const char *name = SNBTagSchema::get_name(prop_data);
+        const char *url  = SNBTagSchema::get_url(prop_data);
+        tag_props_cursor->set_key(tag_props_cursor, (uint64_t)id);
+        tag_props_cursor->set_value(tag_props_cursor, name, url);
+        int ret = tag_props_cursor->insert(tag_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          tag_props_cursor->set_key(tag_props_cursor, (uint64_t)id);
+          tag_props_cursor->set_value(tag_props_cursor, name, url);
+          ret = tag_props_cursor->update(tag_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("set_node_properties: tag failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      case VT_TAGCLASS: {
+        // Same layout as Tag
+        const char *name = SNBTagSchema::get_name(prop_data);
+        const char *url  = SNBTagSchema::get_url(prop_data);
+        tagclass_props_cursor->set_key(tagclass_props_cursor, (uint64_t)id);
+        tagclass_props_cursor->set_value(tagclass_props_cursor, name, url);
+        int ret = tagclass_props_cursor->insert(tagclass_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          tagclass_props_cursor->set_key(tagclass_props_cursor, (uint64_t)id);
+          tagclass_props_cursor->set_value(tagclass_props_cursor, name, url);
+          ret = tagclass_props_cursor->update(tagclass_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("set_node_properties: tagclass failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      case VT_CITY:
+      case VT_COUNTRY:
+      case VT_CONTINENT: {
+        const char *name = SNBPlaceSchema::get_name(prop_data);
+        const char *url  = SNBPlaceSchema::get_url(prop_data);
+        int8_t      pt   = SNBPlaceSchema::get_place_type(prop_data);
+        place_props_cursor->set_key(place_props_cursor, (uint64_t)id);
+        place_props_cursor->set_value(place_props_cursor, name, url, pt);
+        int ret = place_props_cursor->insert(place_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          place_props_cursor->set_key(place_props_cursor, (uint64_t)id);
+          place_props_cursor->set_value(place_props_cursor, name, url, pt);
+          ret = place_props_cursor->update(place_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("set_node_properties: place failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
+      case VT_COMPANY:
+      case VT_UNIVERSITY: {
+        const char *name = SNBOrganisationSchema::get_name(prop_data);
+        const char *url  = SNBOrganisationSchema::get_url(prop_data);
+        int8_t      ot   = SNBOrganisationSchema::get_org_type(prop_data);
+        organisation_props_cursor->set_key(organisation_props_cursor, (uint64_t)id);
+        organisation_props_cursor->set_value(organisation_props_cursor, name, url, ot);
+        int ret = organisation_props_cursor->insert(organisation_props_cursor);
+        if (ret == WT_DUPLICATE_KEY)
+        {
+          organisation_props_cursor->set_key(organisation_props_cursor, (uint64_t)id);
+          organisation_props_cursor->set_value(organisation_props_cursor, name, url, ot);
+          ret = organisation_props_cursor->update(organisation_props_cursor);
+        }
+        if (ret != 0)
+          throw GraphException("set_node_properties: organisation failed for " +
+                               std::to_string(id) + ": " + wiredtiger_strerror(ret));
+        break;
+      }
       default:
         break;
     }
@@ -605,6 +831,84 @@ prop_blob SplitEdgeKey::get_node_properties(node_id_t id)
         SNBPostSchema::set_content(buf, content ? content : "");
         return {buf, total};
       }
+      case VT_COMMENT: {
+        comment_props_cursor->set_key(comment_props_cursor, (uint64_t)id);
+        if (comment_props_cursor->search(comment_props_cursor) != 0)
+          return {nullptr, 0};
+        uint64_t cDate; int32_t length; int8_t tag; const char *content;
+        comment_props_cursor->get_value(comment_props_cursor, &cDate, &length, &tag, &content);
+        size_t content_len = (content && *content) ? strlen(content) : 0;
+        size_t total = SNBPostSchema::TOTAL_SIZE + content_len + 1;
+        uint8_t *buf = new uint8_t[total]();
+        SNBPostSchema::set_creation_date(buf, (int64_t)cDate);
+        SNBPostSchema::set_length(buf, length);
+        SNBPostSchema::set_tag(buf, tag);
+        SNBPostSchema::set_content(buf, content ? content : "");
+        return {buf, total};
+      }
+      case VT_FORUM: {
+        forum_props_cursor->set_key(forum_props_cursor, (uint64_t)id);
+        if (forum_props_cursor->search(forum_props_cursor) != 0)
+          return {nullptr, 0};
+        uint64_t cDate, mod_id; const char *title;
+        forum_props_cursor->get_value(forum_props_cursor, &cDate, &mod_id, &title);
+        size_t title_len = (title && *title) ? strlen(title) : 0;
+        size_t total = SNBForumSchema::TOTAL_SIZE + title_len + 1;
+        uint8_t *buf = new uint8_t[total]();
+        SNBForumSchema::set_creation_date(buf, (int64_t)cDate);
+        SNBForumSchema::set_moderator_id(buf, (int64_t)mod_id);
+        SNBForumSchema::set_title(buf, title ? title : "");
+        return {buf, total};
+      }
+      case VT_TAG: {
+        tag_props_cursor->set_key(tag_props_cursor, (uint64_t)id);
+        if (tag_props_cursor->search(tag_props_cursor) != 0)
+          return {nullptr, 0};
+        const char *name, *url;
+        tag_props_cursor->get_value(tag_props_cursor, &name, &url);
+        uint8_t *buf = new uint8_t[SNBTagSchema::TOTAL_SIZE]();
+        SNBTagSchema::set_name(buf, name);
+        SNBTagSchema::set_url(buf, url);
+        return {buf, SNBTagSchema::TOTAL_SIZE};
+      }
+      case VT_TAGCLASS: {
+        tagclass_props_cursor->set_key(tagclass_props_cursor, (uint64_t)id);
+        if (tagclass_props_cursor->search(tagclass_props_cursor) != 0)
+          return {nullptr, 0};
+        const char *name, *url;
+        tagclass_props_cursor->get_value(tagclass_props_cursor, &name, &url);
+        uint8_t *buf = new uint8_t[SNBTagSchema::TOTAL_SIZE]();
+        SNBTagSchema::set_name(buf, name);
+        SNBTagSchema::set_url(buf, url);
+        return {buf, SNBTagSchema::TOTAL_SIZE};
+      }
+      case VT_CITY:
+      case VT_COUNTRY:
+      case VT_CONTINENT: {
+        place_props_cursor->set_key(place_props_cursor, (uint64_t)id);
+        if (place_props_cursor->search(place_props_cursor) != 0)
+          return {nullptr, 0};
+        const char *name, *url; int8_t pt;
+        place_props_cursor->get_value(place_props_cursor, &name, &url, &pt);
+        uint8_t *buf = new uint8_t[SNBPlaceSchema::TOTAL_SIZE]();
+        SNBPlaceSchema::set_name(buf, name);
+        SNBPlaceSchema::set_url(buf, url);
+        SNBPlaceSchema::set_place_type(buf, pt);
+        return {buf, SNBPlaceSchema::TOTAL_SIZE};
+      }
+      case VT_COMPANY:
+      case VT_UNIVERSITY: {
+        organisation_props_cursor->set_key(organisation_props_cursor, (uint64_t)id);
+        if (organisation_props_cursor->search(organisation_props_cursor) != 0)
+          return {nullptr, 0};
+        const char *name, *url; int8_t ot;
+        organisation_props_cursor->get_value(organisation_props_cursor, &name, &url, &ot);
+        uint8_t *buf = new uint8_t[SNBOrganisationSchema::TOTAL_SIZE]();
+        SNBOrganisationSchema::set_name(buf, name);
+        SNBOrganisationSchema::set_url(buf, url);
+        SNBOrganisationSchema::set_org_type(buf, ot);
+        return {buf, SNBOrganisationSchema::TOTAL_SIZE};
+      }
       default:
         return {nullptr, 0};
     }
@@ -629,15 +933,22 @@ prop_blob SplitEdgeKey::get_node_properties(node_id_t id)
 }
 
 // Route (src,dst) to the right edge prop cursor based on vertex types.
-// Returns nullptr for hasCreator (POST→PERSON): no properties to store.
+// Returns nullptr for property-free edges (hasCreator, containerOf, hasTag, etc.).
 static WT_CURSOR *route_edge_cursor(node_id_t src, node_id_t dst,
-                                    WT_CURSOR *knows, WT_CURSOR *likes)
+                                    WT_CURSOR *knows,
+                                    WT_CURSOR *likes,
+                                    WT_CURSOR *hasmember,
+                                    WT_CURSOR *studyat,
+                                    WT_CURSOR *workat)
 {
   uint8_t s = (uint8_t)VTYPE_OF(src);
   uint8_t d = (uint8_t)VTYPE_OF(dst);
-  if (s == VT_PERSON && d == VT_PERSON) return knows;
-  if (s == VT_PERSON && d == VT_POST)   return likes;
-  return nullptr;  // POST→PERSON = hasCreator, no props
+  if (s == VT_PERSON && d == VT_PERSON)                        return knows;
+  if (s == VT_PERSON && (d == VT_POST || d == VT_COMMENT))     return likes;
+  if (s == VT_FORUM  && d == VT_PERSON)                        return hasmember;
+  if (s == VT_PERSON && d == VT_UNIVERSITY)                    return studyat;
+  if (s == VT_PERSON && d == VT_COMPANY)                       return workat;
+  return nullptr;  // structural-only edge: no props
 }
 
 void SplitEdgeKey::set_edge_properties(node_id_t src,
@@ -647,17 +958,44 @@ void SplitEdgeKey::set_edge_properties(node_id_t src,
 {
   if (opts.prop_mode == COLUMNAR)
   {
-    WT_CURSOR *cur = route_edge_cursor(src, dst, knows_props_cursor, likes_props_cursor);
+    WT_CURSOR *cur = route_edge_cursor(src, dst,
+                                       knows_props_cursor, likes_props_cursor,
+                                       hasmember_props_cursor,
+                                       studyat_props_cursor, workat_props_cursor);
     if (cur == nullptr || data == nullptr || size == 0)
-      return;  // hasCreator or no-prop edge
-    uint64_t cDate = (uint64_t)SNBKnowsSchema::get_creation_date(data);
+      return;  // structural-only edge
     cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
-    cur->set_value(cur, cDate);
-    int ret = cur->insert(cur);
+    // Value format depends on edge type:
+    //   knows/likes/hasmember: Q (int64 creationDate)
+    //   studyat: i (int32 classYear)
+    //   workat:  i (int32 workFrom)
+    uint8_t s = (uint8_t)VTYPE_OF(src);
+    uint8_t d = (uint8_t)VTYPE_OF(dst);
+    int ret;
+    if (s == VT_PERSON && d == VT_UNIVERSITY) {
+      int32_t classYear = SNBStudyAtSchema::get_class_year(data);
+      cur->set_value(cur, classYear);
+    } else if (s == VT_PERSON && d == VT_COMPANY) {
+      int32_t workFrom = SNBWorkAtSchema::get_work_from(data);
+      cur->set_value(cur, workFrom);
+    } else {
+      uint64_t cDate = (uint64_t)SNBKnowsSchema::get_creation_date(data);
+      cur->set_value(cur, cDate);
+    }
+    ret = cur->insert(cur);
     if (ret == WT_DUPLICATE_KEY)
     {
       cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
-      cur->set_value(cur, cDate);
+      if (s == VT_PERSON && d == VT_UNIVERSITY) {
+        int32_t classYear = SNBStudyAtSchema::get_class_year(data);
+        cur->set_value(cur, classYear);
+      } else if (s == VT_PERSON && d == VT_COMPANY) {
+        int32_t workFrom = SNBWorkAtSchema::get_work_from(data);
+        cur->set_value(cur, workFrom);
+      } else {
+        uint64_t cDate = (uint64_t)SNBKnowsSchema::get_creation_date(data);
+        cur->set_value(cur, cDate);
+      }
       ret = cur->update(cur);
     }
     if (ret != 0)
@@ -699,17 +1037,36 @@ prop_blob SplitEdgeKey::get_edge_properties(node_id_t src, node_id_t dst)
 {
   if (opts.prop_mode == COLUMNAR)
   {
-    WT_CURSOR *cur = route_edge_cursor(src, dst, knows_props_cursor, likes_props_cursor);
+    WT_CURSOR *cur = route_edge_cursor(src, dst,
+                                       knows_props_cursor, likes_props_cursor,
+                                       hasmember_props_cursor,
+                                       studyat_props_cursor, workat_props_cursor);
     if (cur == nullptr)
       return {nullptr, 0};
     cur->set_key(cur, (uint64_t)src, (uint64_t)dst);
     if (cur->search(cur) != 0)
       return {nullptr, 0};
-    uint64_t cDate;
-    cur->get_value(cur, &cDate);
-    uint8_t *buf = new uint8_t[SNBKnowsSchema::TOTAL_SIZE];
-    SNBKnowsSchema::set_creation_date(buf, (int64_t)cDate);
-    return {buf, SNBKnowsSchema::TOTAL_SIZE};
+    uint8_t s = (uint8_t)VTYPE_OF(src);
+    uint8_t d = (uint8_t)VTYPE_OF(dst);
+    if (s == VT_PERSON && d == VT_UNIVERSITY) {
+      int32_t classYear;
+      cur->get_value(cur, &classYear);
+      uint8_t *buf = new uint8_t[SNBStudyAtSchema::TOTAL_SIZE];
+      SNBStudyAtSchema::set_class_year(buf, classYear);
+      return {buf, SNBStudyAtSchema::TOTAL_SIZE};
+    } else if (s == VT_PERSON && d == VT_COMPANY) {
+      int32_t workFrom;
+      cur->get_value(cur, &workFrom);
+      uint8_t *buf = new uint8_t[SNBWorkAtSchema::TOTAL_SIZE];
+      SNBWorkAtSchema::set_work_from(buf, workFrom);
+      return {buf, SNBWorkAtSchema::TOTAL_SIZE};
+    } else {
+      uint64_t cDate;
+      cur->get_value(cur, &cDate);
+      uint8_t *buf = new uint8_t[SNBKnowsSchema::TOTAL_SIZE];
+      SNBKnowsSchema::set_creation_date(buf, (int64_t)cDate);
+      return {buf, SNBKnowsSchema::TOTAL_SIZE};
+    }
   }
 
   // EMBEDDED / SPLIT mode
