@@ -423,6 +423,37 @@ flush_edge_props) still applies. With multiple vertex types the order is:
 
 Query implementation is organized by dependency, not by IC/BI numbering.
 
+### Chokepoint Coverage Map
+
+Four distinct Flexograph-vs-NeuG chokepoints were identified when designing the
+full-schema query set. The table below maps each chokepoint to the minimum query
+that exercises it and the group it belongs to.
+
+| CP | Chokepoint | Description | Minimum query | Group |
+|----|-----------|-------------|--------------|-------|
+| CP-1 | replyOf chain traversal depth | Comment→Post/Comment chains of variable depth; raw adjacency-list hop cost, no property benefit | **IC-8** | C1 |
+| CP-2 | 3–4 hop cross-type join | Person→knows→Person→knows→Person + isLocatedIn + isPartOf filter; largest join tree in the schema | **IC-3** | C4 |
+| CP-3 | High-degree Forum fan-out | Forums have O(10 K) members; IC-5 iterates hasMember adjacency in full to build a sorted membership list | **IC-5** | C2 |
+| CP-4 | Dimension FK join + temporal scan | Temporal range scan on post/comment props followed by a point-lookup into Tag/Place/TagClass; tests whether WiredTiger colgroup B-tree join is competitive with NeuG's edge-type index | **BI-2** | C1 |
+
+**Minimum set for full chokepoint coverage (7 queries):**
+
+| Query | Chokepoints | Notes |
+|-------|------------|-------|
+| IC-7 | CP-4 (temporal scan only — no FK join) | Primary columnar-benefit demo; pairs with IC-9 |
+| IC-9 | CP-4 (temporal scan per friend) | Cross-type temporal scan; pairs with IC-7 |
+| **IC-8** | **CP-1** | Only query that exercises replyOf chain depth |
+| BI-2 | CP-4 (temporal + hasTag FK join) | Full CP-4: colgroup scan + dimension table join |
+| IC-5 | **CP-3** | Only query that exercises Forum fan-out at scale |
+| IC-3 | **CP-2** | Only query that exercises the 3-hop cross-type join |
+| IC-3 also covers | — | isLocatedIn + isPartOf, required for CP-2 correctness |
+
+IC-7, IC-9, IC-8, BI-2 are all in group C1 (need only Person+Post+Comment).
+IC-5 requires group C2 (Forum). IC-3 requires group C4 (Place/Organisation).
+Implementing C1 first gives 3 of the 4 chokepoints before loading the full schema.
+
+---
+
 ### C1: Comment type (Comment is loaded, likes→Comment works)
 
 These are Phase 2 queries from `impl_rationale.md` — implementable with just
@@ -435,9 +466,9 @@ Person + Post + Comment:
 | IC-8 | Latest replies to a person's posts | `replyOf` chain traversal | replyOf |
 | BI-2 | Tag evolution in two time windows (simplified: count by month, no tag grouping) | `post_props:temporal` + `comment_props:temporal` sequential scan | none beyond Comment |
 
-IC-7 and IC-9 are the primary COLUMNAR-benefit queries that the thesis needs.
-IC-8 is the replyOf-chain chokepoint (important for Flexograph-vs-NeuG depth
-experiment).
+IC-7 and IC-9 are the primary COLUMNAR-benefit queries (CP-4 partial).
+BI-2 completes CP-4 by adding the hasTag FK join after the temporal scan.
+IC-8 covers CP-1 (replyOf chain depth) — the only query that does so.
 
 ### C2: Forum type
 
@@ -446,7 +477,7 @@ experiment).
 | IC-5 | Forums where person's friends are members (top N by membership date) | hasMember, containerOf, hasCreator |
 | BI-4 | Top message creators per forum (count posts+comments, sort by count) | hasMember, containerOf, hasCreator |
 
-IC-5 exposes the high-degree Forum fan-out pattern identified as a chokepoint.
+IC-5 covers CP-3 (high-degree Forum fan-out) — the only query that does so.
 
 ### C3: Tag and TagClass
 
@@ -471,8 +502,9 @@ DAG that may need BFS or DFS for ancestor lookup.
 | IC-11 | Person's workAt in a specific country (year filter) | workAt, isLocatedIn, isPartOf |
 | BI-3 | Forum message count by moderator's country | hasModerator (via forum.moderator_id), isLocatedIn |
 
-IC-3 is the 3-hop cross-type chokepoint (Person→knows→Person→knows→Person +
-isLocatedIn + isPartOf) — the most important new Flexograph-vs-NeuG measurement.
+IC-3 covers CP-2 (3-hop cross-type join) — the most complex join in the schema
+and the only query that exercises the full Person→FoF + isLocatedIn + isPartOf
+filter chain. Required for the primary Flexograph-vs-NeuG measurement.
 
 ### C5: Remaining BI queries
 
@@ -525,34 +557,36 @@ TARGET_LINK_LIBRARIES(test_columnar_full PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
 ## Work Item Table
 
+Legend: ✅ done · 🎯 minimum chokepoint set · TODO
+
 | # | Phase | Item | Files | Status |
 |---|-------|------|-------|--------|
-| 1 | A1 | VertexType enum + table-name constants | common_defs.h | TODO |
-| 2 | A2 | SNBCommentSchema + SNBForumSchema | prop_schema.h | TODO |
-| 3 | A2 | SNBTagSchema, SNBTagClassSchema, SNBPlaceSchema, SNBOrganisationSchema | prop_schema.h | TODO |
-| 4 | A2 | SNBHasMemberSchema, SNBStudyAtSchema, SNBWorkAtSchema | prop_schema.h | TODO |
-| 5 | A3 | create_wt_tables: 9 new typed tables + colgroups (SplitEdgeKey) | edgekey_split.cpp | TODO |
-| 6 | A3 | create_wt_tables: same 9 tables (AdjList) | adj_list.cpp | TODO |
-| 7 | A4 | 9 new cursor members + init + close (SplitEdgeKey) | edgekey_split.h/.cpp | TODO |
-| 8 | A4 | 9 new cursor members + init + close (AdjList) | adj_list.h/.cpp | TODO |
-| 9 | A5 | set/get_node_properties: 9 new VTYPE_OF cases (SplitEdgeKey) | edgekey_split.cpp | TODO |
-| 10 | A5 | set/get_node_properties: 9 new VTYPE_OF cases (AdjList) | adj_list.cpp | TODO |
-| 11 | A6 | route_edge_cursor: hasMember + studyAt + workAt + likes→Comment | edgekey_split.cpp | TODO |
-| 12 | A6 | same routing (AdjList) | adj_list.cpp | TODO |
-| 13 | B1 | ID maps for 6 new types | ldbc_snb_loader.h | TODO |
-| 14 | B2 | load_comments, load_forums (+ moderator_id backfill) | ldbc_snb_loader.h | TODO |
-| 15 | B2 | load_tags, load_tagclasses, load_places, load_organisations | ldbc_snb_loader.h | TODO |
-| 16 | B3 | load_likes_comments, load_comment_has_creator, load_reply_of | ldbc_snb_loader.h | TODO |
-| 17 | B3 | load_container_of, load_has_member | ldbc_snb_loader.h | TODO |
-| 18 | B3 | load_post/comment/forum_has_tag, load_has_interest | ldbc_snb_loader.h | TODO |
-| 19 | B3 | load_has_type, load_is_subclass_of, load_is_located_in (3 variants) | ldbc_snb_loader.h | TODO |
-| 20 | B3 | load_is_part_of, load_study_at, load_work_at | ldbc_snb_loader.h | TODO |
+| 1 | A1 | VertexType enum + table-name constants | common_defs.h | ✅ commit 6dd8e90 |
+| 2 | A2 | SNBCommentSchema + SNBForumSchema | prop_schema.h | ✅ commit 6dd8e90 |
+| 3 | A2 | SNBTagSchema, SNBTagClassSchema, SNBPlaceSchema, SNBOrganisationSchema | prop_schema.h | ✅ commit 6dd8e90 |
+| 4 | A2 | SNBHasMemberSchema, SNBStudyAtSchema, SNBWorkAtSchema | prop_schema.h | ✅ commit 6dd8e90 |
+| 5 | A3 | create_wt_tables: 9 new typed tables + colgroups (SplitEdgeKey) | edgekey_split.cpp | ✅ commit 6dd8e90 |
+| 6 | A3 | create_wt_tables: same 9 tables (AdjList) | adj_list.cpp | ✅ commit 6dd8e90 |
+| 7 | A4 | 9 new cursor members + init + close (SplitEdgeKey) | edgekey_split.h/.cpp | ✅ commit 6dd8e90 |
+| 8 | A4 | 9 new cursor members + init + close (AdjList) | adj_list.h/.cpp | ✅ commit 6dd8e90 |
+| 9 | A5 | set/get_node_properties: 9 new VTYPE_OF cases (SplitEdgeKey) | edgekey_split.cpp | ✅ commit 6dd8e90 |
+| 10 | A5 | set/get_node_properties: 9 new VTYPE_OF cases (AdjList) | adj_list.cpp | ✅ commit 6dd8e90 |
+| 11 | A6 | route_edge_cursor: hasMember + studyAt + workAt + likes→Comment | edgekey_split.cpp | ✅ commit 6dd8e90 |
+| 12 | A6 | same routing (AdjList) | adj_list.cpp | ✅ commit 6dd8e90 |
+| 13 | B1 | ID maps for 6 new types | ldbc_snb_loader.h | ✅ commit bc5ca5f |
+| 14 | B2 | load_comments, load_forums (+ moderator_id backfill) | ldbc_snb_loader.h | ✅ commit bc5ca5f |
+| 15 | B2 | load_tags, load_tagclasses, load_places, load_organisations | ldbc_snb_loader.h | ✅ commit bc5ca5f |
+| 16 | B3 | load_likes_comments, load_comment_has_creator, load_reply_of | ldbc_snb_loader.h | ✅ commit bc5ca5f |
+| 17 | B3 | load_container_of, load_has_member | ldbc_snb_loader.h | ✅ commit bc5ca5f |
+| 18 | B3 | load_post/comment/forum_has_tag, load_has_interest | ldbc_snb_loader.h | ✅ commit bc5ca5f |
+| 19 | B3 | load_has_type, load_is_subclass_of, load_is_located_in (3 variants) | ldbc_snb_loader.h | ✅ commit bc5ca5f |
+| 20 | B3 | load_is_part_of, load_study_at, load_work_at | ldbc_snb_loader.h | ✅ commit bc5ca5f |
 | 21 | B4 | Loading order in main() with full flush sequencing | ldbc_snb_queries.cpp | TODO |
-| 22 | C1 | IC-7 (likes:temporal scan) | ldbc_snb_queries.cpp | TODO |
-| 23 | C1 | IC-9 (friends' posts/comments by date) | ldbc_snb_queries.cpp | TODO |
-| 24 | C1 | IC-8 (replyOf chain) | ldbc_snb_queries.cpp | TODO |
-| 25 | C1 | BI-2 simplified (message count by month in two windows) | ldbc_snb_queries.cpp | TODO |
-| 26 | C2 | IC-5 (forums where friends are members) | ldbc_snb_queries.cpp | TODO |
+| 22 | C1 🎯 | IC-7 (likes:temporal scan) — CP-4 partial | ldbc_snb_queries.cpp | TODO |
+| 23 | C1 🎯 | IC-9 (friends' posts/comments by date) — CP-4 partial | ldbc_snb_queries.cpp | TODO |
+| 24 | C1 🎯 | IC-8 (replyOf chain) — **CP-1** | ldbc_snb_queries.cpp | TODO |
+| 25 | C1 🎯 | BI-2 simplified (message count by month, two windows) — **CP-4** | ldbc_snb_queries.cpp | TODO |
+| 26 | C2 🎯 | IC-5 (forums where friends are members) — **CP-3** | ldbc_snb_queries.cpp | TODO |
 | 27 | C2 | BI-4 (top message creators per forum) | ldbc_snb_queries.cpp | TODO |
 | 28 | C3 | IC-4 (new tags in date range) | ldbc_snb_queries.cpp | TODO |
 | 29 | C3 | IC-6 (tag co-occurrence) | ldbc_snb_queries.cpp | TODO |
@@ -560,39 +594,44 @@ TARGET_LINK_LIBRARIES(test_columnar_full PUBLIC ${NAME_LIB} ${wt_shared_lib})
 | 31 | C3 | IC-12 (expert search by TagClass hierarchy) | ldbc_snb_queries.cpp | TODO |
 | 32 | C3 | BI-7 (reply count per tag) | ldbc_snb_queries.cpp | TODO |
 | 33 | C4 | IC-1 (full person profile with orgs + cities) | ldbc_snb_queries.cpp | TODO |
-| 34 | C4 | IC-3 (friends of friends by country — 3-hop chokepoint) | ldbc_snb_queries.cpp | TODO |
+| 34 | C4 🎯 | IC-3 (friends of friends by country) — **CP-2** | ldbc_snb_queries.cpp | TODO |
 | 35 | C4 | IC-11 (workAt by country + year) | ldbc_snb_queries.cpp | TODO |
 | 36 | C4 | BI-3 (forum messages by moderator's country) | ldbc_snb_queries.cpp | TODO |
 | 37 | C5 | BI-5, BI-6, BI-8, BI-9 | ldbc_snb_queries.cpp | TODO |
-| 38 | D | test_columnar_full.cpp (10 tests) | test/ | TODO |
-| 39 | D | CMakeLists.txt: add test_columnar_full target | test/CMakeLists.txt | TODO |
+| 38 | D | test_columnar_full_ekey/adj (10 tests each, both backends) | test/ | ✅ commit 40262d7 |
+| 39 | D | CMakeLists.txt: add test_columnar_full targets | test/CMakeLists.txt | ✅ commit 40262d7 |
 
 ---
 
 ## Implementation Order Recommendation
 
 ```
-A1 → A2 → A3+A4+A5+A6 (all storage layer, SplitEdgeKey first, AdjList mirrors)
+A1 → A2 → A3+A4+A5+A6 (storage layer, SplitEdgeKey first, AdjList mirrors)
          ↓
 B1 → B2 (vertices) → B3 (edges) → B4 (order in main)
          ↓
 D (test_columnar_full, run after each storage batch — fail fast)
          ↓
-C1 (IC-7, IC-9, IC-8, BI-2)   ← most thesis-relevant, unlock early
+C1 (IC-7, IC-9, IC-8, BI-2)   ← covers CP-1 + CP-4; 3 of 4 chokepoints
          ↓
-C2 (IC-5, BI-4)
+C2 (IC-5, BI-4)                ← covers CP-3
          ↓
 C3 (IC-4, IC-6, IC-10, IC-12, BI-7)
          ↓
-C4 (IC-1, IC-3, IC-11, BI-3)  ← IC-3 is the 3-hop chokepoint experiment
+C4 (IC-1, IC-3, IC-11, BI-3)  ← covers CP-2; completes all 4 chokepoints
          ↓
-C5 (BI-5, BI-6, BI-8, BI-9)
+C5 (BI-5, BI-6, BI-8, BI-9)   ← optional enrichment
 ```
 
-Prioritize C4/IC-3 early if the primary goal is the chokepoint experiment rather
-than query completeness — IC-3 only needs Person + City/Country + isLocatedIn +
-isPartOf from the full schema, which can be loaded in isolation before Comments,
-Forums, Tags, etc.
+**Minimum chokepoint-complete stopping point: end of C2.**
+After C1+C2 (6 queries: IC-7, IC-9, IC-8, BI-2, IC-5, BI-4), three of the four
+chokepoints are covered (CP-1, CP-3, CP-4). Adding IC-3 from C4 completes CP-2
+and gives the full 7-query minimum set. C3 and C5 add breadth but no new
+chokepoints.
+
+If the primary goal is the chokepoint experiment rather than query completeness,
+implement C4/IC-3 immediately after C1, before C2 and C3 — IC-3 only requires
+Person + City/Country + isLocatedIn + isPartOf, which can be loaded in isolation.
 
 ---
 
