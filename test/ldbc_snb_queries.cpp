@@ -11,14 +11,15 @@
 //   post_hasCreator_person_0_0.csv
 //   person_likes_post_0_0.csv
 //
-// Implements 16 queries across 5 categories:
+// Implements 22 queries across 5 categories:
 //   Writes          (3): insert Person, insert knows, insert Post+hasCreator
 //   Single-type (3): person profile, friends list by date, BFS shortest path
 //   Cross-type  (5): post profile, post→author, IC-2 friends' posts,
 //                    insert likes, count likes in date range
 //   Aggregates  (3): degree count, knows edges in date range, posts liked in range
 //   BI queries  (2): BI-1 posting summary, BI-12 message distribution per person
-//                    (COLUMNAR mode only — demonstrate colgroup I/O benefit)
+//   New (C1-C4) (6): IC-7 message likes, IC-9 friends' messages, IC-8 latest replies,
+//                    BI-2 two-window message count, IC-5 popular forums, IC-3 FoF by country
 
 #include <omp.h>
 
@@ -48,6 +49,11 @@
 
 static inline bool is_person(node_id_t id) { return VTYPE_OF(id) == VT_PERSON; }
 static inline bool is_post(node_id_t id)   { return VTYPE_OF(id) == VT_POST; }
+static inline bool is_comment(node_id_t id) { return VTYPE_OF(id) == VT_COMMENT; }
+static inline bool is_forum(node_id_t id)   { return VTYPE_OF(id) == VT_FORUM; }
+
+// Sentinel for "not found" in graph lookups
+static constexpr node_id_t ID_NOT_FOUND = (node_id_t)UINT64_MAX;
 
 // ============================================================
 // Property read helpers (decode blobs by ID range)
@@ -168,6 +174,13 @@ struct QueryTimes {
     double bi12_fast     = -1.0;
     double bi1_par       = -1.0;
     double bi12_fast_par = -1.0;
+    // C1–C4 new queries
+    double ic7_message_likes    = -1.0;
+    double ic8_latest_replies   = -1.0;
+    double ic9_friends_messages = -1.0;
+    double bi2_two_windows      = -1.0;
+    double ic5_forums           = -1.0;
+    double ic3_fof_country      = -1.0;
 };
 
 // ============================================================
@@ -1228,6 +1241,397 @@ static void bi12_message_distribution_fast_parallel(WT_CONNECTION *conn,
 }
 
 // ============================================================
+// C1: Comment-type queries (IC-7, IC-9, IC-8, BI-2)
+// ============================================================
+
+// IC-7: For Person P, find who liked P's messages (Posts + Comments).
+// Algorithm: get P's messages via hasCreator in-edges → for each message get its
+// Person in-neighbors (likes) → batch-seek likes_props:temporal sorted by (person,msg).
+// Demonstrates: likes_props:temporal colgroup point-seek batch (CP-4 partial).
+// Returns up to `limit` (liker_id, message_id, like_date) sorted by like_date desc.
+static std::vector<std::tuple<node_id_t, node_id_t, int64_t>>
+ic7_message_likes(GraphBase &graph, node_id_t pid,
+                  int limit, bool has_props, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic7_message_likes)
+
+    // Step 1: P's messages (in-edges of P where src is Post or Comment via hasCreator)
+    std::vector<node_id_t> messages;
+    for (node_id_t m : graph.get_in_nodes_id(pid)) {
+        uint8_t vt = VTYPE_OF(m);
+        if (vt == VT_POST || vt == VT_COMMENT) messages.push_back(m);
+    }
+
+    // Step 2: for each message, collect likers (in-edges where src is Person via likes)
+    std::vector<std::pair<node_id_t, node_id_t>> liker_msg;  // (person_id, msg_id)
+    for (node_id_t msg : messages)
+        for (node_id_t n : graph.get_in_nodes_id(msg))
+            if (VTYPE_OF(n) == VT_PERSON) liker_msg.emplace_back(n, msg);
+
+    // Step 3: batch-seek likes_props:temporal sorted by (person_id, msg_id)
+    // Sorted order turns random seeks into monotone cursor advances.
+    std::sort(liker_msg.begin(), liker_msg.end());
+    std::vector<std::tuple<node_id_t, node_id_t, int64_t>> result;
+
+    if (has_props && !liker_msg.empty()) {
+        WT_CURSOR *cg = graph.open_colgroup_cursor(LIKES_PROPS_TABLE, CG_TEMPORAL);
+        for (auto &[liker, msg] : liker_msg) {
+            cg->set_key(cg, (uint64_t)liker, (uint64_t)msg);
+            if (cg->search(cg) != 0) continue;
+            uint64_t cDate;
+            cg->get_value(cg, &cDate);
+            result.emplace_back(liker, msg, (int64_t)cDate);
+        }
+        cg->close(cg);
+    } else {
+        for (auto &[liker, msg] : liker_msg)
+            result.emplace_back(liker, msg, 0LL);
+    }
+
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return std::get<2>(a) > std::get<2>(b); });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(ic7_message_likes, *out_ms) }
+    else        { TIME_END(ic7_message_likes) }
+    fprintf(stderr, "  IC-7 Person %llu: %zu message likes\n",
+            (unsigned long long)pid, result.size());
+    int shown = 0;
+    for (auto &[liker, msg, cd] : result) {
+        fprintf(stderr, "    liker=%llu msg=%llu date=%lld\n",
+                (unsigned long long)liker, (unsigned long long)msg, (long long)cd);
+        if (++shown >= 5) { fprintf(stderr, "    ...\n"); break; }
+    }
+    return result;
+}
+
+// IC-9: Posts and Comments by Person P's friends created before cutoff_ms.
+// Algorithm: get friends → collect (msg, creator) from each friend's hasCreator in-edges
+// → sort msg IDs → batch-seek post_props:temporal + comment_props:temporal.
+// Demonstrates: dual colgroup batch scan over two message type tables (CP-4).
+// Returns up to `limit` (msg_id, creationDate, creator_id) sorted by date desc.
+static std::vector<std::tuple<node_id_t, int64_t, node_id_t>>
+ic9_friends_messages_before(GraphBase &graph, node_id_t pid,
+                             int64_t cutoff_ms, int limit,
+                             bool has_props, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic9_friends_messages_before)
+
+    // Step 1: get P's friends
+    std::vector<node_id_t> friends;
+    for (node_id_t f : graph.get_out_nodes_id(pid))
+        if (VTYPE_OF(f) == VT_PERSON) friends.push_back(f);
+
+    // Step 2: collect all (msg_id, creator_id) from friends' hasCreator in-edges
+    std::vector<std::pair<node_id_t, node_id_t>> msg_creator;
+    for (node_id_t f : friends)
+        for (node_id_t m : graph.get_in_nodes_id(f)) {
+            uint8_t vt = VTYPE_OF(m);
+            if (vt == VT_POST || vt == VT_COMMENT) msg_creator.emplace_back(m, f);
+        }
+
+    // Step 3: sort by msg_id for monotone colgroup seeks
+    std::sort(msg_creator.begin(), msg_creator.end());
+    std::vector<std::tuple<node_id_t, int64_t, node_id_t>> result;
+
+    if (has_props && !msg_creator.empty()) {
+        WT_CURSOR *post_cg    = graph.open_colgroup_cursor(POST_PROPS_TABLE,    CG_TEMPORAL);
+        WT_CURSOR *comment_cg = graph.open_colgroup_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
+        for (auto &[msg, creator] : msg_creator) {
+            WT_CURSOR *cg = (VTYPE_OF(msg) == VT_POST) ? post_cg : comment_cg;
+            cg->set_key(cg, (uint64_t)msg);
+            if (cg->search(cg) != 0) continue;
+            uint64_t cDate; int32_t length;
+            cg->get_value(cg, &cDate, &length);
+            if ((int64_t)cDate < cutoff_ms)
+                result.emplace_back(msg, (int64_t)cDate, creator);
+        }
+        post_cg->close(post_cg);
+        comment_cg->close(comment_cg);
+    } else {
+        for (auto &[msg, creator] : msg_creator)
+            result.emplace_back(msg, 0LL, creator);
+    }
+
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return std::get<1>(a) > std::get<1>(b); });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(ic9_friends_messages_before, *out_ms) }
+    else        { TIME_END(ic9_friends_messages_before) }
+    fprintf(stderr, "  IC-9 Person %llu (before %lld): %zu messages\n",
+            (unsigned long long)pid, (long long)cutoff_ms, result.size());
+    int shown = 0;
+    for (auto &[msg, cd, creator] : result) {
+        fprintf(stderr, "    msg=%llu date=%lld creator=%llu\n",
+                (unsigned long long)msg, (long long)cd, (unsigned long long)creator);
+        if (++shown >= 5) { fprintf(stderr, "    ...\n"); break; }
+    }
+    return result;
+}
+
+// IC-8: Latest replies to Person P's posts and comments.
+// Algorithm: get P's messages via hasCreator in-edges → for each message get
+// Comment in-neighbors (replyOf edges Comment→Post/Comment) → sort reply IDs
+// → batch-seek comment_props:temporal.
+// Demonstrates: replyOf chain traversal — CP-1 chokepoint.
+// Returns up to `limit` (reply_id, creationDate, reply_creator_id) sorted by date desc.
+static std::vector<std::tuple<node_id_t, int64_t, node_id_t>>
+ic8_latest_replies(GraphBase &graph, node_id_t pid,
+                   int limit, bool has_props, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic8_latest_replies)
+
+    // Step 1: get P's messages (hasCreator: Post/Comment → Person)
+    std::vector<node_id_t> messages;
+    for (node_id_t m : graph.get_in_nodes_id(pid)) {
+        uint8_t vt = VTYPE_OF(m);
+        if (vt == VT_POST || vt == VT_COMMENT) messages.push_back(m);
+    }
+
+    // Step 2: for each message, collect replying comments
+    // replyOf: Comment→Post and Comment→Comment; so in-edges of msg where src is Comment
+    std::vector<node_id_t> replies;
+    for (node_id_t msg : messages)
+        for (node_id_t n : graph.get_in_nodes_id(msg))
+            if (VTYPE_OF(n) == VT_COMMENT) replies.push_back(n);
+
+    // Step 3: sort reply IDs, batch-fetch creationDate from comment_props:temporal
+    std::sort(replies.begin(), replies.end());
+    std::vector<std::tuple<node_id_t, int64_t, node_id_t>> result;
+
+    if (has_props && !replies.empty()) {
+        WT_CURSOR *cg = graph.open_colgroup_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
+        for (node_id_t cid : replies) {
+            cg->set_key(cg, (uint64_t)cid);
+            if (cg->search(cg) != 0) continue;
+            uint64_t cDate; int32_t length;
+            cg->get_value(cg, &cDate, &length);
+            result.emplace_back(cid, (int64_t)cDate, (node_id_t)0);
+        }
+        cg->close(cg);
+    } else {
+        for (node_id_t cid : replies) result.emplace_back(cid, 0LL, (node_id_t)0);
+    }
+
+    // Sort by date desc, keep top `limit`
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return std::get<1>(a) > std::get<1>(b); });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    // Fetch creator for top results only (out-edges of comment where dst is Person)
+    for (auto &[cid, cdate, creator] : result)
+        for (node_id_t n : graph.get_out_nodes_id(cid))
+            if (VTYPE_OF(n) == VT_PERSON) { creator = n; break; }
+
+    if (out_ms) { TIME_END_CAP(ic8_latest_replies, *out_ms) }
+    else        { TIME_END(ic8_latest_replies) }
+    fprintf(stderr, "  IC-8 Person %llu: %zu replies (replyOf-chain CP-1)\n",
+            (unsigned long long)pid, result.size());
+    int shown = 0;
+    for (auto &[cid, cd, creator] : result) {
+        fprintf(stderr, "    reply=%llu date=%lld creator=%llu\n",
+                (unsigned long long)cid, (long long)cd, (unsigned long long)creator);
+        if (++shown >= 5) { fprintf(stderr, "    ...\n"); break; }
+    }
+    return result;
+}
+
+// BI-2 (simplified): Count Posts and Comments in two separate date windows.
+// Full BI-2 groups by tag, but this simplified version counts by message type per window.
+// Demonstrates: dual sequential colgroup scan (post_props:temporal + comment_props:temporal)
+// with a date filter — CP-4 (dimension FK join omitted; see IC-3 for FK join variant).
+static void bi2_message_count_two_windows(GraphBase &graph,
+                                           int64_t lo1, int64_t hi1,
+                                           int64_t lo2, int64_t hi2,
+                                           double *out_ms = nullptr)
+{
+    TIME_START(bi2_message_count_two_windows)
+
+    int64_t posts_w1=0, posts_w2=0, comments_w1=0, comments_w2=0;
+
+    // Scan post_props:temporal
+    {
+        WT_CURSOR *cur = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        while (cur->next(cur) == 0) {
+            uint64_t vid, cDate; int32_t length;
+            cur->get_key(cur, &vid);
+            cur->get_value(cur, &cDate, &length);
+            int64_t t = (int64_t)cDate;
+            if (t >= lo1 && t < hi1) posts_w1++;
+            if (t >= lo2 && t < hi2) posts_w2++;
+        }
+        cur->close(cur);
+    }
+    // Scan comment_props:temporal
+    {
+        WT_CURSOR *cur = graph.open_colgroup_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
+        while (cur->next(cur) == 0) {
+            uint64_t vid, cDate; int32_t length;
+            cur->get_key(cur, &vid);
+            cur->get_value(cur, &cDate, &length);
+            int64_t t = (int64_t)cDate;
+            if (t >= lo1 && t < hi1) comments_w1++;
+            if (t >= lo2 && t < hi2) comments_w2++;
+        }
+        cur->close(cur);
+    }
+
+    if (out_ms) { TIME_END_CAP(bi2_message_count_two_windows, *out_ms) }
+    else        { TIME_END(bi2_message_count_two_windows) }
+
+    fprintf(stderr, "  BI-2 message counts:\n");
+    fprintf(stderr, "    W1 [%lld,%lld): posts=%lld comments=%lld total=%lld\n",
+            (long long)lo1,(long long)hi1,(long long)posts_w1,(long long)comments_w1,
+            (long long)(posts_w1+comments_w1));
+    fprintf(stderr, "    W2 [%lld,%lld): posts=%lld comments=%lld total=%lld\n",
+            (long long)lo2,(long long)hi2,(long long)posts_w2,(long long)comments_w2,
+            (long long)(posts_w2+comments_w2));
+}
+
+// ============================================================
+// C2: Forum-type queries (IC-5)
+// ============================================================
+
+// IC-5: Forums where Person P's friends joined since `since_ms`.
+// Algorithm: friends → in-edges of each friend where src is Forum (hasMember edges)
+// → sort (forum_id, friend_id) → batch-seek hasmember_props:temporal for date filter
+// → group by forum, count qualifying members.
+// Demonstrates: high-degree Forum fan-out — CP-3 chokepoint.
+// Returns up to `limit` (forum_id, member_count) sorted by member_count desc.
+static std::vector<std::pair<node_id_t, int32_t>>
+ic5_forums_by_friend_membership(GraphBase &graph, node_id_t pid,
+                                  int64_t since_ms, int limit,
+                                  bool has_props, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic5_forums_by_friend_membership)
+
+    // Step 1: get P's friends
+    std::vector<node_id_t> friends;
+    for (node_id_t f : graph.get_out_nodes_id(pid))
+        if (VTYPE_OF(f) == VT_PERSON) friends.push_back(f);
+
+    // Step 2: for each friend, find forums via hasMember in-edges
+    // hasMember: Forum→Person; so in-edges of person where src is Forum
+    std::vector<std::pair<node_id_t, node_id_t>> forum_member;  // (forum_id, friend_id)
+    for (node_id_t f : friends)
+        for (node_id_t n : graph.get_in_nodes_id(f))
+            if (VTYPE_OF(n) == VT_FORUM) forum_member.emplace_back(n, f);
+
+    // Step 3: sort and batch-seek hasmember_props:temporal for date filter
+    std::sort(forum_member.begin(), forum_member.end());
+    std::unordered_map<node_id_t, int32_t> forum_count;
+
+    if (has_props && !forum_member.empty()) {
+        WT_CURSOR *cg = graph.open_colgroup_cursor(HASMEMBER_PROPS_TABLE, CG_TEMPORAL);
+        for (auto &[fid, mid] : forum_member) {
+            cg->set_key(cg, (uint64_t)fid, (uint64_t)mid);
+            if (cg->search(cg) != 0) continue;
+            uint64_t cDate;
+            cg->get_value(cg, &cDate);
+            if ((int64_t)cDate >= since_ms) forum_count[fid]++;
+        }
+        cg->close(cg);
+    } else {
+        for (auto &[fid, mid] : forum_member) forum_count[fid]++;
+    }
+
+    std::vector<std::pair<node_id_t, int32_t>> result(forum_count.begin(), forum_count.end());
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return a.second > b.second; });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(ic5_forums_by_friend_membership, *out_ms) }
+    else        { TIME_END(ic5_forums_by_friend_membership) }
+    fprintf(stderr, "  IC-5 Person %llu since %lld: %zu forums (Forum fan-out CP-3)\n",
+            (unsigned long long)pid, (long long)since_ms, result.size());
+    int shown = 0;
+    for (auto &[fid, cnt] : result) {
+        fprintf(stderr, "    forum=%llu members=%d\n", (unsigned long long)fid, cnt);
+        if (++shown >= 5) { fprintf(stderr, "    ...\n"); break; }
+    }
+    return result;
+}
+
+// ============================================================
+// C4: Place/Organisation queries (IC-3)
+// ============================================================
+
+// Resolve a Person's country of residence: Person→City (isLocatedIn)→Country (isPartOf).
+// Returns the Country node_id, or ID_NOT_FOUND if the location chain is absent.
+static node_id_t resolve_person_country(GraphBase &graph, node_id_t person_id)
+{
+    for (node_id_t city : graph.get_out_nodes_id(person_id)) {
+        if (VTYPE_OF(city) != VT_CITY) continue;
+        for (node_id_t country : graph.get_out_nodes_id(city))
+            if (VTYPE_OF(country) == VT_COUNTRY) return country;
+    }
+    return ID_NOT_FOUND;
+}
+
+// IC-3: Friends-of-friends of Person P who are located in countryX but not countryY.
+// Algorithm: BFS 2-hop knows expansion → exclude P and direct friends → for each FoF
+// candidate resolve country via isLocatedIn+isPartOf chain → filter by countryX/not-Y
+// → count common friends with P → sort by common friends desc.
+// Demonstrates: 3-hop cross-type join (knows×2 + isLocatedIn + isPartOf) — CP-2 chokepoint.
+// Returns up to `limit` (candidate_id, common_friends_count) sorted by count desc.
+static std::vector<std::pair<node_id_t, int32_t>>
+ic3_fof_by_country(GraphBase &graph, node_id_t pid,
+                   node_id_t country_x, node_id_t country_y,
+                   int limit, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic3_fof_by_country)
+
+    // Step 1: get P's direct friends
+    std::unordered_set<node_id_t> friends_set;
+    for (node_id_t f : graph.get_out_nodes_id(pid))
+        if (VTYPE_OF(f) == VT_PERSON) friends_set.insert(f);
+
+    // Step 2: 2-hop expansion — friends of friends, count shared friends with P
+    std::unordered_map<node_id_t, int32_t> fof_common;
+    for (node_id_t f : friends_set)
+        for (node_id_t ff : graph.get_out_nodes_id(f)) {
+            if (VTYPE_OF(ff) != VT_PERSON) continue;
+            if (ff == pid || friends_set.count(ff)) continue;
+            fof_common[ff]++;
+        }
+
+    // Step 3: filter by location — keep FoF in countryX but not countryY
+    std::vector<std::pair<node_id_t, int32_t>> result;
+    for (auto &[candidate, common] : fof_common) {
+        node_id_t c = resolve_person_country(graph, candidate);
+        if (c == ID_NOT_FOUND) continue;
+        if (country_x != ID_NOT_FOUND && c != country_x) continue;
+        if (country_y != ID_NOT_FOUND && c == country_y) continue;
+        result.emplace_back(candidate, common);
+    }
+
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return a.second > b.second; });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(ic3_fof_by_country, *out_ms) }
+    else        { TIME_END(ic3_fof_by_country) }
+    fprintf(stderr, "  IC-3 Person %llu FoF in country %llu not %llu: %zu found (CP-2)\n",
+            (unsigned long long)pid,
+            country_x == ID_NOT_FOUND ? 0ULL : (unsigned long long)country_x,
+            country_y == ID_NOT_FOUND ? 0ULL : (unsigned long long)country_y,
+            result.size());
+    int shown = 0;
+    for (auto &[cand, common] : result) {
+        fprintf(stderr, "    candidate=%llu common_friends=%d\n",
+                (unsigned long long)cand, common);
+        if (++shown >= 5) { fprintf(stderr, "    ...\n"); break; }
+    }
+    return result;
+}
+
+// ============================================================
 // main
 // ============================================================
 
@@ -1362,50 +1766,120 @@ int main(int argc, char **argv)
         fprintf(stderr, "=== Insertion log: %s ===\n", insertion_log_path.c_str());
     }
 
-    fprintf(stderr, "[LOAD] persons ... ");
-    loader.load_persons(dyn + "/person_0_0.csv");
-    fprintf(stderr, "%llu persons\n", (unsigned long long)loader.person_count);
+    std::string sta = data_dir + "/static";
 
-    fprintf(stderr, "[LOAD] posts ... ");
-    loader.load_posts(dyn + "/post_0_0.csv");
-    fprintf(stderr, "%llu posts\n", (unsigned long long)loader.post_count);
+    // Helper: load a CSV, silently skip if the file is missing.
+    auto safe_load = [](const char *label, auto fn) {
+        fprintf(stderr, "[LOAD] %-52s ... ", label);
+        try { fn(); fprintf(stderr, "done\n"); }
+        catch (const std::exception &e) { fprintf(stderr, "skip (%s)\n", e.what()); }
+    };
 
-    // All add_node calls complete before any add_edge
-    fprintf(stderr, "[LOAD] knows edges ... ");
-    loader.load_knows(dyn + "/person_knows_person_0_0.csv");
-    fprintf(stderr, "done\n");
+    // ---- Phase 1: load all vertices (add_node) ----
+    // Static dimension types first (no edge dependencies).
+    safe_load("places (city/country/continent)",
+              [&]{ loader.load_places(sta + "/place_0_0.csv"); });
+    safe_load("organisations (company/university)",
+              [&]{ loader.load_organisations(sta + "/organisation_0_0.csv"); });
+    safe_load("tags",
+              [&]{ loader.load_tags(sta + "/tag_0_0.csv"); });
+    safe_load("tagclasses",
+              [&]{ loader.load_tagclasses(sta + "/tagclass_0_0.csv"); });
+    // Dynamic vertex types
+    safe_load("persons",
+              [&]{ loader.load_persons(dyn + "/person_0_0.csv"); });
+    safe_load("posts",
+              [&]{ loader.load_posts(dyn + "/post_0_0.csv"); });
+    safe_load("comments",
+              [&]{ loader.load_comments(dyn + "/comment_0_0.csv"); });
+    {
+        // Build moderator map before loading forums so moderator_id can be embedded.
+        std::unordered_map<int64_t, int64_t> mod_map;
+        try { LDBCLoader::load_has_moderator_map(
+                  dyn + "/forum_hasModerator_person_0_0.csv", mod_map); }
+        catch (...) {}
+        safe_load("forums",
+                  [&]{ loader.load_forums(dyn + "/forum_0_0.csv", &mod_map); });
+    }
 
-    fprintf(stderr, "[LOAD] hasCreator edges ... ");
-    loader.load_has_creator(dyn + "/post_hasCreator_person_0_0.csv");
-    fprintf(stderr, "done\n");
+    // ---- Phase 2: load all edges (add_edge) ----
+    // Static structural edges (dimension graph)
+    safe_load("place_isPartOf_place",
+              [&]{ loader.load_is_part_of(sta + "/place_isPartOf_place_0_0.csv"); });
+    safe_load("organisation_isLocatedIn_place",
+              [&]{ loader.load_org_is_located_in(sta + "/organisation_isLocatedIn_place_0_0.csv"); });
+    safe_load("tag_hasType_tagclass",
+              [&]{ loader.load_has_type(sta + "/tag_hasType_tagclass_0_0.csv"); });
+    safe_load("tagclass_isSubclassOf_tagclass",
+              [&]{ loader.load_is_subclass_of(sta + "/tagclass_isSubclassOf_tagclass_0_0.csv"); });
+    // Dynamic edges
+    safe_load("person_knows_person",
+              [&]{ loader.load_knows(dyn + "/person_knows_person_0_0.csv"); });
+    safe_load("post_hasCreator_person",
+              [&]{ loader.load_has_creator(dyn + "/post_hasCreator_person_0_0.csv"); });
+    safe_load("comment_hasCreator_person",
+              [&]{ loader.load_comment_has_creator(dyn + "/comment_hasCreator_person_0_0.csv"); });
+    safe_load("comment_replyOf_post",
+              [&]{ loader.load_reply_of_post(dyn + "/comment_replyOf_post_0_0.csv"); });
+    safe_load("comment_replyOf_comment",
+              [&]{ loader.load_reply_of_comment(dyn + "/comment_replyOf_comment_0_0.csv"); });
+    safe_load("forum_containerOf_post",
+              [&]{ loader.load_container_of(dyn + "/forum_containerOf_post_0_0.csv"); });
+    safe_load("forum_hasMember_person",
+              [&]{ loader.load_has_member(dyn + "/forum_hasMember_person_0_0.csv"); });
+    safe_load("person_likes_post",
+              [&]{ loader.load_likes(dyn + "/person_likes_post_0_0.csv"); });
+    safe_load("person_likes_comment",
+              [&]{ loader.load_likes_comment(dyn + "/person_likes_comment_0_0.csv"); });
+    safe_load("post_hasTag_tag",
+              [&]{ loader.load_post_has_tag(dyn + "/post_hasTag_tag_0_0.csv"); });
+    safe_load("comment_hasTag_tag",
+              [&]{ loader.load_comment_has_tag(dyn + "/comment_hasTag_tag_0_0.csv"); });
+    safe_load("forum_hasTag_tag",
+              [&]{ loader.load_forum_has_tag(dyn + "/forum_hasTag_tag_0_0.csv"); });
+    safe_load("person_hasInterest_tag",
+              [&]{ loader.load_has_interest(dyn + "/person_hasInterest_tag_0_0.csv"); });
+    safe_load("person_isLocatedIn_place",
+              [&]{ loader.load_person_is_located_in(dyn + "/person_isLocatedIn_place_0_0.csv"); });
+    safe_load("post_isLocatedIn_place",
+              [&]{ loader.load_post_is_located_in(dyn + "/post_isLocatedIn_place_0_0.csv"); });
+    safe_load("comment_isLocatedIn_place",
+              [&]{ loader.load_comment_is_located_in(dyn + "/comment_isLocatedIn_place_0_0.csv"); });
+    safe_load("person_studyAt_organisation",
+              [&]{ loader.load_study_at(dyn + "/person_studyAt_organisation_0_0.csv"); });
+    safe_load("person_workAt_organisation",
+              [&]{ loader.load_work_at(dyn + "/person_workAt_organisation_0_0.csv"); });
 
-    fprintf(stderr, "[LOAD] likes edges ... ");
-    loader.load_likes(dyn + "/person_likes_post_0_0.csv");
-    fprintf(stderr, "done\n");
+    // ---- Phase 3: flush node + edge properties ----
+    safe_load("flush node props", [&]{ loader.flush_node_props(); });
+    safe_load("flush edge props", [&]{ loader.flush_edge_props(); });
 
-    // Flush node and edge properties after all structural inserts
-    fprintf(stderr, "[LOAD] flushing node properties ... ");
-    loader.flush_node_props();
-    fprintf(stderr, "done\n");
+    // ---- Phase 4: secondary multi-valued tables ----
+    safe_load("person emails",
+              [&]{ loader.load_person_emails(dyn + "/person_email_emailaddress_0_0.csv"); });
+    safe_load("person languages",
+              [&]{ loader.load_person_speaks(dyn + "/person_speaks_language_0_0.csv"); });
 
-    fprintf(stderr, "[LOAD] flushing edge properties ... ");
-    loader.flush_edge_props();
-    fprintf(stderr, "done\n");
+    node_id_t person_count    = loader.person_count;
+    node_id_t post_count      = loader.post_count;
+    node_id_t comment_count   = loader.comment_count;
+    node_id_t forum_count_n   = loader.forum_count;
+    node_id_t tag_count_n     = loader.tag_count;
+    node_id_t tagclass_count_n= loader.tagclass_count;
+    node_id_t place_count_n   = loader.city_count + loader.country_count + loader.continent_count;
+    node_id_t org_count_n     = loader.company_count + loader.university_count;
 
-    fprintf(stderr, "[LOAD] person emails ... ");
-    loader.load_person_emails(dyn + "/person_email_emailaddress_0_0.csv");
-    fprintf(stderr, "done\n");
-
-    fprintf(stderr, "[LOAD] person languages ... ");
-    loader.load_person_speaks(dyn + "/person_speaks_language_0_0.csv");
-    fprintf(stderr, "done\n");
-
-    node_id_t person_count = loader.person_count;
-    node_id_t post_count   = loader.post_count;
-
-    fprintf(stderr, "\n=== Graph loaded: %llu persons, %llu posts ===\n\n",
+    fprintf(stderr, "\n=== Graph loaded: %llu persons, %llu posts, %llu comments,"
+                    " %llu forums, %llu tags, %llu tagclasses,"
+                    " %llu places, %llu orgs ===\n\n",
             (unsigned long long)person_count,
-            (unsigned long long)post_count);
+            (unsigned long long)post_count,
+            (unsigned long long)comment_count,
+            (unsigned long long)forum_count_n,
+            (unsigned long long)tag_count_n,
+            (unsigned long long)tagclass_count_n,
+            (unsigned long long)place_count_n,
+            (unsigned long long)org_count_n);
 
     // Checkpoint after load so that create_ro_graph_handle() (used by the
     // parallel BI queries) can open consistent read-only sessions.
@@ -1421,33 +1895,59 @@ int main(int argc, char **argv)
     // Also breaks down (c) by vertex type to catch ID-partitioning bugs where
     // Post IDs lose their type bits and collide with Person IDs.
     if (!dry_run) {
-        node_id_t expected_nodes = person_count + post_count;
+        node_id_t expected_nodes = person_count + post_count + comment_count
+                                 + forum_count_n + tag_count_n + tagclass_count_n
+                                 + place_count_n + org_count_n;
         node_id_t atomic_count   = graph.get_num_nodes();
 
         fprintf(stderr, "=== Node count verification ===\n");
-        fprintf(stderr, "  loader inserted:   %llu persons + %llu posts = %llu total\n",
+        fprintf(stderr, "  loader inserted:   %llu persons + %llu posts + %llu comments"
+                        " + %llu forums + %llu tags + %llu tagclasses"
+                        " + %llu places + %llu orgs = %llu total\n",
                 (unsigned long long)person_count,
                 (unsigned long long)post_count,
+                (unsigned long long)comment_count,
+                (unsigned long long)forum_count_n,
+                (unsigned long long)tag_count_n,
+                (unsigned long long)tagclass_count_n,
+                (unsigned long long)place_count_n,
+                (unsigned long long)org_count_n,
                 (unsigned long long)expected_nodes);
         fprintf(stderr, "  get_num_nodes():   %llu  (in-memory atomic counter)\n",
                 (unsigned long long)atomic_count);
 
         // Full WT scan — counts what is actually stored
         std::vector<node> all_nodes = graph.get_nodes();
-        node_id_t scanned_persons = 0, scanned_posts = 0, scanned_unknown = 0;
+        node_id_t scanned_persons=0, scanned_posts=0, scanned_comments=0;
+        node_id_t scanned_forums=0, scanned_tags=0, scanned_tagclasses=0;
+        node_id_t scanned_places=0, scanned_orgs=0, scanned_unknown=0;
         for (const node &nd : all_nodes) {
-            uint64_t vtype = VTYPE_OF(nd.id);
-            if (vtype == VT_PERSON)      scanned_persons++;
-            else if (vtype == VT_POST)   scanned_posts++;
-            else                         scanned_unknown++;
+            uint8_t vt = VTYPE_OF(nd.id);
+            if      (vt == VT_PERSON)                            scanned_persons++;
+            else if (vt == VT_POST)                              scanned_posts++;
+            else if (vt == VT_COMMENT)                           scanned_comments++;
+            else if (vt == VT_FORUM)                             scanned_forums++;
+            else if (vt == VT_TAG)                               scanned_tags++;
+            else if (vt == VT_TAGCLASS)                          scanned_tagclasses++;
+            else if (vt==VT_CITY||vt==VT_COUNTRY||vt==VT_CONTINENT) scanned_places++;
+            else if (vt==VT_COMPANY||vt==VT_UNIVERSITY)          scanned_orgs++;
+            else                                                 scanned_unknown++;
         }
         node_id_t scanned_total = (node_id_t)all_nodes.size();
 
-        fprintf(stderr, "  get_nodes() scan:  %llu total  "
-                "(%llu persons, %llu posts, %llu unknown type)\n",
+        fprintf(stderr, "  get_nodes() scan:  %llu total"
+                " (%llu persons, %llu posts, %llu comments,"
+                " %llu forums, %llu tags, %llu tagclasses,"
+                " %llu places, %llu orgs, %llu unknown)\n",
                 (unsigned long long)scanned_total,
                 (unsigned long long)scanned_persons,
                 (unsigned long long)scanned_posts,
+                (unsigned long long)scanned_comments,
+                (unsigned long long)scanned_forums,
+                (unsigned long long)scanned_tags,
+                (unsigned long long)scanned_tagclasses,
+                (unsigned long long)scanned_places,
+                (unsigned long long)scanned_orgs,
                 (unsigned long long)scanned_unknown);
 
         if (atomic_count != expected_nodes)
@@ -1463,12 +1963,12 @@ int main(int argc, char **argv)
                     (unsigned long long)scanned_persons,
                     (unsigned long long)person_count);
         if (scanned_posts != post_count)
-            fprintf(stderr, "  MISMATCH: scanned %llu post nodes != inserted %llu "
-                    "(type bits may have been dropped — is B64 active?)\n",
-                    (unsigned long long)scanned_posts,
-                    (unsigned long long)post_count);
-        if (atomic_count == expected_nodes && scanned_total == expected_nodes &&
-            scanned_persons == person_count && scanned_posts == post_count)
+            fprintf(stderr, "  MISMATCH: scanned %llu post nodes != inserted %llu\n",
+                    (unsigned long long)scanned_posts, (unsigned long long)post_count);
+        if (scanned_comments != comment_count)
+            fprintf(stderr, "  MISMATCH: scanned %llu comment nodes != inserted %llu\n",
+                    (unsigned long long)scanned_comments, (unsigned long long)comment_count);
+        if (atomic_count == expected_nodes && scanned_total == expected_nodes)
             fprintf(stderr, "  OK: all counts match\n");
 
         // Metadata table state — num_nodes is written only on close(true).
@@ -1487,6 +1987,12 @@ int main(int argc, char **argv)
                                                    : sample_person0;
     node_id_t sample_post0   = (post_count > 0) ? MAKE_TYPED_ID(VT_POST, 0)
                                                  : OutOfBand_ID_MAX;
+    node_id_t sample_comment0 = (comment_count > 0)   ? MAKE_TYPED_ID(VT_COMMENT, 0)
+                                                       : OutOfBand_ID_MAX;
+    (void)sample_comment0;  // reserved for future comment-specific queries
+    // Use first two countries for IC-3; ID_NOT_FOUND means "any country" (skip filter)
+    node_id_t country_x = (loader.country_count > 0) ? MAKE_TYPED_ID(VT_COUNTRY, 0) : ID_NOT_FOUND;
+    node_id_t country_y = (loader.country_count > 1) ? MAKE_TYPED_ID(VT_COUNTRY, 1) : ID_NOT_FOUND;
 
     fprintf(stderr, "=== WRITE QUERIES ===\n");
 
@@ -1562,6 +2068,38 @@ int main(int argc, char **argv)
         a3_posts_liked_in_range(graph, sample_person1,
                                 0LL, INT64_MAX,
                                 opts.has_edge_props, opts.prop_mode, &col_times.a3);
+
+    fprintf(stderr, "\n=== NEW QUERIES (C1: Comment, C2: Forum, C4: Place) ===\n");
+
+    // IC-7: who liked P's messages
+    ic7_message_likes(graph, sample_person0, 20, opts.has_edge_props, &col_times.ic7_message_likes);
+
+    // IC-9: friends' posts and comments before cutoff
+    ic9_friends_messages_before(graph, sample_person0, INT64_MAX, 20,
+                                opts.has_node_props, &col_times.ic9_friends_messages);
+
+    // IC-8: latest replies to P's messages (replyOf chain — CP-1)
+    ic8_latest_replies(graph, sample_person0, 20,
+                       opts.has_node_props, &col_times.ic8_latest_replies);
+
+    // BI-2: message counts in two date windows (CP-4 colgroup scan demo)
+    if (opts.prop_mode == COLUMNAR && !dry_run) {
+        // Window 1: first half of 2012; Window 2: first half of 2013
+        int64_t w1_lo = 1325376000000LL;  // 2012-01-01
+        int64_t w1_hi = 1341100800000LL;  // 2012-07-01
+        int64_t w2_lo = 1356998400000LL;  // 2013-01-01
+        int64_t w2_hi = 1372636800000LL;  // 2013-07-01
+        bi2_message_count_two_windows(graph, w1_lo, w1_hi, w2_lo, w2_hi,
+                                      &col_times.bi2_two_windows);
+    }
+
+    // IC-5: forums where friends joined since epoch 0 (all time, CP-3 forum fan-out)
+    ic5_forums_by_friend_membership(graph, sample_person0, 0LL, 20,
+                                    opts.has_edge_props, &col_times.ic5_forums);
+
+    // IC-3: FoF by country (CP-2 3-hop cross-type join)
+    ic3_fof_by_country(graph, sample_person0, country_x, country_y, 10,
+                       &col_times.ic3_fof_country);
 
     if (opts.prop_mode == COLUMNAR && !dry_run) {
         const int N_THREADS = omp_get_max_threads();
@@ -1648,6 +2186,12 @@ int main(int argc, char **argv)
             {"bi12_message_distribution_fast", col_times.bi12_fast},
             {"bi1_posting_summary_parallel",            col_times.bi1_par},
             {"bi12_message_distribution_fast_parallel", col_times.bi12_fast_par},
+            {"ic7_message_likes",            col_times.ic7_message_likes},
+            {"ic9_friends_messages_before",  col_times.ic9_friends_messages},
+            {"ic8_latest_replies",           col_times.ic8_latest_replies},
+            {"bi2_message_count_two_windows",col_times.bi2_two_windows},
+            {"ic5_forums_by_friend_membership",col_times.ic5_forums},
+            {"ic3_fof_by_country",           col_times.ic3_fof_country},
         };
         for (auto &t : all_times) {
             if (t.ms >= 0.0)
