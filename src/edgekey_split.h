@@ -94,6 +94,14 @@ class SplitEdgeKey : public GraphBase
   WT_CURSOR *degree_cursor = nullptr;  // Cached cursor for degree updates
   // WT_CURSOR *dst_src_idx_cursor = nullptr; // Removed dependency
 
+  // Read-only cursors dedicated to get_out_nodes_id / get_in_nodes_id.
+  // Separate from out_edge_cursor / in_edge_cursor (which are used for writes
+  // and may be mid-transaction) so reads never disturb the write cursor's
+  // position.  Using pre-opened cursors avoids the _get_table_cursor overhead
+  // (cursor-cache lookup + config-string parsing) on every traversal call.
+  WT_CURSOR *rd_out_cursor = nullptr;  // OUT_EDGES, read-only
+  WT_CURSOR *rd_in_cursor  = nullptr;  // IN_EDGES (directed) or OUT_EDGES (undirected), read-only
+
   // COLUMNAR mode: per-type property table cursors
   WT_CURSOR *person_props_cursor  = nullptr;
   WT_CURSOR *post_props_cursor    = nullptr;
@@ -118,6 +126,8 @@ class SplitEdgeKey : public GraphBase
     if (random_node_cursor)    random_node_cursor->close(random_node_cursor);
     if (in_edge_cursor)        in_edge_cursor->close(in_edge_cursor);
     if (degree_cursor)         degree_cursor->close(degree_cursor);
+    if (rd_out_cursor)         rd_out_cursor->close(rd_out_cursor);
+    if (rd_in_cursor)          rd_in_cursor->close(rd_in_cursor);
     if (person_props_cursor)   person_props_cursor->close(person_props_cursor);
     if (post_props_cursor)     post_props_cursor->close(post_props_cursor);
     if (knows_props_cursor)    knows_props_cursor->close(knows_props_cursor);

@@ -222,6 +222,34 @@ void SplitEdgeKey::init_cursors()
                          string(wiredtiger_strerror(ret)));
   }
 
+  // rd_out_cursor / rd_in_cursor: dedicated read-only cursors for
+  // get_out_nodes_id() and get_in_nodes_id().  These are kept separate from
+  // out_edge_cursor / in_edge_cursor (which are used for writes and may hold a
+  // cursor position mid-transaction) so that read traversals never disturb the
+  // write cursor position.  Using pre-opened cursors here avoids the
+  // _get_table_cursor overhead (cursor-cache lookup + config-string parsing)
+  // on every get_out_nodes_id / get_in_nodes_id call.
+  if ((ret = _get_table_cursor(OUT_EDGES,
+                               &rd_out_cursor,
+                               session,
+                               false,
+                               false,  // read-only: overwrite not needed
+                               opts.checkpoint_name)))
+  {
+    throw GraphException("Could not open rd_out_cursor: " +
+                         string(wiredtiger_strerror(ret)));
+  }
+  opts.is_directed
+      ? (ret = _get_table_cursor(IN_EDGES,  &rd_in_cursor, session, false, false,
+                                 opts.checkpoint_name))
+      : (ret = _get_table_cursor(OUT_EDGES, &rd_in_cursor, session, false, false,
+                                 opts.checkpoint_name));
+  if (ret)
+  {
+    throw GraphException("Could not open rd_in_cursor: " +
+                         string(wiredtiger_strerror(ret)));
+  }
+
   // COLUMNAR mode: open per-type property table cursors
   if (opts.prop_mode == COLUMNAR)
   {
@@ -1168,12 +1196,10 @@ std::vector<node> SplitEdgeKey::get_out_nodes(node_id_t node_id)
 std::vector<node_id_t> SplitEdgeKey::get_out_nodes_id(node_id_t node_id)
 {
   std::vector<node_id_t> out_nodes_id;
-  WT_CURSOR *e_cur;
-  if (_get_table_cursor(
-          OUT_EDGES, &e_cur, session, false, true, opts.checkpoint_name) != 0)
-  {
-    throw GraphException("Could not get a cursor to the OutEdge table");
-  }
+  // Use the pre-opened rd_out_cursor instead of opening a new cursor per call.
+  // reset() at the end releases the page pin and returns the cursor to a clean
+  // state for the next caller, without closing and re-opening from the cache.
+  WT_CURSOR *e_cur = rd_out_cursor;
   CommonUtil::ekey_set_node_key(e_cur, node_id);
   if (e_cur->search(e_cur) == 0)
   {
@@ -1198,10 +1224,11 @@ std::vector<node_id_t> SplitEdgeKey::get_out_nodes_id(node_id_t node_id)
   }
   else
   {
+    e_cur->reset(e_cur);
     throw GraphException("The node " + to_string(node_id) +
                          " does not exist in the graph");
   }
-  e_cur->close(e_cur);
+  e_cur->reset(e_cur);
   return out_nodes_id;
 }
 std::vector<edge> SplitEdgeKey::get_in_edges(node_id_t node_id)
@@ -1313,19 +1340,10 @@ std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
                          " does not exist in the graph");
   }
   std::vector<node_id_t> in_nodes_id;
-  WT_CURSOR *in_cur;
-  int ret;
-  opts.is_directed
-      ? (ret = _get_table_cursor(
-             IN_EDGES, &in_cur, session, false, true, opts.checkpoint_name))
-      : (ret = _get_table_cursor(
-             OUT_EDGES, &in_cur, session, false, true, opts.checkpoint_name));
-  if (ret != 0)
-  {
-    LOG_MSG("Failed to get a cursor to the {} table",
-            (opts.is_directed ? "InEdges" : "OutEdges"));
-    throw GraphException("Could not get a cursor in get_in_nodes_id");
-  }
+  // Use the pre-opened rd_in_cursor (IN_EDGES if directed, OUT_EDGES if
+  // undirected) instead of opening a new cursor per call.  reset() at the end
+  // releases the page pin without the overhead of close+reopen from cache.
+  WT_CURSOR *in_cur = rd_in_cursor;
   int search_exact;
   CommonUtil::ekey_set_node_key(in_cur, node_id);
   in_cur->search_near(in_cur, &search_exact);
@@ -1349,7 +1367,7 @@ std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
     }
   } while (in_cur->next(in_cur) == 0);
 
-  in_cur->close(in_cur);
+  in_cur->reset(in_cur);
   return in_nodes_id;
 }
 

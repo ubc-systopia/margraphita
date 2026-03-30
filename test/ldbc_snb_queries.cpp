@@ -20,6 +20,8 @@
 //   BI queries  (2): BI-1 posting summary, BI-12 message distribution per person
 //                    (COLUMNAR mode only — demonstrate colgroup I/O benefit)
 
+#include <omp.h>
+
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -27,6 +29,7 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <queue>
 #include <string>
 #include <unordered_map>
@@ -146,11 +149,25 @@ using Ms = std::chrono::duration<double, std::milli>;
 // Holds per-query timings for the EMBEDDED vs COLUMNAR comparison table.
 // -1.0 means "not measured / N/A".
 struct QueryTimes {
+    double w1        = -1.0;
+    double w2        = -1.0;
+    double w3        = -1.0;
+    double r1        = -1.0;
     double r2        = -1.0;
+    double r3        = -1.0;
+    double x1        = -1.0;
+    double x2        = -1.0;
+    double x3        = -1.0;
+    double x4        = -1.0;
+    double x5        = -1.0;
+    double a1        = -1.0;
     double a2        = -1.0;
     double a3        = -1.0;
-    double bi1       = -1.0;
-    double bi12_fast = -1.0;
+    double bi1           = -1.0;
+    double bi12          = -1.0;
+    double bi12_fast     = -1.0;
+    double bi1_par       = -1.0;
+    double bi12_fast_par = -1.0;
 };
 
 // ============================================================
@@ -166,7 +183,7 @@ struct QueryTimes {
 
 // W1: Insert a new Person vertex
 static void w1_insert_person(GraphBase &graph, node_id_t &person_counter,
-                             bool has_props)
+                             bool has_props, double *out_ms = nullptr)
 {
     SEP();
     node_id_t new_id = MAKE_TYPED_ID(VT_PERSON, person_counter++);
@@ -184,13 +201,15 @@ static void w1_insert_person(GraphBase &graph, node_id_t &person_counter,
         graph.set_node_properties(new_id, buf, SNBPersonSchema::TOTAL_SIZE);
     }
 
-    TIME_END(w1_insert_person)
+    if (out_ms) { TIME_END_CAP(w1_insert_person, *out_ms) }
+    else        { TIME_END(w1_insert_person) }
     fprintf(stderr, "  inserted Person id=%llu\n", (unsigned long long)new_id);
 }
 
 // W2: Insert a knows edge between two existing persons
 static void w2_insert_knows(GraphBase &graph, node_id_t src, node_id_t dst,
-                            int64_t creation_date, bool has_props)
+                            int64_t creation_date, bool has_props,
+                            double *out_ms = nullptr)
 {
     SEP();
     TIME_START(w2_insert_knows)
@@ -206,7 +225,8 @@ static void w2_insert_knows(GraphBase &graph, node_id_t src, node_id_t dst,
         graph.set_edge_properties(src, dst, buf, SNBKnowsSchema::TOTAL_SIZE);
     }
 
-    TIME_END(w2_insert_knows)
+    if (out_ms) { TIME_END_CAP(w2_insert_knows, *out_ms) }
+    else        { TIME_END(w2_insert_knows) }
     fprintf(stderr, "  inserted knows %llu→%llu\n",
             (unsigned long long)src, (unsigned long long)dst);
 }
@@ -217,7 +237,8 @@ static void w3_insert_post_with_creator(GraphBase &graph,
                                         node_id_t author_id,
                                         int64_t creation_date,
                                         int32_t length,
-                                        bool has_props)
+                                        bool has_props,
+                                        double *out_ms = nullptr)
 {
     SEP();
     node_id_t post_id = next_post_id++;
@@ -240,7 +261,8 @@ static void w3_insert_post_with_creator(GraphBase &graph,
     e.dst_id = author_id;
     graph.add_edge(e, false);
 
-    TIME_END(w3_insert_post_hasCreator)
+    if (out_ms) { TIME_END_CAP(w3_insert_post_hasCreator, *out_ms) }
+    else        { TIME_END(w3_insert_post_hasCreator) }
     fprintf(stderr, "  inserted Post id=%llu, hasCreator→%llu\n",
             (unsigned long long)post_id, (unsigned long long)author_id);
 }
@@ -252,13 +274,15 @@ static void w3_insert_post_with_creator(GraphBase &graph,
 // ============================================================
 
 // R1: Person profile lookup — fetch all properties of a person by ID
-static PersonProps r1_person_profile(GraphBase &graph, node_id_t pid)
+static PersonProps r1_person_profile(GraphBase &graph, node_id_t pid,
+                                     double *out_ms = nullptr)
 {
     SEP();
     TIME_START(r1_person_profile)
     prop_blob pb = graph.get_node_properties(pid);
     PersonProps p = decode_person(pb);
-    TIME_END(r1_person_profile)
+    if (out_ms) { TIME_END_CAP(r1_person_profile, *out_ms) }
+    else        { TIME_END(r1_person_profile) }
     auto emails = graph.get_person_emails(pid);
     auto langs  = graph.get_person_languages(pid);
 
@@ -352,13 +376,15 @@ r2_friends_sorted_by_date(GraphBase &graph, node_id_t pid, bool has_props,
 }
 
 // R3: BFS shortest path — unweighted distance between two persons
-static int r3_bfs_shortest_path(GraphBase &graph, node_id_t src, node_id_t dst)
+static int r3_bfs_shortest_path(GraphBase &graph, node_id_t src, node_id_t dst,
+                                 double *out_ms = nullptr)
 {
     SEP();
     TIME_START(r3_bfs_shortest_path)
 
     if (src == dst) {
-        TIME_END(r3_bfs_shortest_path)
+        if (out_ms) { TIME_END_CAP(r3_bfs_shortest_path, *out_ms) }
+        else        { TIME_END(r3_bfs_shortest_path) }
         return 0;
     }
 
@@ -381,7 +407,8 @@ static int r3_bfs_shortest_path(GraphBase &graph, node_id_t src, node_id_t dst)
         }
     }
 
-    TIME_END(r3_bfs_shortest_path)
+    if (out_ms) { TIME_END_CAP(r3_bfs_shortest_path, *out_ms) }
+    else        { TIME_END(r3_bfs_shortest_path) }
     fprintf(stderr, "  BFS(%llu → %llu) = %d hops\n",
             (unsigned long long)src, (unsigned long long)dst, found_dist);
     return found_dist;
@@ -394,13 +421,15 @@ static int r3_bfs_shortest_path(GraphBase &graph, node_id_t src, node_id_t dst)
 // ============================================================
 
 // X1: Post profile lookup — fetch all properties of a post by ID
-static PostProps x1_post_profile(GraphBase &graph, node_id_t post_id)
+static PostProps x1_post_profile(GraphBase &graph, node_id_t post_id,
+                                  double *out_ms = nullptr)
 {
     SEP();
     TIME_START(x1_post_profile)
     prop_blob pb = graph.get_node_properties(post_id);
     PostProps p = decode_post(pb);
-    TIME_END(x1_post_profile)
+    if (out_ms) { TIME_END_CAP(x1_post_profile, *out_ms) }
+    else        { TIME_END(x1_post_profile) }
     const char *type_str = (p.tag == 0) ? "content" : "imageFile";
     std::string preview = p.content.substr(0, 60);
     fprintf(stderr, "  Post %llu: creationDate=%lld length=%d [%s] \"%s%s\"\n",
@@ -412,7 +441,8 @@ static PostProps x1_post_profile(GraphBase &graph, node_id_t post_id)
 // X2: Post → author (hasCreator reverse lookup)
 // In our model: hasCreator is stored as Post→Person out-edge.
 // So: look at out-edges of a Post, find the one pointing to a Person.
-static node_id_t x2_post_author(GraphBase &graph, node_id_t post_id)
+static node_id_t x2_post_author(GraphBase &graph, node_id_t post_id,
+                                 double *out_ms = nullptr)
 {
     SEP();
     TIME_START(x2_post_author)
@@ -426,7 +456,8 @@ static node_id_t x2_post_author(GraphBase &graph, node_id_t post_id)
         }
     }
 
-    TIME_END(x2_post_author)
+    if (out_ms) { TIME_END_CAP(x2_post_author, *out_ms) }
+    else        { TIME_END(x2_post_author) }
     if (author != OutOfBand_ID_MAX)
         fprintf(stderr, "  Post %llu → author Person %llu\n",
                 (unsigned long long)post_id, (unsigned long long)author);
@@ -438,37 +469,76 @@ static node_id_t x2_post_author(GraphBase &graph, node_id_t post_id)
 
 // X3: IC-2 — given a person P, get friends' most recent posts (before cutoff)
 // Returns up to limit (post_id, post.creationDate) pairs sorted by date desc.
+//
+// ORIGINAL ALGORITHM (slow):
+//   For each friend → get_in_nodes_id() → for each post → get_node_properties()
+//   get_node_properties() for a Post seeks the full post_props table, which
+//   stores (creationDate, length, tag, content) with a variable-length content
+//   string.  Each seek loads a full B-tree leaf page just to read 8 bytes of
+//   creationDate, and seeks are random in post_id order.
+//
+// FIX 1 — sort post IDs before property lookups:
+//   Collect all candidate post IDs from the topology scan first, then sort
+//   them.  post_props:temporal is a B-tree keyed by post_id; sorted seeks
+//   advance the cursor monotonically, turning O(N) random page loads into a
+//   near-sequential scan and dramatically improving buffer-pool hit rates.
+//
+// FIX 2 — use the temporal colgroup instead of the full post_props table:
+//   post_props:temporal stores only (creationDate:Q, length:i) = 12 B/row,
+//   vs the full table which appends the variable-length content string.
+//   A denser B-tree means: more rows per leaf page, shallower tree height,
+//   and better cache utilisation for both sequential and point accesses.
+//   We only need creationDate here, so loading content bytes is pure waste.
 static std::vector<std::pair<node_id_t, int64_t>>
 x3_ic2_friends_recent_posts(GraphBase &graph, node_id_t pid,
                              int64_t cutoff_ms, int limit,
-                             bool has_props)
+                             bool has_props, double *out_ms = nullptr)
 {
     SEP();
     TIME_START(x3_ic2_friends_recent_posts)
 
     // Step 1: get friends (persons in out-edges of pid)
     std::vector<node_id_t> friends = graph.get_out_nodes_id(pid);
-    std::vector<std::pair<node_id_t, int64_t>> result;
 
-    // Step 2: for each friend, scan their in-edges to find posts where
-    // the post's hasCreator points TO the friend.
-    // In our model: hasCreator is Post→Person out-edge, so we look at
-    // in-edges of each friend (Person) — those are Posts whose hasCreator is this friend.
+    // Step 2: collect all candidate post IDs across all friends.
+    // Topology scan only — property lookups are deferred to Step 3 so we can
+    // sort first (Fix 1).
+    std::vector<node_id_t> candidate_posts;
     for (node_id_t friend_id : friends) {
         if (!is_person(friend_id)) continue;
-
-        std::vector<node_id_t> creators_in = graph.get_in_nodes_id(friend_id);
-        for (node_id_t post_id : creators_in) {
-            if (!is_post(post_id)) continue;
-
-            int64_t post_date = 0;
-            if (has_props) {
-                prop_blob pb = graph.get_node_properties(post_id);
-                post_date = decode_post(pb).creation_date;
-            }
-            if (post_date < cutoff_ms)
-                result.emplace_back(post_id, post_date);
+        std::vector<node_id_t> in_nodes = graph.get_in_nodes_id(friend_id);
+        for (node_id_t post_id : in_nodes) {
+            if (is_post(post_id))
+                candidate_posts.push_back(post_id);
         }
+    }
+
+    // Fix 1: sort post IDs so that colgroup seeks are monotonically increasing.
+    // The temporal colgroup B-tree is keyed by post_id, so sorted order ≈
+    // sequential leaf-page access rather than random seeks.
+    std::sort(candidate_posts.begin(), candidate_posts.end());
+
+    // Step 3: fetch creationDate for each candidate using the temporal colgroup.
+    std::vector<std::pair<node_id_t, int64_t>> result;
+
+    if (has_props && !candidate_posts.empty()) {
+        // Fix 2: open one colgroup cursor on post_props:temporal for the whole
+        // batch.  This reads only (creationDate:Q, length:i) = 12 B/row,
+        // vs the full post_props table which loads the variable-length content
+        // string on every page access.
+        WT_CURSOR *cg = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        for (node_id_t post_id : candidate_posts) {
+            cg->set_key(cg, (uint64_t)post_id);
+            if (cg->search(cg) != 0) continue;
+            uint64_t cDate; int32_t length;
+            cg->get_value(cg, &cDate, &length);
+            if ((int64_t)cDate < cutoff_ms)
+                result.emplace_back(post_id, (int64_t)cDate);
+        }
+        cg->close(cg);
+    } else if (!has_props) {
+        for (node_id_t post_id : candidate_posts)
+            result.emplace_back(post_id, 0LL);
     }
 
     std::sort(result.begin(), result.end(),
@@ -476,7 +546,8 @@ x3_ic2_friends_recent_posts(GraphBase &graph, node_id_t pid,
     if ((int)result.size() > limit)
         result.resize(limit);
 
-    TIME_END(x3_ic2_friends_recent_posts)
+    if (out_ms) { TIME_END_CAP(x3_ic2_friends_recent_posts, *out_ms) }
+    else        { TIME_END(x3_ic2_friends_recent_posts) }
     fprintf(stderr, "  IC-2 for Person %llu (cutoff=%lld): %zu posts found\n",
             (unsigned long long)pid, (long long)cutoff_ms, result.size());
     int printed = 0;
@@ -491,7 +562,7 @@ x3_ic2_friends_recent_posts(GraphBase &graph, node_id_t pid,
 // X4: Insert a likes edge (Person → Post) with creationDate property
 static void x4_insert_likes(GraphBase &graph, node_id_t person_id,
                              node_id_t post_id, int64_t creation_date,
-                             bool has_props)
+                             bool has_props, double *out_ms = nullptr)
 {
     SEP();
     TIME_START(x4_insert_likes)
@@ -507,7 +578,8 @@ static void x4_insert_likes(GraphBase &graph, node_id_t person_id,
         graph.set_edge_properties(person_id, post_id, buf, SNBLikesSchema::TOTAL_SIZE);
     }
 
-    TIME_END(x4_insert_likes)
+    if (out_ms) { TIME_END_CAP(x4_insert_likes, *out_ms) }
+    else        { TIME_END(x4_insert_likes) }
     fprintf(stderr, "  inserted likes %llu→%llu\n",
             (unsigned long long)person_id, (unsigned long long)post_id);
 }
@@ -515,7 +587,7 @@ static void x4_insert_likes(GraphBase &graph, node_id_t person_id,
 // X5: Count likes on a post within a date range [lo_ms, hi_ms]
 static int64_t x5_count_likes_in_range(GraphBase &graph, node_id_t post_id,
                                         int64_t lo_ms, int64_t hi_ms,
-                                        bool has_props)
+                                        bool has_props, double *out_ms = nullptr)
 {
     SEP();
     TIME_START(x5_count_likes_in_range)
@@ -532,7 +604,8 @@ static int64_t x5_count_likes_in_range(GraphBase &graph, node_id_t post_id,
             count++;
     }
 
-    TIME_END(x5_count_likes_in_range)
+    if (out_ms) { TIME_END_CAP(x5_count_likes_in_range, *out_ms) }
+    else        { TIME_END(x5_count_likes_in_range) }
     fprintf(stderr, "  Post %llu likes in range [%lld, %lld]: %lld\n",
             (unsigned long long)post_id, (long long)lo_ms, (long long)hi_ms,
             (long long)count);
@@ -547,13 +620,14 @@ static int64_t x5_count_likes_in_range(GraphBase &graph, node_id_t post_id,
 
 // A1: Degree count — out-degree and in-degree of a node
 static std::pair<degree_t, degree_t>
-a1_degree_count(GraphBase &graph, node_id_t id)
+a1_degree_count(GraphBase &graph, node_id_t id, double *out_ms = nullptr)
 {
     SEP();
     TIME_START(a1_degree_count)
     degree_t out = graph.get_out_degree(id);
     degree_t in  = graph.get_in_degree(id);
-    TIME_END(a1_degree_count)
+    if (out_ms) { TIME_END_CAP(a1_degree_count, *out_ms) }
+    else        { TIME_END(a1_degree_count) }
     fprintf(stderr, "  Node %llu: out-degree=%u in-degree=%u\n",
             (unsigned long long)id, out, in);
     return {out, in};
@@ -729,7 +803,8 @@ static void bi1_posting_summary(GraphBase &graph, node_id_t total_posts,
 // BI-12: Message Distribution by Person
 // Scan all posts, join via hasCreator out-edge, count posts per person.
 // Uses the temporal colgroup to scan post creation dates; joins topology for creator.
-static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts)
+static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts,
+                                       double *out_ms = nullptr)
 {
     TIME_START(bi12_message_distribution)
 
@@ -748,7 +823,8 @@ static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts)
     }
     cur->close(cur);
 
-    TIME_END(bi12_message_distribution)
+    if (out_ms) { TIME_END_CAP(bi12_message_distribution, *out_ms) }
+    else        { TIME_END(bi12_message_distribution) }
 
     // Sort by count descending, then personId ascending
     std::vector<std::pair<node_id_t, int64_t>> ranked(creator_count.begin(), creator_count.end());
@@ -780,7 +856,7 @@ static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts)
 // On SF3 (2.5M posts) this takes ~33 s because each seek hits a random leaf page in
 // the OUT_EDGES B-tree.  The colgroup scan itself (334 ms) is not the bottleneck.
 //
-// THE OPTIMISATION: TWO SEQUENTIAL SCANS
+// OPTIMISATION 1: TWO SEQUENTIAL SCANS
 // ----------------------------------------
 // hasCreator edges are POST→PERSON edges in the OUT_EDGES topology table.  Because
 // vertex types are encoded in the top 8 bits of every node_id_t (bit-reservation
@@ -794,13 +870,14 @@ static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts)
 //   Cost: one sequential read of the temporal B-tree (≈12B/row, no content pages).
 //
 // Pass 2  [topology scan, O(N_edges)]:
-//   Scan OUT_EDGES via get_edge_iter().  For each POST→PERSON edge whose src is in
-//   the qualifying set, increment creator_count[dst].
-//   Cost: one sequential read of the OUT_EDGES B-tree.
+//   Scan OUT_EDGES starting from the first VT_POST source (see Optimisation 2).
+//   For each POST→PERSON edge whose src is in the qualifying set, increment
+//   creator_count[dst].  Cost: one sequential read of the VT_POST slice of the
+//   OUT_EDGES B-tree.
 //
 // Both passes are fully sequential; no random seeks.  Total cost:
 //
-//   O(N_posts + N_edges)   ≈ O(N_posts)  since N_hasCreator = N_posts
+//   O(N_posts + N_hasCreator)
 //
 // MEMORY TRADE-OFF
 // -----------------
@@ -813,6 +890,23 @@ static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts)
 // A single pass over OUT_EDGES would miss the date/length filter from post_props.
 // We need the property scan to know which posts qualify before we count by creator.
 // If no filter is needed, Pass 1 can be skipped and OUT_EDGES scanned alone.
+//
+// OPTIMISATION 2: SEEK PAST VT_PERSON EDGES IN PASS 2
+// -----------------------------------------------------
+// The OUT_EDGES table is a single B-tree keyed by (src_id, dst_id).  Vertex types
+// are encoded in the top 8 bits of node_id_t via MAKE_TYPED_ID(type, counter):
+//
+//   VT_PERSON = 0  →  src keys in [0x0000000000000000, 0x00FFFFFFFFFFFFFF]
+//   VT_POST   = 1  →  src keys in [0x0100000000000000, 0x01FFFFFFFFFFFFFF]
+//
+// Because VT_PERSON < VT_POST, all knows edges (Person→Person) occupy the LOW end
+// of the B-tree and all hasCreator edges (Post→Person) occupy a HIGHER contiguous
+// segment.  On SF3, knows edges account for ~17 M rows — roughly 7× more than the
+// ~2.5 M hasCreator edges we actually need.
+//
+// By calling set_key_range() with start = (MAKE_TYPED_ID(VT_POST, 0), 1) we issue
+// a single search_near() that positions the cursor directly at the first VT_POST
+// row, skipping the entire VT_PERSON segment without reading any of it.
 //
 // Parameters:
 //   max_date       — include posts with creationDate <= max_date
@@ -844,18 +938,21 @@ static void bi12_message_distribution_fast(GraphBase &graph,
         prop_cur->close(prop_cur);
     }
 
-    // Pass 2: scan topology once, accumulate creator counts for qualifying posts.
+    // Pass 2: scan only the VT_POST slice of OUT_EDGES (see Optimisation 2 above).
+    // set_key_range() issues one search_near() that positions the cursor at the
+    // first VT_POST source, skipping all VT_PERSON (knows) rows entirely.
     std::unordered_map<node_id_t, int64_t> creator_count;
 
     EdgeCursor *ec = graph.get_edge_iter();
+    ec->set_key_range({{MAKE_TYPED_ID(VT_POST, 0), 1},
+                       {OutOfBand_ID_MAX, OutOfBand_ID_MAX}});
     edge found;
     ec->next(&found);
     while (found.src_id != OutOfBand_ID_MAX) {
-        node_id_t src = found.src_id;
-        node_id_t dst = found.dst_id;
-        if (VTYPE_OF(src) == VT_POST && VTYPE_OF(dst) == VT_PERSON) {
-            if (no_filter || qualifying.count(src))
-                creator_count[dst]++;
+        if (VTYPE_OF(found.src_id) != VT_POST) break; // past the VT_POST range
+        if (VTYPE_OF(found.dst_id) == VT_PERSON) {
+            if (no_filter || qualifying.count(found.src_id))
+                creator_count[found.dst_id]++;
         }
         ec->next(&found);
     }
@@ -882,17 +979,267 @@ static void bi12_message_distribution_fast(GraphBase &graph,
 }
 
 // ============================================================
+// Parallel BI queries
+// ============================================================
+//
+// PARALLELISM STRATEGY
+// ----------------------
+// Both bi1 and bi12_fast are full sequential scans over the post_props:temporal
+// colgroup (keyed by post_id) and/or the VT_POST slice of OUT_EDGES.  Because
+// WiredTiger sessions are NOT thread-safe, each thread must use its own
+// WT_SESSION and cursors.  engine.create_ro_graph_handle(chkpt) opens a fresh
+// read-only session per call, so N threads get N independent sessions with no
+// sharing.
+//
+// KEY RANGE SPLIT
+// ----------------
+// Post IDs are assigned sequentially: MAKE_TYPED_ID(VT_POST, 0) through
+// MAKE_TYPED_ID(VT_POST, post_count-1).  Thread i scans:
+//
+//   [MAKE_TYPED_ID(VT_POST, i*chunk), MAKE_TYPED_ID(VT_POST, (i+1)*chunk))
+//
+// where chunk = ceil(post_count / n_threads).  This gives balanced slices
+// without needing calculate_thread_offsets().
+//
+// MERGE
+// ------
+// Each thread accumulates into a thread-local map.  After the OMP barrier,
+// the main thread merges all local maps into a single result by summing values.
+// No locking is needed during the parallel phase.
+
+// BI-1 (parallel): partition the post_props:temporal colgroup scan across
+// n_threads, each with its own session and cursor.
+// Uses the existing WiredTiger connection (conn) directly to avoid opening a
+// second connection.  Handles are constructed with ro_opts (read_only=true,
+// create_new=false, checkpoint_name set) so no GraphEngine machinery is needed.
+static void bi1_posting_summary_parallel(WT_CONNECTION *conn,
+                                          graph_opts &ro_opts,
+                                          node_id_t total_posts,
+                                          int n_threads,
+                                          double *out_ms = nullptr)
+{
+    TIME_START(bi1_posting_summary_parallel)
+
+    auto year_of = [](uint64_t epoch_ms) -> int {
+        return (int)(epoch_ms / 31557600000ULL) + 1970;
+    };
+    auto classify_length = [](int32_t len) -> int {
+        if (len < 40)  return 0;
+        if (len < 80)  return 1;
+        if (len < 255) return 2;
+        return 3;
+    };
+
+    using GroupMap = std::map<std::pair<int,int>, std::pair<int64_t,int64_t>>; // {count, sum_len}
+    std::vector<GroupMap> local_groups(n_threads);
+
+    // Compute post_id slices.  Post IDs are sequential from counter 0.
+    node_id_t chunk = (total_posts + n_threads - 1) / n_threads;
+
+    // Construct one read-only handle per thread using the existing connection.
+    // This avoids opening a second WiredTiger connection and bypasses the
+    // GraphEngine partitioning logic (not needed — we partition by post_id).
+    std::vector<GraphBase*> bi1_handles(n_threads);
+    for (int t = 0; t < n_threads; t++)
+        bi1_handles[t] = (ro_opts.type == GraphType::Adj)
+            ? (GraphBase*) new AdjList(ro_opts, conn)
+            : (GraphBase*) new SplitEdgeKey(ro_opts, conn);
+
+#pragma omp parallel for num_threads(n_threads) schedule(static,1)
+    for (int t = 0; t < n_threads; t++) {
+        node_id_t start_id = MAKE_TYPED_ID(VT_POST, (node_id_t)t * chunk);
+        node_id_t end_id   = MAKE_TYPED_ID(VT_POST,
+                                 std::min((node_id_t)(t + 1) * chunk, total_posts));
+
+        WT_CURSOR *cg = bi1_handles[t]->open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+
+        // Seek to this thread's start key.
+        cg->set_key(cg, (uint64_t)start_id);
+        int cmp = 0;
+        bool ok = (cg->search_near(cg, &cmp) == 0);
+        if (ok && cmp < 0) ok = (cg->next(cg) == 0);
+        while (ok) {
+            uint64_t vid, cDate; int32_t length;
+            cg->get_key(cg, &vid);
+            if ((node_id_t)vid >= end_id) break;
+            cg->get_value(cg, &cDate, &length);
+            int yr  = year_of(cDate);
+            int cat = classify_length(length);
+            auto &s = local_groups[t][{yr, cat}];
+            s.first++;
+            s.second += length;
+            ok = (cg->next(cg) == 0);
+        }
+        cg->close(cg);
+    }
+
+    for (int t = 0; t < n_threads; t++)
+        bi1_handles[t]->close(false);
+
+    // Merge thread-local maps into one.
+    std::map<std::pair<int,int>, std::pair<int64_t,int64_t>> groups;
+    for (int t = 0; t < n_threads; t++) {
+        for (auto &[k, s] : local_groups[t]) {
+            groups[k].first  += s.first;
+            groups[k].second += s.second;
+        }
+    }
+
+    if (out_ms) { TIME_END_CAP(bi1_posting_summary_parallel, *out_ms) }
+    else        { TIME_END(bi1_posting_summary_parallel) }
+
+    fprintf(stderr, "  BI-1-parallel Posting Summary (%llu posts, %d threads):\n",
+            (unsigned long long)total_posts, n_threads);
+    fprintf(stderr, "  %-6s  %-3s  %-9s  %-8s  %-14s\n",
+            "year", "cat", "count", "sum_len", "avg_len");
+    for (auto &[k, s] : groups) {
+        double avg = s.first > 0 ? (double)s.second / s.first : 0.0;
+        fprintf(stderr, "  %-6d  %-3d  %-9lld  %-8lld  %-14.2f\n",
+                k.first, k.second, (long long)s.first, (long long)s.second, avg);
+    }
+}
+
+// BI-12-fast (parallel): partition the VT_POST slice of OUT_EDGES across
+// n_threads.  Each thread scans its post_id range and accumulates a local
+// creator_count map.  Maps are merged (summed) after the parallel section.
+//
+// When a date/length filter is active (Pass 1), the qualifying set is built
+// with a parallel colgroup scan first, then shared (read-only) across all
+// threads in Pass 2.
+static void bi12_message_distribution_fast_parallel(WT_CONNECTION *conn,
+                                                     graph_opts &ro_opts,
+                                                     node_id_t total_posts,
+                                                     int n_threads,
+                                                     int64_t max_date   = INT64_MAX,
+                                                     int32_t min_length = 0,
+                                                     double *out_ms     = nullptr)
+{
+    TIME_START(bi12_message_distribution_fast_parallel)
+
+    bool no_filter = (max_date == INT64_MAX && min_length == 0);
+    node_id_t chunk = (total_posts + n_threads - 1) / n_threads;
+
+    // Pass 1 (parallel): build qualifying post set from temporal colgroup.
+    // Each thread scans its post slice; results are merged into one set.
+    // Skipped entirely when no filter is active.
+    std::unordered_set<node_id_t> qualifying;
+    if (!no_filter) {
+        std::vector<std::unordered_set<node_id_t>> local_q(n_threads);
+        // Construct handles directly from the existing connection.
+        std::vector<GraphBase*> p1_handles(n_threads);
+        for (int t = 0; t < n_threads; t++)
+            p1_handles[t] = (ro_opts.type == GraphType::Adj)
+                ? (GraphBase*) new AdjList(ro_opts, conn)
+                : (GraphBase*) new SplitEdgeKey(ro_opts, conn);
+
+#pragma omp parallel for num_threads(n_threads) schedule(static,1)
+        for (int t = 0; t < n_threads; t++) {
+            node_id_t start_id = MAKE_TYPED_ID(VT_POST, (node_id_t)t * chunk);
+            node_id_t end_id   = MAKE_TYPED_ID(VT_POST,
+                                     std::min((node_id_t)(t + 1) * chunk, total_posts));
+
+            WT_CURSOR *cg = p1_handles[t]->open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+            cg->set_key(cg, (uint64_t)start_id);
+            int cmp = 0;
+            bool ok = (cg->search_near(cg, &cmp) == 0);
+            if (ok && cmp < 0) ok = (cg->next(cg) == 0);
+            while (ok) {
+                uint64_t vid, cDate; int32_t length;
+                cg->get_key(cg, &vid);
+                if ((node_id_t)vid >= end_id) break;
+                cg->get_value(cg, &cDate, &length);
+                if ((int64_t)cDate <= max_date && length >= min_length)
+                    local_q[t].insert((node_id_t)vid);
+                ok = (cg->next(cg) == 0);
+            }
+            cg->close(cg);
+        }
+        for (int t = 0; t < n_threads; t++)
+            p1_handles[t]->close(false);
+
+        qualifying.reserve(total_posts);
+        for (int t = 0; t < n_threads; t++)
+            qualifying.merge(local_q[t]);
+    }
+
+    // Pass 2 (parallel): scan OUT_EDGES for VT_POST sources, one slice per thread.
+    // Each thread accumulates a local creator_count map; maps are summed at the end.
+    std::vector<std::unordered_map<node_id_t, int64_t>> local_counts(n_threads);
+
+    // Construct handles directly from the existing connection.
+    std::vector<GraphBase*> p2_handles(n_threads);
+    for (int t = 0; t < n_threads; t++)
+        p2_handles[t] = (ro_opts.type == GraphType::Adj)
+            ? (GraphBase*) new AdjList(ro_opts, conn)
+            : (GraphBase*) new SplitEdgeKey(ro_opts, conn);
+
+#pragma omp parallel for num_threads(n_threads) schedule(static,1)
+    for (int t = 0; t < n_threads; t++) {
+        node_id_t start_src = MAKE_TYPED_ID(VT_POST, (node_id_t)t * chunk);
+        node_id_t end_src   = MAKE_TYPED_ID(VT_POST,
+                                  std::min((node_id_t)(t + 1) * chunk, total_posts));
+
+        EdgeCursor *ec = p2_handles[t]->get_edge_iter();
+
+        // Seek to the first VT_POST edge in this thread's src range.
+        // dst=1 satisfies the set_key_range "non-empty" condition while still
+        // landing before any real edge (real dst IDs are VT_PERSON with high bits set).
+        ec->set_key_range({{start_src, 1}, {OutOfBand_ID_MAX, OutOfBand_ID_MAX}});
+
+        edge found;
+        ec->next(&found);
+        while (found.src_id != OutOfBand_ID_MAX) {
+            if (VTYPE_OF(found.src_id) != VT_POST) break;
+            if (found.src_id >= end_src) break;  // past this thread's slice
+            if (VTYPE_OF(found.dst_id) == VT_PERSON) {
+                if (no_filter || qualifying.count(found.src_id))
+                    local_counts[t][found.dst_id]++;
+            }
+            ec->next(&found);
+        }
+        delete ec;
+    }
+    for (int t = 0; t < n_threads; t++)
+        p2_handles[t]->close(false);
+
+    // Merge thread-local maps by summing counts for each creator.
+    std::unordered_map<node_id_t, int64_t> creator_count;
+    for (int t = 0; t < n_threads; t++) {
+        for (auto &[pid, cnt] : local_counts[t])
+            creator_count[pid] += cnt;
+    }
+
+    if (out_ms) { TIME_END_CAP(bi12_message_distribution_fast_parallel, *out_ms) }
+    else        { TIME_END(bi12_message_distribution_fast_parallel) }
+
+    std::vector<std::pair<node_id_t, int64_t>> ranked(creator_count.begin(), creator_count.end());
+    std::sort(ranked.begin(), ranked.end(), [](const auto &a, const auto &b) {
+        if (a.second != b.second) return a.second > b.second;
+        return a.first < b.first;
+    });
+    fprintf(stderr, "  BI-12-fast-parallel (%llu posts, %d threads, %zu creators):\n",
+            (unsigned long long)total_posts, n_threads, ranked.size());
+    int shown = 0;
+    for (auto &[pid, cnt] : ranked) {
+        if (shown++ >= 10) { fprintf(stderr, "  ... (showing top 10)\n"); break; }
+        fprintf(stderr, "  person %llu: %lld posts\n",
+                (unsigned long long)VCOUNTER_OF(pid), (long long)cnt);
+    }
+}
+
+// ============================================================
 // main
 // ============================================================
 
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <data_dir> [graph_type] [--log <file>] [--dry-run]\n", argv[0]);
+        fprintf(stderr, "Usage: %s <data_dir> [graph_type] [--log <file>] [--dry-run] [--all]\n", argv[0]);
         fprintf(stderr, "  data_dir    directory containing LDBC SNB dynamic/ CSV files\n");
         fprintf(stderr, "  graph_type  adj | splitekey  (default: splitekey)\n");
         fprintf(stderr, "  --log <f>   write every NODE/EDGE insertion to <f> (converted IDs)\n");
         fprintf(stderr, "  --dry-run   parse CSVs and write log without inserting into the DB\n");
+        fprintf(stderr, "  --all       also run Pass 1 (EMBEDDED baseline) for comparison\n");
         return 1;
     }
 
@@ -905,19 +1252,26 @@ int main(int argc, char **argv)
 
     // ---- Parse optional flags ----
     GraphType graph_type = GraphType::SplitEKey;
+    std::string graph_type_str = "splitekey";
     std::string insertion_log_path;
     bool dry_run = false;
+    bool run_pass1 = false;  // Pass 1 (EMBEDDED baseline) only runs with --all
 
     for (int i = 2; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "adj")
+        if (arg == "adj") {
             graph_type = GraphType::Adj;
-        else if (arg == "splitekey")
+            graph_type_str = "adj";
+        } else if (arg == "splitekey") {
             graph_type = GraphType::SplitEKey;
+            graph_type_str = "splitekey";
+        }
         else if (arg == "--log" && i + 1 < argc)
             insertion_log_path = argv[++i];
         else if (arg == "--dry-run")
             dry_run = true;
+        else if (arg == "--all")
+            run_pass1 = true;
         else {
             fprintf(stderr, "Unknown argument '%s'\n", argv[i]);
             return 1;
@@ -954,7 +1308,8 @@ int main(int argc, char **argv)
     // ---- PASS 1: EMBEDDED (baseline for timing comparison) ----
     // Load into a separate DB with blob-in-edge-table storage,
     // then run only the three queries whose colgroup benefit we measure.
-    if (!dry_run) {
+    // Skipped by default; enabled with --all.
+    if (!dry_run && run_pass1) {
         graph_opts emb_opts = opts;
         emb_opts.prop_mode = EMBEDDED;
         emb_opts.db_dir    = "./db_emb";
@@ -1052,6 +1407,12 @@ int main(int argc, char **argv)
             (unsigned long long)person_count,
             (unsigned long long)post_count);
 
+    // Checkpoint after load so that create_ro_graph_handle() (used by the
+    // parallel BI queries) can open consistent read-only sessions.
+    std::string chkpt;
+    if (!dry_run)
+        chkpt = engine.make_checkpoint();
+
     // ---- Node count verification ----
     // Cross-check three sources:
     //   (a) loader counters  — what we tried to insert
@@ -1130,23 +1491,23 @@ int main(int argc, char **argv)
     fprintf(stderr, "=== WRITE QUERIES ===\n");
 
     // W1: insert a new person
-    w1_insert_person(graph, person_count, opts.has_node_props);  // person_count used as counter only
+    w1_insert_person(graph, person_count, opts.has_node_props, &col_times.w1);  // person_count used as counter only
 
     // W2: insert knows edge 0→1 (may already exist, but demonstrates the API)
     if (person_count >= 2) {
         w2_insert_knows(graph, sample_person0, sample_person1,
-                        1700000001000LL, opts.has_edge_props);
+                        1700000001000LL, opts.has_edge_props, &col_times.w2);
     }
 
     // W3: insert a new post + hasCreator edge
     node_id_t next_post_id = MAKE_TYPED_ID(VT_POST, post_count);
     w3_insert_post_with_creator(graph, next_post_id, sample_person0,
-                                1700000002000LL, 42, opts.has_node_props);
+                                1700000002000LL, 42, opts.has_node_props, &col_times.w3);
 
     fprintf(stderr, "\n=== SINGLE-TYPE READ QUERIES ===\n");
 
     // R1: person profile
-    r1_person_profile(graph, sample_person0);
+    r1_person_profile(graph, sample_person0, &col_times.r1);
 
     // R2: friends sorted by date
     r2_friends_sorted_by_date(graph, sample_person0, opts.has_edge_props,
@@ -1154,42 +1515,42 @@ int main(int argc, char **argv)
 
     // R3: BFS shortest path (may be slow for large graphs — demo only)
     if (person_count >= 2)
-        r3_bfs_shortest_path(graph, sample_person0, sample_person1);
+        r3_bfs_shortest_path(graph, sample_person0, sample_person1, &col_times.r3);
 
     fprintf(stderr, "\n=== CROSS-TYPE READ QUERIES ===\n");
 
     // X1: post profile
     if (sample_post0 != OutOfBand_ID_MAX)
-        x1_post_profile(graph, sample_post0);
+        x1_post_profile(graph, sample_post0, &col_times.x1);
 
     // X2: post → author
     if (sample_post0 != OutOfBand_ID_MAX)
-        x2_post_author(graph, sample_post0);
+        x2_post_author(graph, sample_post0, &col_times.x2);
 
     // X3: IC-2 friends' recent posts
     {
         int64_t cutoff = INT64_MAX;  // all posts before "now"
         x3_ic2_friends_recent_posts(graph, sample_person0, cutoff, 10,
-                                    opts.has_node_props);
+                                    opts.has_node_props, &col_times.x3);
     }
 
     // X4: insert a likes edge
     if (sample_post0 != OutOfBand_ID_MAX && sample_person1 != sample_person0) {
         x4_insert_likes(graph, sample_person1, sample_post0,
-                        1700000003000LL, opts.has_edge_props);
+                        1700000003000LL, opts.has_edge_props, &col_times.x4);
     }
 
     // X5: count likes in date range
     if (sample_post0 != OutOfBand_ID_MAX) {
         x5_count_likes_in_range(graph, sample_post0,
                                 0LL, INT64_MAX,
-                                opts.has_edge_props);
+                                opts.has_edge_props, &col_times.x5);
     }
 
     fprintf(stderr, "\n=== AGGREGATE QUERIES ===\n");
 
     // A1: degree count
-    a1_degree_count(graph, sample_person0);
+    a1_degree_count(graph, sample_person0, &col_times.a1);
 
     // A2: knows edges in date range for person 0
     a2_knows_in_date_range(graph, sample_person0,
@@ -1203,10 +1564,28 @@ int main(int argc, char **argv)
                                 opts.has_edge_props, opts.prop_mode, &col_times.a3);
 
     if (opts.prop_mode == COLUMNAR && !dry_run) {
+        const int N_THREADS = omp_get_max_threads();
         fprintf(stderr, "\n=== BI QUERIES (COLUMNAR mode) ===\n");
         bi1_posting_summary(graph, post_count, &col_times.bi1);
-        bi12_message_distribution(graph, post_count);
+        bi12_message_distribution(graph, post_count, &col_times.bi12);
         bi12_message_distribution_fast(graph, post_count, INT64_MAX, 0, &col_times.bi12_fast);
+
+        // Build read-only opts for the parallel handles.
+        // WiredTiger allows only one connection per DB, so we reuse the
+        // existing connection via engine.get_connection() and construct graph
+        // handles directly (new SplitEdgeKey / AdjList), bypassing GraphEngine.
+        graph_opts ro_opts        = opts;
+        ro_opts.read_only         = true;
+        ro_opts.create_new        = false;
+        ro_opts.checkpoint_name   = chkpt;
+        WT_CONNECTION *conn       = engine.get_connection();
+
+        fprintf(stderr, "\n=== BI QUERIES PARALLEL (%d threads) ===\n", N_THREADS);
+        bi1_posting_summary_parallel(conn, ro_opts, post_count,
+                                     N_THREADS, &col_times.bi1_par);
+        bi12_message_distribution_fast_parallel(conn, ro_opts, post_count,
+                                                N_THREADS, INT64_MAX, 0,
+                                                &col_times.bi12_fast_par);
     }
 
     fprintf(stderr, "\n=== All queries complete ===\n");
@@ -1237,6 +1616,43 @@ int main(int argc, char **argv)
         print_row("bi1_posting_summary",           -1.0,                col_times.bi1);
         print_row("bi12_message_distribution_fast",-1.0,                col_times.bi12_fast);
         fprintf(stderr, "\n");
+    }
+
+    // ---- CSV timing output (for comparison script) ----
+    {
+        const char *sep_line = "============================================================";
+        std::string sys_name = std::string("flexograph_") + graph_type_str + "_"
+                             + (opts.prop_mode == COLUMNAR ? "columnar" : "embedded");
+
+        fprintf(stderr, "\n%s\n=== CSV (for comparison script) ===\n%s\n",
+                sep_line, sep_line);
+        fprintf(stderr, "system,query,ms\n");
+
+        struct { const char *name; double ms; } all_times[] = {
+            {"w1_insert_person",            col_times.w1},
+            {"w2_insert_knows",             col_times.w2},
+            {"w3_insert_post_hasCreator",   col_times.w3},
+            {"r1_person_profile",           col_times.r1},
+            {"r2_friends_sorted_by_date",   col_times.r2},
+            {"r3_bfs_shortest_path",        col_times.r3},
+            {"x1_post_profile",             col_times.x1},
+            {"x2_post_author",              col_times.x2},
+            {"x3_ic2_friends_recent_posts", col_times.x3},
+            {"x4_insert_likes",             col_times.x4},
+            {"x5_count_likes_in_range",     col_times.x5},
+            {"a1_degree_count",             col_times.a1},
+            {"a2_knows_in_date_range",      col_times.a2},
+            {"a3_posts_liked_in_range",     col_times.a3},
+            {"bi1_posting_summary",         col_times.bi1},
+            {"bi12_message_distribution",   col_times.bi12},
+            {"bi12_message_distribution_fast", col_times.bi12_fast},
+            {"bi1_posting_summary_parallel",            col_times.bi1_par},
+            {"bi12_message_distribution_fast_parallel", col_times.bi12_fast_par},
+        };
+        for (auto &t : all_times) {
+            if (t.ms >= 0.0)
+                fprintf(stderr, "%s,%s,%.3f\n", sys_name.c_str(), t.name, t.ms);
+        }
     }
 
     graph_ptr->close(false);
