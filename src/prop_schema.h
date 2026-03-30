@@ -183,4 +183,213 @@ namespace SNBHasCreatorSchema {
     constexpr size_t TOTAL_SIZE = 0;
 }  // namespace SNBHasCreatorSchema
 
+// ============================================================
+// Full LDBC SNB schema additions
+// ============================================================
+
+// --- Comment vertex schema ---
+// Identical layout to SNBPostSchema (same Message interface).
+// tag: 0 always (Comments have no imageFile), kept for schema uniformity.
+// In WT COLUMNAR: value_format=QibS
+//   colgroups: temporal=(creationDate,length)  content=(tag,content)
+
+namespace SNBCommentSchema {
+    using namespace SNBPostSchema;  // reuse all offsets and accessors
+}  // namespace SNBCommentSchema
+
+// --- Forum vertex schema ---
+// | creationDate(int64) | moderator_id(int64) | title(NUL-terminated string) |
+// | offset 0            | offset 8            | offset 16                    |
+// TOTAL_SIZE = 16 minimum (variable: +strlen(title)+1).
+// moderator_id: compact Flexograph node_id_t of the moderator Person.
+//               Set to 0 if no moderator (spec allows 0..1).
+// In WT COLUMNAR: value_format=QQS
+//   colgroups: temporal=(creationDate)  info=(moderator_id,title)
+
+namespace SNBForumSchema {
+    constexpr size_t TITLE_MAX_LEN         = 256;
+    constexpr size_t OFFSET_CREATION_DATE  = 0;
+    constexpr size_t OFFSET_MODERATOR_ID   = 8;
+    constexpr size_t OFFSET_TITLE          = 16;
+    constexpr size_t TOTAL_SIZE            = 16;  // minimum blob size
+
+    inline void set_creation_date(uint8_t *buf, int64_t val) {
+        std::memcpy(buf + OFFSET_CREATION_DATE, &val, sizeof(val));
+    }
+    inline int64_t get_creation_date(const uint8_t *buf) {
+        int64_t val; std::memcpy(&val, buf + OFFSET_CREATION_DATE, sizeof(val)); return val;
+    }
+    inline void set_moderator_id(uint8_t *buf, int64_t val) {
+        std::memcpy(buf + OFFSET_MODERATOR_ID, &val, sizeof(val));
+    }
+    inline int64_t get_moderator_id(const uint8_t *buf) {
+        int64_t val; std::memcpy(&val, buf + OFFSET_MODERATOR_ID, sizeof(val)); return val;
+    }
+    // title must be NUL-terminated and at most TITLE_MAX_LEN chars.
+    // buf must be large enough: TOTAL_SIZE + strlen(title) + 1.
+    inline void set_title(uint8_t *buf, const char *title) {
+        if (title) std::strcpy(reinterpret_cast<char *>(buf + OFFSET_TITLE), title);
+        else        buf[OFFSET_TITLE] = 0;
+    }
+    inline const char *get_title(const uint8_t *buf, size_t blob_size) {
+        if (blob_size <= OFFSET_TITLE) return "";
+        return reinterpret_cast<const char *>(buf + OFFSET_TITLE);
+    }
+}  // namespace SNBForumSchema
+
+// --- Tag vertex schema ---
+// | name(char[80]) | url(char[80]) |
+// | offset 0       | offset 80     |
+// Total: 160 bytes (fixed).
+// In WT COLUMNAR: value_format=80s80s  columns=(node_id,name,url)
+// No colgroup — dimension type, used only for point lookups.
+
+namespace SNBTagSchema {
+    constexpr size_t STR_LEN    = 80;
+    constexpr size_t OFFSET_NAME = 0;
+    constexpr size_t OFFSET_URL  = STR_LEN;
+    constexpr size_t TOTAL_SIZE  = STR_LEN * 2;  // 160 bytes
+
+    inline void set_str_field(uint8_t *buf, size_t offset, const char *str) {
+        char tmp[STR_LEN] = {};
+        if (str) std::strncpy(tmp, str, STR_LEN - 1);
+        std::memcpy(buf + offset, tmp, STR_LEN);
+    }
+    inline const char *get_str_field(const uint8_t *buf, size_t offset) {
+        return reinterpret_cast<const char *>(buf + offset);
+    }
+    inline void set_name(uint8_t *buf, const char *s) { set_str_field(buf, OFFSET_NAME, s); }
+    inline void set_url (uint8_t *buf, const char *s) { set_str_field(buf, OFFSET_URL,  s); }
+    inline const char *get_name(const uint8_t *buf) { return get_str_field(buf, OFFSET_NAME); }
+    inline const char *get_url (const uint8_t *buf) { return get_str_field(buf, OFFSET_URL);  }
+}  // namespace SNBTagSchema
+
+// --- TagClass vertex schema ---
+// Identical layout to SNBTagSchema (name + url, 80 bytes each).
+
+namespace SNBTagClassSchema {
+    using namespace SNBTagSchema;
+}  // namespace SNBTagClassSchema
+
+// --- Place vertex schema ---
+// | name(char[80]) | url(char[80]) | place_type(int8) |
+// | offset 0       | offset 80     | offset 160       |
+// Total: 161 bytes.
+// place_type: 0=city, 1=country, 2=continent.
+// In WT COLUMNAR: value_format=80s80sb  columns=(node_id,name,url,place_type)
+
+namespace SNBPlaceSchema {
+    constexpr size_t STR_LEN         = 80;
+    constexpr size_t OFFSET_NAME     = 0;
+    constexpr size_t OFFSET_URL      = STR_LEN;
+    constexpr size_t OFFSET_TYPE     = STR_LEN * 2;
+    constexpr size_t TOTAL_SIZE      = STR_LEN * 2 + 1;  // 161 bytes
+
+    constexpr int8_t TYPE_CITY      = 0;
+    constexpr int8_t TYPE_COUNTRY   = 1;
+    constexpr int8_t TYPE_CONTINENT = 2;
+
+    inline void set_str_field(uint8_t *buf, size_t offset, const char *str) {
+        char tmp[STR_LEN] = {};
+        if (str) std::strncpy(tmp, str, STR_LEN - 1);
+        std::memcpy(buf + offset, tmp, STR_LEN);
+    }
+    inline const char *get_str_field(const uint8_t *buf, size_t offset) {
+        return reinterpret_cast<const char *>(buf + offset);
+    }
+    inline void set_name(uint8_t *buf, const char *s) { set_str_field(buf, OFFSET_NAME, s); }
+    inline void set_url (uint8_t *buf, const char *s) { set_str_field(buf, OFFSET_URL,  s); }
+    inline void set_place_type(uint8_t *buf, int8_t t) { buf[OFFSET_TYPE] = static_cast<uint8_t>(t); }
+    inline const char *get_name(const uint8_t *buf)  { return get_str_field(buf, OFFSET_NAME); }
+    inline const char *get_url (const uint8_t *buf)  { return get_str_field(buf, OFFSET_URL);  }
+    inline int8_t get_place_type(const uint8_t *buf) { return static_cast<int8_t>(buf[OFFSET_TYPE]); }
+}  // namespace SNBPlaceSchema
+
+// --- Organisation vertex schema ---
+// | name(char[80]) | url(char[80]) | org_type(int8) |
+// | offset 0       | offset 80     | offset 160     |
+// Total: 161 bytes.
+// org_type: 0=company, 1=university.
+// In WT COLUMNAR: value_format=80s80sb  columns=(node_id,name,url,org_type)
+
+namespace SNBOrganisationSchema {
+    constexpr size_t STR_LEN         = 80;
+    constexpr size_t OFFSET_NAME     = 0;
+    constexpr size_t OFFSET_URL      = STR_LEN;
+    constexpr size_t OFFSET_TYPE     = STR_LEN * 2;
+    constexpr size_t TOTAL_SIZE      = STR_LEN * 2 + 1;  // 161 bytes
+
+    constexpr int8_t TYPE_COMPANY    = 0;
+    constexpr int8_t TYPE_UNIVERSITY = 1;
+
+    inline void set_str_field(uint8_t *buf, size_t offset, const char *str) {
+        char tmp[STR_LEN] = {};
+        if (str) std::strncpy(tmp, str, STR_LEN - 1);
+        std::memcpy(buf + offset, tmp, STR_LEN);
+    }
+    inline const char *get_str_field(const uint8_t *buf, size_t offset) {
+        return reinterpret_cast<const char *>(buf + offset);
+    }
+    inline void set_name(uint8_t *buf, const char *s) { set_str_field(buf, OFFSET_NAME, s); }
+    inline void set_url (uint8_t *buf, const char *s) { set_str_field(buf, OFFSET_URL,  s); }
+    inline void set_org_type(uint8_t *buf, int8_t t) { buf[OFFSET_TYPE] = static_cast<uint8_t>(t); }
+    inline const char *get_name(const uint8_t *buf)  { return get_str_field(buf, OFFSET_NAME); }
+    inline const char *get_url (const uint8_t *buf)  { return get_str_field(buf, OFFSET_URL);  }
+    inline int8_t get_org_type(const uint8_t *buf)   { return static_cast<int8_t>(buf[OFFSET_TYPE]); }
+}  // namespace SNBOrganisationSchema
+
+// --- hasMember edge schema ---
+// | creationDate(int64) |
+// | offset 0            |
+// Total: 8 bytes.
+// In WT COLUMNAR: value_format=Q  colgroup: temporal=(creationDate)
+
+namespace SNBHasMemberSchema {
+    constexpr size_t OFFSET_CREATION_DATE = 0;
+    constexpr size_t TOTAL_SIZE           = 8;
+
+    inline void set_creation_date(uint8_t *buf, int64_t val) {
+        std::memcpy(buf + OFFSET_CREATION_DATE, &val, sizeof(val));
+    }
+    inline int64_t get_creation_date(const uint8_t *buf) {
+        int64_t val; std::memcpy(&val, buf + OFFSET_CREATION_DATE, sizeof(val)); return val;
+    }
+}  // namespace SNBHasMemberSchema
+
+// --- studyAt edge schema ---
+// | classYear(int32) |
+// | offset 0         |
+// Total: 4 bytes.
+// In WT COLUMNAR: value_format=i
+
+namespace SNBStudyAtSchema {
+    constexpr size_t OFFSET_CLASS_YEAR = 0;
+    constexpr size_t TOTAL_SIZE        = 4;
+
+    inline void set_class_year(uint8_t *buf, int32_t val) {
+        std::memcpy(buf + OFFSET_CLASS_YEAR, &val, sizeof(val));
+    }
+    inline int32_t get_class_year(const uint8_t *buf) {
+        int32_t val; std::memcpy(&val, buf + OFFSET_CLASS_YEAR, sizeof(val)); return val;
+    }
+}  // namespace SNBStudyAtSchema
+
+// --- workAt edge schema ---
+// | workFrom(int32) |
+// | offset 0        |
+// Total: 4 bytes.
+// In WT COLUMNAR: value_format=i
+
+namespace SNBWorkAtSchema {
+    constexpr size_t OFFSET_WORK_FROM = 0;
+    constexpr size_t TOTAL_SIZE       = 4;
+
+    inline void set_work_from(uint8_t *buf, int32_t val) {
+        std::memcpy(buf + OFFSET_WORK_FROM, &val, sizeof(val));
+    }
+    inline int32_t get_work_from(const uint8_t *buf) {
+        int32_t val; std::memcpy(&val, buf + OFFSET_WORK_FROM, sizeof(val)); return val;
+    }
+}  // namespace SNBWorkAtSchema
+
 #endif

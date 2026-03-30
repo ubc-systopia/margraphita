@@ -79,7 +79,19 @@ typedef uint32_t degree_t;
 #define VTYPE_OF(id)    ((id) >> VTYPE_SHIFT)
 #define VCOUNTER_OF(id) ((id) & ~VTYPE_MASK)
 
-enum VertexType : uint8_t { VT_PERSON = 0, VT_POST = 1 };
+enum VertexType : uint8_t {
+    VT_PERSON     = 0,
+    VT_POST       = 1,
+    VT_COMMENT    = 2,
+    VT_FORUM      = 3,
+    VT_TAG        = 4,
+    VT_TAGCLASS   = 5,
+    VT_CITY       = 6,
+    VT_COUNTRY    = 7,
+    VT_CONTINENT  = 8,
+    VT_COMPANY    = 9,
+    VT_UNIVERSITY = 10,
+};
 
 /// @brief EdgeKey specific definitions
 const node_id_t OutOfBand_ID_MIN =
@@ -101,18 +113,31 @@ typedef enum GraphType
 enum PropStorageMode { EMBEDDED, SPLIT, COLUMNAR };
 
 // ---- COLUMNAR mode: per-type property table names ----
-const std::string PERSON_PROPS_TABLE   = "person_props";
-const std::string POST_PROPS_TABLE     = "post_props";
-const std::string KNOWS_PROPS_TABLE    = "knows_props";
-const std::string LIKES_PROPS_TABLE    = "likes_props";
-const std::string PERSON_EMAIL_TABLE   = "person_email";
-const std::string PERSON_SPEAKS_TABLE  = "person_speaks";
+// Vertex property tables
+const std::string PERSON_PROPS_TABLE       = "person_props";
+const std::string POST_PROPS_TABLE         = "post_props";
+const std::string COMMENT_PROPS_TABLE      = "comment_props";
+const std::string FORUM_PROPS_TABLE        = "forum_props";
+const std::string TAG_PROPS_TABLE          = "tag_props";
+const std::string TAGCLASS_PROPS_TABLE     = "tagclass_props";
+const std::string PLACE_PROPS_TABLE        = "place_props";
+const std::string ORGANISATION_PROPS_TABLE = "organisation_props";
+// Edge property tables
+const std::string KNOWS_PROPS_TABLE        = "knows_props";
+const std::string LIKES_PROPS_TABLE        = "likes_props";
+const std::string HASMEMBER_PROPS_TABLE    = "hasmember_props";
+const std::string STUDYAT_PROPS_TABLE      = "studyat_props";
+const std::string WORKAT_PROPS_TABLE       = "workat_props";
+// Secondary (multi-valued) tables
+const std::string PERSON_EMAIL_TABLE       = "person_email";
+const std::string PERSON_SPEAKS_TABLE      = "person_speaks";
 
 // Colgroup name suffixes
 const std::string CG_TEMPORAL  = "temporal";
 const std::string CG_NAME      = "name";     // person firstName+lastName+gender
 const std::string CG_CONTACT   = "contact";  // person browserUsed+locationIP
 const std::string CG_CONTENT   = "content";
+const std::string CG_INFO      = "info";     // forum moderator_id+title
 
 struct graph_opts
 {
