@@ -278,7 +278,7 @@ int main()
     opts.prop_mode       = COLUMNAR;
     opts.type            = GraphType::SplitEKey;
     opts.db_name         = "test_columnar_ekey";
-    opts.db_dir          = "./db_col_ekey";
+    opts.db_dir          = "./db_test/db_col_ekey";
     opts.conn_config     = "cache_size=512MB";
     opts.stat_log        = "./";
 
