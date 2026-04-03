@@ -89,6 +89,24 @@ ADD_EXECUTABLE(test_typed_id "${PATH_TEST}/test_typed_id.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_typed_id PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_typed_id PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
+# Error-handling and driver-compliance tests (single-threaded)
+ADD_EXECUTABLE(test_error_handling_adj "${PATH_TEST}/test_error_handling_adj.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_error_handling_adj PRIVATE ${PATH_SRC} ${PATH_TEST})
+TARGET_LINK_LIBRARIES(test_error_handling_adj PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+ADD_EXECUTABLE(test_error_handling_ekey "${PATH_TEST}/test_error_handling_ekey.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_error_handling_ekey PRIVATE ${PATH_SRC} ${PATH_TEST})
+TARGET_LINK_LIBRARIES(test_error_handling_ekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+# Multi-threaded correctness tests (thread_local set_key, concurrent inserts)
+ADD_EXECUTABLE(test_mt_adj "${PATH_TEST}/test_mt_adj.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_mt_adj PRIVATE ${PATH_SRC} ${PATH_TEST})
+TARGET_LINK_LIBRARIES(test_mt_adj PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+ADD_EXECUTABLE(test_mt_ekey "${PATH_TEST}/test_mt_ekey.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_mt_ekey PRIVATE ${PATH_SRC} ${PATH_TEST})
+TARGET_LINK_LIBRARIES(test_mt_ekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
 # IIu schema experiment: key=u, value=IIu with fixed-size blob
 ADD_EXECUTABLE(test_IIu_schema "${PATH_TEST}/test_IIu_schema.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_IIu_schema PRIVATE ${PATH_SRC})

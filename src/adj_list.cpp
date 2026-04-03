@@ -357,7 +357,7 @@ void AdjList::init_cursors()
                                &edge_cursor,
                                session,
                                false,
-                               true, // allow overwrite for edge table 
+                               false, // no overwrite: detect WT_DUPLICATE_KEY
                                opts.checkpoint_name)))
 
   {
@@ -993,7 +993,8 @@ int AdjList::add_node(node to_insert, bool is_bulk)
 {
   (void)is_bulk;
   // LOG_MSG("Adding node with ID {}", to_insert.id);
-  session->begin_transaction(session, "isolation=snapshot");
+  if (int btret = session->begin_transaction(session, "isolation=snapshot"); btret != 0)
+    return btret;
   int ret;
 #ifdef MK_NEDGES
   CommonUtil::set_key(node_cursor, to_insert.id);
@@ -1012,26 +1013,7 @@ int AdjList::add_node(node to_insert, bool is_bulk)
   if ((ret = error_check_insert_txn(node_cursor->insert(node_cursor))))
   {
     node_cursor->reset(node_cursor);
-    if (ret == WT_ROLLBACK)
-    {
-      DEBUG_MSG("Failed to add node_id " + to_string(to_insert.id) +
-                "; TX rolled back.");
-      return WT_ROLLBACK;
-    }
-    else if (ret == WT_DUPLICATE_KEY)
-    //The node already exists, so we need to rollback this transaction and return WT_DUPLICATE_KEY so that the caller can know that the node already exists. It is up to the caller to decide what's next.
-    {
-      LOG_MSG(
-          "Duplicate node in node table. Node {} already exists. Rolling back.\n\tWT_ERROR: "
-          "{}",
-          to_string(to_insert.id),
-          wiredtiger_strerror(ret));
-      session->rollback_transaction(session, nullptr);
-      return WT_DUPLICATE_KEY;
-    }
-    else
-    { /**no-op */
-    }
+    return ret;
   }
 #endif
 
@@ -1039,35 +1021,17 @@ int AdjList::add_node(node to_insert, bool is_bulk)
   {
     if ((ret = error_check_insert_txn(
              add_adjlist(in_adjlist_cursor, to_insert.id))))
-    {
-      if (ret == WT_DUPLICATE_KEY)
-      {
-        DEBUG_MSG("Duplicate key in add_adjlist. An adjlist for node " +
-                  to_string(to_insert.id) +
-                  " already exists. : " + wiredtiger_strerror(ret));
-        session->rollback_transaction(session, nullptr);
-        
-      }
       return ret;
-    }
   }
 
   if ((ret = error_check_insert_txn(
            add_adjlist(out_adjlist_cursor, to_insert.id))))
-  {
-    if (ret == WT_DUPLICATE_KEY)
-    {
-      DEBUG_MSG("Duplicate key in add_adjlist. An adjlist for node " +
-                to_string(to_insert.id) +
-                " already exists. : " + wiredtiger_strerror(ret));
-      session->rollback_transaction(session, nullptr);
-    }
     return ret;
-  }
 
-  session->commit_transaction(session, nullptr);
+  if ((ret = error_check_insert_txn(session->commit_transaction(session, nullptr))))
+    return ret;
   GraphBase::increment_nodes(1);
-  return ret;
+  return 0;
 }
 
 /**
@@ -1096,7 +1060,7 @@ int AdjList::add_node_in_txn(node to_insert)
     node_cursor->set_value(node_cursor, "");
   }
 
-  if ((ret = error_check_insert_txn(node_cursor->insert(node_cursor))))
+  if ((ret = node_cursor->insert(node_cursor)))
   {
     if (ret == WT_DUPLICATE_KEY)
     {
@@ -1217,7 +1181,7 @@ int AdjList::add_adjlist(WT_CURSOR *cursor, node_id_t node_id)
   WT_ITEM item = {.data = &zero, .size = sizeof(degree_t)};
   cursor->set_value(cursor, &item);
 
-  return error_check_insert_txn(cursor->insert(cursor));
+  return cursor->insert(cursor);
 }
 
 // TODO: Clarify use case of this method, may result in inconsistencies between
@@ -1306,7 +1270,8 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
   int ret = 0;
   int num_nodes_added = 0;
 
-  session->begin_transaction(session, "isolation=snapshot");
+  if (int btret = session->begin_transaction(session, "isolation=snapshot"); btret != 0)
+    return btret;
 #ifdef DEBUG
   std::cout << "Adding edge: " << to_insert.src_id << " -> " << to_insert.dst_id
             << std::endl;
@@ -1394,9 +1359,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
     set_edge_wt(edge_cursor, 0.0);
   }
   if ((ret = error_check_insert_txn(edge_cursor->insert(edge_cursor))))
-  {
     return ret;
-  }
   // insert the reverse edge if undirected
   if (!opts.is_directed)  // ####This is fine :)
   {
@@ -1416,9 +1379,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
       set_edge_wt(edge_cursor, 0.0);
     }
     if ((ret = error_check_insert_txn(edge_cursor->insert(edge_cursor))))
-    {
-      LOG_ROLLBACK_LOCATION("add_node_in_txn(first)", to_insert);
-    }
+      return ret;
   }
 #endif
   bool node_added = false;
@@ -1432,8 +1393,8 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
   node2 = to_insert.dst_id;
 #endif
 
-  ret = add_to_adjlists(out_adjlist_cursor, node1, node2, node_added) != 0;
-  if (ret)
+  if ((ret = error_check_insert_txn(
+           add_to_adjlists(out_adjlist_cursor, node1, node2, node_added))))
   {
     LOG_ROLLBACK_LOCATION(
         " add_to_adjlists(out_adjlist_cursor, node1, node2, node_added)",
@@ -1448,8 +1409,7 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
   CommonUtil::set_key(out_adjlist_cursor, node2);
   if (out_adjlist_cursor->search(out_adjlist_cursor) != 0)
   {
-    ret = add_adjlist(out_adjlist_cursor, node2);
-    if (ret != 0)
+    if ((ret = error_check_insert_txn(add_adjlist(out_adjlist_cursor, node2))))
     {
       LOG_ROLLBACK_LOCATION("add_adjlist(out_adjlist_cursor, node2)",
                             to_insert);
@@ -1481,20 +1441,12 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
    * dup of the out_adjlist_cursor in the undirected case. We do not care  about
    * the node_added flag here because we have already fixed the node  count
    * above.*/
-  ret = add_to_adjlists(in_adjlist_cursor, node2, node1, node_added);
-  if (ret != 0)
-  {
-    LOG_ROLLBACK_LOCATION(
-        "add_to_adjlists(in_adjlist_cursor, node2, node1, node_added)",
-        to_insert);
+  if ((ret = error_check_insert_txn(
+           add_to_adjlists(in_adjlist_cursor, node2, node1, node_added))))
     return ret;
-  }
 
-  if (session->commit_transaction(session, nullptr) != 0)
-  {
-    LOG_ROLLBACK_LOCATION("commit_transaction(session, nullptr)", to_insert);
-    return WT_ROLLBACK;
-  }
+  if ((ret = error_check_insert_txn(session->commit_transaction(session, nullptr))))
+    return ret;
 #ifdef DEBUG
   std::cout << "number of nodes before:" << GraphBase::get_num_nodes()
             << std::endl;
@@ -2394,7 +2346,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
   item.size = init_buf.size();
   cursor->set_value(cursor, &item);
 
-  ret = error_check_insert_txn(cursor->insert(cursor));
+  ret = cursor->insert(cursor);
   if (ret)  // this should return a WT_DUPLICATE_KEY if the
   // node_id already exists in the table.
   {
@@ -2410,8 +2362,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
         adjlist found = adjlist(node_id, 0);
         CommonUtil::record_to_adjlist(cursor, &found);
         found.insert_sorted(to_insert);
-        return error_check_insert_txn(
-            CommonUtil::adjlist_to_record(session, cursor, found));
+        return CommonUtil::adjlist_to_record(session, cursor, found);
       }
 
       // Use cursor->modify() for O(1) append
@@ -2439,7 +2390,7 @@ int AdjList::add_to_adjlists(WT_CURSOR *cursor,
       mods[1].size = 0;  // replace 0 bytes = pure append
 
       ret = cursor->modify(cursor, mods, 2);
-      return error_check_insert_txn(ret);
+      return ret;
     }
     node_added = false;
     return ret;
@@ -2884,25 +2835,10 @@ WT_CURSOR *AdjList::get_new_random_outadj_cursor()
  */
 int AdjList::error_check_insert_txn(int return_val)
 {
-  switch (return_val)
-  {
-    case 0:
-      return 0;
-    case WT_ROLLBACK:
-      session->rollback_transaction(session, nullptr);
-      return WT_ROLLBACK;
-    case WT_DUPLICATE_KEY:
-      LOG_MSG("WT_DUPLICATE_KEY in TX");
-      return WT_DUPLICATE_KEY;
-    case WT_NOTFOUND:
-      LOG_MSG("WT_NOTFOUND in TX");
-      return WT_NOTFOUND;
-    default:
-      DEBUG_MSG("Failed to complete action : " +
-                std::string(wiredtiger_strerror(return_val)));
-      session->rollback_transaction(session, nullptr);
-      return WT_ROLLBACK;
-  }
+  if (return_val == 0)
+    return 0;
+  session->rollback_transaction(session, nullptr);
+  return return_val;
 }
 
 int AdjList::error_check_read_txn(int return_val)

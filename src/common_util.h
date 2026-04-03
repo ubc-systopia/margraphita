@@ -162,13 +162,19 @@ class CommonUtil
 
 inline void CommonUtil::set_key(WT_CURSOR *cursor, node_id_t key)
 {
+  // Use thread_local so the buffer outlives this function call.
+  // WiredTiger's cursor->set_key stores the data pointer without copying;
+  // the pointed memory must remain valid until the next cursor operation.
 #ifdef B64
-  uint64_t a = __builtin_bswap64(key);
+  static thread_local uint64_t a;
+  a = __builtin_bswap64(key);
 #else
-  uint32_t a = __builtin_bswap32(key);
+  static thread_local uint32_t a;
+  a = __builtin_bswap32(key);
 #endif
-  WT_ITEM k = {.data = reinterpret_cast<const unsigned *>(&a),
-               .size = sizeof(a)};
+  static thread_local WT_ITEM k;
+  k.data = reinterpret_cast<const unsigned *>(&a);
+  k.size = sizeof(a);
   cursor->set_key(cursor, &k);
 }
 
@@ -176,17 +182,21 @@ inline void CommonUtil::set_key(WT_CURSOR *cursor,
                                 node_id_t key1,
                                 node_id_t key2)
 {
+  // Same thread_local fix as the single-key overload.
 #ifdef B64
-  uint64_t a = __builtin_bswap64(key1);
-  uint64_t b = __builtin_bswap64(key2);
+  static thread_local uint64_t a, b;
+  a = __builtin_bswap64(key1);
+  b = __builtin_bswap64(key2);
 #else
-  uint32_t a = __builtin_bswap32(key1);
-  uint32_t b = __builtin_bswap32(key2);
+  static thread_local uint32_t a, b;
+  a = __builtin_bswap32(key1);
+  b = __builtin_bswap32(key2);
 #endif
-  WT_ITEM k1 = {.data = reinterpret_cast<const unsigned *>(&a),
-                .size = sizeof(a)};
-  WT_ITEM k2 = {.data = reinterpret_cast<const unsigned *>(&b),
-                .size = sizeof(b)};
+  static thread_local WT_ITEM k1, k2;
+  k1.data = reinterpret_cast<const unsigned *>(&a);
+  k1.size = sizeof(a);
+  k2.data = reinterpret_cast<const unsigned *>(&b);
+  k2.size = sizeof(b);
   cursor->set_key(cursor, &k1, &k2);
 }
 
