@@ -262,12 +262,13 @@ void SplitEdgeKey::init_cursors()
                          string(wiredtiger_strerror(ret)));
   }
 
-  // out_edge_cursor
+  // out_edge_cursor — overwrite=false so that insert() returns WT_DUPLICATE_KEY
+  // on duplicate edges, eliminating the explicit pre-insert search in add_edge.
   if ((ret = _get_table_cursor(OUT_EDGES,
                                &out_edge_cursor,
                                session,
                                false,
-                               true,
+                               false,
                                opts.checkpoint_name)))
   {
     throw GraphException("Could not get an out edge cursor: " +
@@ -283,13 +284,13 @@ void SplitEdgeKey::init_cursors()
                                               &in_edge_cursor,
                                               session,
                                               false,
-                                              true,
+                                              false,
                                               opts.checkpoint_name))
                    : (ret = _get_table_cursor(OUT_EDGES,
                                               &in_edge_cursor,
                                               session,
                                               false,
-                                              true,
+                                              false,
                                               opts.checkpoint_name));
   if (ret)
   {
@@ -446,12 +447,18 @@ int SplitEdgeKey::add_node_txn(node to_insert,
   CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
   if (out_edge_cursor->search(out_edge_cursor) == 0)
   {
-    // Node exists - inline the degree update here to avoid extra search
-    degree_t in_deg, out_deg;
-    ekey_get_node_value(out_edge_cursor, &in_deg, &out_deg);
-    ekey_set_node_value(out_edge_cursor, in_deg + indeg_change, out_deg + outdeg_change);
-    int ret = out_edge_cursor->update(out_edge_cursor);
-    return error_check_insert_txn(ret);
+    // Node exists.  Only update degrees when read_optimize is on; otherwise
+    // the sentinel is a pure existence marker and updating it under concurrency
+    // causes unnecessary WT_ROLLBACK contention on hub nodes.
+    if (opts.read_optimize)
+    {
+      degree_t in_deg, out_deg;
+      ekey_get_node_value(out_edge_cursor, &in_deg, &out_deg);
+      ekey_set_node_value(out_edge_cursor, in_deg + indeg_change, out_deg + outdeg_change);
+      int ret = out_edge_cursor->update(out_edge_cursor);
+      return error_check_insert_txn(ret);
+    }
+    return WT_DUPLICATE_KEY;
   }
   else
   {
@@ -532,16 +539,12 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
     return WT_ROLLBACK;
   }
 
-  // Now add the edge into out-edges table.
-  // Check for a duplicate edge first: if the key already exists, roll back
-  // the entire transaction (which also undoes the degree increments above)
-  // and return WT_DUPLICATE_KEY to the caller.
+  // Insert into the out-edges table.
+  // overwrite=false on out_edge_cursor means insert() returns WT_DUPLICATE_KEY
+  // if the edge already exists; error_check_insert_txn then rolls back the
+  // transaction (undoing the degree increments above) and returns the code.
+  // This eliminates the explicit pre-insert search that was here before.
   CommonUtil::ekey_set_edge_key(out_edge_cursor, to_insert.src_id, to_insert.dst_id);
-  if (out_edge_cursor->search(out_edge_cursor) == 0)
-  {
-    session->rollback_transaction(session, nullptr);
-    return WT_DUPLICATE_KEY;
-  }
 
   if (opts.is_weighted)
   {
