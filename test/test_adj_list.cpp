@@ -1336,7 +1336,8 @@ int main(int argc, char *argv[])
 
   //try to insert a node - should fail
   int ret = rograph->add_node({.id = 1000, .in_degree = 0, .out_degree = 0}, false);
-  assert(ret == WT_ROLLBACK);
+  std::cout << "return value is " << ret << " wt error string: " << wiredtiger_strerror(ret) << std::endl;  
+  assert(ret == ENOTSUP); //insertion on a read-only cursor is not supported.
   rograph->close(false);
   roEngine.close_graph();
 

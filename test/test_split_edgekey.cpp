@@ -805,15 +805,19 @@ int main()
 
   std::cout << "Number of nodes in RO graph: " << rograph->get_num_nodes() << std::endl;
 
-  std::cout << "Dumping (RO)tables:" << std::endl<< std::endl;  
+  std::cout << "Dumping (RO)tables:" << std::endl<< std::endl;
   table_name = "edge_out";
   rograph->dump_table(table_name, 200);
   table_name = "edge_in";
   rograph->dump_table(table_name, 200);
 
+  // try to insert a node — should fail on a read-only cursor
+  int ret = rograph->add_node({.id = 1000, .in_degree = 0, .out_degree = 0}, false);
+  std::cout << "return value is " << ret << " wt error string: " << wiredtiger_strerror(ret) << std::endl;
+  assert(ret == ENOTSUP); // insertion on a read-only cursor is not supported
 
-  // rograph->close(false);
-  // roEngine.close_graph();
+  rograph->close(false);
+  roEngine.close_graph();
 
   // ---- Property storage tests (separate graph instance) ----
   graph_opts prop_opts;
