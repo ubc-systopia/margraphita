@@ -23,19 +23,20 @@
 // Graph-opts factory helpers
 // ---------------------------------------------------------------------------
 
-static graph_opts make_directed_opts()
+static graph_opts make_directed_opts(bool read_optimize = true)
 {
     graph_opts opts;
     opts.create_new      = true;
     opts.optimize_create = false;
     opts.is_directed     = true;
-    opts.read_optimize   = true;
+    opts.read_optimize   = read_optimize;
     opts.is_weighted     = false;
     opts.has_node_props  = false;
     opts.has_edge_props  = false;
     opts.type            = GraphType::SplitEKey;
-    opts.db_name         = "test_eh_ekey_dir";
-    opts.db_dir          = "./db_test/db_eh_ekey_dir";
+    opts.db_name         = read_optimize ? "test_eh_ekey_dir" : "test_eh_ekey_dir_noro";
+    opts.db_dir          = read_optimize ? "./db_test/db_eh_ekey_dir"
+                                         : "./db_test/db_eh_ekey_dir_noro";
     opts.conn_config     = "cache_size=256MB";
     opts.stat_log        = "./";
     return opts;
@@ -79,6 +80,20 @@ int main()
 
         fprintf(stderr, "=== SplitEdgeKey undirected tests ===\n");
         run_undirected_tests(graph);
+
+        graph.close(false);
+        engine.close_graph();
+    }
+
+    // ---- directed tests with read_optimize=false ----
+    {
+        graph_opts opts = make_directed_opts(false);
+        GraphEngine engine(1, opts);
+        WT_CONNECTION *conn = engine.get_connection();
+        SplitEdgeKey graph(opts, conn);
+
+        fprintf(stderr, "=== SplitEdgeKey directed tests (read_optimize=false) ===\n");
+        run_directed_tests(graph);
 
         graph.close(false);
         engine.close_graph();
