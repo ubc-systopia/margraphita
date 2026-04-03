@@ -718,7 +718,7 @@ void test_embedded_edge_props(SplitEdgeKey &graph)
   fprintf(stderr, "test_embedded_edge_props: PASSED\n");
 }
 
-int main()
+int main(int argc, char *argv[])
 {
   const int THREAD_NUM = 1;
   graph_opts opts;
@@ -726,7 +726,10 @@ int main()
   opts.optimize_create = false;
   // opts.is_directed = false;
   opts.is_directed = true;
+  // Default true; pass --no-read-optimize to disable.
   opts.read_optimize = true;
+  for (int i = 1; i < argc; i++)
+    if (std::string(argv[i]) == "--no-read-optimize") opts.read_optimize = false;
   opts.is_weighted = true;
   opts.type = GraphType::SplitEKey;
   opts.db_name = "test_split_edgekey";

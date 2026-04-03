@@ -400,19 +400,30 @@ static void run_directed_tests(GraphBase &g)
     test_add_vertex_count(g);
     test_add_edge_directed(g);
     test_add_edge_implicit_nodes(g);
+#ifdef MK_NEDGES
+    // Duplicate edge detection requires the edge table (MK_NEDGES only).
     test_add_edge_duplicate(g);
+#endif
     test_add_edge_node_count_stable(g);
+#ifdef MK_NEDGES
     test_count_after_duplicate_edge(g);
     test_adjlist_integrity_after_rollback(g);
+#endif
     test_new_dst_adjlist_queryable(g);
     test_multiple_in_edges(g);
     test_driver_add_vertex(g);
+#ifdef MK_NEDGES
+    // driver_add_edge_v2 tests duplicate detection — requires edge table.
     test_driver_add_edge_v2(g);
+#endif
     test_add_edge_returns_zero_on_success(g);
 }
 
 static void run_undirected_tests(GraphBase &g)
 {
     test_undirected_both_directions(g);
+#ifdef MK_NEDGES
+    // Duplicate reverse-edge detection requires the edge table (MK_NEDGES only).
     test_undirected_reverse_is_duplicate(g);
+#endif
 }

@@ -111,3 +111,5 @@ TARGET_LINK_LIBRARIES(test_mt_ekey PUBLIC ${NAME_LIB} ${wt_shared_lib})
 ADD_EXECUTABLE(test_IIu_schema "${PATH_TEST}/test_IIu_schema.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_IIu_schema PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_IIu_schema PUBLIC ${NAME_LIB} ${wt_shared_lib})
+# Copy run_tests.sh to the build directory so it can be run from there
+configure_file("${PATH_TEST}/run_tests.sh" "${CMAKE_BINARY_DIR}/run_tests.sh" COPYONLY)

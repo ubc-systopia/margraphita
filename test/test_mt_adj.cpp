@@ -17,13 +17,16 @@
 
 #include "test_mt_common.h"
 
-int main()
+int main(int argc, char *argv[])
 {
     graph_opts opts;
     opts.create_new      = true;
     opts.optimize_create = false;
     opts.is_directed     = true;
+    // Default true; pass --no-read-optimize to disable.
     opts.read_optimize   = true;
+    for (int i = 1; i < argc; i++)
+        if (std::string(argv[i]) == "--no-read-optimize") opts.read_optimize = false;
     opts.is_weighted     = false;
     opts.has_node_props  = false;
     opts.has_edge_props  = false;

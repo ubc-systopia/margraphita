@@ -752,19 +752,25 @@ void test_delete_node(AdjList &graph, bool is_directed)
   WT_CURSOR *adj_in_cur = graph.get_in_adjlist_cursor();
 
 #ifdef MK_NEDGES
-  // Verify node2 exists
-  CommonUtil::set_key(n_cursor, SampleGraphAdjList::node2.id);
-  ret = n_cursor->search(n_cursor);
-  assert(ret == 0);
-  n_cursor->reset(n_cursor);
+  // Node table is only populated when read_optimize=true.
+  if (graph.is_read_optimized())
+  {
+    CommonUtil::set_key(n_cursor, SampleGraphAdjList::node2.id);
+    ret = n_cursor->search(n_cursor);
+    assert(ret == 0);
+    n_cursor->reset(n_cursor);
+  }
 #endif
   // Delete node2 and verify it was actually deleted
   graph.delete_node(SampleGraphAdjList::node2.id);
 
 #ifdef MK_NEDGES
-  CommonUtil::set_key(n_cursor, SampleGraphAdjList::node2.id);
-  ret = n_cursor->search(n_cursor);
-  assert(ret != 0);
+  if (graph.is_read_optimized())
+  {
+    CommonUtil::set_key(n_cursor, SampleGraphAdjList::node2.id);
+    ret = n_cursor->search(n_cursor);
+    assert(ret != 0);
+  }
 #endif
   // Verify node2's adjacency lists are deleted
   CommonUtil::set_key(adj_out_cur, SampleGraphAdjList::node2.id);
@@ -1281,7 +1287,10 @@ int main(int argc, char *argv[])
   // opts.read_optimize ? log_name += "_ReadOpt" : log_name += "_NoReadOpt";
 
   opts.sort_edges = false;
-  opts.read_optimize = false;  // false;
+  // Default false; pass --read-optimize to enable.
+  opts.read_optimize = false;
+  for (int i = 1; i < argc; i++)
+    if (std::string(argv[i]) == "--read-optimize") opts.read_optimize = true;
 
   // GraphEngine::graph_engine_opts engine_opts{.num_threads = THREAD_NUM,
   //                                            .opts = opts};

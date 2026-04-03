@@ -32,6 +32,8 @@ class GraphBase
   GraphBase(GraphBase &&) = delete;
   GraphBase &operator=(GraphBase &&) = delete;
 
+  bool is_read_optimized() const { return opts.read_optimize; }
+
   static void insert_metadata(int key,
                               const char *value,
                               size_t size,

@@ -5,19 +5,11 @@
 class AdjNodeCursor : public NodeCursor
 {
 private:
-#ifndef MK_NEDGES
-  WT_CURSOR *in_cur = nullptr;  // cursor for in adjacency list
-  /**
-   * @brief get the in-degree of a node from the in-nbd cursor.
-   * We assume that the in-nbd cursor is already set to the node_id.
-   * This function is only used for directed graphs, when the node and edge tables 
-   * have not been defined.
-   * 
-   * @param node_id 
-   * @return degree_t 
-   */
+  // Used when iterating via adjlist (either !MK_NEDGES, or MK_NEDGES+!read_opt).
+  WT_CURSOR *in_cur = nullptr;
   degree_t get_in_degree(node_id_t id)
   {
+    if (in_cur == nullptr) return 0;
     CommonUtil::set_key(in_cur, id);
     int ret = in_cur->search(in_cur);
     if (ret == 0)
@@ -28,24 +20,17 @@ private:
     }
     return 0;
   }
-#endif
  public:
   AdjNodeCursor(WT_CURSOR *cur, WT_SESSION *sess)
   {
     cursor = cur;
     session = sess;
-    #ifndef MK_NEDGES
+    // in_cur is needed when iterating via adjlist (either !MK_NEDGES or
+    // MK_NEDGES+!read_opt). Without read_opt we can't tell here, so open it
+    // for directed graphs unconditionally when the simple constructor is used.
     if (directed) {
-      GraphBase::_get_table_cursor(IN_ADJLIST,
-                                   &in_cur,
-                                   session,
-                                   false,
-                                   false,
-                                   "");
-    }else{
-      in_cur = nullptr;  // not used for undirected graphs
+      GraphBase::_get_table_cursor(IN_ADJLIST, &in_cur, session, false, false, "");
     }
-    #endif
   }
   AdjNodeCursor(WT_CURSOR *cur,
                 WT_SESSION *sess,
@@ -56,18 +41,12 @@ private:
     session = sess;
     directed = is_directed;
     read_opt = is_read_optimized;
-    #ifndef MK_NEDGES
-    if (directed) {
-      GraphBase::_get_table_cursor(IN_ADJLIST,
-                                   &in_cur,
-                                   session,
-                                   false,
-                                   false,
-                                   "");
-    }else{
-      in_cur = nullptr;  // not used for undirected graphs
+    // Open in_cur for directed graphs when using adjlist-based iteration:
+    // always when !MK_NEDGES, and also when MK_NEDGES+!read_opt (node table
+    // has no degree data in that mode).
+    if (directed && !read_opt) {
+      GraphBase::_get_table_cursor(IN_ADJLIST, &in_cur, session, false, false, "");
     }
-    #endif
   }
   ~AdjNodeCursor() override = default;
 
@@ -135,14 +114,21 @@ private:
       return;
     }
 #ifdef MK_NEDGES
-    CommonUtil::record_to_node(cursor, found, read_opt, directed);
-#else
-    adjlist temp;
-    CommonUtil::record_to_adjlist(cursor, &temp);
-    found->out_degree = temp.degree;
-    directed ? found->in_degree = get_in_degree(found->id)
-             : found->in_degree = temp.degree;
+    if (read_opt)
+    {
+      // read_optimize=true: degrees are in the node table; decode them directly.
+      CommonUtil::record_to_node(cursor, found, read_opt, directed);
+    }
+    else
 #endif
+    {
+      // !read_opt (or !MK_NEDGES): cursor is over out_adjlist; decode the blob.
+      adjlist temp;
+      CommonUtil::record_to_adjlist(cursor, &temp);
+      found->out_degree = temp.degree;
+      directed ? found->in_degree = get_in_degree(found->id)
+               : found->in_degree = temp.degree;
+    }
     if (cursor->next(cursor) != 0)
     {
       has_next = false;
@@ -183,15 +169,20 @@ private:
 
     if (curr_key == key)
     {
-      #ifdef MK_NEDGES
-      CommonUtil::record_to_node(cursor, found, read_opt, directed);
-      #else
-      adjlist temp;
-      CommonUtil::record_to_adjlist(cursor, &temp);
-      found->out_degree = temp.degree;
-      directed ? found->in_degree = get_in_degree(found->id)
-               : found->in_degree = temp.degree;
-      #endif
+#ifdef MK_NEDGES
+      if (read_opt)
+      {
+        CommonUtil::record_to_node(cursor, found, read_opt, directed);
+      }
+      else
+#endif
+      {
+        adjlist temp;
+        CommonUtil::record_to_adjlist(cursor, &temp);
+        found->out_degree = temp.degree;
+        directed ? found->in_degree = get_in_degree(found->id)
+                 : found->in_degree = temp.degree;
+      }
       found->id = curr_key;
     }
 
