@@ -7,12 +7,14 @@
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "common_util.h"
 #include "graph_exception.h"
+#include "iterator.h"
 
 struct prop_blob {
     const uint8_t* data = nullptr;
@@ -121,11 +123,15 @@ class GraphBase
   virtual void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) = 0;
   virtual prop_blob get_edge_properties(node_id_t src, node_id_t dst) = 0;
 
-  // Columnar scan API: open a cursor on a specific column group for bulk reads.
-  // Caller owns the cursor and must close it after use.
-  // Only valid when prop_mode == COLUMNAR; throws otherwise.
-  virtual WT_CURSOR* open_colgroup_cursor(const std::string& table,
-                                           const std::string& colgroup) = 0;
+  // Property cursor factory methods.
+  // Return RAII cursor objects; no manual close needed.
+  // In COLUMNAR mode, opens a WiredTiger colgroup cursor.
+  // In EMBEDDED mode, wraps get_node_properties / get_edge_properties.
+  virtual std::unique_ptr<NodePropCursor> get_node_prop_cursor(
+      const std::string &table, const std::string &colgroup) = 0;
+
+  virtual std::unique_ptr<EdgePropCursor> get_edge_prop_cursor(
+      const std::string &table, const std::string &colgroup) = 0;
 
   // Secondary multi-valued tables (COLUMNAR mode only; no-ops otherwise).
   // idx is the insertion-order index for the value (0, 1, 2, …).

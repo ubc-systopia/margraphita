@@ -5,7 +5,9 @@
 #include <string>
 
 #include "common_util.h"
+#include "emb_prop_cursor.h"
 #include "prop_schema.h"
+#include "wt_prop_cursor.h"
 
 using namespace std;
 
@@ -1087,18 +1089,38 @@ prop_blob SplitEdgeKey::get_edge_properties(node_id_t src, node_id_t dst)
   return {copy, item.size};
 }
 
-WT_CURSOR *SplitEdgeKey::open_colgroup_cursor(const std::string &table,
-                                               const std::string &colgroup)
+std::unique_ptr<NodePropCursor>
+SplitEdgeKey::get_node_prop_cursor(const std::string &table,
+                                    const std::string &colgroup)
 {
-  if (opts.prop_mode != COLUMNAR)
-    throw GraphException("open_colgroup_cursor: only valid in COLUMNAR mode");
-  std::string uri = "colgroup:" + table + ":" + colgroup;
-  WT_CURSOR *cur = nullptr;
-  int ret = session->open_cursor(session, uri.c_str(), nullptr, nullptr, &cur);
-  if (ret != 0)
-    throw GraphException("open_colgroup_cursor: failed to open " + uri + ": " +
-                         wiredtiger_strerror(ret));
-  return cur;
+  if (opts.prop_mode == COLUMNAR) {
+    std::string uri = "colgroup:" + table + ":" + colgroup;
+    WT_CURSOR *c    = nullptr;
+    int ret = session->open_cursor(session, uri.c_str(), nullptr, nullptr, &c);
+    if (ret != 0)
+      throw GraphException("SplitEdgeKey::get_node_prop_cursor: failed to open " +
+                           uri + ": " + wiredtiger_strerror(ret));
+    return std::make_unique<WTNodePropCursor>(c, layout_for(table, colgroup));
+  } else {
+    return make_emb_node_prop_cursor(this, table, colgroup);
+  }
+}
+
+std::unique_ptr<EdgePropCursor>
+SplitEdgeKey::get_edge_prop_cursor(const std::string &table,
+                                    const std::string &colgroup)
+{
+  if (opts.prop_mode == COLUMNAR) {
+    std::string uri = "colgroup:" + table + ":" + colgroup;
+    WT_CURSOR *c    = nullptr;
+    int ret = session->open_cursor(session, uri.c_str(), nullptr, nullptr, &c);
+    if (ret != 0)
+      throw GraphException("SplitEdgeKey::get_edge_prop_cursor: failed to open " +
+                           uri + ": " + wiredtiger_strerror(ret));
+    return std::make_unique<WTEdgePropCursor>(c);
+  } else {
+    return make_emb_edge_prop_cursor(this, table, colgroup);
+  }
 }
 
 void SplitEdgeKey::add_person_email(node_id_t person_id, uint64_t idx, const char *email)

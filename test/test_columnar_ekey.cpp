@@ -231,25 +231,13 @@ void test_columnar_colgroup_scan(GraphBase &g)
     SNBKnowsSchema::set_creation_date(buf, 2000LL);
     g.set_edge_properties(P0, P2, buf, SNBKnowsSchema::TOTAL_SIZE);
 
-    WT_CURSOR *cur = g.open_colgroup_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
+    auto cur = g.get_edge_prop_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
     assert(cur != nullptr);
 
-    int cmp = 0;
-    cur->set_key(cur, (uint64_t)P0, (uint64_t)0);
-    int ret = cur->search_near(cur, &cmp);
-    if (ret == 0 && cmp < 0) ret = cur->next(cur);
-
     std::vector<std::pair<node_id_t, int64_t>> found;
-    while (ret == 0) {
-        uint64_t src, dst;
-        cur->get_key(cur, &src, &dst);
-        if (src != (uint64_t)P0) break;
-        uint64_t cDate;
-        cur->get_value(cur, &cDate);
-        found.emplace_back((node_id_t)dst, (int64_t)cDate);
-        ret = cur->next(cur);
-    }
-    cur->close(cur);
+    cur->set_src(P0);
+    while (cur->next())
+        found.emplace_back(cur->dst(), (int64_t)cur->get_uint64(0));
 
     assert(found.size() >= 2);
     bool found_p1 = false, found_p2 = false;

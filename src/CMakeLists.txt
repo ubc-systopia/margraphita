@@ -2,6 +2,7 @@ FILE(GLOB SOURCES_LIB "${OMP_INCLUDE_DIR}/omp.h"
         "${PATH_SRC}/graph.cpp"
         "${PATH_SRC}/adj_list.cpp"
         "${PATH_SRC}/edgekey_split.cpp"
+        "${PATH_SRC}/emb_prop_cursor.cpp"
         "${PATH_SRC}/common_util.cpp"
         "${PATH_SRC}/graph_engine.cpp"
 )

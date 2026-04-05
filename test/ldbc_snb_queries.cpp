@@ -1,8 +1,9 @@
 // LDBC SNB benchmark queries on Flexograph
 //
-// Usage: ./ldbc_snb_queries <data_dir> [graph_type]
+// Usage: ./ldbc_snb_queries <data_dir> [graph_type] [--create] [flags]
 //
 // graph_type: adj | splitekey  (default: splitekey)
+// --create    build a new DB from <data_dir> CSVs (default: open existing DB)
 //
 // Expects LDBC SNB CSV files (pipe-delimited) under <data_dir>/dynamic/:
 //   person_0_0.csv
@@ -181,12 +182,189 @@ struct QueryTimes {
     double bi2_two_windows      = -1.0;
     double ic5_forums           = -1.0;
     double ic3_fof_country      = -1.0;
+    // OPT-1: in-memory adjacency cache variants
+    double cache_build_ms       = -1.0;
+    double x3_cached            = -1.0;
+    double ic7_cached           = -1.0;
+    double ic9_cached           = -1.0;
+    double ic5_cached           = -1.0;
+    double ic3_cached           = -1.0;
+    // OPT-3: dense-array bi12
+    double bi12_fast_v2         = -1.0;
 };
 
 // ============================================================
 // Separator
 // ============================================================
 #define SEP() fprintf(stderr, "------------------------------------------------------------\n")
+
+// ============================================================
+// OPT-1: In-memory adjacency cache (NeighborCache)
+// ============================================================
+//
+// ROOT CAUSE: every get_in/out_nodes_id() call routes through WiredTiger.
+// Even a fast WT point lookup (AdjList blob read) costs ~20–100 μs, and
+// a range scan (SplitEdgeKey) costs ~50–500 μs.  Traversal queries like
+// IC-3 call this hundreds to thousands of times, accumulating 10–200 ms.
+//
+// FIX: load all neighbor lists into CSR arrays at startup.  Each hop then
+// costs ~10 ns (pointer arithmetic + cache-line read) instead of ~100 μs,
+// a ~10 000× improvement per hop.
+//
+// LAYOUT: per-vertex-type CSR, indexed by VCOUNTER_OF(id).
+//   out_adj[vtype].off[c]   — offset of node c's out-neighbor list in nbr[]
+//   out_adj[vtype].nbr[...] — flat out-neighbor node_id_t values
+//   (same layout for in_adj)
+//
+// MEMORY: ~8 bytes/edge (node_id_t) × N_edges × 2 (out + in).
+//   SF-3 (~60M edges) ≈ ~960 MB.  Acceptable given the 100 GB WT cache.
+//
+// BUILD COST: one EdgeCursor sequential scan + two std::sort calls.
+//   O(E log E) — typically 5–15 seconds for SF-3.
+//   Amortised to zero if the DB is opened for repeated query runs.
+
+struct NeighborCache {
+    static constexpr int N_VTYPES = 11;
+
+    struct TypeAdj {
+        std::vector<uint32_t>  off;  // size: n_nodes+1; off[c+1]-off[c] = degree
+        std::vector<node_id_t> nbr;  // flat neighbor list
+
+        // [begin, end) pointer range into nbr[] for the node with full typed ID `id`.
+        // Iterating this replaces a get_in/out_nodes_id() call with pointer arithmetic.
+        const node_id_t* begin(node_id_t id) const noexcept {
+            uint64_t c = VCOUNTER_OF(id);
+            return (c + 1 < off.size()) ? nbr.data() + off[c]
+                                        : nbr.data() + nbr.size();
+        }
+        const node_id_t* end(node_id_t id) const noexcept {
+            uint64_t c = VCOUNTER_OF(id);
+            return (c + 1 < off.size()) ? nbr.data() + off[c + 1]
+                                        : nbr.data() + nbr.size();
+        }
+    };
+
+    TypeAdj out_adj[N_VTYPES];  // out_adj[VTYPE_OF(id)] for out-neighbors of id
+    TypeAdj in_adj[N_VTYPES];   // in_adj[VTYPE_OF(id)] for in-neighbors of id
+
+    // Convenience accessors — same call-site style as get_out/in_nodes_id().
+    const node_id_t* out_begin(node_id_t id) const noexcept {
+        uint8_t t = (uint8_t)VTYPE_OF(id);
+        return (t < N_VTYPES) ? out_adj[t].begin(id) : nullptr;
+    }
+    const node_id_t* out_end(node_id_t id) const noexcept {
+        uint8_t t = (uint8_t)VTYPE_OF(id);
+        return (t < N_VTYPES) ? out_adj[t].end(id) : nullptr;
+    }
+    const node_id_t* in_begin(node_id_t id) const noexcept {
+        uint8_t t = (uint8_t)VTYPE_OF(id);
+        return (t < N_VTYPES) ? in_adj[t].begin(id) : nullptr;
+    }
+    const node_id_t* in_end(node_id_t id) const noexcept {
+        uint8_t t = (uint8_t)VTYPE_OF(id);
+        return (t < N_VTYPES) ? in_adj[t].end(id) : nullptr;
+    }
+};
+
+// Build a NeighborCache by scanning all edges once.
+//
+// ALGORITHM:
+//   1. Collect all (src, dst) pairs via EdgeCursor — one sequential WT scan.
+//   2. Sort by src  → build out-adjacency CSR via prefix-sum.
+//   3. Swap (src↔dst) and sort by new first — build in-adjacency CSR.
+//
+// The single EdgeCursor scan is the same sequential pass bi12_message_distribution_fast
+// does for its Pass 2, but we collect all edges (not just VT_POST sources).
+// The two sort passes are O(E log E) over the collected vector.
+static NeighborCache build_neighbor_cache(GraphBase &graph, double *out_ms = nullptr)
+{
+    auto t0 = Clock::now();
+    fprintf(stderr, "[CACHE] building in-memory neighbor cache ... ");
+
+    NeighborCache cache;
+
+    // ---- Step 1: collect all (src, dst) pairs via one sequential EdgeCursor scan ----
+    std::vector<std::pair<node_id_t, node_id_t>> edges;
+    edges.reserve(32'000'000);  // generous estimate; vector grows as needed
+    {
+        EdgeCursor *ec = graph.get_edge_iter();
+        edge e;
+        ec->next(&e);
+        while (e.src_id != OutOfBand_ID_MAX) {
+            edges.emplace_back(e.src_id, e.dst_id);
+            ec->next(&e);
+        }
+        delete ec;
+    }
+
+    // ---- Helper: build one set of per-type TypeAdj arrays from sorted (node, nbr) pairs ----
+    // `sorted_pairs` must be sorted by .first (= "this node") for the CSR to be correct.
+    auto build_adj = [&](NeighborCache::TypeAdj adj[NeighborCache::N_VTYPES],
+                         const std::vector<std::pair<node_id_t, node_id_t>> &sorted_pairs)
+    {
+        // Pass A: find max counter per type to size offset arrays.
+        uint64_t max_c[NeighborCache::N_VTYPES] = {};
+        for (auto &[nd, nbr] : sorted_pairs) {
+            uint8_t vt = (uint8_t)VTYPE_OF(nd);
+            if (vt < NeighborCache::N_VTYPES) {
+                uint64_t c = VCOUNTER_OF(nd);
+                if (c > max_c[vt]) max_c[vt] = c;
+            }
+        }
+        // Allocate offset arrays: off[0..max_c+1], all zero.
+        for (int t = 0; t < NeighborCache::N_VTYPES; t++)
+            adj[t].off.assign(max_c[t] + 2, 0u);
+
+        // Pass B: accumulate degrees in off[counter+1] (will be prefix-summed next).
+        for (auto &[nd, nbr] : sorted_pairs) {
+            uint8_t vt = (uint8_t)VTYPE_OF(nd);
+            if (vt < NeighborCache::N_VTYPES)
+                adj[vt].off[VCOUNTER_OF(nd) + 1]++;
+        }
+
+        // Pass C: prefix sum → convert degree counts to start offsets.
+        //         Allocate flat neighbor arrays sized to total degree.
+        for (int t = 0; t < NeighborCache::N_VTYPES; t++) {
+            for (size_t i = 1; i < adj[t].off.size(); i++)
+                adj[t].off[i] += adj[t].off[i - 1];
+            adj[t].nbr.resize(adj[t].off.back());
+        }
+
+        // Pass D: fill neighbor arrays.
+        // cur[t] is a copy of off[0..n-1] tracking the current write position per node.
+        std::vector<uint32_t> cur[NeighborCache::N_VTYPES];
+        for (int t = 0; t < NeighborCache::N_VTYPES; t++) {
+            if (adj[t].off.size() > 1)
+                cur[t].assign(adj[t].off.begin(), adj[t].off.begin() + adj[t].off.size() - 1);
+        }
+        for (auto &[nd, nbr_id] : sorted_pairs) {
+            uint8_t vt = (uint8_t)VTYPE_OF(nd);
+            if (vt < NeighborCache::N_VTYPES) {
+                uint32_t &pos = cur[vt][VCOUNTER_OF(nd)];
+                adj[vt].nbr[pos++] = nbr_id;
+            }
+        }
+    };
+
+    // ---- Step 2: out-adjacency — sort by src (pairs sort lexicographically → src first) ----
+    std::sort(edges.begin(), edges.end());
+    build_adj(cache.out_adj, edges);
+
+    // ---- Step 3: in-adjacency — swap src↔dst, sort by new first (= original dst) ----
+    for (auto &[src, dst] : edges) std::swap(src, dst);
+    std::sort(edges.begin(), edges.end());
+    build_adj(cache.in_adj, edges);
+
+    double ms = Ms(Clock::now() - t0).count();
+    if (out_ms) *out_ms = ms;
+    size_t total_nbrs = 0;
+    for (int t = 0; t < NeighborCache::N_VTYPES; t++) {
+        total_nbrs += cache.out_adj[t].nbr.size();
+    }
+    fprintf(stderr, "%.3f ms  (%zu edges collected, %zu out-neighbor entries)\n",
+            ms, edges.size(), total_nbrs);
+    return cache;
+}
 
 // ============================================================
 // ============================================================
@@ -329,7 +507,6 @@ static PersonProps r1_person_profile(GraphBase &graph, node_id_t pid,
 //   never touches the identity B-tree or topology tables.
 static std::vector<std::pair<node_id_t, int64_t>>
 r2_friends_sorted_by_date(GraphBase &graph, node_id_t pid, bool has_props,
-                           PropStorageMode prop_mode = EMBEDDED,
                            double *out_ms = nullptr)
 {
     SEP();
@@ -337,37 +514,19 @@ r2_friends_sorted_by_date(GraphBase &graph, node_id_t pid, bool has_props,
 
     std::vector<std::pair<node_id_t, int64_t>> result;
 
-    if (has_props && prop_mode == COLUMNAR) {
+    if (has_props) {
         // Range-scan colgroup:knows_props:temporal for all edges with src == pid.
-        WT_CURSOR *cur = graph.open_colgroup_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
-        cur->set_key(cur, (uint64_t)pid, (uint64_t)0);
-        int cmp = 0;
-        int ret = cur->search_near(cur, &cmp);
-        if (ret == 0) {
-            if (cmp < 0) ret = cur->next(cur);
-            while (ret == 0) {
-                uint64_t src, dst;
-                cur->get_key(cur, &src, &dst);
-                if (src != (uint64_t)pid) break;
-                uint64_t cDate;
-                cur->get_value(cur, &cDate);
-                result.emplace_back((node_id_t)dst, (int64_t)cDate);
-                ret = cur->next(cur);
-            }
-        }
-        cur->close(cur);
+        auto cur = graph.get_edge_prop_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
+        cur->set_src(pid);
+        while (cur->next())
+            result.emplace_back(cur->dst(), (int64_t)cur->get_uint64(0));
     } else {
         // One get_edge_properties (full blob) per knows neighbor.
         std::vector<node_id_t> neighbors = graph.get_out_nodes_id(pid);
         result.reserve(neighbors.size());
         for (node_id_t nb : neighbors) {
             if (!is_person(nb)) continue;  // skip likes (person→post) edges
-            int64_t cd = 0;
-            if (has_props) {
-                prop_blob pb = graph.get_edge_properties(pid, nb);
-                cd = decode_knows(pb).creation_date;
-            }
-            result.emplace_back(nb, cd);
+            result.emplace_back(nb, 0LL);
         }
     }
 
@@ -539,16 +698,13 @@ x3_ic2_friends_recent_posts(GraphBase &graph, node_id_t pid,
         // batch.  This reads only (creationDate:Q, length:i) = 12 B/row,
         // vs the full post_props table which loads the variable-length content
         // string on every page access.
-        WT_CURSOR *cg = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        auto cg = graph.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
         for (node_id_t post_id : candidate_posts) {
-            cg->set_key(cg, (uint64_t)post_id);
-            if (cg->search(cg) != 0) continue;
-            uint64_t cDate; int32_t length;
-            cg->get_value(cg, &cDate, &length);
+            if (!cg->seek(post_id)) continue;
+            uint64_t cDate = cg->get_uint64(0);
             if ((int64_t)cDate < cutoff_ms)
                 result.emplace_back(post_id, (int64_t)cDate);
         }
-        cg->close(cg);
     } else if (!has_props) {
         for (node_id_t post_id : candidate_posts)
             result.emplace_back(post_id, 0LL);
@@ -654,7 +810,6 @@ a1_degree_count(GraphBase &graph, node_id_t id, double *out_ms = nullptr)
 static int64_t a2_knows_in_date_range(GraphBase &graph, node_id_t pid,
                                        int64_t lo_ms, int64_t hi_ms,
                                        bool has_props,
-                                       PropStorageMode prop_mode = EMBEDDED,
                                        double *out_ms = nullptr)
 {
     SEP();
@@ -662,34 +817,19 @@ static int64_t a2_knows_in_date_range(GraphBase &graph, node_id_t pid,
 
     int64_t count = 0;
 
-    if (has_props && prop_mode == COLUMNAR) {
-        WT_CURSOR *cur = graph.open_colgroup_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
-        cur->set_key(cur, (uint64_t)pid, (uint64_t)0);
-        int cmp = 0;
-        int ret = cur->search_near(cur, &cmp);
-        if (ret == 0) {
-            if (cmp < 0) ret = cur->next(cur);
-            while (ret == 0) {
-                uint64_t src, dst;
-                cur->get_key(cur, &src, &dst);
-                if (src != (uint64_t)pid) break;
-                uint64_t cDate;
-                cur->get_value(cur, &cDate);
-                if ((int64_t)cDate >= lo_ms && (int64_t)cDate <= hi_ms)
-                    count++;
-                ret = cur->next(cur);
-            }
+    if (has_props) {
+        auto cur = graph.get_edge_prop_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
+        cur->set_src(pid);
+        while (cur->next()) {
+            int64_t cDate = (int64_t)cur->get_uint64(0);
+            if (cDate >= lo_ms && cDate <= hi_ms)
+                count++;
         }
-        cur->close(cur);
     } else {
         std::vector<node_id_t> friends = graph.get_out_nodes_id(pid);
         for (node_id_t nb : friends) {
             if (!is_person(nb)) continue;
-            if (!has_props) { count++; continue; }
-            prop_blob pb = graph.get_edge_properties(pid, nb);
-            int64_t cd = decode_knows(pb).creation_date;
-            if (cd >= lo_ms && cd <= hi_ms)
-                count++;
+            count++;
         }
     }
 
@@ -709,7 +849,6 @@ static int64_t a2_knows_in_date_range(GraphBase &graph, node_id_t pid,
 static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
                                         int64_t lo_ms, int64_t hi_ms,
                                         bool has_props,
-                                        PropStorageMode prop_mode = EMBEDDED,
                                         double *out_ms = nullptr)
 {
     SEP();
@@ -717,34 +856,19 @@ static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
 
     int64_t count = 0;
 
-    if (has_props && prop_mode == COLUMNAR) {
-        WT_CURSOR *cur = graph.open_colgroup_cursor(LIKES_PROPS_TABLE, CG_TEMPORAL);
-        cur->set_key(cur, (uint64_t)pid, (uint64_t)0);
-        int cmp = 0;
-        int ret = cur->search_near(cur, &cmp);
-        if (ret == 0) {
-            if (cmp < 0) ret = cur->next(cur);
-            while (ret == 0) {
-                uint64_t src, dst;
-                cur->get_key(cur, &src, &dst);
-                if (src != (uint64_t)pid) break;
-                uint64_t cDate;
-                cur->get_value(cur, &cDate);
-                if ((int64_t)cDate >= lo_ms && (int64_t)cDate <= hi_ms)
-                    count++;
-                ret = cur->next(cur);
-            }
+    if (has_props) {
+        auto cur = graph.get_edge_prop_cursor(LIKES_PROPS_TABLE, CG_TEMPORAL);
+        cur->set_src(pid);
+        while (cur->next()) {
+            int64_t cDate = (int64_t)cur->get_uint64(0);
+            if (cDate >= lo_ms && cDate <= hi_ms)
+                count++;
         }
-        cur->close(cur);
     } else {
         std::vector<node_id_t> liked = graph.get_out_nodes_id(pid);
         for (node_id_t post_id : liked) {
             if (!is_post(post_id)) continue;  // skip knows edges
-            if (!has_props) { count++; continue; }
-            prop_blob pb = graph.get_edge_properties(pid, post_id);
-            int64_t cd = decode_likes(pb).creation_date;
-            if (cd >= lo_ms && cd <= hi_ms)
-                count++;
+            count++;
         }
     }
 
@@ -784,18 +908,17 @@ static void bi1_posting_summary(GraphBase &graph, node_id_t total_posts,
         return 3;
     };
 
-    WT_CURSOR *cur = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
-    while (cur->next(cur) == 0) {
-        uint64_t vid, cDate; int32_t length;
-        cur->get_key(cur, &vid);
-        cur->get_value(cur, &cDate, &length);
+    auto cur = graph.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+    cur->set_range(0, OutOfBand_ID_MAX);
+    while (cur->next()) {
+        uint64_t cDate = cur->get_uint64(0);
+        int32_t length = cur->get_int32(1);
         int yr  = year_of(cDate);
         int cat = classify_length(length);
         auto &s = groups[{yr, cat}];
         s.count++;
         s.sum_len += length;
     }
-    cur->close(cur);
 
     if (out_ms) { TIME_END_CAP(bi1_posting_summary, *out_ms) }
     else        { TIME_END(bi1_posting_summary) }
@@ -823,18 +946,17 @@ static void bi12_message_distribution(GraphBase &graph, node_id_t total_posts,
 
     std::unordered_map<node_id_t, int64_t> creator_count;
 
-    WT_CURSOR *cur = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
-    while (cur->next(cur) == 0) {
-        uint64_t vid;
-        cur->get_key(cur, &vid);
+    auto cur = graph.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+    cur->set_range(0, OutOfBand_ID_MAX);
+    while (cur->next()) {
+        node_id_t vid = cur->key();
         // Find the hasCreator out-edge for this post (POST→PERSON edge)
-        std::vector<node_id_t> creators = graph.get_out_nodes_id((node_id_t)vid);
+        std::vector<node_id_t> creators = graph.get_out_nodes_id(vid);
         for (node_id_t c : creators) {
             if (VTYPE_OF(c) == VT_PERSON)
                 creator_count[c]++;
         }
     }
-    cur->close(cur);
 
     if (out_ms) { TIME_END_CAP(bi12_message_distribution, *out_ms) }
     else        { TIME_END(bi12_message_distribution) }
@@ -940,15 +1062,15 @@ static void bi12_message_distribution_fast(GraphBase &graph,
 
     bool no_filter = (max_date == INT64_MAX && min_length == 0);
     if (!no_filter) {
-        WT_CURSOR *prop_cur = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
-        while (prop_cur->next(prop_cur) == 0) {
-            uint64_t vid, cDate; int32_t length;
-            prop_cur->get_key(prop_cur, &vid);
-            prop_cur->get_value(prop_cur, &cDate, &length);
+        auto prop_cur = graph.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        prop_cur->set_range(0, OutOfBand_ID_MAX);
+        while (prop_cur->next()) {
+            node_id_t vid = prop_cur->key();
+            uint64_t cDate = prop_cur->get_uint64(0);
+            int32_t length = prop_cur->get_int32(1);
             if ((int64_t)cDate <= max_date && length >= min_length)
-                qualifying.insert((node_id_t)vid);
+                qualifying.insert(vid);
         }
-        prop_cur->close(prop_cur);
     }
 
     // Pass 2: scan only the VT_POST slice of OUT_EDGES (see Optimisation 2 above).
@@ -1064,26 +1186,17 @@ static void bi1_posting_summary_parallel(WT_CONNECTION *conn,
         node_id_t end_id   = MAKE_TYPED_ID(VT_POST,
                                  std::min((node_id_t)(t + 1) * chunk, total_posts));
 
-        WT_CURSOR *cg = bi1_handles[t]->open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
-
-        // Seek to this thread's start key.
-        cg->set_key(cg, (uint64_t)start_id);
-        int cmp = 0;
-        bool ok = (cg->search_near(cg, &cmp) == 0);
-        if (ok && cmp < 0) ok = (cg->next(cg) == 0);
-        while (ok) {
-            uint64_t vid, cDate; int32_t length;
-            cg->get_key(cg, &vid);
-            if ((node_id_t)vid >= end_id) break;
-            cg->get_value(cg, &cDate, &length);
+        auto cg = bi1_handles[t]->get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        cg->set_range(start_id, end_id);
+        while (cg->next()) {
+            uint64_t cDate = cg->get_uint64(0);
+            int32_t length = cg->get_int32(1);
             int yr  = year_of(cDate);
             int cat = classify_length(length);
             auto &s = local_groups[t][{yr, cat}];
             s.first++;
             s.second += length;
-            ok = (cg->next(cg) == 0);
         }
-        cg->close(cg);
     }
 
     for (int t = 0; t < n_threads; t++)
@@ -1151,21 +1264,15 @@ static void bi12_message_distribution_fast_parallel(WT_CONNECTION *conn,
             node_id_t end_id   = MAKE_TYPED_ID(VT_POST,
                                      std::min((node_id_t)(t + 1) * chunk, total_posts));
 
-            WT_CURSOR *cg = p1_handles[t]->open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
-            cg->set_key(cg, (uint64_t)start_id);
-            int cmp = 0;
-            bool ok = (cg->search_near(cg, &cmp) == 0);
-            if (ok && cmp < 0) ok = (cg->next(cg) == 0);
-            while (ok) {
-                uint64_t vid, cDate; int32_t length;
-                cg->get_key(cg, &vid);
-                if ((node_id_t)vid >= end_id) break;
-                cg->get_value(cg, &cDate, &length);
+            auto cg = p1_handles[t]->get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+            cg->set_range(start_id, end_id);
+            while (cg->next()) {
+                node_id_t vid = cg->key();
+                uint64_t cDate = cg->get_uint64(0);
+                int32_t length = cg->get_int32(1);
                 if ((int64_t)cDate <= max_date && length >= min_length)
-                    local_q[t].insert((node_id_t)vid);
-                ok = (cg->next(cg) == 0);
+                    local_q[t].insert(vid);
             }
-            cg->close(cg);
         }
         for (int t = 0; t < n_threads; t++)
             p1_handles[t]->close(false);
@@ -1275,15 +1382,11 @@ ic7_message_likes(GraphBase &graph, node_id_t pid,
     std::vector<std::tuple<node_id_t, node_id_t, int64_t>> result;
 
     if (has_props && !liker_msg.empty()) {
-        WT_CURSOR *cg = graph.open_colgroup_cursor(LIKES_PROPS_TABLE, CG_TEMPORAL);
+        auto cg = graph.get_edge_prop_cursor(LIKES_PROPS_TABLE, CG_TEMPORAL);
         for (auto &[liker, msg] : liker_msg) {
-            cg->set_key(cg, (uint64_t)liker, (uint64_t)msg);
-            if (cg->search(cg) != 0) continue;
-            uint64_t cDate;
-            cg->get_value(cg, &cDate);
-            result.emplace_back(liker, msg, (int64_t)cDate);
+            if (!cg->seek(liker, msg)) continue;
+            result.emplace_back(liker, msg, (int64_t)cg->get_uint64(0));
         }
-        cg->close(cg);
     } else {
         for (auto &[liker, msg] : liker_msg)
             result.emplace_back(liker, msg, 0LL);
@@ -1337,19 +1440,15 @@ ic9_friends_messages_before(GraphBase &graph, node_id_t pid,
     std::vector<std::tuple<node_id_t, int64_t, node_id_t>> result;
 
     if (has_props && !msg_creator.empty()) {
-        WT_CURSOR *post_cg    = graph.open_colgroup_cursor(POST_PROPS_TABLE,    CG_TEMPORAL);
-        WT_CURSOR *comment_cg = graph.open_colgroup_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
+        auto post_cg    = graph.get_node_prop_cursor(POST_PROPS_TABLE,    CG_TEMPORAL);
+        auto comment_cg = graph.get_node_prop_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
         for (auto &[msg, creator] : msg_creator) {
-            WT_CURSOR *cg = (VTYPE_OF(msg) == VT_POST) ? post_cg : comment_cg;
-            cg->set_key(cg, (uint64_t)msg);
-            if (cg->search(cg) != 0) continue;
-            uint64_t cDate; int32_t length;
-            cg->get_value(cg, &cDate, &length);
+            auto &cg = (VTYPE_OF(msg) == VT_POST) ? post_cg : comment_cg;
+            if (!cg->seek(msg)) continue;
+            uint64_t cDate = cg->get_uint64(0);
             if ((int64_t)cDate < cutoff_ms)
                 result.emplace_back(msg, (int64_t)cDate, creator);
         }
-        post_cg->close(post_cg);
-        comment_cg->close(comment_cg);
     } else {
         for (auto &[msg, creator] : msg_creator)
             result.emplace_back(msg, 0LL, creator);
@@ -1404,15 +1503,12 @@ ic8_latest_replies(GraphBase &graph, node_id_t pid,
     std::vector<std::tuple<node_id_t, int64_t, node_id_t>> result;
 
     if (has_props && !replies.empty()) {
-        WT_CURSOR *cg = graph.open_colgroup_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
+        auto cg = graph.get_node_prop_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
         for (node_id_t cid : replies) {
-            cg->set_key(cg, (uint64_t)cid);
-            if (cg->search(cg) != 0) continue;
-            uint64_t cDate; int32_t length;
-            cg->get_value(cg, &cDate, &length);
+            if (!cg->seek(cid)) continue;
+            uint64_t cDate = cg->get_uint64(0);
             result.emplace_back(cid, (int64_t)cDate, (node_id_t)0);
         }
-        cg->close(cg);
     } else {
         for (node_id_t cid : replies) result.emplace_back(cid, 0LL, (node_id_t)0);
     }
@@ -1455,29 +1551,23 @@ static void bi2_message_count_two_windows(GraphBase &graph,
 
     // Scan post_props:temporal
     {
-        WT_CURSOR *cur = graph.open_colgroup_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
-        while (cur->next(cur) == 0) {
-            uint64_t vid, cDate; int32_t length;
-            cur->get_key(cur, &vid);
-            cur->get_value(cur, &cDate, &length);
-            int64_t t = (int64_t)cDate;
+        auto cur = graph.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        cur->set_range(0, OutOfBand_ID_MAX);
+        while (cur->next()) {
+            int64_t t = (int64_t)cur->get_uint64(0);
             if (t >= lo1 && t < hi1) posts_w1++;
             if (t >= lo2 && t < hi2) posts_w2++;
         }
-        cur->close(cur);
     }
     // Scan comment_props:temporal
     {
-        WT_CURSOR *cur = graph.open_colgroup_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
-        while (cur->next(cur) == 0) {
-            uint64_t vid, cDate; int32_t length;
-            cur->get_key(cur, &vid);
-            cur->get_value(cur, &cDate, &length);
-            int64_t t = (int64_t)cDate;
+        auto cur = graph.get_node_prop_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
+        cur->set_range(0, OutOfBand_ID_MAX);
+        while (cur->next()) {
+            int64_t t = (int64_t)cur->get_uint64(0);
             if (t >= lo1 && t < hi1) comments_w1++;
             if (t >= lo2 && t < hi2) comments_w2++;
         }
-        cur->close(cur);
     }
 
     if (out_ms) { TIME_END_CAP(bi2_message_count_two_windows, *out_ms) }
@@ -1527,15 +1617,12 @@ ic5_forums_by_friend_membership(GraphBase &graph, node_id_t pid,
     std::unordered_map<node_id_t, int32_t> forum_count;
 
     if (has_props && !forum_member.empty()) {
-        WT_CURSOR *cg = graph.open_colgroup_cursor(HASMEMBER_PROPS_TABLE, CG_TEMPORAL);
+        auto cg = graph.get_edge_prop_cursor(HASMEMBER_PROPS_TABLE, CG_TEMPORAL);
         for (auto &[fid, mid] : forum_member) {
-            cg->set_key(cg, (uint64_t)fid, (uint64_t)mid);
-            if (cg->search(cg) != 0) continue;
-            uint64_t cDate;
-            cg->get_value(cg, &cDate);
+            if (!cg->seek(fid, mid)) continue;
+            uint64_t cDate = cg->get_uint64(0);
             if ((int64_t)cDate >= since_ms) forum_count[fid]++;
         }
-        cg->close(cg);
     } else {
         for (auto &[fid, mid] : forum_member) forum_count[fid]++;
     }
@@ -1632,15 +1719,369 @@ ic3_fof_by_country(GraphBase &graph, node_id_t pid,
 }
 
 // ============================================================
+// OPT-1 cached variants: traversal queries using NeighborCache
+// ============================================================
+//
+// Each function below is a drop-in replacement for the corresponding
+// original.  The ONLY change is that the get_in/out_nodes_id() calls in
+// steps 1–2 are replaced by pointer-range traversals over NeighborCache
+// CSR arrays.  Steps 3+ (colgroup property fetches via WiredTiger) are
+// identical — the cache covers topology only, not properties.
+//
+// Expected speedup: 10–70× on SF-3 for multi-hop traversal queries
+// (IC-3: ~213ms → ~3ms, IC-7: ~228ms → ~2ms, IC-9: ~79ms → ~3ms, etc.)
+
+// OPT-1 variant of x3_ic2_friends_recent_posts.
+// Steps 1+2 (friends + friend's posts) replaced by cache pointer walks.
+// Step 3 (colgroup date fetch) unchanged.
+static std::vector<std::pair<node_id_t, int64_t>>
+x3_ic2_friends_recent_posts_cached(GraphBase &graph, const NeighborCache &cache,
+                                    node_id_t pid, int64_t cutoff_ms, int limit,
+                                    bool has_props, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(x3_ic2_friends_recent_posts_cached)
+
+    // Step 1+2: friends → their posts.
+    // Original: get_out_nodes_id(pid) [1 WT scan] + get_in_nodes_id(friend) per friend
+    //           [N_friends WT scans] = (1 + N_f) WT cursor ops.
+    // Cached:   pointer arithmetic over pre-built CSR arrays, ~10 ns/hop.
+    std::vector<node_id_t> candidate_posts;
+    for (const node_id_t *fp = cache.out_begin(pid); fp != cache.out_end(pid); ++fp) {
+        if (!is_person(*fp)) continue;
+        for (const node_id_t *mp = cache.in_begin(*fp); mp != cache.in_end(*fp); ++mp)
+            if (is_post(*mp)) candidate_posts.push_back(*mp);
+    }
+
+    // Step 3: sort IDs for monotone colgroup seeks + batch date fetch — unchanged.
+    std::sort(candidate_posts.begin(), candidate_posts.end());
+    std::vector<std::pair<node_id_t, int64_t>> result;
+    if (has_props && !candidate_posts.empty()) {
+        auto cg = graph.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        for (node_id_t post_id : candidate_posts) {
+            if (!cg->seek(post_id)) continue;
+            uint64_t cDate = cg->get_uint64(0);
+            if ((int64_t)cDate < cutoff_ms)
+                result.emplace_back(post_id, (int64_t)cDate);
+        }
+    } else if (!has_props) {
+        for (node_id_t post_id : candidate_posts) result.emplace_back(post_id, 0LL);
+    }
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return a.second > b.second; });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(x3_ic2_friends_recent_posts_cached, *out_ms) }
+    else        { TIME_END(x3_ic2_friends_recent_posts_cached) }
+    fprintf(stderr, "  IC-2 cached for Person %llu: %zu posts found\n",
+            (unsigned long long)pid, result.size());
+    return result;
+}
+
+// OPT-1 variant of ic7_message_likes.
+// Steps 1+2 (P's messages + likers) replaced by cache pointer walks.
+// In the original adj variant, N_messages blob lookups for step 2 caused
+// ic7 to take 228 ms.  The cache reduces that to a flat pointer scan.
+static std::vector<std::tuple<node_id_t, node_id_t, int64_t>>
+ic7_message_likes_cached(GraphBase &graph, const NeighborCache &cache,
+                          node_id_t pid, int limit, bool has_props,
+                          double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic7_message_likes_cached)
+
+    // Steps 1+2: P's messages (in-edges of P typed Post/Comment) and their likers
+    // (in-edges of each message typed Person).
+    // Original: 1 + N_messages WT lookups.  Cached: pointer arithmetic only.
+    std::vector<std::pair<node_id_t, node_id_t>> liker_msg;
+    for (const node_id_t *mp = cache.in_begin(pid); mp != cache.in_end(pid); ++mp) {
+        uint8_t vt = VTYPE_OF(*mp);
+        if (vt != VT_POST && vt != VT_COMMENT) continue;
+        node_id_t msg = *mp;
+        for (const node_id_t *lp = cache.in_begin(msg); lp != cache.in_end(msg); ++lp)
+            if (VTYPE_OF(*lp) == VT_PERSON) liker_msg.emplace_back(*lp, msg);
+    }
+
+    // Step 3: batch colgroup seek on likes_props:temporal — unchanged.
+    std::sort(liker_msg.begin(), liker_msg.end());
+    std::vector<std::tuple<node_id_t, node_id_t, int64_t>> result;
+    if (has_props && !liker_msg.empty()) {
+        auto cg = graph.get_edge_prop_cursor(LIKES_PROPS_TABLE, CG_TEMPORAL);
+        for (auto &[liker, msg] : liker_msg) {
+            if (!cg->seek(liker, msg)) continue;
+            result.emplace_back(liker, msg, (int64_t)cg->get_uint64(0));
+        }
+    } else {
+        for (auto &[liker, msg] : liker_msg) result.emplace_back(liker, msg, 0LL);
+    }
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return std::get<2>(a) > std::get<2>(b); });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(ic7_message_likes_cached, *out_ms) }
+    else        { TIME_END(ic7_message_likes_cached) }
+    fprintf(stderr, "  IC-7 cached Person %llu: %zu message likes\n",
+            (unsigned long long)pid, result.size());
+    return result;
+}
+
+// OPT-1 variant of ic9_friends_messages_before.
+// Steps 1+2 (friends + their messages) replaced by cache pointer walks.
+static std::vector<std::tuple<node_id_t, int64_t, node_id_t>>
+ic9_friends_messages_before_cached(GraphBase &graph, const NeighborCache &cache,
+                                    node_id_t pid, int64_t cutoff_ms, int limit,
+                                    bool has_props, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic9_friends_messages_before_cached)
+
+    // Steps 1+2: friends (out-edges of P typed Person) + their messages
+    // (in-edges of friend typed Post/Comment = hasCreator edges in reverse).
+    // Original: 1 + N_friends WT range scans.  Cached: pointer arithmetic only.
+    std::vector<std::pair<node_id_t, node_id_t>> msg_creator;
+    for (const node_id_t *fp = cache.out_begin(pid); fp != cache.out_end(pid); ++fp) {
+        if (VTYPE_OF(*fp) != VT_PERSON) continue;
+        node_id_t f = *fp;
+        for (const node_id_t *mp = cache.in_begin(f); mp != cache.in_end(f); ++mp) {
+            uint8_t vt = VTYPE_OF(*mp);
+            if (vt == VT_POST || vt == VT_COMMENT) msg_creator.emplace_back(*mp, f);
+        }
+    }
+
+    // Step 3: dual colgroup seek on post_props + comment_props:temporal — unchanged.
+    std::sort(msg_creator.begin(), msg_creator.end());
+    std::vector<std::tuple<node_id_t, int64_t, node_id_t>> result;
+    if (has_props && !msg_creator.empty()) {
+        auto post_cg    = graph.get_node_prop_cursor(POST_PROPS_TABLE,    CG_TEMPORAL);
+        auto comment_cg = graph.get_node_prop_cursor(COMMENT_PROPS_TABLE, CG_TEMPORAL);
+        for (auto &[msg, creator] : msg_creator) {
+            auto &cg = (VTYPE_OF(msg) == VT_POST) ? post_cg : comment_cg;
+            if (!cg->seek(msg)) continue;
+            uint64_t cDate = cg->get_uint64(0);
+            if ((int64_t)cDate < cutoff_ms)
+                result.emplace_back(msg, (int64_t)cDate, creator);
+        }
+    } else {
+        for (auto &[msg, creator] : msg_creator) result.emplace_back(msg, 0LL, creator);
+    }
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return std::get<1>(a) > std::get<1>(b); });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(ic9_friends_messages_before_cached, *out_ms) }
+    else        { TIME_END(ic9_friends_messages_before_cached) }
+    fprintf(stderr, "  IC-9 cached Person %llu (before %lld): %zu messages\n",
+            (unsigned long long)pid, (long long)cutoff_ms, result.size());
+    return result;
+}
+
+// OPT-1 variant of ic5_forums_by_friend_membership.
+// Steps 1+2 (friends + their forum memberships) replaced by cache pointer walks.
+static std::vector<std::pair<node_id_t, int32_t>>
+ic5_forums_by_friend_membership_cached(GraphBase &graph, const NeighborCache &cache,
+                                         node_id_t pid, int64_t since_ms, int limit,
+                                         bool has_props, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic5_forums_by_friend_membership_cached)
+
+    // Steps 1+2: friends + forums they belong to (in-edges of friend typed Forum
+    // = hasMember edges in reverse).
+    // Original: 1 + N_friends WT range scans.  Cached: pointer arithmetic only.
+    std::vector<std::pair<node_id_t, node_id_t>> forum_member;
+    for (const node_id_t *fp = cache.out_begin(pid); fp != cache.out_end(pid); ++fp) {
+        if (VTYPE_OF(*fp) != VT_PERSON) continue;
+        node_id_t f = *fp;
+        for (const node_id_t *np = cache.in_begin(f); np != cache.in_end(f); ++np)
+            if (VTYPE_OF(*np) == VT_FORUM) forum_member.emplace_back(*np, f);
+    }
+
+    // Step 3: batch colgroup seek on hasmember_props:temporal — unchanged.
+    std::sort(forum_member.begin(), forum_member.end());
+    std::unordered_map<node_id_t, int32_t> forum_count;
+    if (has_props && !forum_member.empty()) {
+        auto cg = graph.get_edge_prop_cursor(HASMEMBER_PROPS_TABLE, CG_TEMPORAL);
+        for (auto &[fid, mid] : forum_member) {
+            if (!cg->seek(fid, mid)) continue;
+            uint64_t cDate = cg->get_uint64(0);
+            if ((int64_t)cDate >= since_ms) forum_count[fid]++;
+        }
+    } else {
+        for (auto &[fid, mid] : forum_member) forum_count[fid]++;
+    }
+    std::vector<std::pair<node_id_t, int32_t>> result(forum_count.begin(), forum_count.end());
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return a.second > b.second; });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(ic5_forums_by_friend_membership_cached, *out_ms) }
+    else        { TIME_END(ic5_forums_by_friend_membership_cached) }
+    fprintf(stderr, "  IC-5 cached Person %llu since %lld: %zu forums\n",
+            (unsigned long long)pid, (long long)since_ms, result.size());
+    return result;
+}
+
+// OPT-1 variant of ic3_fof_by_country.
+// ALL WT interaction removed: FoF expansion + resolve_person_country are fully
+// served from the cache.
+//
+// The original ekey variant called get_out_nodes_id() ~4000 times per query
+// (FoF expansion + 2 location hops per FoF candidate), costing 213 ms.
+// Here every hop is a pointer-range walk: ~10 ns each → total ~1 ms.
+static std::vector<std::pair<node_id_t, int32_t>>
+ic3_fof_by_country_cached(const NeighborCache &cache,
+                           node_id_t pid, node_id_t country_x, node_id_t country_y,
+                           int limit, double *out_ms = nullptr)
+{
+    SEP();
+    TIME_START(ic3_fof_by_country_cached)
+
+    // Step 1: P's direct friends.
+    std::unordered_set<node_id_t> friends_set;
+    for (const node_id_t *fp = cache.out_begin(pid); fp != cache.out_end(pid); ++fp)
+        if (VTYPE_OF(*fp) == VT_PERSON) friends_set.insert(*fp);
+
+    // Step 2: FoF expansion with shared-friend counting.
+    // Original: N_friends × get_out_nodes_id() WT range scans.
+    // Cached:   pointer-range walks, no WT interaction.
+    std::unordered_map<node_id_t, int32_t> fof_common;
+    for (node_id_t f : friends_set)
+        for (const node_id_t *ffp = cache.out_begin(f); ffp != cache.out_end(f); ++ffp) {
+            if (VTYPE_OF(*ffp) != VT_PERSON) continue;
+            if (*ffp == pid || friends_set.count(*ffp)) continue;
+            fof_common[*ffp]++;
+        }
+
+    // Step 3: country filter — resolved entirely from cache.
+    // resolve_person_country inlined: out-neighbors typed City → out-neighbors typed Country.
+    // Original: 2 × get_out_nodes_id() WT calls per FoF candidate.
+    // Cached:   two levels of pointer-range walks.
+    std::vector<std::pair<node_id_t, int32_t>> result;
+    for (auto &[candidate, common] : fof_common) {
+        node_id_t country = ID_NOT_FOUND;
+        for (const node_id_t *cp = cache.out_begin(candidate);
+             cp != cache.out_end(candidate) && country == ID_NOT_FOUND; ++cp) {
+            if (VTYPE_OF(*cp) != VT_CITY) continue;
+            for (const node_id_t *ccp = cache.out_begin(*cp);
+                 ccp != cache.out_end(*cp); ++ccp) {
+                if (VTYPE_OF(*ccp) == VT_COUNTRY) { country = *ccp; break; }
+            }
+        }
+        if (country == ID_NOT_FOUND) continue;
+        if (country_x != ID_NOT_FOUND && country != country_x) continue;
+        if (country_y != ID_NOT_FOUND && country == country_y) continue;
+        result.emplace_back(candidate, common);
+    }
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b) { return a.second > b.second; });
+    if ((int)result.size() > limit) result.resize(limit);
+
+    if (out_ms) { TIME_END_CAP(ic3_fof_by_country_cached, *out_ms) }
+    else        { TIME_END(ic3_fof_by_country_cached) }
+    fprintf(stderr, "  IC-3 cached Person %llu FoF in country %llu not %llu: %zu found\n",
+            (unsigned long long)pid,
+            country_x == ID_NOT_FOUND ? 0ULL : (unsigned long long)country_x,
+            country_y == ID_NOT_FOUND ? 0ULL : (unsigned long long)country_y,
+            result.size());
+    return result;
+}
+
+// ============================================================
+// OPT-3: BI-12 with dense qualifying-set array
+// ============================================================
+//
+// ROOT CAUSE: bi12_message_distribution_fast uses unordered_set<node_id_t>
+// to record qualifying posts from Pass 1.  Each insert/lookup costs ~30 ns
+// (hash function + collision chain + likely cache miss) vs ~4 ns for a
+// contiguous array.  For 2.5M post IDs this adds ~65 ms.
+//
+// FIX: post IDs are MAKE_TYPED_ID(VT_POST, 0..N-1) — densely packed counters.
+// Replace unordered_set with vector<uint8_t> indexed by VCOUNTER_OF(post_id).
+// Memory: N_posts × 1 byte = ~2.5 MB (vs ~40 MB for unordered_set at 50% load).
+//
+// Pass 2 (EdgeCursor sequential scan) is unchanged — this optimisation targets
+// only the qualifying-set operations in Pass 1 and the membership test in Pass 2.
+static void bi12_message_distribution_fast_v2(GraphBase &graph,
+                                               node_id_t total_posts,
+                                               int64_t max_date   = INT64_MAX,
+                                               int32_t min_length = 0,
+                                               double *out_ms     = nullptr)
+{
+    TIME_START(bi12_message_distribution_fast_v2)
+
+    bool no_filter = (max_date == INT64_MAX && min_length == 0);
+
+    // Pass 1: build qualifying set as a dense byte array.
+    // Insert: qualifying[VCOUNTER_OF(post_id)] = 1  — ~4 ns (stride-1 write)
+    // Lookup: qualifying[VCOUNTER_OF(post_id)]      — ~4 ns (stride-1 read)
+    // vs unordered_set: ~30 ns per op due to hashing + possible cache miss.
+    std::vector<uint8_t> qualifying;
+    if (!no_filter) {
+        qualifying.assign(total_posts, 0);
+        auto prop_cur = graph.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        prop_cur->set_range(0, OutOfBand_ID_MAX);
+        while (prop_cur->next()) {
+            node_id_t vid = prop_cur->key();
+            uint64_t cDate = prop_cur->get_uint64(0);
+            int32_t length = prop_cur->get_int32(1);
+            if ((int64_t)cDate <= max_date && length >= min_length) {
+                uint64_t c = VCOUNTER_OF(vid);
+                if (c < (uint64_t)total_posts) qualifying[c] = 1;
+            }
+        }
+    }
+
+    // Pass 2: scan VT_POST slice of OUT_EDGES — identical to bi12_message_distribution_fast.
+    std::unordered_map<node_id_t, int64_t> creator_count;
+    EdgeCursor *ec = graph.get_edge_iter();
+    ec->set_key_range({{MAKE_TYPED_ID(VT_POST, 0), 1},
+                       {OutOfBand_ID_MAX, OutOfBand_ID_MAX}});
+    edge found;
+    ec->next(&found);
+    while (found.src_id != OutOfBand_ID_MAX) {
+        if (VTYPE_OF(found.src_id) != VT_POST) break;
+        if (VTYPE_OF(found.dst_id) == VT_PERSON) {
+            bool ok = no_filter;
+            if (!ok) {
+                uint64_t c = VCOUNTER_OF(found.src_id);
+                ok = (c < (uint64_t)total_posts) && qualifying[c];
+            }
+            if (ok) creator_count[found.dst_id]++;
+        }
+        ec->next(&found);
+    }
+    delete ec;
+
+    if (out_ms) { TIME_END_CAP(bi12_message_distribution_fast_v2, *out_ms) }
+    else        { TIME_END(bi12_message_distribution_fast_v2) }
+
+    std::vector<std::pair<node_id_t, int64_t>> ranked(creator_count.begin(), creator_count.end());
+    std::sort(ranked.begin(), ranked.end(), [](const auto &a, const auto &b) {
+        if (a.second != b.second) return a.second > b.second;
+        return a.first < b.first;
+    });
+    fprintf(stderr, "  BI-12-fast-v2 (%llu posts, %zu creators)\n",
+            (unsigned long long)total_posts, ranked.size());
+    int shown = 0;
+    for (auto &[pid, cnt] : ranked) {
+        if (shown++ >= 10) { fprintf(stderr, "  ... (showing top 10)\n"); break; }
+        fprintf(stderr, "  person %llu: %lld posts\n",
+                (unsigned long long)VCOUNTER_OF(pid), (long long)cnt);
+    }
+}
+
+// ============================================================
 // main
 // ============================================================
 
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <data_dir> [graph_type] [--log <file>] [--dry-run] [--all]\n", argv[0]);
+        fprintf(stderr, "Usage: %s <data_dir> [graph_type] [--create] [--log <file>] [--dry-run] [--all]\n", argv[0]);
         fprintf(stderr, "  data_dir    directory containing LDBC SNB dynamic/ CSV files\n");
         fprintf(stderr, "  graph_type  adj | splitekey  (default: splitekey)\n");
+        fprintf(stderr, "  --create    build a new DB from <data_dir> CSVs\n");
+        fprintf(stderr, "              (default: open existing DB and skip loading)\n");
         fprintf(stderr, "  --log <f>   write every NODE/EDGE insertion to <f> (converted IDs)\n");
         fprintf(stderr, "  --dry-run   parse CSVs and write log without inserting into the DB\n");
         fprintf(stderr, "  --all       also run Pass 1 (EMBEDDED baseline) for comparison\n");
@@ -1658,8 +2099,9 @@ int main(int argc, char **argv)
     GraphType graph_type = GraphType::SplitEKey;
     std::string graph_type_str = "splitekey";
     std::string insertion_log_path;
-    bool dry_run = false;
+    bool dry_run   = false;
     bool run_pass1 = false;  // Pass 1 (EMBEDDED baseline) only runs with --all
+    bool create_db = false;  // --create: build new DB from CSVs (default: open existing)
 
     for (int i = 2; i < argc; i++) {
         std::string arg = argv[i];
@@ -1670,6 +2112,8 @@ int main(int argc, char **argv)
             graph_type = GraphType::SplitEKey;
             graph_type_str = "splitekey";
         }
+        else if (arg == "--create")
+            create_db = true;
         else if (arg == "--log" && i + 1 < argc)
             insertion_log_path = argv[++i];
         else if (arg == "--dry-run")
@@ -1688,7 +2132,7 @@ int main(int argc, char **argv)
 
     // ---- Graph engine setup ----
     graph_opts opts;
-    opts.create_new      = true;
+    opts.create_new      = create_db;
     opts.optimize_create = false;
     opts.is_directed     = true;
     opts.read_optimize   = true;
@@ -1698,8 +2142,19 @@ int main(int argc, char **argv)
     opts.prop_mode       = COLUMNAR;
     opts.type            = graph_type;
     opts.db_name         = "ldbc_snb_queries";
-    opts.db_dir          = "./db";
-    opts.conn_config     = "cache_size=2GB";
+    // Each (graph_type, prop_mode) combination gets its own directory so that
+    // adj and splitekey runs, and embedded vs columnar runs, never share or
+    // overwrite each other's WiredTiger files.
+    //   ./db_col_adj      adj   + COLUMNAR
+    //   ./db_col_ekey     ekey  + COLUMNAR
+    //   ./db_emb_adj      adj   + EMBEDDED  (--all pass 2 baseline)
+    //   ./db_emb_ekey     ekey  + EMBEDDED  (--all pass 2 baseline)
+    {
+        std::string type_str = (graph_type == GraphType::Adj) ? "adj" : "ekey";
+        std::string mode_str = (opts.prop_mode == COLUMNAR)   ? "col" : "emb";
+        opts.db_dir = "./db_" + mode_str + "_" + type_str;
+    }
+    opts.conn_config     = "cache_size=100GB";
     opts.stat_log        = "./";
 
     fprintf(stderr, "=== Graph type: %s ===\n", graph_type == GraphType::Adj ? "adj" : "splitekey");
@@ -1713,10 +2168,13 @@ int main(int argc, char **argv)
     // Load into a separate DB with blob-in-edge-table storage,
     // then run only the three queries whose colgroup benefit we measure.
     // Skipped by default; enabled with --all.
-    if (!dry_run && run_pass1) {
+    if (!dry_run && run_pass1 && create_db) {
         graph_opts emb_opts = opts;
         emb_opts.prop_mode = EMBEDDED;
-        emb_opts.db_dir    = "./db_emb";
+        {
+            std::string type_str = (graph_type == GraphType::Adj) ? "adj" : "ekey";
+            emb_opts.db_dir = "./db_emb_" + type_str + "_pass1";
+        }
 
         GraphEngine emb_engine(1, emb_opts);
         GraphBase *emb_ptr = emb_engine.create_graph_handle();
@@ -1740,11 +2198,11 @@ int main(int argc, char **argv)
 
         fprintf(stderr, "=== PASS 1 (EMBEDDED baseline): timing queries ===\n");
         r2_friends_sorted_by_date(emb_graph, emb_sp0, emb_opts.has_edge_props,
-                                   EMBEDDED, &emb_times.r2);
+                                   &emb_times.r2);
         a2_knows_in_date_range(emb_graph, emb_sp0, 0LL, INT64_MAX,
-                                emb_opts.has_edge_props, EMBEDDED, &emb_times.a2);
+                                emb_opts.has_edge_props, &emb_times.a2);
         a3_posts_liked_in_range(emb_graph, emb_sp1, 0LL, INT64_MAX,
-                                 emb_opts.has_edge_props, EMBEDDED, &emb_times.a3);
+                                 emb_opts.has_edge_props, &emb_times.a3);
 
         emb_ptr->close(false);
         emb_engine.close_graph();
@@ -1756,7 +2214,20 @@ int main(int argc, char **argv)
     GraphBase *graph_ptr = engine.create_graph_handle();
     GraphBase &graph = *graph_ptr;
 
-    // ---- Load data ----
+    // ---- Per-type node counts (populated by loader or by scanning existing DB) ----
+    node_id_t person_count    = 0;
+    node_id_t post_count      = 0;
+    node_id_t comment_count   = 0;
+    node_id_t forum_count_n   = 0;
+    node_id_t tag_count_n     = 0;
+    node_id_t tagclass_count_n= 0;
+    node_id_t place_count_n   = 0;
+    node_id_t org_count_n     = 0;
+    node_id_t country_count   = 0;  // for IC-3 sample country IDs
+    std::string chkpt;              // checkpoint name for read-only parallel sessions
+
+    if (create_db) {
+    // ---- Load data from CSVs ----
     fprintf(stderr, "=== Loading LDBC SNB data from %s ===\n", data_dir.c_str());
 
     LDBCLoader loader(&graph, opts);
@@ -1860,14 +2331,15 @@ int main(int argc, char **argv)
     safe_load("person languages",
               [&]{ loader.load_person_speaks(dyn + "/person_speaks_language_0_0.csv"); });
 
-    node_id_t person_count    = loader.person_count;
-    node_id_t post_count      = loader.post_count;
-    node_id_t comment_count   = loader.comment_count;
-    node_id_t forum_count_n   = loader.forum_count;
-    node_id_t tag_count_n     = loader.tag_count;
-    node_id_t tagclass_count_n= loader.tagclass_count;
-    node_id_t place_count_n   = loader.city_count + loader.country_count + loader.continent_count;
-    node_id_t org_count_n     = loader.company_count + loader.university_count;
+    person_count    = loader.person_count;
+    post_count      = loader.post_count;
+    comment_count   = loader.comment_count;
+    forum_count_n   = loader.forum_count;
+    tag_count_n     = loader.tag_count;
+    tagclass_count_n= loader.tagclass_count;
+    place_count_n   = loader.city_count + loader.country_count + loader.continent_count;
+    org_count_n     = loader.company_count + loader.university_count;
+    country_count   = loader.country_count;
 
     fprintf(stderr, "\n=== Graph loaded: %llu persons, %llu posts, %llu comments,"
                     " %llu forums, %llu tags, %llu tagclasses,"
@@ -1883,7 +2355,6 @@ int main(int argc, char **argv)
 
     // Checkpoint after load so that create_ro_graph_handle() (used by the
     // parallel BI queries) can open consistent read-only sessions.
-    std::string chkpt;
     if (!dry_run)
         chkpt = engine.make_checkpoint();
 
@@ -1980,6 +2451,37 @@ int main(int argc, char **argv)
         fprintf(stderr, "\n");
     }
 
+    } // end if (create_db)
+
+    // When opening an existing DB (no --create), scan nodes to derive per-type counts
+    // so that sample IDs and W1 counter are correct.
+    if (!create_db) {
+        std::vector<node> all_nodes = graph.get_nodes();
+        for (const node &nd : all_nodes) {
+            uint8_t vt = VTYPE_OF(nd.id);
+            if      (vt == VT_PERSON)                                 person_count++;
+            else if (vt == VT_POST)                                   post_count++;
+            else if (vt == VT_COMMENT)                                comment_count++;
+            else if (vt == VT_FORUM)                                  forum_count_n++;
+            else if (vt == VT_TAG)                                    tag_count_n++;
+            else if (vt == VT_TAGCLASS)                               tagclass_count_n++;
+            else if (vt==VT_CITY||vt==VT_COUNTRY||vt==VT_CONTINENT)  place_count_n++;
+            else if (vt==VT_COMPANY||vt==VT_UNIVERSITY)               org_count_n++;
+            if (vt == VT_COUNTRY) country_count++;
+        }
+        fprintf(stderr, "=== Opened existing DB: %llu persons, %llu posts, %llu comments,"
+                        " %llu forums, %llu tags, %llu tagclasses,"
+                        " %llu places, %llu orgs ===\n\n",
+                (unsigned long long)person_count,
+                (unsigned long long)post_count,
+                (unsigned long long)comment_count,
+                (unsigned long long)forum_count_n,
+                (unsigned long long)tag_count_n,
+                (unsigned long long)tagclass_count_n,
+                (unsigned long long)place_count_n,
+                (unsigned long long)org_count_n);
+    }
+
     // ---- Pick sample IDs for queries ----
     // Use person 0 and person 1 as query subjects (always exist if SF > 0)
     node_id_t sample_person0 = MAKE_TYPED_ID(VT_PERSON, 0);
@@ -1991,8 +2493,8 @@ int main(int argc, char **argv)
                                                        : OutOfBand_ID_MAX;
     (void)sample_comment0;  // reserved for future comment-specific queries
     // Use first two countries for IC-3; ID_NOT_FOUND means "any country" (skip filter)
-    node_id_t country_x = (loader.country_count > 0) ? MAKE_TYPED_ID(VT_COUNTRY, 0) : ID_NOT_FOUND;
-    node_id_t country_y = (loader.country_count > 1) ? MAKE_TYPED_ID(VT_COUNTRY, 1) : ID_NOT_FOUND;
+    node_id_t country_x = (country_count > 0) ? MAKE_TYPED_ID(VT_COUNTRY, 0) : ID_NOT_FOUND;
+    node_id_t country_y = (country_count > 1) ? MAKE_TYPED_ID(VT_COUNTRY, 1) : ID_NOT_FOUND;
 
     fprintf(stderr, "=== WRITE QUERIES ===\n");
 
@@ -2017,7 +2519,7 @@ int main(int argc, char **argv)
 
     // R2: friends sorted by date
     r2_friends_sorted_by_date(graph, sample_person0, opts.has_edge_props,
-                               opts.prop_mode, &col_times.r2);
+                               &col_times.r2);
 
     // R3: BFS shortest path (may be slow for large graphs — demo only)
     if (person_count >= 2)
@@ -2061,13 +2563,13 @@ int main(int argc, char **argv)
     // A2: knows edges in date range for person 0
     a2_knows_in_date_range(graph, sample_person0,
                            0LL, INT64_MAX,
-                           opts.has_edge_props, opts.prop_mode, &col_times.a2);
+                           opts.has_edge_props, &col_times.a2);
 
     // A3: posts liked in date range for person 1
     if (sample_person1 != sample_person0)
         a3_posts_liked_in_range(graph, sample_person1,
                                 0LL, INT64_MAX,
-                                opts.has_edge_props, opts.prop_mode, &col_times.a3);
+                                opts.has_edge_props, &col_times.a3);
 
     fprintf(stderr, "\n=== NEW QUERIES (C1: Comment, C2: Forum, C4: Place) ===\n");
 
@@ -2101,12 +2603,40 @@ int main(int argc, char **argv)
     ic3_fof_by_country(graph, sample_person0, country_x, country_y, 10,
                        &col_times.ic3_fof_country);
 
+    // ---- OPT-1: build in-memory neighbor cache, then run cached query variants ----
+    fprintf(stderr, "\n=== OPT-1: IN-MEMORY NEIGHBOR CACHE ===\n");
+    NeighborCache cache = build_neighbor_cache(graph, &col_times.cache_build_ms);
+
+    fprintf(stderr, "\n=== OPT-1: CACHED TRAVERSAL QUERIES ===\n");
+
+    {
+        int64_t cutoff = INT64_MAX;
+        x3_ic2_friends_recent_posts_cached(graph, cache, sample_person0, cutoff, 10,
+                                           opts.has_node_props, &col_times.x3_cached);
+    }
+
+    ic7_message_likes_cached(graph, cache, sample_person0, 20,
+                             opts.has_edge_props, &col_times.ic7_cached);
+
+    ic9_friends_messages_before_cached(graph, cache, sample_person0, INT64_MAX, 20,
+                                       opts.has_node_props, &col_times.ic9_cached);
+
+    ic5_forums_by_friend_membership_cached(graph, cache, sample_person0, 0LL, 20,
+                                           opts.has_edge_props, &col_times.ic5_cached);
+
+    ic3_fof_by_country_cached(cache, sample_person0, country_x, country_y, 10,
+                              &col_times.ic3_cached);
+
     if (opts.prop_mode == COLUMNAR && !dry_run) {
         const int N_THREADS = omp_get_max_threads();
         fprintf(stderr, "\n=== BI QUERIES (COLUMNAR mode) ===\n");
         bi1_posting_summary(graph, post_count, &col_times.bi1);
         bi12_message_distribution(graph, post_count, &col_times.bi12);
         bi12_message_distribution_fast(graph, post_count, INT64_MAX, 0, &col_times.bi12_fast);
+
+        fprintf(stderr, "\n=== OPT-3: BI-12 DENSE-ARRAY QUALIFYING SET ===\n");
+        bi12_message_distribution_fast_v2(graph, post_count, INT64_MAX, 0,
+                                          &col_times.bi12_fast_v2);
 
         // Build read-only opts for the parallel handles.
         // WiredTiger allows only one connection per DB, so we reuse the
@@ -2192,6 +2722,15 @@ int main(int argc, char **argv)
             {"bi2_message_count_two_windows",col_times.bi2_two_windows},
             {"ic5_forums_by_friend_membership",col_times.ic5_forums},
             {"ic3_fof_by_country",           col_times.ic3_fof_country},
+            // OPT-1: cached traversal variants
+            {"cache_build",                          col_times.cache_build_ms},
+            {"x3_ic2_friends_recent_posts_cached",   col_times.x3_cached},
+            {"ic7_message_likes_cached",             col_times.ic7_cached},
+            {"ic9_friends_messages_before_cached",   col_times.ic9_cached},
+            {"ic5_forums_by_friend_membership_cached",col_times.ic5_cached},
+            {"ic3_fof_by_country_cached",            col_times.ic3_cached},
+            // OPT-3: dense-array bi12
+            {"bi12_message_distribution_fast_v2",    col_times.bi12_fast_v2},
         };
         for (auto &t : all_times) {
             if (t.ms >= 0.0)

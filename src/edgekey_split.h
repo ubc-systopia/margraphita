@@ -80,8 +80,10 @@ class SplitEdgeKey : public GraphBase
   prop_blob get_node_properties(node_id_t id) override;
   void set_edge_properties(node_id_t src, node_id_t dst, const uint8_t* data, size_t size) override;
   prop_blob get_edge_properties(node_id_t src, node_id_t dst) override;
-  WT_CURSOR* open_colgroup_cursor(const std::string& table,
-                                   const std::string& colgroup) override;
+  std::unique_ptr<NodePropCursor> get_node_prop_cursor(
+      const std::string &table, const std::string &colgroup) override;
+  std::unique_ptr<EdgePropCursor> get_edge_prop_cursor(
+      const std::string &table, const std::string &colgroup) override;
   void add_person_email(node_id_t person_id, uint64_t idx, const char* email) override;
   void add_person_language(node_id_t person_id, uint64_t idx, const char* lang) override;
   std::vector<std::string> get_person_emails(node_id_t person_id) override;

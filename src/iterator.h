@@ -3,8 +3,10 @@
 #include <wiredtiger.h>
 
 #include <iostream>
+#include <memory>
 
 #include "common_defs.h"
+#include "graph_exception.h"
 /**
  * @brief The following are iterator definitions.
  *
@@ -121,4 +123,60 @@ class EdgeCursor : public table_iterator
               << std::endl;
   }
 };
+
+// ─── NodePropCursor ───────────────────────────────────────────────────────────
+// Abstracts over a property scan keyed by node_id_t.
+// COLUMNAR: wraps a WiredTiger colgroup cursor.
+// EMBEDDED: wraps get_node_properties() point lookups + NodeCursor iteration.
+// Returned as unique_ptr — destructor releases all resources (RAII).
+// No public close() method.
+class NodePropCursor {
+public:
+  // Restrict sequential scan to [start, end).
+  // Passing OutOfBand_ID_MAX for end = unbounded full-table scan.
+  virtual void set_range(node_id_t start, node_id_t end) = 0;
+
+  // Advance to the next row.  Returns false at EOF or past range end.
+  // Must be called before accessing key()/get_uint64()/get_int32().
+  virtual bool next() = 0;
+
+  // Exact point lookup.  Returns false if not found.
+  // Mutually exclusive with next()/set_range() per cursor lifetime.
+  virtual bool seek(node_id_t id) = 0;
+
+  virtual node_id_t key()             const = 0;
+  virtual uint64_t  get_uint64(int n) const = 0;  // nth value column, 0-indexed
+  virtual int32_t   get_int32 (int n) const = 0;
+
+  virtual ~NodePropCursor() = default;
+};
+
+// ─── EdgePropCursor ───────────────────────────────────────────────────────────
+// Abstracts over a property scan keyed by (src, dst).
+// COLUMNAR: wraps a WiredTiger colgroup cursor.
+// EMBEDDED: wraps get_out_nodes_id() + get_edge_properties() per neighbor.
+// Same RAII contract as NodePropCursor.
+class EdgePropCursor {
+public:
+  // Pin to a single src.  next() stops when src changes.
+  // EMBEDDED: pre-fetches get_out_nodes_id(src) on this call.
+  virtual void set_src(node_id_t src) = 0;
+
+  // Restrict to edges with src in [src_start, src_end).
+  // COLUMNAR only; EMBEDDED implementation throws GraphException.
+  virtual void set_src_range(node_id_t src_start, node_id_t src_end) = 0;
+
+  // Advance.  Returns false at EOF or when pin/range condition breaks.
+  virtual bool next() = 0;
+
+  // Exact point lookup on (src, dst).  Returns false if not found.
+  virtual bool seek(node_id_t src, node_id_t dst) = 0;
+
+  virtual node_id_t src()             const = 0;
+  virtual node_id_t dst()             const = 0;
+  virtual uint64_t  get_uint64(int n) const = 0;
+
+  virtual ~EdgePropCursor() = default;
+};
+
 #endif
