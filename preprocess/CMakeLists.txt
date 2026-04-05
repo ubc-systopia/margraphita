@@ -63,3 +63,7 @@ target_link_libraries(dump_graph PUBLIC ${Boost_LIBRARIES} ${NAME_LIB} graph_uti
 
 # ###################################################################################
 add_executable(check_sorted check_sorted.cpp)
+
+# ###################################################################################
+# snb_bulk_load: multithreaded RAM-efficient LDBC SNB full-schema bulk loader
+add_subdirectory(snb_bulk_load)

@@ -101,6 +101,7 @@ set(COLOR_RESET "${Esc}[0m")
 set(COLOR_BOLD "${Esc}[1m")
 set(COLOR_BOLD_YELLOW "${Esc}[1;33m")
 
+option(B64 "Use 64-bit vertex IDs (required for typed multi-type IDs)" ON)
 if (B64)
   message("${COLOR_BOLD_YELLOW}Using 64 bit vertex ids ${COLOR_RESET}")
   add_compile_definitions(B64)
