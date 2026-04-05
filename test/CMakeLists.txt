@@ -84,6 +84,11 @@ ADD_EXECUTABLE(ldbc_snb_queries "${PATH_TEST}/ldbc_snb_queries.cpp")
 TARGET_INCLUDE_DIRECTORIES(ldbc_snb_queries PRIVATE ${PATH_SRC} ${PATH_TEST})
 TARGET_LINK_LIBRARIES(ldbc_snb_queries PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
+# Validation binary: outputs query results as JSON lines for cross-system comparison
+ADD_EXECUTABLE(validate_queries "${PATH_TEST}/validate_queries.cpp")
+TARGET_INCLUDE_DIRECTORIES(validate_queries PRIVATE ${PATH_SRC} ${PATH_TEST})
+TARGET_LINK_LIBRARIES(validate_queries PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
 # Typed vertex-ID overflow / B64 sanity check
 ADD_EXECUTABLE(test_typed_id "${PATH_TEST}/test_typed_id.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_typed_id PRIVATE ${PATH_SRC})

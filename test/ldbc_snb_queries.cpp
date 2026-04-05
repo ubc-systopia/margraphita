@@ -526,7 +526,10 @@ r2_friends_sorted_by_date(GraphBase &graph, node_id_t pid, bool has_props,
         result.reserve(neighbors.size());
         for (node_id_t nb : neighbors) {
             if (!is_person(nb)) continue;  // skip likes (person→post) edges
-            result.emplace_back(nb, 0LL);
+            prop_blob pb = graph.get_edge_properties(pid, nb);
+            int64_t cDate = (pb.data && pb.size >= SNBKnowsSchema::TOTAL_SIZE)
+                            ? SNBKnowsSchema::get_creation_date(pb.data) : 0LL;
+            result.emplace_back(nb, cDate);
         }
     }
 
@@ -568,9 +571,14 @@ static int r3_bfs_shortest_path(GraphBase &graph, node_id_t src, node_id_t dst,
     int found_dist = -1;
     while (!q.empty() && found_dist < 0) {
         node_id_t u = q.front(); q.pop_front();
+        // Traverse knows edges in both directions (undirected), matching NeuG's
+        // `-[k:knows* SHORTEST 1..10]-` Cypher pattern which is undirected.
+        // The LDBC knows CSV stores each friendship once; both directions must
+        // be explored to find the true shortest path.
         std::vector<node_id_t> nbrs = graph.get_out_nodes_id(u);
+        for (node_id_t v : graph.get_in_nodes_id(u))
+            if (is_person(v)) nbrs.push_back(v);
         for (node_id_t v : nbrs) {
-            // Only traverse knows edges (person→person)
             if (!is_person(v)) continue;
             if (dist.count(v)) continue;
             dist[v] = dist[u] + 1;
@@ -829,7 +837,11 @@ static int64_t a2_knows_in_date_range(GraphBase &graph, node_id_t pid,
         std::vector<node_id_t> friends = graph.get_out_nodes_id(pid);
         for (node_id_t nb : friends) {
             if (!is_person(nb)) continue;
-            count++;
+            prop_blob pb = graph.get_edge_properties(pid, nb);
+            if (pb.data && pb.size >= SNBKnowsSchema::TOTAL_SIZE) {
+                int64_t cDate = SNBKnowsSchema::get_creation_date(pb.data);
+                if (cDate >= lo_ms && cDate <= hi_ms) count++;
+            }
         }
     }
 
@@ -868,7 +880,11 @@ static int64_t a3_posts_liked_in_range(GraphBase &graph, node_id_t pid,
         std::vector<node_id_t> liked = graph.get_out_nodes_id(pid);
         for (node_id_t post_id : liked) {
             if (!is_post(post_id)) continue;  // skip knows edges
-            count++;
+            prop_blob pb = graph.get_edge_properties(pid, post_id);
+            if (pb.data && pb.size >= SNBLikesSchema::TOTAL_SIZE) {
+                int64_t cDate = SNBLikesSchema::get_creation_date(pb.data);
+                if (cDate >= lo_ms && cDate <= hi_ms) count++;
+            }
         }
     }
 

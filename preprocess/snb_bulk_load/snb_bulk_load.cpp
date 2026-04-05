@@ -483,6 +483,31 @@ static void load_forums(State& st) {
 // Phase 2 — edge loaders
 // ============================================================
 
+// Retry add_edge on WT_ROLLBACK (-31800).
+//
+// Under concurrent Phase-2 loading, two threads can race to update the degree
+// sentinel of the same hub node within the same WiredTiger snapshot transaction.
+// WiredTiger detects the write-write conflict and returns WT_ROLLBACK, which
+// rolls back the entire add_edge transaction (including the edge insert).
+// Without a retry, the edge is never inserted but its spool entry is still
+// written, causing Phase 4 to crash with "edge not found".
+//
+// The retry loop resolves the conflict: the winning thread commits first, the
+// losing thread retries and now sees the updated sentinel so it can commit too.
+//
+// Returns 0 on success, WT_DUPLICATE_KEY if the edge already existed,
+// or a non-zero error code if max_retries is exceeded (logs a warning).
+static int add_edge_retry(GraphBase* h, node_id_t src, node_id_t dst,
+                          int max_retries = 500)
+{
+    edge e; e.src_id = src; e.dst_id = dst; e.edge_weight = 0;
+    for (int attempt = 0; attempt < max_retries; ++attempt) {
+        int ret = h->add_edge(e, false);
+        if (ret != WT_ROLLBACK) return ret;   // 0, WT_DUPLICATE_KEY, or hard error
+    }
+    return WT_ROLLBACK;  // caller decides whether to recover or skip
+}
+
 // Generic structural edge loader (no property blob).
 static size_t load_struct_edges(State& st,
     const std::string& path, const char* label,
@@ -510,8 +535,8 @@ static size_t load_struct_edges(State& st,
         node_id_t dst = dst_map.lookup(std::stoll(flds[c_dst]));
         if (src == SnbIdMap::INVALID || dst == SnbIdMap::INVALID) continue;
         if (!st.dry_run) {
-            edge e; e.src_id = src; e.dst_id = dst; e.edge_weight = 0;
-            h->add_edge(e, false);
+            int ret = add_edge_retry(h, src, dst);
+            if (ret != 0 && ret != WT_DUPLICATE_KEY) continue;  // skip on permanent failure
         }
         ++cnt;
     }
@@ -551,8 +576,8 @@ static size_t load_dated_edges(State& st,
         node_id_t dst = dst_map.lookup(std::stoll(flds[c_dst]));
         if (src == SnbIdMap::INVALID || dst == SnbIdMap::INVALID) continue;
         if (!st.dry_run) {
-            edge e; e.src_id = src; e.dst_id = dst; e.edge_weight = 0;
-            h->add_edge(e, false);
+            int ret = add_edge_retry(h, src, dst);
+            if (ret != 0 && ret != WT_DUPLICATE_KEY) continue;  // edge not in graph; skip spool
         }
         if (sp) {
             // All dated edge schemas (knows, likes, hasMember) share the same
@@ -601,8 +626,8 @@ static size_t load_year_edges(State& st,
         node_id_t dst = dst_map.lookup(std::stoll(flds[c_dst]));
         if (src == SnbIdMap::INVALID || dst == SnbIdMap::INVALID) continue;
         if (!st.dry_run) {
-            edge e; e.src_id = src; e.dst_id = dst; e.edge_weight = 0;
-            h->add_edge(e, false);
+            int ret = add_edge_retry(h, src, dst);
+            if (ret != 0 && ret != WT_DUPLICATE_KEY) continue;  // edge not in graph; skip spool
         }
         if (sp) {
             uint8_t buf[4] = {};
@@ -645,10 +670,28 @@ static void flush_edge_spool(State& st, const std::string& spool_path) {
     EdgePropSpoolReader rdr(spool_path);
     GraphBase* h = st.engine->create_graph_handle();
     node_id_t src, dst; std::vector<uint8_t> data;
+    size_t recovered = 0;
     while (rdr.read(src, dst, data)) {
-        if (!st.dry_run)
+        if (st.dry_run) continue;
+        try {
             h->set_edge_properties(src, dst, data.data(), data.size());
+        } catch (const GraphException&) {
+            // Edge was not committed in Phase 2 (WT_ROLLBACK race on hub-node
+            // degree sentinel).  Insert it now so the graph is complete.
+            int ret = add_edge_retry(h, src, dst);
+            if (ret != 0 && ret != WT_DUPLICATE_KEY) {
+                fprintf(stderr, "[WARN] flush_edge_spool: could not insert missing "
+                        "edge (%llu,%llu) — skipping\n",
+                        (unsigned long long)src, (unsigned long long)dst);
+                continue;
+            }
+            h->set_edge_properties(src, dst, data.data(), data.size());
+            ++recovered;
+        }
     }
+    if (recovered)
+        fprintf(stderr, "[INFO] flush_edge_spool: recovered %zu missing edges from %s\n",
+                recovered, spool_path.c_str());
     if (!st.dry_run) h->close(false);
 }
 
