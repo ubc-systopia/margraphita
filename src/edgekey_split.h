@@ -566,10 +566,12 @@ class SplitEKeyEdgeCursor : public EdgeCursor
  private:
   // bool at_node =true; //initial state
  public:
-  SplitEKeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess)
+  SplitEKeyEdgeCursor(WT_CURSOR *cur, WT_SESSION *sess,
+                      bool fetch_weight = true)
   {
     cursor = cur;
     session = sess;
+    get_weight = fetch_weight;
     set_key_range({{OutOfBand_ID_MIN, OutOfBand_ID_MIN},
                    {OutOfBand_ID_MAX, OutOfBand_ID_MAX}});
   }

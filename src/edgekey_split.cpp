@@ -456,7 +456,31 @@ int SplitEdgeKey::add_node_txn(node to_insert,
     {
       degree_t in_deg, out_deg;
       ekey_get_node_value(out_edge_cursor, &in_deg, &out_deg);
-      ekey_set_node_value(out_edge_cursor, in_deg + indeg_change, out_deg + outdeg_change);
+      // In EMBEDDED mode the sentinel may already carry a prop blob appended
+      // by set_node_properties (Phase 3 runs before Phase 4 recovery calls
+      // add_edge -> add_node_txn).  Preserve any bytes beyond the degree header.
+      constexpr size_t HDR = sizeof(degree_t) * 2;
+      if (opts.prop_mode != COLUMNAR) {
+        WT_ITEM existing;
+        out_edge_cursor->get_value(out_edge_cursor, &existing);
+        degree_t new_in  = in_deg  + (degree_t)indeg_change;
+        degree_t new_out = out_deg + (degree_t)outdeg_change;
+        if (existing.size > HDR) {
+          // Rebuild the full sentinel preserving the prop blob.
+          std::vector<uint8_t> buf(existing.size);
+          memcpy(buf.data(),               &new_in,  sizeof(degree_t));
+          memcpy(buf.data() + sizeof(degree_t), &new_out, sizeof(degree_t));
+          memcpy(buf.data() + HDR,
+                 static_cast<const uint8_t*>(existing.data) + HDR,
+                 existing.size - HDR);
+          WT_ITEM item; item.data = buf.data(); item.size = existing.size;
+          out_edge_cursor->set_value(out_edge_cursor, &item);
+        } else {
+          ekey_set_node_value(out_edge_cursor, new_in, new_out);
+        }
+      } else {
+        ekey_set_node_value(out_edge_cursor, in_deg + indeg_change, out_deg + outdeg_change);
+      }
       int ret = out_edge_cursor->update(out_edge_cursor);
       return error_check_insert_txn(ret);
     }
@@ -1117,7 +1141,8 @@ SplitEdgeKey::get_edge_prop_cursor(const std::string &table,
     if (ret != 0)
       throw GraphException("SplitEdgeKey::get_edge_prop_cursor: failed to open " +
                            uri + ": " + wiredtiger_strerror(ret));
-    return std::make_unique<WTEdgePropCursor>(c);
+    bool node_keyed = (table == POST_PROPS_TABLE || table == COMMENT_PROPS_TABLE);
+    return std::make_unique<WTEdgePropCursor>(c, layout_for(table, colgroup), node_keyed);
   } else {
     return make_emb_edge_prop_cursor(this, table, colgroup);
   }
@@ -1793,7 +1818,29 @@ int SplitEdgeKey::update_node_degree(node_id_t node_id,
   if (!(ret = degree_cursor->search(degree_cursor)))
   {
     ekey_get_node_value(degree_cursor, &in, &out);
-    ekey_set_node_value(degree_cursor, in + in_change, out + out_change);
+    // In EMBEDDED mode the sentinel may carry a prop blob beyond the degree
+    // header; preserve it when updating degrees.
+    constexpr size_t HDR2 = sizeof(degree_t) * 2;
+    if (opts.prop_mode != COLUMNAR) {
+      WT_ITEM existing;
+      degree_cursor->get_value(degree_cursor, &existing);
+      degree_t new_in  = (degree_t)(in  + in_change);
+      degree_t new_out = (degree_t)(out + out_change);
+      if (existing.size > HDR2) {
+        std::vector<uint8_t> buf(existing.size);
+        memcpy(buf.data(),                    &new_in,  sizeof(degree_t));
+        memcpy(buf.data() + sizeof(degree_t), &new_out, sizeof(degree_t));
+        memcpy(buf.data() + HDR2,
+               static_cast<const uint8_t*>(existing.data) + HDR2,
+               existing.size - HDR2);
+        WT_ITEM item; item.data = buf.data(); item.size = existing.size;
+        degree_cursor->set_value(degree_cursor, &item);
+      } else {
+        ekey_set_node_value(degree_cursor, new_in, new_out);
+      }
+    } else {
+      ekey_set_node_value(degree_cursor, in + in_change, out + out_change);
+    }
     ret = degree_cursor->update(degree_cursor);
   }
   else
@@ -1825,7 +1872,8 @@ NodeCursor *SplitEdgeKey::get_node_iter()
 }
 EdgeCursor *SplitEdgeKey::get_edge_iter()
 {
-  EdgeCursor *toReturn = new SplitEKeyEdgeCursor(get_new_out_cursor(), session);
+  EdgeCursor *toReturn = new SplitEKeyEdgeCursor(
+      get_new_out_cursor(), session, opts.is_weighted);
   return toReturn;
 }
 void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
