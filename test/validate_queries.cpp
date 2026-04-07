@@ -165,14 +165,31 @@ static void run_r2(GraphBase &g, node_id_t pid, bool has_props)
     std::vector<std::pair<node_id_t, int64_t>> result;
 
     if (has_props) {
+        // Out-knows via colgroup cursor
         auto cur = g.get_edge_prop_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
         cur->set_src(pid);
         while (cur->next())
             result.emplace_back(cur->dst(), (int64_t)cur->get_uint64(0));
+        // In-knows: knows is symmetric in LDBC; also traverse reverse edges
+        for (node_id_t nb : g.get_in_nodes_id(pid)) {
+            if (!is_person(nb)) continue;
+            prop_blob pb = g.get_edge_properties(nb, pid);
+            int64_t cDate = (pb.data && pb.size >= SNBKnowsSchema::TOTAL_SIZE)
+                            ? SNBKnowsSchema::get_creation_date(pb.data) : -1LL;
+            result.emplace_back(nb, cDate);
+        }
     } else {
         for (node_id_t nb : g.get_out_nodes_id(pid)) {
             if (!is_person(nb)) continue;
             prop_blob pb = g.get_edge_properties(pid, nb);
+            int64_t cDate = (pb.data && pb.size >= SNBKnowsSchema::TOTAL_SIZE)
+                            ? SNBKnowsSchema::get_creation_date(pb.data) : -1LL;
+            result.emplace_back(nb, cDate);
+        }
+        // In-knows: knows is symmetric in LDBC; also traverse reverse edges
+        for (node_id_t nb : g.get_in_nodes_id(pid)) {
+            if (!is_person(nb)) continue;
+            prop_blob pb = g.get_edge_properties(nb, pid);
             int64_t cDate = (pb.data && pb.size >= SNBKnowsSchema::TOTAL_SIZE)
                             ? SNBKnowsSchema::get_creation_date(pb.data) : -1LL;
             result.emplace_back(nb, cDate);
@@ -253,8 +270,11 @@ static void run_x2(GraphBase &g, node_id_t post_id)
 // X3: IC-2 — friends' posts before cutoff, top-10 DESC
 static void run_x3(GraphBase &g, node_id_t pid, int64_t cutoff_ms, bool has_props)
 {
+    // Collect friends: knows is symmetric so include both out- and in-edges
     std::vector<node_id_t> friends;
     for (node_id_t nb : g.get_out_nodes_id(pid))
+        if (is_person(nb)) friends.push_back(nb);
+    for (node_id_t nb : g.get_in_nodes_id(pid))
         if (is_person(nb)) friends.push_back(nb);
 
     std::vector<std::pair<int64_t, node_id_t>> cands; // (date, post_id)
@@ -331,16 +351,35 @@ static void run_a2(GraphBase &g, node_id_t pid, int64_t lo_ms, int64_t hi_ms, bo
 {
     int64_t count = 0;
     if (has_props) {
+        // Out-knows via colgroup cursor
         auto cur = g.get_edge_prop_cursor(KNOWS_PROPS_TABLE, CG_TEMPORAL);
         cur->set_src(pid);
         while (cur->next()) {
             int64_t cDate = (int64_t)cur->get_uint64(0);
             if (cDate >= lo_ms && cDate <= hi_ms) count++;
         }
+        // In-knows (reverse edges — knows is symmetric)
+        for (node_id_t nb : g.get_in_nodes_id(pid)) {
+            if (!is_person(nb)) continue;
+            prop_blob pb = g.get_edge_properties(nb, pid);
+            if (pb.data && pb.size >= SNBKnowsSchema::TOTAL_SIZE) {
+                int64_t cDate = SNBKnowsSchema::get_creation_date(pb.data);
+                if (cDate >= lo_ms && cDate <= hi_ms) count++;
+            }
+        }
     } else {
         for (node_id_t nb : g.get_out_nodes_id(pid)) {
             if (!is_person(nb)) continue;
             prop_blob pb = g.get_edge_properties(pid, nb);
+            if (pb.data && pb.size >= SNBKnowsSchema::TOTAL_SIZE) {
+                int64_t cDate = SNBKnowsSchema::get_creation_date(pb.data);
+                if (cDate >= lo_ms && cDate <= hi_ms) count++;
+            }
+        }
+        // In-knows (reverse edges — knows is symmetric)
+        for (node_id_t nb : g.get_in_nodes_id(pid)) {
+            if (!is_person(nb)) continue;
+            prop_blob pb = g.get_edge_properties(nb, pid);
             if (pb.data && pb.size >= SNBKnowsSchema::TOTAL_SIZE) {
                 int64_t cDate = SNBKnowsSchema::get_creation_date(pb.data);
                 if (cDate >= lo_ms && cDate <= hi_ms) count++;
@@ -359,6 +398,7 @@ static void run_a3(GraphBase &g, node_id_t pid, int64_t lo_ms, int64_t hi_ms, bo
         auto cur = g.get_edge_prop_cursor(LIKES_PROPS_TABLE, CG_TEMPORAL);
         cur->set_src(pid);
         while (cur->next()) {
+            if (!is_post(cur->dst())) continue;  // count only post-likes (matches EMBEDDED path)
             int64_t cDate = (int64_t)cur->get_uint64(0);
             if (cDate >= lo_ms && cDate <= hi_ms) count++;
         }
@@ -587,6 +627,8 @@ static void run_ic9(GraphBase &g, node_id_t pid, int64_t cutoff_ms, bool has_pro
     std::vector<node_id_t> friends;
     for (node_id_t nb : g.get_out_nodes_id(pid))
         if (is_person(nb)) friends.push_back(nb);
+    for (node_id_t nb : g.get_in_nodes_id(pid))
+        if (is_person(nb)) friends.push_back(nb);
 
     struct Row { node_id_t msg, creator; int64_t cDate; };
     std::vector<Row> rows;
@@ -624,6 +666,8 @@ static void run_ic5(GraphBase &g, node_id_t pid, int64_t since_ms, bool has_prop
 {
     std::vector<node_id_t> friends;
     for (node_id_t nb : g.get_out_nodes_id(pid))
+        if (is_person(nb)) friends.push_back(nb);
+    for (node_id_t nb : g.get_in_nodes_id(pid))
         if (is_person(nb)) friends.push_back(nb);
 
     std::unordered_set<node_id_t> friend_set(friends.begin(), friends.end());
@@ -671,12 +715,10 @@ static void run_ic3(GraphBase &g, node_id_t pid,
         if (is_person(nb)) direct.insert(nb);
 
     // 2-hop expansion: FoF candidates + common friend count
+    // NeuG uses (friend)-[:knows]->(fof) — forward direction only
     std::unordered_map<node_id_t,int64_t> common_cnt;
     for (node_id_t f : direct) {
-        std::vector<node_id_t> fof_nbrs = g.get_out_nodes_id(f);
-        for (node_id_t v : g.get_in_nodes_id(f))
-            if (is_person(v)) fof_nbrs.push_back(v);
-        for (node_id_t fof : fof_nbrs) {
+        for (node_id_t fof : g.get_out_nodes_id(f)) {
             if (!is_person(fof)) continue;
             if (fof == pid || direct.count(fof)) continue;
             common_cnt[fof]++;
@@ -729,19 +771,21 @@ static void run_ic3(GraphBase &g, node_id_t pid,
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <db_dir> [adj|splitekey] [--embedded]\n", argv[0]);
+        fprintf(stderr, "Usage: %s <db_dir> [adj|splitekey] [--embedded] [--db-name=NAME]\n", argv[0]);
         return 1;
     }
 
-    std::string db_dir = argv[1];
-    GraphType   gtype  = GraphType::SplitEKey;
-    bool        emb    = false;
+    std::string db_dir  = argv[1];
+    GraphType   gtype   = GraphType::SplitEKey;
+    bool        emb     = false;
+    std::string db_name = "ldbc_snb_queries";
 
     for (int i = 2; i < argc; i++) {
         std::string a = argv[i];
-        if      (a == "adj")        gtype = GraphType::Adj;
-        else if (a == "splitekey")  gtype = GraphType::SplitEKey;
-        else if (a == "--embedded") emb   = true;
+        if      (a == "adj")                       gtype   = GraphType::Adj;
+        else if (a == "splitekey")                 gtype   = GraphType::SplitEKey;
+        else if (a == "--embedded")                emb     = true;
+        else if (a.rfind("--db-name=", 0) == 0)   db_name = a.substr(10);
         else { fprintf(stderr, "Unknown arg: %s\n", argv[i]); return 1; }
     }
 
@@ -753,7 +797,7 @@ int main(int argc, char **argv)
     opts.has_edge_props  = true;
     opts.prop_mode       = emb ? EMBEDDED : COLUMNAR;
     opts.type            = gtype;
-    opts.db_name         = "ldbc_snb_queries";
+    opts.db_name         = db_name;
     opts.db_dir          = db_dir;
     opts.conn_config     = "cache_size=4GB";
     opts.stat_log        = "./";
