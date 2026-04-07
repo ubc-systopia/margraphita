@@ -14,7 +14,9 @@
 //   Phase 1a  parallel: places, orgs, tags, tagclasses, persons, posts, comments
 //             (person emails + languages loaded inline for persons)
 //   Phase 1b  sequential: forums (embeds moderator person_id → needs person_map)
-//   Phase 2   parallel in batches of --threads: all edge CSVs
+//   Phase 2a  parallel: all non-Comment edge CSVs
+//   Phase 2b  parallel then MT-serial: Comment-touching edges; comment_replyOf_comment
+//             runs last with all --threads workers to avoid WT_ROLLBACK contention
 //   Phase 3   parallel: flush node props from spool files
 //   Phase 4   parallel: flush edge props from spool files
 //   Checkpoint and close.
@@ -93,11 +95,12 @@ struct State {
     std::string spool_dir;
 
     // Options
-    int  num_threads = 8;
-    bool has_props   = true;
-    bool dry_run     = false;
-    bool keep_spool  = false;
-    bool verbose     = true;
+    int  num_threads  = 8;
+    bool has_props    = true;
+    bool dry_run      = false;
+    bool keep_spool   = false;
+    bool reuse_spool  = false;  // skip writing spools; read pre-existing ones instead
+    bool verbose      = true;
 
     // Graph engine (created once, shared across all threads)
     GraphEngine* engine = nullptr;
@@ -156,7 +159,7 @@ static void load_persons(State& st) {
     if (c_id < 0) throw std::runtime_error("person CSV missing 'id'");
 
     GraphBase* h   = st.engine->create_graph_handle();
-    NodePropSpool* sp = (st.has_props) ? new NodePropSpool(nspool(st,"person")) : nullptr;
+    NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st,"person")) : nullptr;
     node_id_t ctr  = 0;
 
     while (std::getline(f, line)) {
@@ -206,7 +209,7 @@ static void load_message_vertices(State& st,
     if (c_id < 0) throw std::runtime_error(std::string(label) + " CSV missing 'id'");
 
     GraphBase* h  = st.engine->create_graph_handle();
-    NodePropSpool* sp = (st.has_props) ? new NodePropSpool(nspool(st, label)) : nullptr;
+    NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st, label)) : nullptr;
     node_id_t ctr = 0;
 
     while (std::getline(f, line)) {
@@ -272,7 +275,7 @@ static void load_tag_vertex(State& st,
     if (c_id < 0) throw std::runtime_error(std::string(label) + " CSV missing 'id'");
 
     GraphBase* h  = st.engine->create_graph_handle();
-    NodePropSpool* sp = (st.has_props) ? new NodePropSpool(nspool(st, label)) : nullptr;
+    NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st, label)) : nullptr;
     node_id_t ctr = 0;
 
     while (std::getline(f, line)) {
@@ -322,7 +325,7 @@ static void load_places(State& st) {
     if (c_id < 0) throw std::runtime_error("place CSV missing 'id'");
 
     GraphBase* h  = st.engine->create_graph_handle();
-    NodePropSpool* sp = (st.has_props) ? new NodePropSpool(nspool(st,"place")) : nullptr;
+    NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st,"place")) : nullptr;
     node_id_t ctr_city = 0, ctr_country = 0, ctr_cont = 0;
 
     while (std::getline(f, line)) {
@@ -332,8 +335,8 @@ static void load_places(State& st) {
         const std::string& type_str = safe_field(flds, c_type);
 
         int vtype; int8_t pt; node_id_t* ctr_ptr;
-        if      (type_str == "City")      { vtype=VT_CITY;      pt=SNBPlaceSchema::TYPE_CITY;      ctr_ptr=&ctr_city; }
-        else if (type_str == "Country")   { vtype=VT_COUNTRY;   pt=SNBPlaceSchema::TYPE_COUNTRY;   ctr_ptr=&ctr_country; }
+        if      (type_str == "city")      { vtype=VT_CITY;      pt=SNBPlaceSchema::TYPE_CITY;      ctr_ptr=&ctr_city; }
+        else if (type_str == "country")   { vtype=VT_COUNTRY;   pt=SNBPlaceSchema::TYPE_COUNTRY;   ctr_ptr=&ctr_country; }
         else                              { vtype=VT_CONTINENT; pt=SNBPlaceSchema::TYPE_CONTINENT; ctr_ptr=&ctr_cont; }
 
         node_id_t tid = MAKE_TYPED_ID(vtype, (*ctr_ptr)++);
@@ -371,7 +374,7 @@ static void load_organisations(State& st) {
     if (c_id < 0) throw std::runtime_error("organisation CSV missing 'id'");
 
     GraphBase* h  = st.engine->create_graph_handle();
-    NodePropSpool* sp = (st.has_props) ? new NodePropSpool(nspool(st,"org")) : nullptr;
+    NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st,"org")) : nullptr;
     node_id_t ctr_co = 0, ctr_uni = 0;
 
     while (std::getline(f, line)) {
@@ -442,7 +445,7 @@ static void load_forums(State& st) {
     if (c_id < 0) throw std::runtime_error("forum CSV missing 'id'");
 
     GraphBase* h  = st.engine->create_graph_handle();
-    NodePropSpool* sp = (st.has_props) ? new NodePropSpool(nspool(st,"forum")) : nullptr;
+    NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st,"forum")) : nullptr;
     node_id_t ctr = 0;
 
     while (std::getline(f, line)) {
@@ -524,6 +527,7 @@ static size_t load_struct_edges(State& st,
     int c_dst = col_of(hdr, dst_col_name);
     if (c_src < 0) c_src = 0;   // fallback
     if (c_dst < 0) c_dst = 1;
+    if (c_dst == c_src) c_dst = c_src + 1;  // duplicate col names (e.g. Person.id|Person.id)
 
     GraphBase* h = st.engine->create_graph_handle();
     size_t cnt = 0;
@@ -547,6 +551,83 @@ static size_t load_struct_edges(State& st,
     return cnt;
 }
 
+// Multi-threaded structural edge loader.  Reads the entire CSV into memory then
+// distributes edge pairs across nthreads workers.  Use for large self-referential
+// edge types (e.g. comment_replyOf_comment) where a single-threaded loader is
+// the critical-path bottleneck.  Each worker uses its own graph handle, so there
+// is no handle-level contention; add_edge_retry handles any WT_ROLLBACK conflicts
+// that arise from concurrent adjacency-list updates on hot hub nodes.
+static size_t load_struct_edges_mt(State& st,
+    const std::string& path, const char* label,
+    const char* src_col_name, const char* dst_col_name,
+    const SnbIdMap& src_map, const SnbIdMap& dst_map,
+    int nthreads)
+{
+    if (nthreads <= 1)
+        return load_struct_edges(st, path, label, src_col_name, dst_col_name,
+                                 src_map, dst_map);
+
+    std::ifstream f(path);
+    if (!f.is_open()) { log_skip(st, label); return 0; }
+
+    std::string line;
+    if (!std::getline(f, line)) return 0;
+    auto hdr = csv_fields(line);
+    int c_src = col_of(hdr, src_col_name);
+    int c_dst = col_of(hdr, dst_col_name);
+    if (c_src < 0) c_src = 0;
+    if (c_dst < 0) c_dst = 1;
+    if (c_dst == c_src) c_dst = c_src + 1;  // duplicate col names (e.g. Person.id|Person.id)
+
+    // Read all valid edge pairs into a flat vector.
+    std::vector<std::pair<node_id_t, node_id_t>> edges;
+    edges.reserve(1 << 22);  // 4 M initial capacity (~64 MB)
+    while (std::getline(f, line)) {
+        if (line.empty()) continue;
+        auto flds = csv_fields(line);
+        node_id_t src = src_map.lookup(std::stoll(flds[c_src]));
+        node_id_t dst = dst_map.lookup(std::stoll(flds[c_dst]));
+        if (src == SnbIdMap::INVALID || dst == SnbIdMap::INVALID) continue;
+        edges.emplace_back(src, dst);
+    }
+
+    size_t total = edges.size();
+    if (total == 0 || st.dry_run) {
+        st.n_edges += total;
+        log_done(st, label, total);
+        return total;
+    }
+
+    // Partition into nthreads contiguous chunks and insert in parallel.
+    std::atomic<size_t> inserted{0};
+    std::vector<std::thread> threads;
+    threads.reserve(nthreads);
+    size_t chunk = (total + (size_t)nthreads - 1) / (size_t)nthreads;
+
+    for (int t = 0; t < nthreads; ++t) {
+        size_t begin = (size_t)t * chunk;
+        size_t end   = std::min(begin + chunk, total);
+        if (begin >= total) break;
+
+        threads.emplace_back([&, begin, end]() {
+            GraphBase* h = st.engine->create_graph_handle();
+            size_t cnt = 0;
+            for (size_t i = begin; i < end; ++i) {
+                int ret = add_edge_retry(h, edges[i].first, edges[i].second);
+                if (ret != 0 && ret != WT_DUPLICATE_KEY) continue;
+                ++cnt;
+            }
+            h->close(false);
+            inserted.fetch_add(cnt, std::memory_order_relaxed);
+        });
+    }
+    for (auto& t : threads) t.join();
+
+    st.n_edges += inserted.load();
+    log_done(st, label, inserted.load());
+    return inserted.load();
+}
+
 // Edge loader for edges with a single int64 creationDate property.
 static size_t load_dated_edges(State& st,
     const std::string& path, const char* label, const char* spool_name,
@@ -564,9 +645,10 @@ static size_t load_dated_edges(State& st,
     int c_date = col_of(hdr, "creationDate");
     if (c_src < 0) c_src = 0;
     if (c_dst < 0) c_dst = 1;
+    if (c_dst == c_src) c_dst = c_src + 1;  // duplicate col names (e.g. Person.id|Person.id)
 
     GraphBase*    h  = st.engine->create_graph_handle();
-    EdgePropSpool* sp = (st.has_props) ? new EdgePropSpool(espool(st, spool_name)) : nullptr;
+    EdgePropSpool* sp = (st.has_props && !st.reuse_spool) ? new EdgePropSpool(espool(st, spool_name)) : nullptr;
     size_t cnt = 0;
 
     while (std::getline(f, line)) {
@@ -597,6 +679,112 @@ static size_t load_dated_edges(State& st,
     return cnt;
 }
 
+// Multi-threaded dated edge loader.  Reads all (src, dst, creationDate) triples
+// into memory, then inserts edges in parallel across nthreads workers.  Spool
+// entries (written sequentially by the main thread after joining) preserve the
+// same binary layout as the single-threaded path so Phase 4 is unaffected.
+static size_t load_dated_edges_mt(State& st,
+    const std::string& path, const char* label, const char* spool_name,
+    const char* src_col_name, const char* dst_col_name,
+    const SnbIdMap& src_map, const SnbIdMap& dst_map,
+    int nthreads)
+{
+    if (nthreads <= 1)
+        return load_dated_edges(st, path, label, spool_name,
+                                src_col_name, dst_col_name, src_map, dst_map);
+
+    std::ifstream f(path);
+    if (!f.is_open()) { log_skip(st, label); return 0; }
+
+    std::string line;
+    if (!std::getline(f, line)) return 0;
+    auto hdr = csv_fields(line);
+    int c_src  = col_of(hdr, src_col_name);
+    int c_dst  = col_of(hdr, dst_col_name);
+    int c_date = col_of(hdr, "creationDate");
+    if (c_src < 0) c_src = 0;
+    if (c_dst < 0) c_dst = 1;
+    if (c_dst == c_src) c_dst = c_src + 1;  // duplicate col names (e.g. Person.id|Person.id)
+
+    struct Record { node_id_t src, dst; int64_t ms; };
+    std::vector<Record> records;
+    records.reserve(1 << 22);
+    while (std::getline(f, line)) {
+        if (line.empty()) continue;
+        auto flds = csv_fields(line);
+        node_id_t src = src_map.lookup(std::stoll(flds[c_src]));
+        node_id_t dst = dst_map.lookup(std::stoll(flds[c_dst]));
+        if (src == SnbIdMap::INVALID || dst == SnbIdMap::INVALID) continue;
+        int64_t ms = parse_ms(safe_field(flds, c_date));
+        records.push_back({src, dst, ms});
+    }
+
+    size_t total = records.size();
+    if (total == 0) {
+        log_done(st, label, 0);
+        return 0;
+    }
+
+    // dry_run: skip WT ops but still write spool so it can be shared later.
+    if (st.dry_run) {
+        if (st.has_props && !st.reuse_spool) {
+            EdgePropSpool sp(espool(st, spool_name));
+            uint8_t buf[8];
+            for (size_t i = 0; i < total; ++i) {
+                std::memcpy(buf, &records[i].ms, sizeof(records[i].ms));
+                sp.write(records[i].src, records[i].dst, buf, 8);
+            }
+            sp.close();
+        }
+        st.n_edges += total;
+        log_done(st, label, total);
+        return total;
+    }
+
+    // Per-record inserted flag: set by the worker thread that successfully commits.
+    std::vector<std::atomic<bool>> inserted(total);
+    for (auto& b : inserted) b.store(false, std::memory_order_relaxed);
+
+    std::vector<std::thread> threads;
+    threads.reserve(nthreads);
+    std::atomic<size_t> n_inserted{0};
+    size_t chunk = (total + (size_t)nthreads - 1) / (size_t)nthreads;
+
+    for (int t = 0; t < nthreads; ++t) {
+        size_t begin = (size_t)t * chunk;
+        size_t end   = std::min(begin + chunk, total);
+        if (begin >= total) break;
+        threads.emplace_back([&, begin, end]() {
+            GraphBase* h = st.engine->create_graph_handle();
+            for (size_t i = begin; i < end; ++i) {
+                int ret = add_edge_retry(h, records[i].src, records[i].dst);
+                if (ret == 0 || ret == WT_DUPLICATE_KEY) {
+                    inserted[i].store(true, std::memory_order_relaxed);
+                    n_inserted.fetch_add(1, std::memory_order_relaxed);
+                }
+            }
+            h->close(false);
+        });
+    }
+    for (auto& t : threads) t.join();
+
+    // Write spool entries sequentially after joining (only for inserted edges).
+    if (st.has_props && !st.reuse_spool) {
+        EdgePropSpool sp(espool(st, spool_name));
+        uint8_t buf[8];
+        for (size_t i = 0; i < total; ++i) {
+            if (!inserted[i].load(std::memory_order_relaxed)) continue;
+            std::memcpy(buf, &records[i].ms, sizeof(records[i].ms));
+            sp.write(records[i].src, records[i].dst, buf, 8);
+        }
+        sp.close();
+    }
+
+    st.n_edges += n_inserted.load();
+    log_done(st, label, n_inserted.load());
+    return n_inserted.load();
+}
+
 // Edge loader for studyAt (classYear int32) and workAt (workFrom int32).
 static size_t load_year_edges(State& st,
     const std::string& path, const char* label, const char* spool_name,
@@ -616,7 +804,7 @@ static size_t load_year_edges(State& st,
     if (c_dst < 0) c_dst = 1;
 
     GraphBase*    h  = st.engine->create_graph_handle();
-    EdgePropSpool* sp = (st.has_props) ? new EdgePropSpool(espool(st, spool_name)) : nullptr;
+    EdgePropSpool* sp = (st.has_props && !st.reuse_spool) ? new EdgePropSpool(espool(st, spool_name)) : nullptr;
     size_t cnt = 0;
 
     while (std::getline(f, line)) {
@@ -814,11 +1002,16 @@ static void run_phases(State& st) {
             st.n_city + st.n_country + st.n_continent,
             st.n_company + st.n_university);
 
-    // ---- Phase 2: all edge CSVs in parallel ----
-    fprintf(stderr, "\n[BULK] === Phase 2: load edges ===\n");
+    // ---- Phase 2a: edges not involving Comment nodes (fully parallel) ----
+    // Comment edges are separated into Phase 2b to eliminate cross-type
+    // WT_ROLLBACK contention on COMMENT node adjacency list entries.  When all
+    // comment-touching loaders ran together, threads competed on the same hot
+    // COMMENT in/out_adjlist entries causing WT_ROLLBACK spin-loops up to 500×
+    // per edge — particularly severe for comment_replyOf_comment at large SF.
+    fprintf(stderr, "\n[BULK] === Phase 2a: load non-comment edges ===\n");
     {
-        // Static structural edges (no props)
         std::vector<std::function<void()>> tasks = {
+            // Static structural edges (no props)
             [&]{ try { load_struct_edges(st, st.sta+"/place_isPartOf_place_0_0.csv",
                     "place_isPartOf_place", "Place.id","Place.id",
                     st.place_map, st.place_map); } catch(...){ st.capture(); } },
@@ -831,28 +1024,16 @@ static void run_phases(State& st) {
             [&]{ try { load_struct_edges(st, st.sta+"/tagclass_isSubclassOf_tagclass_0_0.csv",
                     "tagclass_isSubclassOf", "TagClass.id","TagClass.id",
                     st.tagclass_map, st.tagclass_map); } catch(...){ st.capture(); } },
-            // Dynamic structural edges
+            // Dynamic structural edges (no Comment src/dst)
             [&]{ try { load_struct_edges(st, st.dyn+"/post_hasCreator_person_0_0.csv",
                     "post_hasCreator_person", "Post.id","Person.id",
                     st.post_map, st.person_map); } catch(...){ st.capture(); } },
-            [&]{ try { load_struct_edges(st, st.dyn+"/comment_hasCreator_person_0_0.csv",
-                    "comment_hasCreator_person", "Comment.id","Person.id",
-                    st.comment_map, st.person_map); } catch(...){ st.capture(); } },
-            [&]{ try { load_struct_edges(st, st.dyn+"/comment_replyOf_post_0_0.csv",
-                    "comment_replyOf_post", "Comment.id","Post.id",
-                    st.comment_map, st.post_map); } catch(...){ st.capture(); } },
-            [&]{ try { load_struct_edges(st, st.dyn+"/comment_replyOf_comment_0_0.csv",
-                    "comment_replyOf_comment", "Comment.id","Comment.id",
-                    st.comment_map, st.comment_map); } catch(...){ st.capture(); } },
             [&]{ try { load_struct_edges(st, st.dyn+"/forum_containerOf_post_0_0.csv",
                     "forum_containerOf_post", "Forum.id","Post.id",
                     st.forum_map, st.post_map); } catch(...){ st.capture(); } },
             [&]{ try { load_struct_edges(st, st.dyn+"/post_hasTag_tag_0_0.csv",
                     "post_hasTag_tag", "Post.id","Tag.id",
                     st.post_map, st.tag_map); } catch(...){ st.capture(); } },
-            [&]{ try { load_struct_edges(st, st.dyn+"/comment_hasTag_tag_0_0.csv",
-                    "comment_hasTag_tag", "Comment.id","Tag.id",
-                    st.comment_map, st.tag_map); } catch(...){ st.capture(); } },
             [&]{ try { load_struct_edges(st, st.dyn+"/forum_hasTag_tag_0_0.csv",
                     "forum_hasTag_tag", "Forum.id","Tag.id",
                     st.forum_map, st.tag_map); } catch(...){ st.capture(); } },
@@ -865,10 +1046,7 @@ static void run_phases(State& st) {
             [&]{ try { load_struct_edges(st, st.dyn+"/post_isLocatedIn_place_0_0.csv",
                     "post_isLocatedIn_place", "Post.id","Place.id",
                     st.post_map, st.place_map); } catch(...){ st.capture(); } },
-            [&]{ try { load_struct_edges(st, st.dyn+"/comment_isLocatedIn_place_0_0.csv",
-                    "comment_isLocatedIn_place", "Comment.id","Place.id",
-                    st.comment_map, st.place_map); } catch(...){ st.capture(); } },
-            // Property-bearing edges
+            // Property-bearing edges (no Comment src/dst)
             [&]{ try { load_dated_edges(st, st.dyn+"/person_knows_person_0_0.csv",
                     "person_knows_person", "knows",
                     "Person.id","Person.id",
@@ -881,10 +1059,6 @@ static void run_phases(State& st) {
                     "person_likes_post", "likes_post",
                     "Person.id","Post.id",
                     st.person_map, st.post_map); } catch(...){ st.capture(); } },
-            [&]{ try { load_dated_edges(st, st.dyn+"/person_likes_comment_0_0.csv",
-                    "person_likes_comment", "likes_comment",
-                    "Person.id","Comment.id",
-                    st.person_map, st.comment_map); } catch(...){ st.capture(); } },
             [&]{ try { load_year_edges(st, st.dyn+"/person_studyAt_organisation_0_0.csv",
                     "person_studyAt", "studyat",
                     "Person.id","Organisation.id","classYear",
@@ -897,6 +1071,47 @@ static void run_phases(State& st) {
         run_parallel(tasks, st.num_threads);
         st.rethrow();
     }
+    fprintf(stderr, "[BULK] Phase 2a done (%.1f s)\n", elapsed());
+
+    // ---- Phase 2b: Comment-involving edges ----
+    // Each type runs alone (no overlap) with all num_threads workers internally.
+    // Serial execution eliminates cross-type WT_ROLLBACK contention on COMMENT
+    // adjacency list entries.  Largest types first (comment_hasTag_tag at 8.4M
+    // edges at SF-3) so the most expensive work runs while the system is freshest.
+    fprintf(stderr, "\n[BULK] === Phase 2b: load comment edges ===\n");
+    {
+        // Struct edges (no property spool)
+        struct SE { const char* sfx; const char* lbl; const char* sc; const char* dc;
+                    const SnbIdMap* sm; const SnbIdMap* dm; };
+        for (auto& e : std::initializer_list<SE>{
+            {"/comment_hasTag_tag_0_0.csv",        "comment_hasTag_tag",
+             "Comment.id","Tag.id",    &st.comment_map, &st.tag_map},
+            {"/comment_hasCreator_person_0_0.csv", "comment_hasCreator_person",
+             "Comment.id","Person.id", &st.comment_map, &st.person_map},
+            {"/comment_isLocatedIn_place_0_0.csv", "comment_isLocatedIn_place",
+             "Comment.id","Place.id",  &st.comment_map, &st.place_map},
+            {"/comment_replyOf_post_0_0.csv",      "comment_replyOf_post",
+             "Comment.id","Post.id",   &st.comment_map, &st.post_map},
+            {"/comment_replyOf_comment_0_0.csv",   "comment_replyOf_comment",
+             "Comment.id","Comment.id",&st.comment_map, &st.comment_map},
+        }) {
+            try {
+                load_struct_edges_mt(st, st.dyn + e.sfx, e.lbl,
+                                     e.sc, e.dc, *e.sm, *e.dm, st.num_threads);
+            } catch(...) { st.capture(); }
+            st.rethrow();
+        }
+
+        // Dated edge: person_likes_comment (has creationDate property spool)
+        try {
+            load_dated_edges_mt(st, st.dyn+"/person_likes_comment_0_0.csv",
+                "person_likes_comment", "likes_comment",
+                "Person.id","Comment.id",
+                st.person_map, st.comment_map, st.num_threads);
+        } catch(...) { st.capture(); }
+        st.rethrow();
+    }
+
     fprintf(stderr, "[BULK] Phase 2 done (%.1f s) — %zu edges total\n",
             elapsed(), st.n_edges.load());
 
@@ -947,7 +1162,8 @@ static void run_phases(State& st) {
     fprintf(stderr, "[BULK] Phase 5 done (%.1f s)\n", elapsed());
 
     // ---- Cleanup spool files ----
-    if (!st.keep_spool && st.has_props) {
+    // Never delete spools that were shared / pre-existing (--reuse-spool).
+    if (!st.keep_spool && !st.reuse_spool && st.has_props) {
         for (const char* name : {"person","post","comment","forum","tag","tagclass","place","org"})
             std::remove(nspool(st, name).c_str());
         for (const char* name : {"knows","hasmember","likes_post","likes_comment","studyat","workat"})
@@ -966,13 +1182,14 @@ int main(int argc, char** argv) {
     if (argc < 3) {
         fprintf(stderr,
             "Usage: %s <data_dir> <db_dir> [adj|splitekey]\n"
-            "          [--threads N]    (default 8)\n"
-            "          [--cache N]      (WT cache GB, default 4)\n"
-            "          [--spool DIR]    (temp dir, default <db_dir>/spool)\n"
-            "          [--embedded]     (EMBEDDED prop mode)\n"
-            "          [--no-props]     (topology only)\n"
-            "          [--dry-run]      (no WT writes)\n"
-            "          [--keep-spool]   (keep spool files after load)\n",
+            "          [--threads N]      (default 8)\n"
+            "          [--cache N]        (WT cache GB, default 4)\n"
+            "          [--spool DIR]      (temp dir, default <db_dir>/spool)\n"
+            "          [--embedded]       (EMBEDDED prop mode)\n"
+            "          [--no-props]       (topology only)\n"
+            "          [--dry-run]        (no WT writes; still writes spools)\n"
+            "          [--keep-spool]     (keep spool files after load)\n"
+            "          [--reuse-spool]    (skip writing spools; read existing ones)\n",
             argv[0]);
         return 1;
     }
@@ -985,9 +1202,10 @@ int main(int argc, char** argv) {
     int       cache_gb    = 4;
     std::string spool_dir;
     PropStorageMode prop_mode = COLUMNAR;
-    bool has_props  = true;
-    bool dry_run    = false;
-    bool keep_spool = false;
+    bool has_props   = true;
+    bool dry_run     = false;
+    bool keep_spool  = false;
+    bool reuse_spool = false;
 
     for (int i = 3; i < argc; i++) {
         std::string a = argv[i];
@@ -1000,6 +1218,7 @@ int main(int argc, char** argv) {
         else if (a == "--no-props")   has_props   = false;
         else if (a == "--dry-run")    dry_run     = true;
         else if (a == "--keep-spool") keep_spool  = true;
+        else if (a == "--reuse-spool") reuse_spool = true;
         else { fprintf(stderr, "Unknown argument: %s\n", a.c_str()); return 1; }
     }
 
@@ -1031,6 +1250,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "[BULK] threads:     %d\n", num_threads);
     fprintf(stderr, "[BULK] cache:       %d GB\n", cache_gb);
     fprintf(stderr, "[BULK] dry_run:     %s\n", dry_run ? "yes" : "no");
+    fprintf(stderr, "[BULK] reuse_spool: %s\n", reuse_spool ? "yes (reading existing spools)" : "no");
 
     // Create GraphEngine (initialises WT connection and creates all tables)
     GraphEngine* engine = nullptr;
@@ -1047,6 +1267,7 @@ int main(int argc, char** argv) {
     st.has_props   = has_props;
     st.dry_run     = dry_run;
     st.keep_spool  = keep_spool;
+    st.reuse_spool = reuse_spool;
     st.engine      = engine;
     st.gopts       = gopts;
 
