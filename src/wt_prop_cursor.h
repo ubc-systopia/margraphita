@@ -114,21 +114,28 @@ private:
 
 // ─── WTEdgePropCursor ─────────────────────────────────────────────────────────
 // EdgePropCursor backed by a WiredTiger colgroup cursor (COLUMNAR mode).
-// Edge prop colgroups for temporal data use value_format="Q" (one uint64).
+//
+// layout:     controls how many value columns are read (same enum as WTNodePropCursor)
+// node_keyed: true  → table key_format=Q  (post_props, comment_props)
+//             false → table key_format=QQ (knows_props, likes_props, hasmember_props, …)
 class WTEdgePropCursor : public EdgePropCursor {
 public:
-    explicit WTEdgePropCursor(WT_CURSOR *c) : cur_(c) {}
+    explicit WTEdgePropCursor(WT_CURSOR *c,
+                               ColgroupValueLayout layout = CVL_Q,
+                               bool node_keyed = false)
+        : cur_(c), layout_(layout), node_keyed_(node_keyed) {}
 
     ~WTEdgePropCursor() override {
         if (cur_) cur_->close(cur_);
     }
 
     // Pin to a single src; next() stops when src changes.
+    // For node-keyed tables, pinning is suppressed: the caller checks
+    // VTYPE_OF(cur->src()) to stop the scan at a type boundary.
     void set_src(node_id_t src) override {
-        pinned_src_    = src;
         src_range_end_ = OutOfBand_ID_MAX;
         exhausted_     = false;
-        cur_->set_key(cur_, (uint64_t)src, (uint64_t)0);
+        set_key_seek(src, 0);
         int cmp = 0;
         int ret  = cur_->search_near(cur_, &cmp);
         if (ret != 0) { exhausted_ = true; return; }
@@ -136,17 +143,21 @@ public:
             ret = cur_->next(cur_);
             if (ret != 0) { exhausted_ = true; return; }
         }
-        uint64_t s, d;
-        cur_->get_key(cur_, &s, &d);
-        if ((node_id_t)s != src) exhausted_ = true;
+        if (node_keyed_) {
+            // Don't pin: scan freely from src; caller manages stop condition.
+            pinned_src_ = OutOfBand_ID_MAX;
+        } else {
+            pinned_src_ = src;
+            if (read_current_src() != src) exhausted_ = true;
+        }
     }
 
-    // Scan all edges with src in [src_start, src_end).
+    // Scan all rows with src in [src_start, src_end).
     void set_src_range(node_id_t src_start, node_id_t src_end) override {
         pinned_src_    = OutOfBand_ID_MAX;
         src_range_end_ = src_end;
         exhausted_     = false;
-        cur_->set_key(cur_, (uint64_t)src_start, (uint64_t)0);
+        set_key_seek(src_start, 0);
         int cmp = 0;
         int ret  = cur_->search_near(cur_, &cmp);
         if (ret != 0) { exhausted_ = true; return; }
@@ -154,9 +165,7 @@ public:
             ret = cur_->next(cur_);
             if (ret != 0) { exhausted_ = true; return; }
         }
-        uint64_t s, d;
-        cur_->get_key(cur_, &s, &d);
-        if ((node_id_t)s >= src_range_end_) exhausted_ = true;
+        if (read_current_src() >= src_range_end_) exhausted_ = true;
     }
 
     bool next() override {
@@ -166,9 +175,7 @@ public:
         if (ret != 0) {
             exhausted_ = true;
         } else {
-            uint64_t s, d;
-            cur_->get_key(cur_, &s, &d);
-            node_id_t ns = (node_id_t)s;
+            node_id_t ns = read_current_src();
             if (pinned_src_ != OutOfBand_ID_MAX && ns != pinned_src_)
                 exhausted_ = true;
             else if (ns >= src_range_end_)
@@ -178,7 +185,7 @@ public:
     }
 
     bool seek(node_id_t src, node_id_t dst) override {
-        cur_->set_key(cur_, (uint64_t)src, (uint64_t)dst);
+        set_key_seek(src, dst);
         int ret = cur_->search(cur_);
         if (ret != 0) return false;
         load_current();
@@ -190,22 +197,57 @@ public:
     uint64_t  get_uint64(int n) const override { return u64_[n]; }
 
 private:
-    WT_CURSOR *cur_           = nullptr;
-    node_id_t  pinned_src_    = OutOfBand_ID_MAX;
-    node_id_t  src_range_end_ = OutOfBand_ID_MAX;
-    bool       exhausted_     = true;
+    WT_CURSOR          *cur_           = nullptr;
+    ColgroupValueLayout layout_;
+    bool                node_keyed_;
+    node_id_t           pinned_src_    = OutOfBand_ID_MAX;
+    node_id_t           src_range_end_ = OutOfBand_ID_MAX;
+    bool                exhausted_     = true;
 
     // Current-row cache
     node_id_t cur_src_ = 0;
     node_id_t cur_dst_ = 0;
-    uint64_t  u64_[1]  = {};
+    uint64_t  u64_[2]  = {};
+    int32_t   i32_[1]  = {};
+
+    // Set the seek key; dst is ignored for node-keyed (1-key) tables.
+    void set_key_seek(node_id_t src, node_id_t dst) {
+        if (node_keyed_)
+            cur_->set_key(cur_, (uint64_t)src);
+        else
+            cur_->set_key(cur_, (uint64_t)src, (uint64_t)dst);
+    }
+
+    // Read only the src component of the current cursor key.
+    node_id_t read_current_src() {
+        uint64_t s;
+        if (node_keyed_) {
+            cur_->get_key(cur_, &s);
+        } else {
+            uint64_t d;
+            cur_->get_key(cur_, &s, &d);
+        }
+        return (node_id_t)s;
+    }
 
     void load_current() {
-        uint64_t s, d;
-        cur_->get_key(cur_, &s, &d);
-        cur_src_ = (node_id_t)s;
-        cur_dst_ = (node_id_t)d;
-        cur_->get_value(cur_, &u64_[0]);
+        uint64_t s;
+        if (node_keyed_) {
+            cur_->get_key(cur_, &s);
+            cur_src_ = (node_id_t)s;
+            cur_dst_ = OutOfBand_ID_MIN;
+        } else {
+            uint64_t d;
+            cur_->get_key(cur_, &s, &d);
+            cur_src_ = (node_id_t)s;
+            cur_dst_ = (node_id_t)d;
+        }
+        if      (layout_ == CVL_Q)  cur_->get_value(cur_, &u64_[0]);
+        else if (layout_ == CVL_QQ) cur_->get_value(cur_, &u64_[0], &u64_[1]);
+        else /* CVL_Qi */ {
+            cur_->get_value(cur_, &u64_[0], &i32_[0]);
+            u64_[1] = (uint64_t)(uint32_t)i32_[0];  // get_uint64(1) castable back to int32_t
+        }
     }
 };
 
