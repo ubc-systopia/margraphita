@@ -8,13 +8,19 @@
 
 EmbNodePropCursor::EmbNodePropCursor(GraphBase *g,
                                      I64Extractor ex0, I64Extractor ex1,
-                                     I32Extractor ix0)
+                                     I32Extractor ix0,
+                                     WT_CURSOR *direct_scan_cur)
     : graph_(g),
       u64_ex_{ex0, ex1},
-      i32_ex_{ix0}
+      i32_ex_{ix0},
+      direct_cur_(direct_scan_cur)
 {}
 
 EmbNodePropCursor::~EmbNodePropCursor() {
+    if (direct_cur_) {
+        direct_cur_->close(direct_cur_);
+        direct_cur_ = nullptr;
+    }
     if (node_cur_) {
         node_cur_->close();
         // NodeCursor* is owned by the unique_ptr; no manual delete needed.
@@ -22,6 +28,26 @@ EmbNodePropCursor::~EmbNodePropCursor() {
 }
 
 void EmbNodePropCursor::set_range(node_id_t start, node_id_t end) {
+    end_id_ = end;
+    if (direct_cur_) {
+        // Direct scan of NODE_PROPS_TABLE: position once, then ->next() per row.
+        direct_cur_->reset(direct_cur_);
+        direct_cur_->set_key(direct_cur_, (uint64_t)start);
+        int exact = 0;
+        int ret = direct_cur_->search_near(direct_cur_, &exact);
+        if (ret != 0) { exhausted_ = true; return; }
+        // If search_near landed before start, advance one step.
+        if (exact < 0) {
+            ret = direct_cur_->next(direct_cur_);
+            if (ret != 0) { exhausted_ = true; return; }
+        }
+        // Check first key is within range.
+        uint64_t k = 0;
+        direct_cur_->get_key(direct_cur_, &k);
+        exhausted_ = (k > (uint64_t)end);
+        return;
+    }
+    // Old path: iterate topology cursor + secondary search on NODE_PROPS_TABLE.
     node_cur_.reset(graph_->get_node_iter());
     node_cur_->set_key_range({start, end});
     // Advance to the first node; pending_node_ holds what next() will return.
@@ -31,6 +57,26 @@ void EmbNodePropCursor::set_range(node_id_t start, node_id_t end) {
 
 bool EmbNodePropCursor::next() {
     if (exhausted_) return false;
+    if (direct_cur_) {
+        // Direct path: cursor is already positioned at the row to return.
+        uint64_t k = 0;
+        direct_cur_->get_key(direct_cur_, &k);
+        cur_key_ = (node_id_t)k;
+        WT_ITEM item{};
+        direct_cur_->get_value(direct_cur_, &item);
+        if (item.size > 0 && item.data != nullptr)
+            extract((const uint8_t *)item.data);
+        // Advance for next call.
+        int ret = direct_cur_->next(direct_cur_);
+        if (ret != 0) {
+            exhausted_ = true;
+        } else {
+            direct_cur_->get_key(direct_cur_, &k);
+            if (k > (uint64_t)end_id_) exhausted_ = true;
+        }
+        return true;
+    }
+    // Old path: pending_node_ was primed by set_range / previous next().
     cur_key_ = pending_node_.id;
     prop_blob pb = graph_->get_node_properties(cur_key_);
     if (pb.size > 0 && pb.data != nullptr)
@@ -117,7 +163,8 @@ bool EmbEdgePropCursor::load_row(node_id_t dst) {
 
 std::unique_ptr<NodePropCursor>
 make_emb_node_prop_cursor(GraphBase *g, const std::string &table,
-                           const std::string & /*colgroup*/)
+                           const std::string & /*colgroup*/,
+                           WT_CURSOR *direct_scan_cur)
 {
     I64Extractor ex0 = nullptr, ex1 = nullptr;
     I32Extractor ix0 = nullptr;
@@ -138,7 +185,7 @@ make_emb_node_prop_cursor(GraphBase *g, const std::string &table,
         throw GraphException(
             "make_emb_node_prop_cursor: no EMBEDDED schema for table: " + table);
     }
-    return std::make_unique<EmbNodePropCursor>(g, ex0, ex1, ix0);
+    return std::make_unique<EmbNodePropCursor>(g, ex0, ex1, ix0, direct_scan_cur);
 }
 
 std::unique_ptr<EdgePropCursor>

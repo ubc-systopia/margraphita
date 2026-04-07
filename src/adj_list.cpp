@@ -910,7 +910,17 @@ AdjList::get_node_prop_cursor(const std::string &table,
                            uri + ": " + wiredtiger_strerror(ret));
     return std::make_unique<WTNodePropCursor>(c, layout_for(table, colgroup));
   } else {
-    return make_emb_node_prop_cursor(this, table, colgroup);
+    // Open a fresh cursor directly on the node-properties table so that
+    // EmbNodePropCursor can scan it with a single ->next() per row instead
+    // of doing a secondary ->search() point lookup for every node.
+    WT_CURSOR *direct_cur = nullptr;
+    int ret = _get_table_cursor(NODE_PROPS_TABLE, &direct_cur, session,
+                                false, true, opts.checkpoint_name);
+    if (ret != 0)
+      throw GraphException("AdjList::get_node_prop_cursor: failed to open " +
+                           std::string(NODE_PROPS_TABLE) + ": " +
+                           wiredtiger_strerror(ret));
+    return make_emb_node_prop_cursor(this, table, colgroup, direct_cur);
   }
 }
 
@@ -925,7 +935,8 @@ AdjList::get_edge_prop_cursor(const std::string &table,
     if (ret != 0)
       throw GraphException("AdjList::get_edge_prop_cursor: failed to open " +
                            uri + ": " + wiredtiger_strerror(ret));
-    return std::make_unique<WTEdgePropCursor>(c);
+    bool node_keyed = (table == POST_PROPS_TABLE || table == COMMENT_PROPS_TABLE);
+    return std::make_unique<WTEdgePropCursor>(c, layout_for(table, colgroup), node_keyed);
   } else {
     return make_emb_edge_prop_cursor(this, table, colgroup);
   }

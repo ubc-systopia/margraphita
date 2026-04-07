@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <wiredtiger.h>
+
 #include "common_defs.h"
 #include "iterator.h"
 
@@ -28,9 +30,14 @@ class EmbNodePropCursor : public NodePropCursor {
 public:
     // Construct with schema extractors.  Up to 2 uint64 columns and 1 int32.
     // Pass nullptr for unused extractor slots.
+    // direct_scan_cur: optional fresh WT_CURSOR* already opened on the
+    // node-properties table (AdjList EMBEDDED).  When non-null, set_range /
+    // next use a single sequential ->next() per row instead of a secondary
+    // ->search() point lookup.  The cursor is owned and closed by this object.
     EmbNodePropCursor(GraphBase *g,
                       I64Extractor ex0, I64Extractor ex1,
-                      I32Extractor ix0);
+                      I32Extractor ix0,
+                      WT_CURSOR *direct_scan_cur = nullptr);
     ~EmbNodePropCursor() override;
 
     void      set_range(node_id_t start, node_id_t end) override;
@@ -46,7 +53,12 @@ private:
     I64Extractor  u64_ex_[2];
     I32Extractor  i32_ex_[1];
 
-    // Sequential scan state
+    // Direct scan path (AdjList EMBEDDED): cursor on NODE_PROPS_TABLE.
+    // When non-null, set_range/next use this instead of node_cur_.
+    WT_CURSOR  *direct_cur_ = nullptr;
+    node_id_t   end_id_     = 0;   // upper bound for direct scan range
+
+    // Sequential scan state (old path, used when direct_cur_ == nullptr)
     std::unique_ptr<NodeCursor> node_cur_;
     node    pending_node_{};  // next node to return (filled by set_range / next)
     bool    exhausted_ = true;
@@ -106,7 +118,8 @@ private:
 
 std::unique_ptr<NodePropCursor>
 make_emb_node_prop_cursor(GraphBase *g, const std::string &table,
-                           const std::string &colgroup);
+                           const std::string &colgroup,
+                           WT_CURSOR *direct_scan_cur = nullptr);
 
 std::unique_ptr<EdgePropCursor>
 make_emb_edge_prop_cursor(GraphBase *g, const std::string &table,
