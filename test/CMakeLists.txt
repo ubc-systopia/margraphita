@@ -89,6 +89,10 @@ ADD_EXECUTABLE(validate_queries "${PATH_TEST}/validate_queries.cpp")
 TARGET_INCLUDE_DIRECTORIES(validate_queries PRIVATE ${PATH_SRC} ${PATH_TEST})
 TARGET_LINK_LIBRARIES(validate_queries PUBLIC ${NAME_LIB} ${wt_shared_lib})
 
+ADD_EXECUTABLE(inspect_graph "${PATH_TEST}/inspect_graph.cpp")
+TARGET_INCLUDE_DIRECTORIES(inspect_graph PRIVATE ${PATH_SRC} ${PATH_TEST})
+TARGET_LINK_LIBRARIES(inspect_graph PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
 # Typed vertex-ID overflow / B64 sanity check
 ADD_EXECUTABLE(test_typed_id "${PATH_TEST}/test_typed_id.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_typed_id PRIVATE ${PATH_SRC})

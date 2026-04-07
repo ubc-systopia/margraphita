@@ -110,3 +110,5 @@ target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 # target_link_libraries(bfs_parallel PUBLIC ${NAME_LIB} graph_utils)
 
 # add_subdirectory(microbenchmarks)
+
+add_subdirectory(ldbc)
