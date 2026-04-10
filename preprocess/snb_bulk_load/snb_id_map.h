@@ -12,7 +12,10 @@
 //                                  vector is read-only after sort().
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstdint>
+#include <cstdio>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -50,6 +53,42 @@ public:
 
     size_t size()  const { return entries_.size(); }
     bool   empty() const { return entries_.empty(); }
+
+    // Write the map to a CSV file.
+    // Format: header line "ldbc_id,fg_typed_id" + one row per entry.
+    // Entries are written in sorted (LDBC-key ascending) order; call sort() first.
+    void dump_csv(const std::string& path) const {
+        FILE* f = fopen(path.c_str(), "w");
+        if (!f) {
+            fprintf(stderr, "[id_map] cannot write: %s\n", path.c_str());
+            return;
+        }
+        fprintf(f, "ldbc_id,fg_typed_id\n");
+        for (auto& [k, v] : entries_)
+            fprintf(f, "%" PRId64 ",%" PRIu64 "\n", k, (uint64_t)v);
+        fclose(f);
+    }
+
+    // Load a map from a CSV file previously written by dump_csv().
+    // Replaces any current contents and leaves the map in sorted (ready-to-lookup) state.
+    void load_csv(const std::string& path) {
+        entries_.clear();
+        FILE* f = fopen(path.c_str(), "r");
+        if (!f) {
+            fprintf(stderr, "[id_map] cannot read: %s\n", path.c_str());
+            return;
+        }
+        char hdr[64];
+        if (!fgets(hdr, sizeof(hdr), f)) { fclose(f); return; }  // skip header
+        int64_t  k;
+        uint64_t v;
+        while (fscanf(f, "%" SCNd64 ",%" SCNu64 "\n", &k, &v) == 2)
+            entries_.push_back({k, (node_id_t)v});
+        fclose(f);
+        // The CSV was written in sorted order but sort() is cheap and safe.
+        std::sort(entries_.begin(), entries_.end(),
+                  [](const Entry& a, const Entry& b){ return a.first < b.first; });
+    }
 
 private:
     using Entry = std::pair<int64_t, node_id_t>;

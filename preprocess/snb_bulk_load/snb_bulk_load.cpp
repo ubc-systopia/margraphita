@@ -158,7 +158,7 @@ static void load_persons(State& st) {
     int c_br  = col_of(hdr,"browserUsed"), c_ip = col_of(hdr,"locationIP");
     if (c_id < 0) throw std::runtime_error("person CSV missing 'id'");
 
-    GraphBase* h   = st.engine->create_graph_handle();
+    GraphBase* h   = st.dry_run ? nullptr : st.engine->create_graph_handle();
     NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st,"person")) : nullptr;
     node_id_t ctr  = 0;
 
@@ -208,7 +208,7 @@ static void load_message_vertices(State& st,
     int c_cnt = col_of(hdr,"content");
     if (c_id < 0) throw std::runtime_error(std::string(label) + " CSV missing 'id'");
 
-    GraphBase* h  = st.engine->create_graph_handle();
+    GraphBase* h  = st.dry_run ? nullptr : st.engine->create_graph_handle();
     NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st, label)) : nullptr;
     node_id_t ctr = 0;
 
@@ -274,7 +274,7 @@ static void load_tag_vertex(State& st,
     int c_id = col_of(hdr,"id"), c_name = col_of(hdr,"name"), c_url = col_of(hdr,"url");
     if (c_id < 0) throw std::runtime_error(std::string(label) + " CSV missing 'id'");
 
-    GraphBase* h  = st.engine->create_graph_handle();
+    GraphBase* h  = st.dry_run ? nullptr : st.engine->create_graph_handle();
     NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st, label)) : nullptr;
     node_id_t ctr = 0;
 
@@ -324,7 +324,7 @@ static void load_places(State& st) {
     int c_url  = col_of(hdr,"url"), c_type = col_of(hdr,"type");
     if (c_id < 0) throw std::runtime_error("place CSV missing 'id'");
 
-    GraphBase* h  = st.engine->create_graph_handle();
+    GraphBase* h  = st.dry_run ? nullptr : st.engine->create_graph_handle();
     NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st,"place")) : nullptr;
     node_id_t ctr_city = 0, ctr_country = 0, ctr_cont = 0;
 
@@ -373,7 +373,7 @@ static void load_organisations(State& st) {
     int c_name = col_of(hdr,"name"), c_url  = col_of(hdr,"url");
     if (c_id < 0) throw std::runtime_error("organisation CSV missing 'id'");
 
-    GraphBase* h  = st.engine->create_graph_handle();
+    GraphBase* h  = st.dry_run ? nullptr : st.engine->create_graph_handle();
     NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st,"org")) : nullptr;
     node_id_t ctr_co = 0, ctr_uni = 0;
 
@@ -444,7 +444,7 @@ static void load_forums(State& st) {
     int c_cdate = col_of(hdr,"creationDate");
     if (c_id < 0) throw std::runtime_error("forum CSV missing 'id'");
 
-    GraphBase* h  = st.engine->create_graph_handle();
+    GraphBase* h  = st.dry_run ? nullptr : st.engine->create_graph_handle();
     NodePropSpool* sp = (st.has_props && !st.reuse_spool) ? new NodePropSpool(nspool(st,"forum")) : nullptr;
     node_id_t ctr = 0;
 
@@ -529,7 +529,7 @@ static size_t load_struct_edges(State& st,
     if (c_dst < 0) c_dst = 1;
     if (c_dst == c_src) c_dst = c_src + 1;  // duplicate col names (e.g. Person.id|Person.id)
 
-    GraphBase* h = st.engine->create_graph_handle();
+    GraphBase* h = st.dry_run ? nullptr : st.engine->create_graph_handle();
     size_t cnt = 0;
 
     while (std::getline(f, line)) {
@@ -610,7 +610,7 @@ static size_t load_struct_edges_mt(State& st,
         if (begin >= total) break;
 
         threads.emplace_back([&, begin, end]() {
-            GraphBase* h = st.engine->create_graph_handle();
+            GraphBase* h = st.dry_run ? nullptr : st.engine->create_graph_handle();
             size_t cnt = 0;
             for (size_t i = begin; i < end; ++i) {
                 int ret = add_edge_retry(h, edges[i].first, edges[i].second);
@@ -647,7 +647,7 @@ static size_t load_dated_edges(State& st,
     if (c_dst < 0) c_dst = 1;
     if (c_dst == c_src) c_dst = c_src + 1;  // duplicate col names (e.g. Person.id|Person.id)
 
-    GraphBase*    h  = st.engine->create_graph_handle();
+    GraphBase*    h  = st.dry_run ? nullptr : st.engine->create_graph_handle();
     EdgePropSpool* sp = (st.has_props && !st.reuse_spool) ? new EdgePropSpool(espool(st, spool_name)) : nullptr;
     size_t cnt = 0;
 
@@ -755,7 +755,7 @@ static size_t load_dated_edges_mt(State& st,
         size_t end   = std::min(begin + chunk, total);
         if (begin >= total) break;
         threads.emplace_back([&, begin, end]() {
-            GraphBase* h = st.engine->create_graph_handle();
+            GraphBase* h = st.dry_run ? nullptr : st.engine->create_graph_handle();
             for (size_t i = begin; i < end; ++i) {
                 int ret = add_edge_retry(h, records[i].src, records[i].dst);
                 if (ret == 0 || ret == WT_DUPLICATE_KEY) {
@@ -803,7 +803,7 @@ static size_t load_year_edges(State& st,
     if (c_src < 0) c_src = 0;
     if (c_dst < 0) c_dst = 1;
 
-    GraphBase*    h  = st.engine->create_graph_handle();
+    GraphBase*    h  = st.dry_run ? nullptr : st.engine->create_graph_handle();
     EdgePropSpool* sp = (st.has_props && !st.reuse_spool) ? new EdgePropSpool(espool(st, spool_name)) : nullptr;
     size_t cnt = 0;
 
@@ -841,7 +841,7 @@ static size_t load_year_edges(State& st,
 
 static void flush_node_spool(State& st, const std::string& spool_path) {
     NodePropSpoolReader rdr(spool_path);
-    GraphBase* h = st.engine->create_graph_handle();
+    GraphBase* h = st.dry_run ? nullptr : st.engine->create_graph_handle();
     node_id_t id; std::vector<uint8_t> data;
     while (rdr.read(id, data)) {
         if (!st.dry_run)
@@ -856,7 +856,7 @@ static void flush_node_spool(State& st, const std::string& spool_path) {
 
 static void flush_edge_spool(State& st, const std::string& spool_path) {
     EdgePropSpoolReader rdr(spool_path);
-    GraphBase* h = st.engine->create_graph_handle();
+    GraphBase* h = st.dry_run ? nullptr : st.engine->create_graph_handle();
     node_id_t src, dst; std::vector<uint8_t> data;
     size_t recovered = 0;
     while (rdr.read(src, dst, data)) {
@@ -899,7 +899,7 @@ static void load_person_emails(State& st) {
     if (c_pid   < 0) c_pid   = 0;
     if (c_email < 0) c_email = 1;
 
-    GraphBase* h = st.engine->create_graph_handle();
+    GraphBase* h = st.dry_run ? nullptr : st.engine->create_graph_handle();
     std::unordered_map<node_id_t, uint64_t> idx_map;
     size_t cnt = 0;
 
@@ -929,7 +929,7 @@ static void load_person_speaks(State& st) {
     if (c_pid  < 0) c_pid  = 0;
     if (c_lang < 0) c_lang = 1;
 
-    GraphBase* h = st.engine->create_graph_handle();
+    GraphBase* h = st.dry_run ? nullptr : st.engine->create_graph_handle();
     std::unordered_map<node_id_t, uint64_t> idx_map;
     size_t cnt = 0;
 
@@ -1189,7 +1189,8 @@ int main(int argc, char** argv) {
             "          [--no-props]       (topology only)\n"
             "          [--dry-run]        (no WT writes; still writes spools)\n"
             "          [--keep-spool]     (keep spool files after load)\n"
-            "          [--reuse-spool]    (skip writing spools; read existing ones)\n",
+            "          [--reuse-spool]    (skip writing spools; read existing ones)\n"
+            "          [--dump-id-map]    (write ID maps to <data_dir>/id_maps/)\n",
             argv[0]);
         return 1;
     }
@@ -1202,10 +1203,11 @@ int main(int argc, char** argv) {
     int       cache_gb    = 4;
     std::string spool_dir;
     PropStorageMode prop_mode = COLUMNAR;
-    bool has_props   = true;
-    bool dry_run     = false;
-    bool keep_spool  = false;
-    bool reuse_spool = false;
+    bool has_props    = true;
+    bool dry_run      = false;
+    bool keep_spool   = false;
+    bool reuse_spool  = false;
+    bool dump_id_map  = false;
 
     for (int i = 3; i < argc; i++) {
         std::string a = argv[i];
@@ -1216,9 +1218,10 @@ int main(int argc, char** argv) {
         else if (a == "--spool"   && i+1 < argc) spool_dir   = argv[++i];
         else if (a == "--embedded")   prop_mode   = EMBEDDED;
         else if (a == "--no-props")   has_props   = false;
-        else if (a == "--dry-run")    dry_run     = true;
-        else if (a == "--keep-spool") keep_spool  = true;
+        else if (a == "--dry-run")     dry_run     = true;
+        else if (a == "--keep-spool")  keep_spool  = true;
         else if (a == "--reuse-spool") reuse_spool = true;
+        else if (a == "--dump-id-map") dump_id_map = true;
         else { fprintf(stderr, "Unknown argument: %s\n", a.c_str()); return 1; }
     }
 
@@ -1251,6 +1254,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "[BULK] cache:       %d GB\n", cache_gb);
     fprintf(stderr, "[BULK] dry_run:     %s\n", dry_run ? "yes" : "no");
     fprintf(stderr, "[BULK] reuse_spool: %s\n", reuse_spool ? "yes (reading existing spools)" : "no");
+    fprintf(stderr, "[BULK] dump_id_map: %s\n", dump_id_map ? "yes" : "no");
 
     // Create GraphEngine (initialises WT connection and creates all tables)
     GraphEngine* engine = nullptr;
@@ -1279,6 +1283,26 @@ int main(int argc, char** argv) {
         if (engine) engine->close_graph();
         delete engine;
         return 1;
+    }
+
+    // Dump ID maps to <data_dir>/id_maps/ and <db_dir>/id_maps/ if requested.
+    // Maps are fully built after Phase 1 so this is valid even with --dry-run.
+    if (dump_id_map) {
+        std::string dir = data_dir + "/id_maps";
+        mkdir(dir.c_str(), 0755);
+        struct { const char* name; const SnbIdMap& map; } maps[] = {
+            { "person_map.csv",   st.person_map   },
+            { "post_map.csv",     st.post_map     },
+            { "comment_map.csv",  st.comment_map  },
+            { "forum_map.csv",    st.forum_map    },
+            { "tag_map.csv",      st.tag_map      },
+            { "tagclass_map.csv", st.tagclass_map },
+            { "place_map.csv",    st.place_map    },
+            { "org_map.csv",      st.org_map      },
+        };
+        for (auto& m : maps)
+            m.map.dump_csv(dir + "/" + m.name);
+        fprintf(stderr, "[BULK] ID maps written to %s/\n", dir.c_str());
     }
 
     // Checkpoint and close
