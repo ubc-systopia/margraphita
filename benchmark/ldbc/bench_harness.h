@@ -106,6 +106,21 @@ inline void bench_csv_row(FILE *out,
             (long long)r.n_measured);
 }
 
+// ─── ParamCycle ───────────────────────────────────────────────────────────────
+
+// Stateful cycling iterator over a const vector.
+// Each call to next() returns the next element, wrapping around.
+// Thread-unsafe — use from a single benchmark thread only.
+template<typename T>
+struct ParamCycle {
+    const std::vector<T>& vec;
+    mutable size_t idx = 0;
+    explicit ParamCycle(const std::vector<T>& v) : vec(v) {}
+    T next() const { return vec[idx++ % vec.size()]; }
+    bool   empty() const { return vec.empty(); }
+    size_t size()  const { return vec.size(); }
+};
+
 // ─── rss_mb ───────────────────────────────────────────────────────────────────
 
 // Current process RSS in MB.

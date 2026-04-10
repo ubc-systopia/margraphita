@@ -34,6 +34,45 @@
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
+// Load one column by name from a comma-delimited CSV (header in row 0).
+// Returns an empty vector on any error.
+static std::vector<node_id_t> load_csv_col_u64(const std::string& path,
+                                                const std::string& col_name)
+{
+    std::vector<node_id_t> result;
+    FILE *f = fopen(path.c_str(), "r");
+    if (!f) {
+        fprintf(stderr, "[bench] cannot open param file: %s\n", path.c_str());
+        return result;
+    }
+    char hdr[512];
+    if (!fgets(hdr, sizeof(hdr), f)) { fclose(f); return result; }
+
+    // Find column index from comma-separated header
+    int col_idx = -1, ci = 0;
+    char hdr_copy[512];
+    strncpy(hdr_copy, hdr, sizeof(hdr_copy));
+    for (char *tok = strtok(hdr_copy, ",\r\n"); tok; tok = strtok(nullptr, ",\r\n"), ++ci)
+        if (strcmp(tok, col_name.c_str()) == 0) { col_idx = ci; break; }
+
+    if (col_idx < 0) {
+        fprintf(stderr, "[bench] column '%s' not found in %s\n",
+                col_name.c_str(), path.c_str());
+        fclose(f);
+        return result;
+    }
+
+    char line[512];
+    while (fgets(line, sizeof(line), f)) {
+        int fi = 0; uint64_t val = 0;
+        for (char *t = strtok(line, ",\r\n"); t; t = strtok(nullptr, ",\r\n"), ++fi)
+            if (fi == col_idx) { val = strtoull(t, nullptr, 10); break; }
+        result.push_back((node_id_t)val);
+    }
+    fclose(f);
+    return result;
+}
+
 static node_id_t count_nodes_of_type(GraphBase &g, VertexType vt)
 {
     // Walk counters 0..N until get_node_properties returns nothing.
@@ -80,6 +119,7 @@ int main(int argc, char **argv)
     int         n_threads     = omp_get_max_threads();
     int         sf            = 0;
     bool        no_cache      = false;
+    std::string params_dir;
     FILE       *csv_out       = stdout;
     std::string out_path;
 
@@ -91,6 +131,8 @@ int main(int argc, char **argv)
         else if (a.rfind("--db-name=", 0) == 0)   db_name = a.substr(10);
         else if (a == "--validate")                validate_mode = true;
         else if (a == "--no-cache")                no_cache = true;
+        else if (a.rfind("--params-dir=", 0) == 0) params_dir = a.substr(13);
+        else if (a == "--params-dir" && i+1 < argc) params_dir = argv[++i];
         else if (a.rfind("--warmup=", 0) == 0)    warmup_n    = std::stoi(a.substr(9));
         else if (a.rfind("--queries=", 0) == 0)   queries_n   = std::stoi(a.substr(10));
         else if (a.rfind("--warmup-bi=", 0) == 0) warmup_bi_n = std::stoi(a.substr(12));
@@ -143,13 +185,27 @@ int main(int argc, char **argv)
 
     bool has_props = !emb;
 
-    // Fixed query parameters (match validate_queries.cpp)
+    // Fallback single-node parameters (used in --validate mode and as defaults)
     node_id_t pid0  = MAKE_TYPED_ID(VT_PERSON, 0);
     node_id_t pid1  = MAKE_TYPED_ID(VT_PERSON, 1);
     node_id_t post0 = MAKE_TYPED_ID(VT_POST,   0);
     node_id_t cx    = MAKE_TYPED_ID(VT_COUNTRY, 0);
     node_id_t cy    = MAKE_TYPED_ID(VT_COUNTRY, 1);
     const int64_t INT64_MAX_VAL = 9223372036854775807LL;
+
+    // ── Load parameter sets (if --params-dir given) ──────────────────────────
+    std::vector<node_id_t> person_fgids, post_fgids;
+    if (!params_dir.empty()) {
+        person_fgids = load_csv_col_u64(params_dir + "/person_params.csv", "fg_typed_id");
+        post_fgids   = load_csv_col_u64(params_dir + "/post_params.csv",   "fg_typed_id");
+        fprintf(stderr, "[bench] params: %zu persons, %zu posts from %s\n",
+                person_fgids.size(), post_fgids.size(), params_dir.c_str());
+    }
+    if (person_fgids.empty()) person_fgids = {pid0};
+    if (post_fgids.empty())   post_fgids   = {post0};
+
+    ParamCycle<node_id_t> pid_cycle(person_fgids);
+    ParamCycle<node_id_t> post_cycle(post_fgids);
 
     // ─── --validate mode ──────────────────────────────────────────────────────
 
@@ -256,41 +312,42 @@ int main(int argc, char **argv)
     fprintf(stderr, "[bench] Step 2: read/aggregate/IC queries (warmup=%d, measure=%d)\n",
             warmup_n, queries_n);
 
-    emit("r1", "pid=0",
-         run_timed([&]{ tq_r1_person_profile(g, pid0); }, warmup_n, queries_n));
-    emit("r2", "pid=0",
-         run_timed([&]{ tq_r2_friends_sorted_by_date(g, pid0, has_props); }, warmup_n, queries_n));
-    emit("r3", "pid=0;dst=1",
-         run_timed([&]{ tq_r3_bfs_shortest_path(g, pid0, pid1); }, warmup_n, queries_n));
-    emit("x1", "post=0",
-         run_timed([&]{ tq_x1_post_profile(g, post0); }, warmup_n, queries_n));
-    emit("x2", "post=0",
-         run_timed([&]{ tq_x2_post_author(g, post0); }, warmup_n, queries_n));
-    emit("x3", "pid=0;cutoff=MAX",
-         run_timed([&]{ tq_x3_ic2_friends_recent_posts(g, pid0, INT64_MAX_VAL, has_props); },
+    emit("r1", "pid=sampled",
+         run_timed([&]{ tq_r1_person_profile(g, pid_cycle.next()); }, warmup_n, queries_n));
+    emit("r2", "pid=sampled",
+         run_timed([&]{ tq_r2_friends_sorted_by_date(g, pid_cycle.next(), has_props); }, warmup_n, queries_n));
+    emit("r3", "pid=sampled;dst=sampled",
+         run_timed([&]{ auto a = pid_cycle.next(), b = pid_cycle.next();
+                        tq_r3_bfs_shortest_path(g, a, b); }, warmup_n, queries_n));
+    emit("x1", "post=sampled",
+         run_timed([&]{ tq_x1_post_profile(g, post_cycle.next()); }, warmup_n, queries_n));
+    emit("x2", "post=sampled",
+         run_timed([&]{ tq_x2_post_author(g, post_cycle.next()); }, warmup_n, queries_n));
+    emit("x3", "pid=sampled;cutoff=MAX",
+         run_timed([&]{ tq_x3_ic2_friends_recent_posts(g, pid_cycle.next(), INT64_MAX_VAL, has_props); },
                    warmup_n, queries_n));
-    emit("x5", "post=0;lo=0;hi=MAX",
-         run_timed([&]{ tq_x5_count_likes_in_range(g, post0, 0LL, INT64_MAX_VAL); },
+    emit("x5", "post=sampled;lo=0;hi=MAX",
+         run_timed([&]{ tq_x5_count_likes_in_range(g, post_cycle.next(), 0LL, INT64_MAX_VAL); },
                    warmup_n, queries_n));
-    emit("a1", "pid=0",
-         run_timed([&]{ tq_a1_degree_count(g, pid0); }, warmup_n, queries_n));
-    emit("a2", "pid=0;lo=0;hi=MAX",
-         run_timed([&]{ tq_a2_knows_in_date_range(g, pid0, 0LL, INT64_MAX_VAL, has_props); },
+    emit("a1", "pid=sampled",
+         run_timed([&]{ tq_a1_degree_count(g, pid_cycle.next()); }, warmup_n, queries_n));
+    emit("a2", "pid=sampled;lo=0;hi=MAX",
+         run_timed([&]{ tq_a2_knows_in_date_range(g, pid_cycle.next(), 0LL, INT64_MAX_VAL, has_props); },
                    warmup_n, queries_n));
-    emit("a3", "pid=1;lo=0;hi=MAX",
-         run_timed([&]{ tq_a3_posts_liked_in_range(g, pid1, 0LL, INT64_MAX_VAL, has_props); },
+    emit("a3", "pid=sampled;lo=0;hi=MAX",
+         run_timed([&]{ tq_a3_posts_liked_in_range(g, pid_cycle.next(), 0LL, INT64_MAX_VAL, has_props); },
                    warmup_n, queries_n));
-    emit("ic3", "pid=0",
-         run_timed([&]{ tq_ic3_fof_by_country(g, pid0, cx, cy); }, warmup_n, queries_n));
-    emit("ic5", "pid=0;since=0",
-         run_timed([&]{ tq_ic5_forums_by_friend_membership(g, pid0, 0LL, has_props); },
+    emit("ic3", "pid=sampled",
+         run_timed([&]{ tq_ic3_fof_by_country(g, pid_cycle.next(), cx, cy); }, warmup_n, queries_n));
+    emit("ic5", "pid=sampled;since=0",
+         run_timed([&]{ tq_ic5_forums_by_friend_membership(g, pid_cycle.next(), 0LL, has_props); },
                    warmup_n, queries_n));
-    emit("ic7", "pid=0",
-         run_timed([&]{ tq_ic7_message_likes(g, pid0, has_props); }, warmup_n, queries_n));
-    emit("ic8", "pid=0",
-         run_timed([&]{ tq_ic8_latest_replies(g, pid0, has_props); }, warmup_n, queries_n));
-    emit("ic9", "pid=0;cutoff=MAX",
-         run_timed([&]{ tq_ic9_friends_messages_before(g, pid0, INT64_MAX_VAL, has_props); },
+    emit("ic7", "pid=sampled",
+         run_timed([&]{ tq_ic7_message_likes(g, pid_cycle.next(), has_props); }, warmup_n, queries_n));
+    emit("ic8", "pid=sampled",
+         run_timed([&]{ tq_ic8_latest_replies(g, pid_cycle.next(), has_props); }, warmup_n, queries_n));
+    emit("ic9", "pid=sampled;cutoff=MAX",
+         run_timed([&]{ tq_ic9_friends_messages_before(g, pid_cycle.next(), INT64_MAX_VAL, has_props); },
                    warmup_n, queries_n));
 
     // Step 3: BI queries (smaller warmup/measure because each call takes 100–2000 ms)
@@ -331,23 +388,23 @@ int main(int argc, char **argv)
 
         // Step 6: OPT-1 cached variants
         fprintf(stderr, "[bench] Step 6: OPT-1 cached variants\n");
-        emit("x3_cached", "pid=0;cutoff=MAX",
+        emit("x3_cached", "pid=sampled;cutoff=MAX",
              run_timed([&]{ tq_x3_ic2_friends_recent_posts_cached(
-                                g, cache, pid0, INT64_MAX_VAL, has_props); },
+                                g, cache, pid_cycle.next(), INT64_MAX_VAL, has_props); },
                        warmup_n, queries_n));
-        emit("ic7_cached", "pid=0",
-             run_timed([&]{ tq_ic7_message_likes_cached(g, cache, pid0, has_props); },
+        emit("ic7_cached", "pid=sampled",
+             run_timed([&]{ tq_ic7_message_likes_cached(g, cache, pid_cycle.next(), has_props); },
                        warmup_n, queries_n));
-        emit("ic9_cached", "pid=0;cutoff=MAX",
+        emit("ic9_cached", "pid=sampled;cutoff=MAX",
              run_timed([&]{ tq_ic9_friends_messages_before_cached(
-                                g, cache, pid0, INT64_MAX_VAL, has_props); },
+                                g, cache, pid_cycle.next(), INT64_MAX_VAL, has_props); },
                        warmup_n, queries_n));
-        emit("ic5_cached", "pid=0;since=0",
+        emit("ic5_cached", "pid=sampled;since=0",
              run_timed([&]{ tq_ic5_forums_by_friend_membership_cached(
-                                g, cache, pid0, 0LL, has_props); },
+                                g, cache, pid_cycle.next(), 0LL, has_props); },
                        warmup_n, queries_n));
-        emit("ic3_cached", "pid=0",
-             run_timed([&]{ tq_ic3_fof_by_country_cached(cache, pid0, cx, cy); },
+        emit("ic3_cached", "pid=sampled",
+             run_timed([&]{ tq_ic3_fof_by_country_cached(cache, pid_cycle.next(), cx, cy); },
                        warmup_n, queries_n));
     } else {
         fprintf(stderr, "[bench] Step 5+6: skipped (--no-cache)\n");
