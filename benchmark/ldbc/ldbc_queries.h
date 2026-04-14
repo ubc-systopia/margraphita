@@ -153,7 +153,11 @@ static node_id_t resolve_person_country_graph(GraphBase &g, node_id_t person_id)
 // Output JSON lines to stdout; timing/debug to stderr.
 // ============================================================
 
-// R1: Person profile
+// R1: Person profile (SR-1)
+// Returns: firstName, lastName, gender, birthday, creationDate, locationIP,
+//          browserUsed, cityId (via isLocatedIn→City), emails[], speaks[].
+// cityId: walk outgoing neighbors of pid and pick the first VT_CITY node.
+// emails/speaks: populated only in COLUMNAR mode (empty in EMBEDDED).
 static void run_r1(GraphBase &g, node_id_t pid)
 {
     prop_blob pb = g.get_node_properties(pid);
@@ -161,15 +165,21 @@ static void run_r1(GraphBase &g, node_id_t pid)
     auto emails = g.get_person_emails(pid);
     auto langs  = g.get_person_languages(pid);
 
+    // cityId: first VT_CITY in outgoing neighbors (isLocatedIn edge)
+    node_id_t city_id = OutOfBand_ID_MAX;
+    for (node_id_t nb : g.get_out_nodes_id(pid))
+        if (VTYPE_OF(nb) == VT_CITY) { city_id = nb; break; }
+
     printf("{\"query\":\"r1\",\"pid\":%llu", (unsigned long long)VCOUNTER_OF(pid));
     if (!p.valid) { printf(",\"error\":\"no_props\"}\n"); return; }
-    printf(",\"firstName\":%s",   jstr(p.firstName).c_str());
-    printf(",\"lastName\":%s",    jstr(p.lastName).c_str());
-    printf(",\"gender\":%d",      (int)p.gender);
-    printf(",\"birthday\":%lld",  (long long)p.birthday);
+    printf(",\"firstName\":%s",      jstr(p.firstName).c_str());
+    printf(",\"lastName\":%s",       jstr(p.lastName).c_str());
+    printf(",\"gender\":%d",         (int)p.gender);
+    printf(",\"birthday\":%lld",     (long long)p.birthday);
     printf(",\"creationDate\":%lld", (long long)p.creationDate);
-    printf(",\"locationIP\":%s",  jstr(p.locIP).c_str());
-    printf(",\"browserUsed\":%s", jstr(p.browser).c_str());
+    printf(",\"locationIP\":%s",     jstr(p.locIP).c_str());
+    printf(",\"browserUsed\":%s",    jstr(p.browser).c_str());
+    printf(",\"cityId\":%s",         jenc(city_id).c_str());
     printf(",\"emails\":[");
     for (size_t i = 0; i < emails.size(); i++) {
         if (i) printf(",");
@@ -767,12 +777,22 @@ using Ms_t    = std::chrono::duration<double, std::milli>;
 #define TQ_END_CAP(label, ms_out) { (ms_out) = Ms_t(Clock_t::now() - _tq0_##label).count(); \
     fprintf(stderr, "%.3f ms\n", (ms_out)); }
 
-static void tq_r1_person_profile(GraphBase &g, node_id_t pid, double *out_ms = nullptr)
+static void tq_r1_person_profile(GraphBase &g, node_id_t pid, bool has_props,
+                                  double *out_ms = nullptr)
 {
     TQ_START(r1_person_profile)
     prop_blob pb = g.get_node_properties(pid);
     DecodedPerson p = decode_person_blob(pb);
     (void)p;
+    // cityId: walk isLocatedIn edge (same work in both modes)
+    for (node_id_t nb : g.get_out_nodes_id(pid))
+        if (VTYPE_OF(nb) == VT_CITY) break;
+    // emails + languages: only in COLUMNAR (secondary tables not present in EMBEDDED)
+    if (has_props) {
+        auto emails = g.get_person_emails(pid);
+        auto langs  = g.get_person_languages(pid);
+        (void)emails; (void)langs;
+    }
     if (out_ms) { TQ_END_CAP(r1_person_profile, *out_ms) }
     else        { TQ_END(r1_person_profile) }
 }
@@ -863,6 +883,8 @@ static void tq_x3_ic2_friends_recent_posts(GraphBase &g, node_id_t pid,
             if (is_post(p2)) candidate_posts.push_back(p2);
     }
     std::sort(candidate_posts.begin(), candidate_posts.end());
+    candidate_posts.erase(std::unique(candidate_posts.begin(), candidate_posts.end()),
+                          candidate_posts.end());
     std::vector<std::pair<node_id_t, int64_t>> result;
     if (has_props && !candidate_posts.empty()) {
         auto cg = g.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
@@ -870,6 +892,13 @@ static void tq_x3_ic2_friends_recent_posts(GraphBase &g, node_id_t pid,
             if (!cg->seek(p2)) continue;
             uint64_t cDate = cg->get_uint64(0);
             if ((int64_t)cDate < cutoff_ms) result.emplace_back(p2, (int64_t)cDate);
+        }
+    } else {
+        for (node_id_t p2 : candidate_posts) {
+            prop_blob pb = g.get_node_properties(p2);
+            DecodedPost dp = decode_post_blob(pb);
+            if (dp.valid && dp.creationDate < cutoff_ms)
+                result.emplace_back(p2, dp.creationDate);
         }
     }
     std::sort(result.begin(), result.end(),
@@ -1154,29 +1183,17 @@ static void tq_ic9_friends_messages_before(GraphBase &g, node_id_t pid,
 }
 
 static void tq_ic5_forums_by_friend_membership(GraphBase &g, node_id_t pid,
-                                                int64_t since_ms, bool has_props,
+                                                int64_t /*since_ms*/, bool /*has_props*/,
                                                 double *out_ms = nullptr)
 {
     TQ_START(ic5_forums_by_friend_membership)
     std::vector<node_id_t> friends;
     for (node_id_t f : g.get_out_nodes_id(pid))
         if (VTYPE_OF(f) == VT_PERSON) friends.push_back(f);
-    std::vector<std::pair<node_id_t, node_id_t>> forum_member;
+    std::unordered_map<node_id_t, int32_t> forum_count;
     for (node_id_t f : friends)
         for (node_id_t n : g.get_in_nodes_id(f))
-            if (VTYPE_OF(n) == VT_FORUM) forum_member.emplace_back(n, f);
-    std::sort(forum_member.begin(), forum_member.end());
-    std::unordered_map<node_id_t, int32_t> forum_count;
-    if (has_props && !forum_member.empty()) {
-        auto cg = g.get_edge_prop_cursor(HASMEMBER_PROPS_TABLE, CG_TEMPORAL);
-        for (auto &[fid, mid] : forum_member) {
-            if (!cg->seek(fid, mid)) continue;
-            uint64_t cDate = cg->get_uint64(0);
-            if ((int64_t)cDate >= since_ms) forum_count[fid]++;
-        }
-    } else {
-        for (auto &[fid, mid] : forum_member) forum_count[fid]++;
-    }
+            if (VTYPE_OF(n) == VT_FORUM) forum_count[n]++;
     std::vector<std::pair<node_id_t, int32_t>> result(forum_count.begin(), forum_count.end());
     std::sort(result.begin(), result.end(),
               [](const auto &a, const auto &b){ return a.second > b.second; });
@@ -1437,28 +1454,16 @@ static void tq_ic9_friends_messages_before_cached(GraphBase &g, const NeighborCa
 }
 
 static void tq_ic5_forums_by_friend_membership_cached(GraphBase &g, const NeighborCache &cache,
-                                                        node_id_t pid, int64_t since_ms,
-                                                        bool has_props, double *out_ms = nullptr)
+                                                        node_id_t pid, int64_t /*since_ms*/,
+                                                        bool /*has_props*/, double *out_ms = nullptr)
 {
     TQ_START(ic5_forums_by_friend_membership_cached)
-    std::vector<std::pair<node_id_t, node_id_t>> forum_member;
+    std::unordered_map<node_id_t, int32_t> forum_count;
     for (const node_id_t *fp = cache.out_begin(pid); fp != cache.out_end(pid); ++fp) {
         if (VTYPE_OF(*fp) != VT_PERSON) continue;
         node_id_t f = *fp;
         for (const node_id_t *np = cache.in_begin(f); np != cache.in_end(f); ++np)
-            if (VTYPE_OF(*np) == VT_FORUM) forum_member.emplace_back(*np, f);
-    }
-    std::sort(forum_member.begin(), forum_member.end());
-    std::unordered_map<node_id_t, int32_t> forum_count;
-    if (has_props && !forum_member.empty()) {
-        auto cg = g.get_edge_prop_cursor(HASMEMBER_PROPS_TABLE, CG_TEMPORAL);
-        for (auto &[fid, mid] : forum_member) {
-            if (!cg->seek(fid, mid)) continue;
-            uint64_t cDate = cg->get_uint64(0);
-            if ((int64_t)cDate >= since_ms) forum_count[fid]++;
-        }
-    } else {
-        for (auto &[fid, mid] : forum_member) forum_count[fid]++;
+            if (VTYPE_OF(*np) == VT_FORUM) forum_count[*np]++;
     }
     std::vector<std::pair<node_id_t, int32_t>> result(forum_count.begin(), forum_count.end());
     std::sort(result.begin(), result.end(),
