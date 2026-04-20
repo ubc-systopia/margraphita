@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     std::string db_dir  = argv[1];
     GraphType   gtype   = GraphType::SplitEKey;
     bool        emb     = false;
-    std::string db_name = "ldbc_snb_queries";
+    std::string db_name = "snb";
     bool        validate_mode = false;
     int         warmup_n      = 50;
     int         queries_n     = 500;

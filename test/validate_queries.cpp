@@ -778,7 +778,7 @@ int main(int argc, char **argv)
     std::string db_dir  = argv[1];
     GraphType   gtype   = GraphType::SplitEKey;
     bool        emb     = false;
-    std::string db_name = "ldbc_snb_queries";
+    std::string db_name = "snb";
 
     for (int i = 2; i < argc; i++) {
         std::string a = argv[i];
