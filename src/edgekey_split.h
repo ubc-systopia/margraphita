@@ -189,7 +189,10 @@ inline void SplitEdgeKey::ekey_get_edge_value(WT_CURSOR *cursor,
   cursor->get_value(cursor, &item);
   if (item.size != sizeof(edgeweight_t))
   {
-    throw GraphException("Edge weight size mismatch");
+    // Unweighted graphs may store a minimal sentinel value (e.g. 1 byte).
+    // Rather than crashing, return 0.0 for the weight.
+    *weight = 0.0;
+    return;
   }
   unpack_values(&item, weight);
 }
