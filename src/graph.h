@@ -98,6 +98,7 @@ class GraphBase
   }
 
   [[nodiscard]] std::string get_db_name() const { return opts.db_name; };
+  [[nodiscard]] bool is_read_optimized() const { return opts.read_optimize; };
   static int _get_table_cursor(const std::string &table,
                                WT_CURSOR **cursor,
                                WT_SESSION *session,
