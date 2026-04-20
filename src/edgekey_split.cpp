@@ -156,7 +156,7 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
   }
   auto out_ret = out_edge_cursor->insert(out_edge_cursor);
 
-  if (error_check_insert_txn(out_ret, false))
+  if (error_check_insert_txn(out_ret))
   {
     return out_ret;
   }
@@ -205,7 +205,7 @@ int SplitEdgeKey::add_node_txn(node to_insert,
       ekey_set_node_value(out_edge_cursor, 0, 0);
     }
     int insert_result = out_edge_cursor->insert(out_edge_cursor);
-    int txn_result = error_check_insert_txn(insert_result, false);
+    int txn_result = error_check_insert_txn(insert_result);
     if (!txn_result) {
       (*num_nodes_added_ptr)++;
     }
@@ -303,22 +303,20 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
     ekey_set_edge_value(out_edge_cursor, 0.0);
   }
 
-  if (ret = error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor), false))
+  if (ret = error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor)))
     return ret;
 
   // Insert into the in-edges table
   CommonUtil::ekey_set_edge_key(in_edge_cursor, to_insert.dst_id, to_insert.src_id);
   if (opts.is_weighted)
   {
-    // in_edge_cursor->set_value(
-    //     in_edge_cursor, to_insert.edge_weight, OutOfBand_ID_MAX);
     ekey_set_edge_value(in_edge_cursor, to_insert.edge_weight);
   }
   else
   {
     ekey_set_edge_value(in_edge_cursor, 0.0);
   }
-  if (ret = error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor), false))
+  if (ret = error_check_insert_txn(in_edge_cursor->insert(in_edge_cursor)))
     return ret;
 
   num_edges_to_add++;
@@ -371,14 +369,14 @@ bool SplitEdgeKey::update_edge(edge to_update)
     CommonUtil::ekey_set_edge_key(
         out_edge_cursor, to_update.src_id, to_update.dst_id);
     ekey_set_edge_value(out_edge_cursor, found.edge_weight);
-    ret = error_check_insert_txn(out_edge_cursor->update(out_edge_cursor), false);
+    ret = error_check_insert_txn(out_edge_cursor->update(out_edge_cursor));
     if (ret) return false; // OK, error_check rolls back TXN
 
     //do the reverse edge too
     CommonUtil::ekey_set_edge_key(
         in_edge_cursor, to_update.dst_id, to_update.src_id);
     ekey_set_edge_value(in_edge_cursor, found.edge_weight);
-    ret = error_check_insert_txn(in_edge_cursor->update(in_edge_cursor), false);
+    ret = error_check_insert_txn(in_edge_cursor->update(in_edge_cursor));
     if (ret) return false; // OK, error_check rolls back TXN
 
     session->commit_transaction(session, nullptr);
@@ -957,7 +955,7 @@ int SplitEdgeKey::update_node_degree(node_id_t node_id,
             wiredtiger_strerror(ret));
   }
   out_cursor->close(out_cursor);
-  return error_check_insert_txn(ret, false);
+  return error_check_insert_txn(ret);
 }
 
 OutCursor *SplitEdgeKey::get_outnbd_iter()
@@ -1048,8 +1046,7 @@ void SplitEdgeKey::get_random_node_ids(vector<node_id_t> &randoms,
   std::cout << "ids size: " << randoms.size() << std::endl;
   #endif
 }
-int SplitEdgeKey::error_check_insert_txn(int return_val,
-                                         bool ignore_duplicate_key)
+int SplitEdgeKey::error_check_insert_txn(int return_val)
 {
   switch (return_val)
   {
@@ -1059,30 +1056,14 @@ int SplitEdgeKey::error_check_insert_txn(int return_val,
       session->rollback_transaction(session, nullptr);
       return WT_ROLLBACK;
     case WT_DUPLICATE_KEY:
-      if (!ignore_duplicate_key)
-      {
-        LOG_MSG("Rolling back; duplicate key found");
-        session->rollback_transaction(session, nullptr);
-      }
+      LOG_MSG("Rolling back; duplicate key found");
+      session->rollback_transaction(session, nullptr);
       return WT_DUPLICATE_KEY;
     default:
       LOG_MSG("Rolling back in insert_txn: ", wiredtiger_strerror(return_val));
       session->rollback_transaction(session, nullptr);
       return return_val;
-  }  //  switch (return_val)
-  //  {
-  //    case 0:
-  //      return 0;
-  //    case WT_ROLLBACK:
-  //      session->rollback_transaction(session, nullptr);
-  //      return WT_ROLLBACK;
-  //    case WT_DUPLICATE_KEY:
-  //      session->rollback_transaction(session, nullptr);
-  //      return WT_DUPLICATE_KEY;
-  //    default:
-  //      session->rollback_transaction(session, nullptr);
-  //      return GRAPH_API_PANIC;
-  //  }
+  }
 }
 
 int SplitEdgeKey::error_check_read_txn(int return_val)
@@ -1290,8 +1271,7 @@ int SplitEdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
   session->begin_transaction(session, "isolation=snapshot");
 
   CommonUtil::ekey_set_key(out_edge_cursor, src_id, dst_id);
-  if ((ret = error_check_insert_txn(out_edge_cursor->remove(out_edge_cursor),
-                                    false)))
+  if ((ret = error_check_insert_txn(out_edge_cursor->remove(out_edge_cursor))))
   {
     LOG_MSG("Failed to delete the edge between {} and {}", src_id, dst_id);
     return ret;
@@ -1299,8 +1279,7 @@ int SplitEdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
   out_edge_cursor->reset(out_edge_cursor);
   // delete the reverse edge.
   CommonUtil::ekey_set_key(in_edge_cursor, dst_id, src_id);
-  if ((ret = error_check_insert_txn(in_edge_cursor->remove(in_edge_cursor),
-                                    false)))
+  if ((ret = error_check_insert_txn(in_edge_cursor->remove(in_edge_cursor))))
   {
     LOG_MSG(
         "Failed to delete the reverse edge between {} and {}", dst_id, src_id);

@@ -89,7 +89,7 @@ class SplitEdgeKey : public GraphBase
                    int *num_nodes_added,
                    int32_t indeg_change,
                    int32_t outdeg_change);
-  int error_check_insert_txn(int return_val, bool ignore_duplicate_key);
+  int error_check_insert_txn(int return_val);
   int error_check_read_txn(int return_val);
 
   [[maybe_unused]] inline void close_all_cursors() override
