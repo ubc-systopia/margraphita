@@ -1,0 +1,9 @@
+{
+    "GRAPH_PROJECT_DIR": "/systems/FlexoGraph",
+    "KRON_GEN_PATH": "systems/in-mem/lgapbs/converter",
+    "KRON_GRAPHS_PATH": "/datasets",
+    "DB_DIR": "/db",
+    "GOLDEN_DIR": "/golden_dir",
+    "LOG_DIR": "/results/flexograph",
+    "num_threads": 16
+}

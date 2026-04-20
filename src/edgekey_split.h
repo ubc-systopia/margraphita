@@ -118,7 +118,11 @@ static inline int pack_values(WT_ITEM *item,
                               const Args &...args)
 {
   constexpr size_t count = 1 + sizeof...(Args);
-  T *buffer = new T[count];  // dynamic allocation for correct alignment
+  // Use thread-local storage: avoids heap allocation and is safe because
+  // the cursor insert/update always completes before the next pack_values call
+  // on the same thread.  Max 4 elements covers all current uses.
+  static_assert(count <= 4, "pack_values: too many arguments");
+  thread_local T buffer[4];
 
   buffer[0] = first;
   size_t idx = 1;
@@ -155,7 +159,6 @@ inline void SplitEdgeKey::ekey_set_edge_value(WT_CURSOR *cursor,
   WT_ITEM item;
   pack_values(&item, weight);
   cursor->set_value(cursor, &item);
-  // free((void *)item.data);
 }
 inline void SplitEdgeKey::ekey_set_node_value(WT_CURSOR *cursor,
                                               degree_t in_deg,
@@ -164,7 +167,6 @@ inline void SplitEdgeKey::ekey_set_node_value(WT_CURSOR *cursor,
   WT_ITEM item;
   pack_values(&item, in_deg, out_deg);
   cursor->set_value(cursor, &item);
-  // free((void *)item.data);
 }
 
 inline void SplitEdgeKey::ekey_get_node_value(WT_CURSOR *cursor,
@@ -178,7 +180,6 @@ inline void SplitEdgeKey::ekey_get_node_value(WT_CURSOR *cursor,
     throw GraphException("Node degree size mismatch");
   }
   unpack_values(&item, in_deg, out_deg);
-  // free((void *)item.data);
 }
 
 inline void SplitEdgeKey::ekey_get_edge_value(WT_CURSOR *cursor,
@@ -191,7 +192,6 @@ inline void SplitEdgeKey::ekey_get_edge_value(WT_CURSOR *cursor,
     throw GraphException("Edge weight size mismatch");
   }
   unpack_values(&item, weight);
-  // free((void *)item.data);
 }
 
 class SplitEkeyInCursor : public InCursor

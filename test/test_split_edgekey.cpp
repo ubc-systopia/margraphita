@@ -567,7 +567,7 @@ void test_ro_get_nodes(GraphBase *graph)
   }
 }
 
-void test_update_edge(SplitEdgeKey graph, bool is_directed)
+void test_update_edge(SplitEdgeKey &graph, bool is_directed)
 {
   INFO();
   edge to_update = {
