@@ -11,3 +11,14 @@ target_link_libraries(fg_ldbc_bench PRIVATE
     ${NAME_LIB}
     ${wt_shared_lib}
     OpenMP::OpenMP_CXX)
+
+add_executable(add_typed_edge_table add_typed_edge_table.cpp)
+
+target_include_directories(add_typed_edge_table PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_link_libraries(add_typed_edge_table PRIVATE
+    ${NAME_LIB}
+    ${wt_shared_lib}
+    OpenMP::OpenMP_CXX)
