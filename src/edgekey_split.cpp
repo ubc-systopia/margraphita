@@ -70,12 +70,14 @@ void SplitEdgeKey::init_cursors()
                          string(wiredtiger_strerror(ret)));
   }
 
-  // out_edge_cursor
+  // out_edge_cursor — overwrite=false so insert() returns WT_DUPLICATE_KEY
+  // on existing keys instead of silently overwriting.  This eliminates the
+  // need for a separate search-before-insert on every add_node/add_edge call.
   if ((ret = _get_table_cursor(OUT_EDGES,
                                &out_edge_cursor,
                                session,
                                false,
-                               true,
+                               false,
                                opts.checkpoint_name)))
   {
     throw GraphException("Could not get an out edge cursor: " +
@@ -85,19 +87,20 @@ void SplitEdgeKey::init_cursors()
   /**
    * in_edge_cursor points to the IN_EDGES table if the graph is directed. It
    * points to the OUT_EDGES table if the graph is undirected.
+   * overwrite=false for same reason as out_edge_cursor.
    */
 
   opts.is_directed ? (ret = _get_table_cursor(IN_EDGES,
                                               &in_edge_cursor,
                                               session,
                                               false,
-                                              true,
+                                              false,
                                               opts.checkpoint_name))
                    : (ret = _get_table_cursor(OUT_EDGES,
                                               &in_edge_cursor,
                                               session,
                                               false,
-                                              true,
+                                              false,
                                               opts.checkpoint_name));
   if (ret)
   {
@@ -130,20 +133,6 @@ void SplitEdgeKey::init_cursors()
 int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
 {
   session->begin_transaction(session, "isolation=snapshot");
-
-  // Check if node already exists BEFORE insert.  The class cursors are opened
-  // with overwrite=true (required for update_node_degree), so insert() would
-  // silently overwrite the existing sentinel and destroy stored degrees.
-  CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
-  if (out_edge_cursor->search(out_edge_cursor) == 0)
-  {
-    // Node already exists — do not overwrite.
-    out_edge_cursor->reset(out_edge_cursor);
-    session->rollback_transaction(session, nullptr);
-    LOG_MSG("Duplicate key -- Node {} already exists", to_insert.id);
-    return WT_DUPLICATE_KEY;
-  }
-
   CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
   if (opts.read_optimize)
   {
@@ -154,8 +143,16 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
   {
     ekey_set_node_value(out_edge_cursor, 0, 0);
   }
+  // overwrite=false cursor: insert returns WT_DUPLICATE_KEY if node exists,
+  // no separate search needed.
   auto out_ret = out_edge_cursor->insert(out_edge_cursor);
 
+  if (out_ret == WT_DUPLICATE_KEY)
+  {
+    session->rollback_transaction(session, nullptr);
+    LOG_MSG("Duplicate key -- Node {} already exists", to_insert.id);
+    return WT_DUPLICATE_KEY;
+  }
   if (error_check_insert_txn(out_ret))
   {
     return out_ret;
@@ -177,55 +174,40 @@ int SplitEdgeKey::add_node_txn(node to_insert,
                                int32_t indeg_change,
                                int32_t outdeg_change)
 {
+  // Try insert first (overwrite=false).  If the node already exists, WT
+  // returns WT_DUPLICATE_KEY and we fall back to updating degrees.  This
+  // eliminates a separate search() B-tree seek on every call.
   CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
-  if (out_edge_cursor->search(out_edge_cursor) == 0)
+  if (opts.read_optimize)
   {
-    // The node already exists. We can update the degrees.
-    int ret = update_node_degree(to_insert.id, indeg_change, outdeg_change);
-    return ret;
-  }
-  else
-  {
-    CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
-    if (opts.read_optimize)
+    if (indeg_change > 0 || outdeg_change > 0)
     {
-      if (indeg_change > 0 || outdeg_change > 0)
-      {  // New node, but the degrees are not zero
-        // out_edge_cursor->set_value(
-        // out_edge_cursor, indeg_change, outdeg_change);
-        ekey_set_node_value(out_edge_cursor, indeg_change, outdeg_change);
-      }
-      else
-      {
-        ekey_set_node_value(out_edge_cursor, 0, 0);
-      }
+      ekey_set_node_value(out_edge_cursor, indeg_change, outdeg_change);
     }
     else
     {
       ekey_set_node_value(out_edge_cursor, 0, 0);
     }
-    int insert_result = out_edge_cursor->insert(out_edge_cursor);
-    int txn_result = error_check_insert_txn(insert_result);
-    if (!txn_result) {
-      (*num_nodes_added_ptr)++;
-    }
-    // Return value: 0 on success, WT_DUPLICATE_KEY if node already exists, nonzero for other errors.
-        return txn_result;
+  }
+  else
+  {
+    ekey_set_node_value(out_edge_cursor, 0, 0);
   }
 
-  //    // UPDATE IN_EDGE TABLE
-  //    CommonUtil::ekey_set_key(in_edge_cursor, to_insert.id,
-  //    OutOfBand_ID_MIN);//    if (opts.read_optimize)
-  //    {
-  //        in_edge_cursor->set_value(
-  //            in_edge_cursor, to_insert.in_degree, to_insert.out_degree);
-  //    }
-  //    else
-  //    {
-  //        in_edge_cursor->set_value(in_edge_cursor, 0, OutOfBand_ID_MAX);
-  //    }
-  //    return in_edge_cursor->insert(
-  //        in_edge_cursor);  // no need to check -- done in caller.
+  int insert_result = out_edge_cursor->insert(out_edge_cursor);
+  if (insert_result == 0)
+  {
+    // New node created successfully.
+    (*num_nodes_added_ptr)++;
+    return 0;
+  }
+  if (insert_result == WT_DUPLICATE_KEY)
+  {
+    // Node already exists — update degrees instead.
+    return update_node_degree(to_insert.id, indeg_change, outdeg_change);
+  }
+  // Unexpected error — let error_check handle rollback.
+  return error_check_insert_txn(insert_result);
 }
 
 bool SplitEdgeKey::has_node(node_id_t node_id)
@@ -253,46 +235,23 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
   node src{.id = to_insert.src_id};
   opts.is_directed ? (ret = add_node_txn(src, &num_nodes_to_add, 0, 1))
                    : (ret = add_node_txn(src, &num_nodes_to_add, 1, 1));
-  if (ret == 0)
-    LOG_MSG("added node {}", to_insert.src_id);
-  else if (ret == WT_DUPLICATE_KEY)
+  if (ret != 0)
   {
-    LOG_MSG("Node {} already exists, updated degrees.", to_insert.src_id);
-  }
-  else if (ret == WT_ROLLBACK)
-  {
-    return WT_ROLLBACK;
+    LOG_MSG("Failed to add/update src node {}", to_insert.src_id);
+    return ret;  // error_check_insert_txn already rolled back
   }
 
   node dst{.id = to_insert.dst_id};
   opts.is_directed ? (ret = add_node_txn(dst, &num_nodes_to_add, 1, 0))
                    : (ret = add_node_txn(dst, &num_nodes_to_add, 1, 1));
-  if (ret == 0)
+  if (ret != 0)
   {
-    LOG_MSG("Added node {}", to_insert.dst_id);
-  }
-  else if (ret == WT_DUPLICATE_KEY)
-  {
-    LOG_MSG("Node {} already exists, updated degrees.", to_insert.dst_id);
-  }
-  else if (ret == WT_ROLLBACK)
-  {
-    return WT_ROLLBACK;
+    LOG_MSG("Failed to add/update dst node {}", to_insert.dst_id);
+    return ret;
   }
 
-  // Check for duplicate edge before inserting.  Cursors use overwrite=true,
-  // so insert() would silently overwrite an existing edge.
-  CommonUtil::ekey_set_edge_key(out_edge_cursor, to_insert.src_id, to_insert.dst_id);
-  if (out_edge_cursor->search(out_edge_cursor) == 0)
-  {
-    out_edge_cursor->reset(out_edge_cursor);
-    session->rollback_transaction(session, nullptr);
-    LOG_MSG("Duplicate edge ({}, {}) already exists",
-            to_insert.src_id, to_insert.dst_id);
-    return WT_DUPLICATE_KEY;
-  }
-
-  // Now add the edge into out-edges table
+  // Insert edge into out-edges table.  overwrite=false cursor returns
+  // WT_DUPLICATE_KEY if the edge already exists — no separate search needed.
   CommonUtil::ekey_set_edge_key(out_edge_cursor, to_insert.src_id, to_insert.dst_id);
   if (opts.is_weighted)
   {
@@ -303,8 +262,15 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
     ekey_set_edge_value(out_edge_cursor, 0.0);
   }
 
-  if (ret = error_check_insert_txn(out_edge_cursor->insert(out_edge_cursor)))
-    return ret;
+  ret = out_edge_cursor->insert(out_edge_cursor);
+  if (ret == WT_DUPLICATE_KEY)
+  {
+    session->rollback_transaction(session, nullptr);
+    LOG_MSG("Duplicate edge ({}, {}) already exists",
+            to_insert.src_id, to_insert.dst_id);
+    return WT_DUPLICATE_KEY;
+  }
+  if (ret != 0) return error_check_insert_txn(ret);
 
   // Insert into the in-edges table
   CommonUtil::ekey_set_edge_key(in_edge_cursor, to_insert.dst_id, to_insert.src_id);
