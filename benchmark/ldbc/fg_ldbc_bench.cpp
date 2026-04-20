@@ -479,6 +479,9 @@ int main(int argc, char **argv)
     emit("x3_opt", "pid=sampled;cutoff=MAX",
          run_timed([&]{ tq_x3_ic2_friends_recent_posts_flat_scan(g, pid_cycle.next(), INT64_MAX_VAL, has_props); },
                    warmup_n, queries_n));
+    emit("x3_typed", "pid=sampled;cutoff=MAX",
+         run_timed([&]{ tq_x3_typed_edge_table(g, pid_cycle.next(), INT64_MAX_VAL, has_props, engine.get_connection()); },
+                   warmup_n, queries_n));
     emit("x5", "post=sampled;lo=0;hi=MAX",
          run_timed([&]{ tq_x5_count_likes_in_range(g, post_cycle.next(), 0LL, INT64_MAX_VAL); },
                    warmup_n, queries_n));
@@ -527,6 +530,9 @@ int main(int argc, char **argv)
                        warmup_bi_n, queries_bi_n));
         emit("bi12_opt", "max_date=MAX;min_length=0",
              run_timed([&]{ tq_bi12_message_distribution_fast_dense(g, post_count, person_count); },
+                       warmup_bi_n, queries_bi_n));
+        emit("bi12_typed", "per-type-table",
+             run_timed([&]{ tq_bi12_typed_edge_table(g, person_count, engine.get_connection()); },
                        warmup_bi_n, queries_bi_n));
     } else {
         fprintf(stderr, "[bench]   BI queries skipped in EMBEDDED mode "

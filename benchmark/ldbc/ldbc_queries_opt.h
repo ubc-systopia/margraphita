@@ -325,3 +325,127 @@ static void tq_bi12_message_distribution_fast_dense(GraphBase &g,
     if (out_ms) { TQ_END_CAP(bi12_message_distribution_fast_dense, *out_ms) }
     else        { TQ_END(bi12_message_distribution_fast_dense) }
 }
+
+// ─── §9.5  Per-type edge table: post_hascreator ─────────────────────────────
+//
+// The `post_hascreator` table stores key=(person_tid, post_tid) with no value.
+// This key order enables two query patterns:
+//
+//   x3 (IC-2):  For each friend f, range-scan (f, *) to find f's posts.
+//               Replaces the expensive get_in_nodes_id(f) reverse-index seek
+//               through the mixed-type edge table.
+//
+//   bi12:       Full sequential scan.  Rows arrive grouped by creator, so the
+//               count per person is a simple counter increment — no hash map,
+//               no type filtering of 50M mixed edges.
+//
+// Requires: `add_typed_edge_table` must have been run on the database first.
+
+// Open a WT cursor on the post_hascreator table.  Returns nullptr on failure.
+static WT_CURSOR* open_hascreator_cursor(WT_CONNECTION *conn, WT_SESSION **out_sess) {
+    int ret = conn->open_session(conn, nullptr, nullptr, out_sess);
+    if (ret != 0) return nullptr;
+    WT_CURSOR *cur;
+    ret = (*out_sess)->open_cursor(*out_sess, "table:post_hascreator", nullptr, nullptr, &cur);
+    if (ret != 0) {
+        fprintf(stderr, "[typed_edge] post_hascreator table not found — run add_typed_edge_table first\n");
+        (*out_sess)->close(*out_sess, nullptr);
+        return nullptr;
+    }
+    return cur;
+}
+
+// x3 via per-type edge table: range scan per friend instead of reverse-index seek
+static void tq_x3_typed_edge_table(GraphBase &g, node_id_t pid,
+                                     int64_t cutoff_ms, bool has_props,
+                                     WT_CONNECTION *conn,
+                                     double *out_ms = nullptr)
+{
+    TQ_START(x3_typed_edge_table)
+    // Phase 1: build friends set (same as original)
+    std::vector<node_id_t> friends;
+    for (node_id_t f : g.get_out_nodes_id(pid))
+        if (is_person(f)) friends.push_back(f);
+
+    // Phase 2: for each friend, range-scan post_hascreator(friend, *)
+    WT_SESSION *sess;
+    WT_CURSOR *cur = open_hascreator_cursor(conn, &sess);
+    std::vector<node_id_t> candidate_posts;
+    if (cur) {
+        for (node_id_t f : friends) {
+            // Position at (f, 0) — first post by this friend
+            cur->set_key(cur, (uint64_t)f, (uint64_t)0);
+            int cmp;
+            if (cur->search_near(cur, &cmp) != 0) continue;
+            if (cmp < 0 && cur->next(cur) != 0) continue;
+            // Scan while key prefix matches friend
+            while (true) {
+                uint64_t k_person, k_post;
+                cur->get_key(cur, &k_person, &k_post);
+                if ((node_id_t)k_person != f) break;
+                candidate_posts.push_back((node_id_t)k_post);
+                if (cur->next(cur) != 0) break;
+            }
+        }
+        cur->close(cur);
+        sess->close(sess, nullptr);
+    }
+
+    // Phase 3: dedup + temporal filter (identical to original tq_x3)
+    std::sort(candidate_posts.begin(), candidate_posts.end());
+    candidate_posts.erase(std::unique(candidate_posts.begin(), candidate_posts.end()),
+                          candidate_posts.end());
+    std::vector<std::pair<node_id_t, int64_t>> result;
+    if (has_props && !candidate_posts.empty()) {
+        auto cg = g.get_node_prop_cursor(POST_PROPS_TABLE, CG_TEMPORAL);
+        for (node_id_t p2 : candidate_posts) {
+            if (!cg->seek(p2)) continue;
+            uint64_t cDate = cg->get_uint64(0);
+            if ((int64_t)cDate < cutoff_ms) result.emplace_back(p2, (int64_t)cDate);
+        }
+    } else {
+        for (node_id_t p2 : candidate_posts) {
+            prop_blob pb = g.get_node_properties(p2);
+            DecodedPost dp = decode_post_blob(pb);
+            if (dp.valid && dp.creationDate < cutoff_ms)
+                result.emplace_back(p2, dp.creationDate);
+        }
+    }
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b){ return a.second > b.second; });
+    if (result.size() > 10) result.resize(10);
+    if (out_ms) { TQ_END_CAP(x3_typed_edge_table, *out_ms) }
+    else        { TQ_END(x3_typed_edge_table) }
+}
+
+// bi12 via per-type edge table: full scan, rows grouped by creator
+static void tq_bi12_typed_edge_table(GraphBase &g,
+                                      size_t n_person,
+                                      WT_CONNECTION *conn,
+                                      double *out_ms = nullptr)
+{
+    TQ_START(bi12_typed_edge_table)
+    std::vector<int32_t> creator_count(n_person, 0);
+
+    WT_SESSION *sess;
+    WT_CURSOR *cur = open_hascreator_cursor(conn, &sess);
+    if (!cur) {
+        if (out_ms) { TQ_END_CAP(bi12_typed_edge_table, *out_ms) }
+        else        { TQ_END(bi12_typed_edge_table) }
+        return;
+    }
+
+    // Full sequential scan — key=(person, post), no value
+    while (cur->next(cur) == 0) {
+        uint64_t person_id, post_id;
+        cur->get_key(cur, &person_id, &post_id);
+        uint64_t ci = VCOUNTER_OF((node_id_t)person_id);
+        if (ci < n_person) creator_count[ci]++;
+    }
+
+    cur->close(cur);
+    sess->close(sess, nullptr);
+    (void)creator_count;
+    if (out_ms) { TQ_END_CAP(bi12_typed_edge_table, *out_ms) }
+    else        { TQ_END(bi12_typed_edge_table) }
+}
