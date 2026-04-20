@@ -54,6 +54,7 @@ void test_columnar_person_props(GraphBase &g)
     SNBPersonSchema::set_last_name(buf, "Smith");
     SNBPersonSchema::set_browser_used(buf, "Firefox");
     SNBPersonSchema::set_location_ip(buf, "10.0.0.1");
+    SNBPersonSchema::set_country_id(buf, 42);
     g.set_node_properties(P0, buf, SNBPersonSchema::TOTAL_SIZE);
 
     prop_blob pb = g.get_node_properties(P0);
@@ -66,6 +67,7 @@ void test_columnar_person_props(GraphBase &g)
     assert(std::string(SNBPersonSchema::get_last_name(pb.data)) == "Smith");
     assert(std::string(SNBPersonSchema::get_browser_used(pb.data)) == "Firefox");
     assert(std::string(SNBPersonSchema::get_location_ip(pb.data)) == "10.0.0.1");
+    assert(SNBPersonSchema::get_country_id(pb.data) == 42);
     delete[] pb.data;
 
     // Overwrite and verify update path

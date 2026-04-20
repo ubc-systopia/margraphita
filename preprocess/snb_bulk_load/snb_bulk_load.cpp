@@ -117,6 +117,9 @@ struct State {
     size_t n_company = 0, n_university = 0;
     std::atomic<size_t> n_edges{0};
 
+    // person counter → country typed ID (populated between Phase 2 and Phase 3)
+    std::vector<node_id_t> person_country;
+
     // Thread-safe exception capture
     std::mutex           ex_mutex;
     std::vector<std::exception_ptr> exceptions;
@@ -850,6 +853,77 @@ static void flush_node_spool(State& st, const std::string& spool_path) {
     if (!st.dry_run) h->close(false);
 }
 
+// Resolve person → country mapping from CSVs.
+// Reads place_isPartOf_place (city→country) and person_isLocatedIn_place (person→city).
+// Populates st.person_country[VCOUNTER_OF(person_tid)] = country_tid.
+static void resolve_person_countries(State& st) {
+    // Step 1: build city_lid → country_lid from place_isPartOf_place
+    std::unordered_map<int64_t, int64_t> city_to_country;
+    {
+        const std::string path = st.sta + "/place_isPartOf_place_0_0.csv";
+        std::ifstream f(path);
+        if (!f.is_open()) { fprintf(stderr, "[WARN] Cannot open %s for country resolution\n", path.c_str()); return; }
+        std::string line;
+        if (!std::getline(f, line)) return;
+        auto hdr = csv_fields(line);
+        int c_child = 0, c_parent = 1;  // Place.id|Place.id
+        while (std::getline(f, line)) {
+            if (line.empty()) continue;
+            auto flds = csv_fields(line);
+            int64_t child_lid  = std::stoll(flds[c_child]);
+            int64_t parent_lid = std::stoll(flds[c_parent]);
+            node_id_t child_tid = st.place_map.lookup(child_lid);
+            if (child_tid != SnbIdMap::INVALID && VTYPE_OF(child_tid) == VT_CITY) {
+                city_to_country[child_lid] = parent_lid;
+            }
+        }
+    }
+    // Step 2: build person_counter → country_tid from person_isLocatedIn_place
+    st.person_country.resize(st.n_person, 0);
+    {
+        const std::string path = st.dyn + "/person_isLocatedIn_place_0_0.csv";
+        std::ifstream f(path);
+        if (!f.is_open()) { fprintf(stderr, "[WARN] Cannot open %s for country resolution\n", path.c_str()); return; }
+        std::string line;
+        if (!std::getline(f, line)) return;
+        auto hdr = csv_fields(line);
+        int c_pid = col_of(hdr, "Person.id"), c_plid = col_of(hdr, "Place.id");
+        while (std::getline(f, line)) {
+            if (line.empty()) continue;
+            auto flds = csv_fields(line);
+            int64_t person_lid = std::stoll(flds[c_pid]);
+            int64_t city_lid   = std::stoll(flds[c_plid]);
+            node_id_t person_tid = st.person_map.lookup(person_lid);
+            if (person_tid == SnbIdMap::INVALID) continue;
+            auto it = city_to_country.find(city_lid);
+            if (it != city_to_country.end()) {
+                node_id_t country_tid = st.place_map.lookup(it->second);
+                if (country_tid != SnbIdMap::INVALID)
+                    st.person_country[VCOUNTER_OF(person_tid)] = country_tid;
+            }
+        }
+    }
+    fprintf(stderr, "[BULK] Resolved country_id for %zu persons\n", st.n_person);
+}
+
+// Flush person spool with country_id patched from st.person_country.
+static void flush_person_spool_with_country(State& st, const std::string& spool_path) {
+    NodePropSpoolReader rdr(spool_path);
+    GraphBase* h = st.dry_run ? nullptr : st.engine->create_graph_handle();
+    node_id_t id; std::vector<uint8_t> data;
+    while (rdr.read(id, data)) {
+        if (!st.dry_run) {
+            // Patch country_id if we have a mapping
+            if (data.size() >= SNBPersonSchema::TOTAL_SIZE) {
+                node_id_t cid = st.person_country[VCOUNTER_OF(id)];
+                SNBPersonSchema::set_country_id(data.data(), cid);
+            }
+            h->set_node_properties(id, data.data(), data.size());
+        }
+    }
+    if (!st.dry_run) h->close(false);
+}
+
 // ============================================================
 // Phase 4 — flush edge prop spools
 // ============================================================
@@ -1115,13 +1189,19 @@ static void run_phases(State& st) {
     fprintf(stderr, "[BULK] Phase 2 done (%.1f s) — %zu edges total\n",
             elapsed(), st.n_edges.load());
 
+    // ---- Phase 2.5: resolve person → country mapping ----
+    if (st.has_props) {
+        fprintf(stderr, "\n[BULK] === Phase 2.5: resolve person countries ===\n");
+        resolve_person_countries(st);
+    }
+
     // ---- Phase 3: flush node props ----
     // Must run AFTER Phase 2 (SplitEdgeKey sentinel layout requires
     // set_node_properties to be called after all add_edge calls).
     if (st.has_props) {
         fprintf(stderr, "\n[BULK] === Phase 3: flush node props ===\n");
         std::vector<std::function<void()>> tasks = {
-            [&]{ flush_node_spool(st, nspool(st,"person"));   log_done(st,"flush person props"); },
+            [&]{ flush_person_spool_with_country(st, nspool(st,"person")); log_done(st,"flush person props"); },
             [&]{ flush_node_spool(st, nspool(st,"post"));     log_done(st,"flush post props"); },
             [&]{ flush_node_spool(st, nspool(st,"comment"));  log_done(st,"flush comment props"); },
             [&]{ flush_node_spool(st, nspool(st,"forum"));    log_done(st,"flush forum props"); },

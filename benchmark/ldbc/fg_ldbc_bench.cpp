@@ -494,6 +494,10 @@ int main(int argc, char **argv)
          run_timed([&]{ tq_ic3_fof_by_country(g, pid_cycle.next(), cx, cy); }, warmup_n, queries_n));
     emit("ic3_opt", "pid=sampled",
          run_timed([&]{ tq_ic3_fof_by_country_citycache(g, pid_cycle.next(), cx, cy); }, warmup_n, queries_n));
+    if (has_props) {
+      emit("ic3_colgroup", "pid=sampled",
+           run_timed([&]{ tq_ic3_fof_by_country_colgroup(g, pid_cycle.next(), cx, cy); }, warmup_n, queries_n));
+    }
     emit("ic5", "pid=sampled;since=0",
          run_timed([&]{ tq_ic5_forums_by_friend_membership(g, pid_cycle.next(), 0LL, has_props); },
                    warmup_n, queries_n));

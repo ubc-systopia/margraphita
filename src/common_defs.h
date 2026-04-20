@@ -138,6 +138,7 @@ const std::string CG_NAME      = "name";     // person firstName+lastName+gender
 const std::string CG_CONTACT   = "contact";  // person browserUsed+locationIP
 const std::string CG_CONTENT   = "content";
 const std::string CG_INFO      = "info";     // forum moderator_id+title
+const std::string CG_LOCATION  = "location"; // person country_id
 
 struct graph_opts
 {

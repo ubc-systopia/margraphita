@@ -118,6 +118,18 @@ private:
 // layout:     controls how many value columns are read (same enum as WTNodePropCursor)
 // node_keyed: true  → table key_format=Q  (post_props, comment_props)
 //             false → table key_format=QQ (knows_props, likes_props, hasmember_props, …)
+//
+// Why node_keyed exists:
+// Queries like X3 traverse hasCreator edges and then need temporal properties
+// from the destination vertex table (post_props).  Rather than switching from
+// EdgePropCursor to NodePropCursor mid-query — which would mean juggling two
+// cursor interfaces with different signatures — the node_keyed flag lets this
+// class adapt to single-key (Q) vertex tables transparently.  The query code
+// stays uniform: set_src(), next(), get_uint64() regardless of whether the
+// underlying table is (src,dst)-keyed or (node_id)-keyed.
+// When node_keyed is true: set_src() does not pin (caller manages stop
+// condition via VTYPE_OF), dst() returns OutOfBand_ID_MIN, and set_key_seek()
+// passes a single key argument.
 class WTEdgePropCursor : public EdgePropCursor {
 public:
     explicit WTEdgePropCursor(WT_CURSOR *c,

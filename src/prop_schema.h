@@ -18,7 +18,9 @@
 // | offset 17             | offset 49           |
 // | browserUsed (char[32])| locationIP (char[32])|
 // | offset 81             | offset 113           |
-// Total: 8+8+1+32+32+32+32 = 145 bytes
+// | country_id (uint64)   |
+// | offset 145            |
+// Total: 8+8+1+32+32+32+32+8 = 153 bytes
 //
 // String fields are fixed 32-byte NUL-padded arrays (matching WT format "32s").
 // Strings longer than 31 chars are silently truncated.
@@ -32,7 +34,8 @@ namespace SNBPersonSchema {
     constexpr size_t OFFSET_LAST_NAME      = 17 + STR_LEN;
     constexpr size_t OFFSET_BROWSER_USED   = 17 + STR_LEN * 2;
     constexpr size_t OFFSET_LOCATION_IP    = 17 + STR_LEN * 3;
-    constexpr size_t TOTAL_SIZE            = 17 + STR_LEN * 4;  // 145 bytes
+    constexpr size_t OFFSET_COUNTRY_ID    = 17 + STR_LEN * 4;
+    constexpr size_t TOTAL_SIZE            = 17 + STR_LEN * 4 + 8;  // 153 bytes
 
     inline void set_creation_date(uint8_t* buf, int64_t val) {
         std::memcpy(buf + OFFSET_CREATION_DATE, &val, sizeof(val));
@@ -80,6 +83,15 @@ namespace SNBPersonSchema {
     inline const char* get_last_name(const uint8_t* buf)    { return get_str_field(buf, OFFSET_LAST_NAME);    }
     inline const char* get_browser_used(const uint8_t* buf) { return get_str_field(buf, OFFSET_BROWSER_USED); }
     inline const char* get_location_ip(const uint8_t* buf)  { return get_str_field(buf, OFFSET_LOCATION_IP);  }
+
+    inline void set_country_id(uint8_t* buf, uint64_t val) {
+        std::memcpy(buf + OFFSET_COUNTRY_ID, &val, sizeof(val));
+    }
+    inline uint64_t get_country_id(const uint8_t* buf) {
+        uint64_t val;
+        std::memcpy(&val, buf + OFFSET_COUNTRY_ID, sizeof(val));
+        return val;
+    }
 }  // namespace SNBPersonSchema
 
 // --- Post vertex schema ---

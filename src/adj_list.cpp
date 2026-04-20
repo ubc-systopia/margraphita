@@ -159,9 +159,9 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   {
     int ret;
     ret = sess->create(sess, ("table:" + PERSON_PROPS_TABLE).c_str(),
-        "key_format=Q,value_format=QQb32s32s32s32s,"
-        "columns=(vid,creationDate,birthday,gender,firstName,lastName,browserUsed,locationIP),"
-        "colgroups=(temporal,name,contact)");
+        "key_format=Q,value_format=QQb32s32s32s32sQ,"
+        "columns=(vid,creationDate,birthday,gender,firstName,lastName,browserUsed,locationIP,country_id),"
+        "colgroups=(temporal,name,contact,location)");
     if (ret != 0)
       throw GraphException("AdjList: failed to create person_props: " + string(wiredtiger_strerror(ret)));
     ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_TEMPORAL).c_str(),
@@ -176,6 +176,10 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
         "columns=(browserUsed,locationIP)");
     if (ret != 0)
       throw GraphException("AdjList: failed to create person_props:contact: " + string(wiredtiger_strerror(ret)));
+    ret = sess->create(sess, ("colgroup:" + PERSON_PROPS_TABLE + ":" + CG_LOCATION).c_str(),
+        "columns=(country_id)");
+    if (ret != 0)
+      throw GraphException("AdjList: failed to create person_props:location: " + string(wiredtiger_strerror(ret)));
 
     ret = sess->create(sess, ("table:" + POST_PROPS_TABLE).c_str(),
         "key_format=Q,value_format=QibS,"
@@ -458,24 +462,28 @@ void AdjList::set_node_properties(node_id_t id,
     switch (VTYPE_OF(id))
     {
       case VT_PERSON: {
-        uint64_t    cDate   = (uint64_t)SNBPersonSchema::get_creation_date(data);
-        uint64_t    bday    = (uint64_t)SNBPersonSchema::get_birthday(data);
-        int8_t      gender  = SNBPersonSchema::get_gender(data);
-        const char *fname   = SNBPersonSchema::get_first_name(data);
-        const char *lname   = SNBPersonSchema::get_last_name(data);
-        const char *browser = SNBPersonSchema::get_browser_used(data);
-        const char *loc_ip  = SNBPersonSchema::get_location_ip(data);
+        uint64_t    cDate      = (uint64_t)SNBPersonSchema::get_creation_date(data);
+        uint64_t    bday       = (uint64_t)SNBPersonSchema::get_birthday(data);
+        int8_t      gender     = SNBPersonSchema::get_gender(data);
+        const char *fname      = SNBPersonSchema::get_first_name(data);
+        const char *lname      = SNBPersonSchema::get_last_name(data);
+        const char *browser    = SNBPersonSchema::get_browser_used(data);
+        const char *loc_ip     = SNBPersonSchema::get_location_ip(data);
+        uint64_t    country_id = (size >= SNBPersonSchema::TOTAL_SIZE)
+                                  ? SNBPersonSchema::get_country_id(data) : 0;
         person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
         person_props_cursor->set_value(person_props_cursor,
                                        cDate, bday, gender,
-                                       fname, lname, browser, loc_ip);
+                                       fname, lname, browser, loc_ip,
+                                       country_id);
         int ret = person_props_cursor->insert(person_props_cursor);
         if (ret == WT_DUPLICATE_KEY)
         {
           person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
           person_props_cursor->set_value(person_props_cursor,
                                          cDate, bday, gender,
-                                         fname, lname, browser, loc_ip);
+                                         fname, lname, browser, loc_ip,
+                                         country_id);
           ret = person_props_cursor->update(person_props_cursor);
         }
         if (ret != 0)
@@ -648,12 +656,13 @@ prop_blob AdjList::get_node_properties(node_id_t id)
         person_props_cursor->set_key(person_props_cursor, (uint64_t)id);
         if (person_props_cursor->search(person_props_cursor) != 0)
           return {nullptr, 0};
-        uint64_t    cDate, bday;
+        uint64_t    cDate, bday, country_id;
         int8_t      gender;
         const char *fname, *lname, *browser, *loc_ip;
         person_props_cursor->get_value(person_props_cursor,
                                        &cDate, &bday, &gender,
-                                       &fname, &lname, &browser, &loc_ip);
+                                       &fname, &lname, &browser, &loc_ip,
+                                       &country_id);
         uint8_t *buf = new uint8_t[SNBPersonSchema::TOTAL_SIZE]();
         SNBPersonSchema::set_creation_date(buf, (int64_t)cDate);
         SNBPersonSchema::set_birthday(buf, (int64_t)bday);
@@ -662,6 +671,7 @@ prop_blob AdjList::get_node_properties(node_id_t id)
         SNBPersonSchema::set_last_name(buf, lname);
         SNBPersonSchema::set_browser_used(buf, browser);
         SNBPersonSchema::set_location_ip(buf, loc_ip);
+        SNBPersonSchema::set_country_id(buf, country_id);
         return {buf, SNBPersonSchema::TOTAL_SIZE};
       }
       case VT_POST: {

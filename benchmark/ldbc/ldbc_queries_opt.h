@@ -174,6 +174,50 @@ static void tq_ic3_fof_by_country_citycache(GraphBase &g, node_id_t pid,
     else        { TQ_END(ic3_fof_by_country_citycache) }
 }
 
+// ─── §9.2b ic3 — CG_LOCATION colgroup (single seek per candidate) ────────
+//
+// Full CG_LOCATION optimisation: country_id is stored directly in person_props
+// as a colgroup column, so resolving a candidate's country is a single colgroup
+// cursor seek instead of a two-hop WiredTiger traversal (person→city→country).
+// Requires DB rebuilt with CG_LOCATION schema.
+static void tq_ic3_fof_by_country_colgroup(GraphBase &g, node_id_t pid,
+                                            node_id_t country_x, node_id_t country_y,
+                                            double *out_ms = nullptr)
+{
+    TQ_START(ic3_fof_by_country_colgroup)
+    // 1-hop expansion: direct friends of pid (forward knows only)
+    std::unordered_set<node_id_t> friends_set;
+    for (node_id_t f : g.get_out_nodes_id(pid))
+        if (VTYPE_OF(f) == VT_PERSON) friends_set.insert(f);
+
+    // 2-hop expansion: fof candidates and common-friend counts
+    std::unordered_map<node_id_t, int32_t> fof_common;
+    for (node_id_t f : friends_set)
+        for (node_id_t ff : g.get_out_nodes_id(f)) {
+            if (VTYPE_OF(ff) != VT_PERSON) continue;
+            if (ff == pid || friends_set.count(ff)) continue;
+            fof_common[ff]++;
+        }
+
+    // Country filter via CG_LOCATION colgroup — one seek per candidate
+    auto loc_cur = g.get_node_prop_cursor(PERSON_PROPS_TABLE, CG_LOCATION);
+    std::vector<std::pair<node_id_t, int32_t>> result;
+
+    for (auto &[candidate, common] : fof_common) {
+        if (!loc_cur->seek(candidate)) continue;
+        node_id_t country = (node_id_t)loc_cur->get_uint64(0);
+        if (country == 0) continue;  // no country_id stored
+        if (country_x != ID_NOT_FOUND && country != country_x) continue;
+        if (country_y != ID_NOT_FOUND && country == country_y) continue;
+        result.emplace_back(candidate, common);
+    }
+    std::sort(result.begin(), result.end(),
+              [](const auto &a, const auto &b){ return a.second > b.second; });
+    if (result.size() > 10) result.resize(10);
+    if (out_ms) { TQ_END_CAP(ic3_fof_by_country_colgroup, *out_ms) }
+    else        { TQ_END(ic3_fof_by_country_colgroup) }
+}
+
 // ─── §9.3  x3 — flat postHasCreator scan for SplitEdgeKey ──────────────────
 //
 // Original: for each friend f, get_in_nodes_id(f) to find f's posts.
