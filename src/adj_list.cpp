@@ -729,9 +729,9 @@ int AdjList::add_edge(edge to_insert, bool is_bulk)
     return ret;
   }
 
-  if (session->commit_transaction(session, nullptr) != 0)
+  if (session->commit_transaction(session, "sync=off") != 0)
   {
-    LOG_ROLLBACK_LOCATION("commit_transaction(session, nullptr)", to_insert);
+    LOG_ROLLBACK_LOCATION("commit_transaction(session, sync=off)", to_insert);
     return WT_ROLLBACK;
   }
 #ifdef DEBUG

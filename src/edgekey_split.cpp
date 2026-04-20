@@ -323,7 +323,7 @@ int SplitEdgeKey::add_edge(edge to_insert, bool is_bulk)
     return ret;
 
   num_edges_to_add++;
-  session->commit_transaction(session, nullptr);
+  session->commit_transaction(session, "sync=off");
   GraphBase::increment_nodes(num_nodes_to_add);
   GraphBase::increment_edges(num_edges_to_add);
   return 0;

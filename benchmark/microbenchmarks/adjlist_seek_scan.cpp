@@ -45,7 +45,7 @@ struct time_result seek_and_scan(node_id_t vertex,
   // scan
   adjlist adj_list;
   timer.start();
-  CommonUtil::record_to_adjlist(session, adj_cursor, &adj_list);
+  CommonUtil::record_to_adjlist(adj_cursor, &adj_list);
   std::cout << " Vertex " << vertex << " has edges: [";
   for ([[maybe_unused]] int node : adj_list.edgelist)
   {
