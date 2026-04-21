@@ -84,6 +84,8 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
     checkpoint_name = this->last_checkpoint;
   }
   opts.checkpoint_name = checkpoint_name;
+  bool saved_read_only = opts.read_only;
+  opts.read_only = true;  // RO handles must have read_only=true for set_ro_num_nodes
 
   if (opts.type == GraphType::Adj)
     ptr = new AdjList(opts, conn);
@@ -122,6 +124,7 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
     checkpoint_node_count = opts.num_nodes;
   }
 
+  opts.read_only = saved_read_only;  // restore original read_only setting
   return ptr;
 }
 
