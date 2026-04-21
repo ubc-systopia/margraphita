@@ -961,7 +961,7 @@ int SplitEdgeKey::update_node_degree(node_id_t node_id,
             node_id,
             wiredtiger_strerror(ret));
   }
-  out_cursor->close(out_cursor);
+  degree_cursor->reset(degree_cursor);
   return error_check_insert_txn(ret);
 }
 
