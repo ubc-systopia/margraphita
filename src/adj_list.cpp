@@ -1541,10 +1541,6 @@ int AdjList::delete_edge(node_id_t src_id, node_id_t dst_id)
 #endif
   session->commit_transaction(session, nullptr);
   GraphBase::increment_edges(-1);
-  if (!opts.is_directed)
-  {
-    GraphBase::increment_edges(-1);
-  }
   return ret;
 }
 
