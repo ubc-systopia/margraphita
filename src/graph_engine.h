@@ -87,9 +87,17 @@ class GraphEngine
   void open_connection();
   void close_connection();
 
+ public:
+  // Exact counts derived from the partition scan of the checkpoint.
+  // In mixed workload mode these are from the first checkpoint only
+  // (partitions are not recomputed for subsequent checkpoints).
+  node_id_t get_checkpoint_node_count() const { return checkpoint_node_count; }
+  uint64_t get_checkpoint_edge_count() const { return checkpoint_edge_count; }
+
  private:
   std::string last_checkpoint;
   node_id_t checkpoint_node_count{};
+  uint64_t checkpoint_edge_count{};
   void force_metadata_sync();
   node_id_t _calculate_exact_node_count(GraphBase *graph_stats);
   void _calculate_thread_offsets_fast(int thread_max, GraphBase *graph_stats);

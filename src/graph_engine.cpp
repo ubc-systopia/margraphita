@@ -423,6 +423,7 @@ node_id_t GraphEngine::new_parts_from_adjlist(int thread_max,
   node_ids_temp.reserve(1000000);
 
   node_id_t accumulated_edges = 0;
+  uint64_t total_edges_counted = 0;
   node_id_t num_nodes = 0;
   int partitions_created = 0;
   node_ranges.clear();
@@ -440,6 +441,7 @@ node_id_t GraphEngine::new_parts_from_adjlist(int thread_max,
 
     node_ids_temp.push_back(node_id);
     num_nodes++;
+    total_edges_counted += degree;
 
     if (partitions_created == 0)
     {
@@ -469,6 +471,7 @@ node_id_t GraphEngine::new_parts_from_adjlist(int thread_max,
           memcpy(&next_degree, next_item.data, sizeof(degree_t));
         node_ids_temp.push_back(next_id);
         num_nodes++;
+        total_edges_counted += next_degree;
         accumulated_edges += next_degree;
       }
       else
@@ -486,7 +489,13 @@ node_id_t GraphEngine::new_parts_from_adjlist(int thread_max,
 
   all_node_ids = node_ids_temp;
 
+  // For undirected graphs, each logical edge is stored in both directions in
+  // OUT_ADJLIST, so the degree sum = 2 * logical edge count.
+  checkpoint_edge_count = opts.is_directed ? total_edges_counted
+                                           : total_edges_counted / 2;
+
   std::cout << "[new_parts_from_adjlist] " << num_nodes << " nodes, "
+            << checkpoint_edge_count << " edges, "
             << partitions_created << " partitions (target edges/part="
             << edges_per_thread << ")" << std::endl;
 
