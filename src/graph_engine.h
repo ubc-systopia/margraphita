@@ -13,9 +13,11 @@
 // #include "standard_graph.h"
 
 enum class PartitionStrategy {
-  NODE_COUNT,         // Uses compute_nodes_and_partition() - simple, uniform partitioning
-  EDGE_AWARE,         // Uses new_parts() - accounts for non-uniform degree distribution
-  NODE_COUNT_FINE,    // Uses make_min_parts() - node-count with finer granularity
+  NODE_COUNT,             // Uses compute_nodes_and_partition() - simple, uniform partitioning
+  EDGE_AWARE,             // Uses new_parts() - accounts for non-uniform degree distribution
+  NODE_COUNT_FINE,        // Uses make_min_parts() - node-count with finer granularity
+  EDGE_AWARE_ADJLIST,     // Uses new_parts_from_adjlist() - reads degrees from adjlist table
+                          // directly; works correctly regardless of read_optimize setting
 };
 
 class GraphEngine
@@ -62,6 +64,7 @@ class GraphEngine
       case PartitionStrategy::NODE_COUNT: return "NODE_COUNT";
       case PartitionStrategy::EDGE_AWARE: return "EDGE_AWARE";
       case PartitionStrategy::NODE_COUNT_FINE: return "NODE_COUNT_FINE";
+      case PartitionStrategy::EDGE_AWARE_ADJLIST: return "EDGE_AWARE_ADJLIST";
     }
     return "UNKNOWN";
   }
@@ -94,6 +97,7 @@ class GraphEngine
   node_id_t new_parts(int thread_max,
                       GraphBase *graph_stats,
                       int mini_part_scale = 1);
+  node_id_t new_parts_from_adjlist(int thread_max, int mini_part_scale = 1);
   node_id_t make_min_parts(int thread_max,
                            GraphBase *graph_stats,
                            int mini_part_scale = 1);

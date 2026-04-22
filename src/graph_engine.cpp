@@ -96,9 +96,16 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
 
   if (opts.num_edges == 0)
   {
+    // The metadata table is only synced on explicit force_metadata_sync calls,
+    // so it may still be 0 after bulk insertions.  Fall back to the live atomic
+    // counter — an overestimate (from concurrent writers in mixed mode) only
+    // affects partition granularity (slightly fewer, larger partitions), which
+    // is a benign load-balancing trade-off, not a correctness issue.
     WT_ITEM metadata_item;
     ptr->get_metadata(MetadataKey::num_edges, metadata_item, nullptr);
     opts.num_edges = *((uint64_t *)metadata_item.data);
+    if (opts.num_edges == 0)
+      opts.num_edges = GraphBase::get_atomic_nedges();
   }
 
   if (checkpoint_node_count != 0)
@@ -115,6 +122,9 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
       case PartitionStrategy::EDGE_AWARE:
         opts.num_nodes = new_parts(num_threads, ptr, partition_scale);
         break;
+      case PartitionStrategy::EDGE_AWARE_ADJLIST:
+        opts.num_nodes = new_parts_from_adjlist(num_threads, partition_scale);
+        break;
       case PartitionStrategy::NODE_COUNT_FINE:
         opts.num_nodes = make_min_parts(num_threads, ptr, partition_scale);
         break;
@@ -122,6 +132,7 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
         throw GraphException("Invalid partition strategy");
     }
     checkpoint_node_count = opts.num_nodes;
+    ptr->set_ro_num_nodes(opts.num_nodes);
   }
 
   opts.read_only = saved_read_only;  // restore original read_only setting
@@ -366,7 +377,6 @@ node_id_t GraphEngine::new_parts(int thread_max,
 
   // Save all node IDs for chunk creation
   all_node_ids = node_ids_temp;
-
 #ifdef DEBUG
   std::cout << "Degree-balanced partitioning: " << num_nodes << " nodes across "
             << thread_max << " threads (target " << edges_per_thread
@@ -385,6 +395,101 @@ node_id_t GraphEngine::new_parts(int thread_max,
 #endif
 
   graph_stats->set_ro_num_nodes(num_nodes);
+  return num_nodes;
+}
+
+/**
+ * Degree-balanced partitioning that reads degrees directly from the OUT_ADJLIST
+ * table.  Unlike new_parts() which relies on the node cursor's out_degree
+ * (broken when MK_NEDGES is defined and read_optimize is false), this function
+ * reads the raw adjlist value where the degree is always stored as the first
+ * sizeof(degree_t) bytes.
+ */
+node_id_t GraphEngine::new_parts_from_adjlist(int thread_max,
+                                              int mini_part_scale)
+{
+  WT_SESSION *part_session = nullptr;
+  conn->open_session(conn, nullptr, nullptr, &part_session);
+  WT_CURSOR *cursor = nullptr;
+  GraphBase::_get_table_cursor(OUT_ADJLIST, &cursor, part_session,
+                               false, false, opts.checkpoint_name);
+
+  node_id_t total_edges = opts.num_edges;
+  node_id_t edges_per_thread = total_edges / (thread_max * mini_part_scale);
+  if (edges_per_thread == 0)
+    edges_per_thread = 1;
+
+  std::vector<node_id_t> node_ids_temp;
+  node_ids_temp.reserve(1000000);
+
+  node_id_t accumulated_edges = 0;
+  node_id_t num_nodes = 0;
+  int partitions_created = 0;
+  node_ranges.clear();
+
+  while (cursor->next(cursor) == 0)
+  {
+    node_id_t node_id;
+    CommonUtil::get_key(cursor, &node_id);
+
+    WT_ITEM item;
+    cursor->get_value(cursor, &item);
+    degree_t degree = 0;
+    if (item.size >= sizeof(degree_t))
+      memcpy(&degree, item.data, sizeof(degree_t));
+
+    node_ids_temp.push_back(node_id);
+    num_nodes++;
+
+    if (partitions_created == 0)
+    {
+      node_ranges.push_back(node_id);
+      partitions_created = 1;
+    }
+
+    accumulated_edges += degree;
+
+    if (accumulated_edges >= edges_per_thread)
+    {
+      // Peek ahead — boundary goes at the *next* node
+      int peek = cursor->next(cursor);
+      if (peek == 0)
+      {
+        node_id_t next_id;
+        CommonUtil::get_key(cursor, &next_id);
+        node_ranges.push_back(next_id);
+        partitions_created++;
+        accumulated_edges = 0;
+
+        // Process the peeked node
+        WT_ITEM next_item;
+        cursor->get_value(cursor, &next_item);
+        degree_t next_degree = 0;
+        if (next_item.size >= sizeof(degree_t))
+          memcpy(&next_degree, next_item.data, sizeof(degree_t));
+        node_ids_temp.push_back(next_id);
+        num_nodes++;
+        accumulated_edges += next_degree;
+      }
+      else
+      {
+        break;  // no more nodes
+      }
+    }
+  }
+
+  if (!node_ids_temp.empty())
+    node_ranges.push_back(node_ids_temp.back());
+
+  cursor->close(cursor);
+  part_session->close(part_session, nullptr);
+
+  all_node_ids = node_ids_temp;
+
+  std::cout << "[new_parts_from_adjlist] " << num_nodes << " nodes, "
+            << partitions_created << " partitions (target edges/part="
+            << edges_per_thread << ")" << std::endl;
+
   return num_nodes;
 }
 
