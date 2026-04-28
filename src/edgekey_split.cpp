@@ -240,19 +240,13 @@ int SplitEdgeKey::add_node_txn(node to_insert,
   }
   if (insert_result == WT_DUPLICATE_KEY)
   {
-    if (read_optimize)
-    {
-      // Node already exists — update degrees instead.
+    // NB: bare `read_optimize` resolves to a MetadataKey enum constant
+    // (always truthy), so the prior version of this branch always called
+    // update_node_degree. Use opts.read_optimize. When read_optimize=false
+    // the node value is the zeroed degree pair already — nothing to merge.
+    if (opts.read_optimize)
       return update_node_degree(to_insert.id, indeg_change, outdeg_change);
-    }
-    else
-    {
-      // If not read optimizing, we don't store degrees in the node entry, so
-      // no need to update anything.
-      return 0;
-    }
-    // Node already exists — update degrees instead.
-    return update_node_degree(to_insert.id, indeg_change, outdeg_change);
+    return 0;
   }
   // Unexpected error — let error_check handle rollback.
   return error_check_insert_txn(insert_result);
