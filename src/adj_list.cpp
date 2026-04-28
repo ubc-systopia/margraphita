@@ -349,23 +349,23 @@ int AdjList::add_node_in_txn(node to_insert)
   {
     if (ret == WT_DUPLICATE_KEY)
     {
+      // When read_optimize is false the node value is just the empty
+      // placeholder "" and there's nothing to merge — the search +
+      // re-set + update below would rewrite "" with "". Skip the whole
+      // path; the node already exists with the right value.
+      if (!opts.read_optimize)
+        return WT_DUPLICATE_KEY;
+
       // get the value, and update the in/out degree and update.
       node found{};
       CommonUtil::record_to_node(
           node_cursor, &found, opts.read_optimize, opts.is_directed);
-      if (opts.read_optimize)
-      {
-        opts.is_directed
-            ? node_cursor->set_value(node_cursor,
-                                     to_insert.in_degree + found.in_degree,
-                                     to_insert.out_degree + found.out_degree)
-            : node_cursor->set_value(node_cursor,
-                                     to_insert.out_degree + found.out_degree);
-      }
-      else
-      {
-        node_cursor->set_value(node_cursor, "");
-      }
+      opts.is_directed
+          ? node_cursor->set_value(node_cursor,
+                                   to_insert.in_degree + found.in_degree,
+                                   to_insert.out_degree + found.out_degree)
+          : node_cursor->set_value(node_cursor,
+                                   to_insert.out_degree + found.out_degree);
       ret = node_cursor->update(node_cursor);
       if (ret != 0)
       {

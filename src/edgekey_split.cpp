@@ -240,6 +240,17 @@ int SplitEdgeKey::add_node_txn(node to_insert,
   }
   if (insert_result == WT_DUPLICATE_KEY)
   {
+    if (read_optimize)
+    {
+      // Node already exists — update degrees instead.
+      return update_node_degree(to_insert.id, indeg_change, outdeg_change);
+    }
+    else
+    {
+      // If not read optimizing, we don't store degrees in the node entry, so
+      // no need to update anything.
+      return 0;
+    }
     // Node already exists — update degrees instead.
     return update_node_degree(to_insert.id, indeg_change, outdeg_change);
   }
