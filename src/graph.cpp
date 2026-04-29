@@ -253,8 +253,29 @@ int GraphBase::_get_table_cursor(const std::string &table,
              ",checkpoint=%s",
              checkpoint_name.c_str());
   }
+  // Open as a file: cursor (FLE) rather than a table: cursor (FCT).
+  //
+  // table:NAME cursors enter __curtable_insert/__curtable_update on every
+  // write, which calls __curtable_open_indices -> __wt_schema_open_indices
+  // -> __wt_schema_open_index, and that last function takes
+  // WT_WITH_TABLE_WRITE_LOCK on conn->table_lock unconditionally before
+  // checking whether the table even has any indices. For a workload like
+  // ours — no indices, billions of edge inserts — the per-cursor-write
+  // table-write-lock acquire is the dominant contention at 32+ threads
+  // (gdb backtraces during a 16t run land threads inside
+  // __wt_schema_open_index → __wt_writelock(&conn->table_lock)).
+  //
+  // file:NAME.wt cursors take the __curfile_insert path, which goes
+  // straight to __wt_btcur_insert with no schema-lock hop. The schema
+  // (column groups, table metadata) was set up by session->create("table:NAME")
+  // at startup; opening the underlying btree file directly is safe as long
+  // as the table has no indices and no projection — both conditions hold
+  // for every FlexoGraph table.
+  //
+  // The .wt suffix matches the on-disk btree file naming WT uses for a
+  // single-colgroup table.
   char table_name[256];
-  snprintf(table_name, sizeof(table_name), "table:%s", table.c_str());
+  snprintf(table_name, sizeof(table_name), "file:%s.wt", table.c_str());
   int err = session->open_cursor(session, table_name, nullptr, config, cursor);
   return err;
 }
