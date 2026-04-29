@@ -211,6 +211,17 @@ int SplitEdgeKey::add_node_txn(node to_insert,
                                int32_t indeg_change,
                                int32_t outdeg_change)
 {
+  // EXPERIMENTAL: per-thread node-seen filter (see graph.h). When
+  // enabled (FG_NODE_SEEN_FILTER=1) AND read_optimize is false, skip the
+  // cursor->insert() entirely on a node id this thread has already
+  // attempted. Saves the table-write-lock acquire on the duplicate-key
+  // path. Only correct when read_optimize=false because we are not
+  // updating any degree state on duplicate.
+  if (experimental_seen_filter_enabled &&
+      experimental_node_already_seen(to_insert.id))
+  {
+    return 0;  // node has been "ensured" before — nothing to do
+  }
   // Try insert first (overwrite=false).  If the node already exists, WT
   // returns WT_DUPLICATE_KEY and we fall back to updating degrees.  This
   // eliminates a separate search() B-tree seek on every call.

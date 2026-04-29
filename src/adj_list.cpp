@@ -331,6 +331,17 @@ int AdjList::add_node_in_txn(node to_insert)
 {
   int ret = 0;
 #ifdef MK_NEDGES
+  // EXPERIMENTAL: per-thread node-seen filter (see graph.h). When
+  // enabled (FG_NODE_SEEN_FILTER=1) AND read_optimize is false, skip the
+  // cursor->insert() entirely on a node id this thread has already
+  // attempted. Saves the table-write-lock acquire on the duplicate-key
+  // path. Only correct when read_optimize=false; otherwise the duplicate
+  // path needs to fall through to update_node_degree.
+  if (experimental_seen_filter_enabled &&
+      experimental_node_already_seen(to_insert.id))
+  {
+    return WT_DUPLICATE_KEY;  // signal "node already exists" without WT call
+  }
   CommonUtil::set_key(node_cursor, to_insert.id);
 
   if (opts.read_optimize)

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "common_util.h"
 #include "graph_exception.h"
@@ -99,6 +100,49 @@ class GraphBase
 
   [[nodiscard]] std::string get_db_name() const { return opts.db_name; };
   [[nodiscard]] bool is_read_optimized() const { return opts.read_optimize; };
+
+  // ---------------------------------------------------------------------
+  // EXPERIMENTAL: per-thread node-seen filter.
+  //
+  // When opts.read_optimize is false, the duplicate-key path on a node
+  // insert just returns; the node value is the empty placeholder and
+  // there is nothing to merge. That makes ~2/3 of the per-edge cursor
+  // inserts into pure waste once the unique-node set has been populated.
+  //
+  // This filter records every node id that this GraphBase instance has
+  // already attempted to insert. On a subsequent attempt the caller can
+  // short-circuit before issuing any cursor->insert() and avoid the
+  // table-write-lock acquire. Each GraphBase is single-threaded (one per
+  // writer thread) so this is wait-free; no synchronisation needed.
+  //
+  // Cost: ~16 bytes per unique node per thread (unordered_set<uint64_t>).
+  // For dota-league (317 K nodes / 16 threads) ≈ 80 MB total. For
+  // graph500-22 (~4 M nodes / 32 threads) ≈ 2 GB total.
+  //
+  // Correctness caveats:
+  //   * ONLY safe when opts.read_optimize is false. With degrees stored
+  //     in the node value, every duplicate insert needs to fall through
+  //     to update_node_degree; skipping would silently drop counts.
+  //   * The set is per-thread, so threads independently re-learn each
+  //     node on first encounter (max false-misses == nthreads * |V|).
+  //
+  // Opt-in: set the FG_NODE_SEEN_FILTER environment variable to "1".
+  // Defaults to off so unrelated runs are unaffected. This is a research
+  // probe to quantify the upper bound of skip-duplicate-node savings; if
+  // it pays off, a less wasteful design (shared lock-free bloom filter,
+  // or hooking into the WT page-level cache) should replace it.
+  // ---------------------------------------------------------------------
+  bool experimental_seen_filter_enabled = false;
+  std::unordered_set<node_id_t> experimental_seen_nodes;
+
+  // Returns true if `id` was already in the per-thread set (caller can
+  // skip the cursor->insert). Returns false on first sight and records
+  // the id. Cheap reserve()-friendly hash-set lookup.
+  bool experimental_node_already_seen(node_id_t id)
+  {
+    auto [_, inserted] = experimental_seen_nodes.insert(id);
+    return !inserted;
+  }
   static int _get_table_cursor(const std::string &table,
                                WT_CURSOR **cursor,
                                WT_SESSION *session,

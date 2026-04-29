@@ -3,6 +3,7 @@
 
 #include <wiredtiger.h>
 
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -21,6 +22,22 @@ GraphBase::GraphBase(graph_opts &opt_params, WT_CONNECTION *conn)
   if (CommonUtil::open_session(conn, &session) != 0)
   {
     throw GraphException("Cannot open session");
+  }
+
+  // EXPERIMENTAL per-thread node-seen filter (see graph.h for full notes).
+  // Opt-in via FG_NODE_SEEN_FILTER=1, and only honored when
+  // opts.read_optimize is false — otherwise we'd silently drop degree
+  // updates on duplicate-node insertions.
+  if (!opts.read_optimize)
+  {
+    if (const char* v = std::getenv("FG_NODE_SEEN_FILTER");
+        v != nullptr && v[0] == '1')
+    {
+      experimental_seen_filter_enabled = true;
+      // A small reserve avoids early rehashing; the actual size grows up
+      // to |V|. 1<<14 is a guess; the bucket array doubles as needed.
+      experimental_seen_nodes.reserve(1 << 14);
+    }
   }
 
   // If the graph is not being newly created, restore.
