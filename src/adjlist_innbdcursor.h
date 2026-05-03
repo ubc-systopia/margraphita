@@ -38,10 +38,16 @@ class AdjInCursor : public InCursor
     {
       int status;
       CommonUtil::set_key(cursor, keys.start);
-      cursor->search_near(cursor, &status);
-      if (status < 0)
+      // search_near can fail (e.g. empty table) — must check return value
+      // before using `status`, which is undefined on failure.
+      int ret = cursor->search_near(cursor, &status);
+      if (ret != 0)
       {
-        // Advances the cursor
+        this->has_next = false;
+      }
+      else if (status < 0)
+      {
+        // Positioned before the search key; advance to first valid record
         if (cursor->next(cursor) != 0)
         {
           this->has_next = false;
@@ -92,7 +98,16 @@ class AdjInCursor : public InCursor
       {
         has_next = false;
       }
-    } while (found->degree == 0 && all_nodes == false);
+    // Guard: stop skipping zero-degree nodes if cursor is exhausted,
+    // otherwise this loop spins forever when all remaining nodes have degree 0.
+    } while (found->degree == 0 && all_nodes == false && has_next);
+
+    // If we exited because has_next became false while still on a zero-degree
+    // node, signal end-of-iteration to the caller.
+    if (found->degree == 0 && !all_nodes)
+    {
+      return no_next(found);
+    }
   }
 
   void next(adjlist *found, node_id_t key) override {}
