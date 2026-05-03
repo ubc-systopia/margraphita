@@ -1963,13 +1963,13 @@ WT_CURSOR *AdjList::get_in_adjlist_cursor()
                                  &new_in_adjlist_cursor,
                                  session,
                                  false,
-                                 false,
+                                 true,
                                  opts.checkpoint_name))  // directed
       : (ret = _get_table_cursor(OUT_ADJLIST,
                                  &new_in_adjlist_cursor,
                                  session,
                                  false,
-                                 false,
+                                 true,
                                  opts.checkpoint_name));  // undirected
   if (ret != 0)
   {
@@ -1982,7 +1982,7 @@ WT_CURSOR *AdjList::get_out_adjlist_cursor()
 {
   WT_CURSOR *new_out_adjlist_cursor = nullptr;
   int ret = _get_table_cursor(OUT_ADJLIST,
-                              &out_adjlist_cursor,
+                              &new_out_adjlist_cursor,
                               session,
                               false,
                               true,
@@ -1991,7 +1991,7 @@ WT_CURSOR *AdjList::get_out_adjlist_cursor()
   {
     throw GraphException("Could not get a test out_adjlist cursor");
   }
-  return out_adjlist_cursor;
+  return new_out_adjlist_cursor;
 }
 
 WT_CURSOR *AdjList::get_new_random_outadj_cursor()

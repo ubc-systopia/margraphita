@@ -61,16 +61,21 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
       adjlist found;
       in_cursor->next(&found);
 
+#ifdef DEBUG
+      long node_count_dbg = 0;
+      long edge_count_dbg = 0;
+#endif
       while (found.node_id != OutOfBand_ID_MAX)
       {
-        //        std::cout << found.node_id << ": [";
+#ifdef DEBUG
+        node_count_dbg++;
+        edge_count_dbg += found.edgelist.size();
+#endif
         ScoreT incoming_total = 0;
         for (node_id_t v : found.edgelist)
         {
           incoming_total += src[v];
-          //          std::cout << v << " ";
         }
-        //        std::cout << " ]" << std::endl;
         ScoreT old_score = dst[found.node_id];
         dst[found.node_id] = (1 - kDamp) / num_nodes + kDamp * incoming_total;
         error += fabs(dst[found.node_id] - old_score);
@@ -79,6 +84,12 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
         found.clear();
         in_cursor->next(&found);
       }
+
+#ifdef DEBUG
+      if (iter == 0) {
+        printf("DBG thread %d: nodes_visited=%ld edges_visited=%ld\n", i, node_count_dbg, edge_count_dbg);
+      }
+#endif
 
       in_cursor->close();
     }
@@ -171,6 +182,9 @@ int main(int argc, char* argv[])
     GraphBase* g = graphEngine.create_ro_graph_handle(checkpt);
     node_id_t num_nodes = g->get_num_nodes();
     node_id_t max_node_id = g->get_max_node_id();
+#ifdef DEBUG
+    std::cout << "PR: num_nodes=" << num_nodes << " max_node_id=" << max_node_id << " iters=" << opts.iterations << " tol=" << opts.tolerance << std::endl;
+#endif
     // g->close(false);
     pvector<ScoreT> score = pagerank(graphEngine,
                                      checkpt,
