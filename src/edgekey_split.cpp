@@ -1209,7 +1209,7 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
       return ret;  // panic
     }
     // delete the reverse edge and adjust dst's in-degree
-    CommonUtil::ekey_set_key(incursor, dst, src);
+    CommonUtil::ekey_set_edge_key(incursor, dst, src);
     ret = incursor->remove(incursor);
     if (ret != 0)
     {
@@ -1263,7 +1263,7 @@ int SplitEdgeKey::delete_node_and_related_edges(node_id_t node_id,
         return ret;  // panic
       }
       // Delete the corresponding edge from the out-edge table
-      CommonUtil::ekey_set_key(out_edge_cursor, src, node_id);
+      CommonUtil::ekey_set_edge_key(out_edge_cursor, src, node_id);
       ret = out_edge_cursor->remove(out_edge_cursor);
       if (ret != 0)
       {
@@ -1293,7 +1293,7 @@ int SplitEdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
   int ret;
   session->begin_transaction(session, "isolation=snapshot");
 
-  CommonUtil::ekey_set_key(out_edge_cursor, src_id, dst_id);
+  CommonUtil::ekey_set_edge_key(out_edge_cursor, src_id, dst_id);
   if ((ret = error_check_insert_txn(out_edge_cursor->remove(out_edge_cursor))))
   {
     LOG_MSG("Failed to delete the edge between {} and {}", src_id, dst_id);
@@ -1301,7 +1301,7 @@ int SplitEdgeKey::delete_edge(node_id_t src_id, node_id_t dst_id)
   }
   out_edge_cursor->reset(out_edge_cursor);
   // delete the reverse edge.
-  CommonUtil::ekey_set_key(in_edge_cursor, dst_id, src_id);
+  CommonUtil::ekey_set_edge_key(in_edge_cursor, dst_id, src_id);
   if ((ret = error_check_insert_txn(in_edge_cursor->remove(in_edge_cursor))))
   {
     LOG_MSG(
