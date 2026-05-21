@@ -438,6 +438,27 @@ inline void CommonUtil::record_to_edge_ekey(WT_CURSOR *cur, edge *found)
   found->edge_weight = a;
 }
 
+/**
+ * @brief Set a raw (key1, key2) cursor key with the ekey +1 transform applied
+ * *conditionally* — a component equal to OutOfBand_ID_MIN is left untransformed.
+ *
+ * USE ONLY for sentinel / range-positioning keys, i.e. where a component is
+ * deliberately the OutOfBand_ID_MIN sentinel (positioning a scan at the start
+ * of the table, or at the leading node row of a key range).
+ *
+ * DO NOT use this to compose a real edge key. A real edge can legitimately
+ * have an endpoint of node-id 0; since 0 == OutOfBand_ID_MIN this function
+ * skips the +1 on that component and produces (src+1, 0), which is
+ * byte-identical to node src's metadata row — the edge and the node row
+ * collide. For edge keys use ekey_set_edge_key (always transforms both
+ * components); for node-metadata keys use ekey_set_node_key. The matching
+ * getter ekey_get_key applies the same conditional un-transform and is
+ * likewise for sentinel/range keys only.
+ *
+ * @param cursor The cursor to set the key on
+ * @param key1 First key component (node id, or OutOfBand_ID_MIN sentinel)
+ * @param key2 Second key component (node id, or OutOfBand_ID_MIN sentinel)
+ */
 inline void CommonUtil::ekey_set_key(WT_CURSOR *cursor,
                                      node_id_t key1,
                                      node_id_t key2)
@@ -475,7 +496,12 @@ inline void CommonUtil::ekey_set_node_key(WT_CURSOR *cursor, node_id_t node_id)
 /**
  * @brief Set the key for an edge entry in the edge table (ekey representation).
  * Edge entries are stored as (MAKE_EKEY(src_id), MAKE_EKEY(dst_id)).
- * This function always transforms both keys.
+ * This function ALWAYS transforms both components, so it is correct even when
+ * an endpoint is node-id 0.
+ *
+ * Use this — not ekey_set_key — for every edge key (insert, delete, lookup).
+ * ekey_set_key's conditional transform mis-encodes an edge incident to node 0
+ * as that node's metadata row; ekey_set_edge_key does not.
  *
  * @param cursor The cursor to set the key on
  * @param src_id The source node ID
