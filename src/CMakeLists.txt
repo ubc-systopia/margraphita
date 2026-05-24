@@ -22,6 +22,9 @@ endif()
 
 ADD_LIBRARY(${NAME_LIB} STATIC "${SOURCES_LIB}")
 TARGET_LINK_LIBRARIES(${NAME_LIB} PUBLIC ${wt_shared_lib} dl ${OpenMP_omp_LIBRARY} fmt::fmt)
+if(WT_NEEDS_BUILD)
+  add_dependencies(${NAME_LIB} wiredtiger)
+endif()
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 
