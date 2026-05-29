@@ -157,28 +157,17 @@ void SplitEdgeKey::init_cursors()
 int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
 {
   session->begin_transaction(session, "isolation=snapshot");
-
-  // Check if node already exists BEFORE insert.  The class cursors are opened
-  // with overwrite=true (required for update_node_degree), so insert() would
-  // silently overwrite the existing sentinel and destroy stored degrees.
-  CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
-  if (out_edge_cursor->search(out_edge_cursor) == 0)
-  {
-    // Node already exists — do not overwrite.
-    out_edge_cursor->reset(out_edge_cursor);
-    session->rollback_transaction(session, nullptr);
-    LOG_MSG("Duplicate key -- Node {} already exists", to_insert.id);
-    return WT_DUPLICATE_KEY;
-  }
-
   CommonUtil::ekey_set_node_key(out_edge_cursor, to_insert.id);
   if (opts.read_optimize)
   {
+    // out_edge_cursor->set_value(
+    //     out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
     ekey_set_node_value(
         out_edge_cursor, to_insert.in_degree, to_insert.out_degree);
   }
   else
   {
+    // out_edge_cursor->set_value(out_edge_cursor, 0, 0);
     ekey_set_node_value(out_edge_cursor, 0, 0);
   }
   // overwrite=false cursor: insert returns WT_DUPLICATE_KEY if node exists,
@@ -193,6 +182,12 @@ int SplitEdgeKey::add_node(node to_insert, bool is_bulk)
   }
   if (error_check_insert_txn(out_ret))
   {
+    if (out_ret == WT_DUPLICATE_KEY)
+    {
+      LOG_MSG("Duplicate key -- Node {} already exists: {}",
+              to_insert.id,
+              wiredtiger_strerror(out_ret));
+    }
     return out_ret;
   }
   session->commit_transaction(session, nullptr);
