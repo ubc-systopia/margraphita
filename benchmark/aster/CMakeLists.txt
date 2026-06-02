@@ -5,3 +5,6 @@ target_link_libraries(fg_aster_bench PUBLIC ${NAME_LIB} graph_utils)
 
 add_executable(fg_cdlp fg_cdlp.cpp)
 target_link_libraries(fg_cdlp PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(fg_aster_props fg_aster_props.cpp)
+target_link_libraries(fg_aster_props PUBLIC ${NAME_LIB} graph_utils)
