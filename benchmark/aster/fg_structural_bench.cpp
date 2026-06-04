@@ -1,13 +1,13 @@
 /**
- * fg_aster_bench.cpp — FlexoGraph benchmark for Aster artifact evaluation.
+ * fg_structural_bench.cpp — FlexoGraph structural operation benchmark.
  *
  * Modes:
- *   fig6  — mixed get_out_degree + add_edge throughput (matches reproduce_script.sh Fig 6)
- *   fig7a — individual operation latencies: get, addv, adde, dele (Fig 7A-B)
+ *   fig6  — mixed get_out_degree + add_edge throughput at varying R/W ratios
+ *   fig7a — individual operation latencies: get, addv, adde, dele
  *
  * Usage:
- *   fg_aster_bench -p <db_dir> -m <db_name> -g adj -r --mode=<fig6|fig7a>
- *                  [--rops=N --wops=N] [--cache_size=<bytes>]
+ *   fg_structural_bench -p <db_dir> -m <db_name> -g adj -r --mode=<fig6|fig7a>
+ *                       [--rops=N --wops=N] [--cache_size=<bytes>]
  *
  * Output format matches the awk parsers in reproduce_script.sh.
  */
@@ -177,7 +177,7 @@ static void run_fig7a(GraphBase *graph, const vector<node_id_t> &valid_ids,
 
 static void print_usage()
 {
-  cerr << "Usage: fg_aster_bench -p <db_dir> -m <db_name> -g <graph_type> -r"
+  cerr << "Usage: fg_structural_bench -p <db_dir> -m <db_name> -g <graph_type> -r"
        << endl;
   cerr << "       --mode=<fig6|fig7a> [--rops=N --wops=N]" << endl;
 }

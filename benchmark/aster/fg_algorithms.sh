@@ -1,7 +1,7 @@
 #!/bin/bash
-# Run FlexoGraph Table 6 benchmark (graph algorithm runtimes).
+# Run FlexoGraph graph algorithm benchmark (PR/BFS/WCC/SSSP/CDLP).
 #
-# Usage: ./fg_tab6.sh <dataset_alias>
+# Usage: ./fg_algorithms.sh <dataset_alias> [graph_type]
 # Output: algorithm runtimes matching reproduce_script.sh format
 
 set -e

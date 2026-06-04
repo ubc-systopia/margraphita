@@ -24,10 +24,11 @@ GRAPH_TYPE="${2:-adj}"
 # ── Resolve dataset ──────────────────────────────────────────────────────────
 resolve_dataset() {
   case "$1" in
-    dblp)        FILE="com-dblp.ungraph.json3"; NODES=317080;  EDGES=1049866;  DIR=false ;;
-    wikipedia)   FILE="wikipedia.json3";        NODES=3333397; EDGES=123709901; DIR=false ;;
-    wikitalk)    FILE="wikitalk.json3";          NODES=2394385; EDGES=5021409;  DIR=false ;;
-    cit-patents) FILE="cit-patents.json3";       NODES=3774768; EDGES=16518947; DIR=true  ;;
+    dblp)        FILE="com-dblp.ungraph.json3"; NODES=317080;  EDGES=1049866;    DIR=false ;;
+    wikipedia)   FILE="wikipedia.json3";        NODES=3333397; EDGES=123709901;  DIR=false ;;
+    wikitalk)    FILE="wikitalk.json3";          NODES=2394385; EDGES=5021409;   DIR=false ;;
+    cit-patents) FILE="cit-patents.json3";       NODES=3774768; EDGES=16518947;  DIR=true  ;;
+    twitter)     FILE="twitter-2010.json3";      NODES=41652230; EDGES=1468365182; DIR=true ;;
     *)           echo "Unknown dataset: $1" >&2; exit 1 ;;
   esac
 }

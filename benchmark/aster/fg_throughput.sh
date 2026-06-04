@@ -1,23 +1,23 @@
 #!/bin/bash
-# Run FlexoGraph Fig 6 benchmark (mixed throughput at different R/W ratios).
+# Run FlexoGraph throughput benchmark (mixed get+add at different R/W ratios).
 #
-# Usage: ./fg_fig6.sh <dataset_alias>
-# Output: one line per ratio config: "flexograph,<get_avg_us>,<add_avg_us>"
+# Usage: ./fg_throughput.sh <dataset_alias> [graph_type]
+# Output: one line per ratio config: "flexograph-<graph_type>,<get_avg_us>,<add_avg_us>"
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FG_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="${FG_BUILD_DIR:-$FG_ROOT/build/preprocess_aster}"
-BENCH_BIN="$BUILD_DIR/benchmark/aster/fg_aster_bench"
+BENCH_BIN="$BUILD_DIR/benchmark/aster/fg_structural_bench"
 DB_DIR="$BUILD_DIR/aster_dbs"
 
 DATASET="${1:?Usage: $0 <dataset_alias>}"
 GRAPH_TYPE="${2:-adj}"
 
 case "$DATASET" in
-  cit-patents) DB_NAME="${GRAPH_TYPE}_rd_${DATASET}" ;;
-  *)           DB_NAME="${GRAPH_TYPE}_r_${DATASET}" ;;
+  cit-patents|twitter) DB_NAME="${GRAPH_TYPE}_rd_${DATASET}" ;;
+  *)                   DB_NAME="${GRAPH_TYPE}_r_${DATASET}" ;;
 esac
 
 # 9 ratio configs matching reproduce_script.sh gen_figure_6
@@ -30,5 +30,6 @@ for ratio in $RATIOS; do
     --mode=fig6 --rops=$ROPS --wops=$WOPS 2>/dev/null)
   GET=$(echo "$OUTPUT" | grep -oP 'get:\s*\K[0-9.eE+-]+')
   ADD=$(echo "$OUTPUT" | grep -oP 'add:\s*\K[0-9.eE+-]+')
-  echo "flexograph,$GET,$ADD"
+  LABEL="flexograph-${GRAPH_TYPE/split_ekey/ekey}"
+  echo "$LABEL,$GET,$ADD"
 done
