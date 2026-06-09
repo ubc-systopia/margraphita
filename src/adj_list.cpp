@@ -3,6 +3,7 @@
 #include <omp.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <thread>
 
 #include "common_util.h"
@@ -121,11 +122,25 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
       "u";  // Single raw byte array: [degree (4 bytes) | node_id_t array].
             // cursor->modify() requires value_format="u" (no structured fields)
             // and no columns= specification.
+  // Per-table page-size knobs for the adjlist tables. Env-var overrides
+  // exist so a writer-conflict sweep can vary these without rebuilding
+  // between cells. Defaults preserve the prior hardcoded values
+  // (64KB/16KB/10MB/90) so a run with no overrides is bitwise-identical
+  // to before. Effective config is printed so the run log records it.
+  auto env_or = [](const char* name, const char* default_val) -> std::string {
+    const char* v = std::getenv(name);
+    return (v != nullptr && v[0] != '\0') ? std::string(v) : std::string(default_val);
+  };
+  std::string leaf_page_max     = env_or("FG_ADJLIST_LEAF_PAGE_MAX",     "64KB");
+  std::string internal_page_max = env_or("FG_ADJLIST_INTERNAL_PAGE_MAX", "16KB");
+  std::string memory_page_max   = env_or("FG_ADJLIST_MEMORY_PAGE_MAX",   "10MB");
+  std::string split_pct         = env_or("FG_ADJLIST_SPLIT_PCT",         "90");
   std::string table_config =
-      "leaf_page_max=64KB,"
-      "internal_page_max=16KB,"
-      "memory_page_max=10MB,"
-      "split_pct=90";
+      "leaf_page_max=" + leaf_page_max + ","
+      "internal_page_max=" + internal_page_max + ","
+      "memory_page_max=" + memory_page_max + ","
+      "split_pct=" + split_pct;
+  std::cout << "[fg-adjlist] table_config=" << table_config << std::endl;
   /**
    * We only make the in_adjlist table if the graph is directed.
    * The out_adjlist table is always created.
