@@ -22,6 +22,39 @@ GraphEngine::~GraphEngine() { close_connection(); }
 
 std::string GraphEngine::make_checkpoint()
 {
+  // FG_USE_AUTO_CHECKPOINT=1 toggles the rolling-auto-checkpoint mode
+  // (added 2026-06-10 for the write-amplification investigation).
+  //
+  // Default (env unset or "0"): the historical behavior — every call
+  // creates a *new* named checkpoint via `session->checkpoint(session,
+  // "name=YYYY_MM_DD_HH_MM_SS")`. That call synchronously reconciles
+  // the entire dirty set to disk, which on mixed_workload at 5 passes
+  // grows to ~25-30 GB per pass and ~500 s per pass of wall time.
+  //
+  // With FG_USE_AUTO_CHECKPOINT=1: we return the magic name
+  // "WiredTigerCheckpoint" without forcing a fresh checkpoint. WT's
+  // built-in auto-checkpoint server (configured via
+  // checkpoint=(wait=10) in conn_config) continuously rolls a single
+  // unnamed checkpoint, and "WiredTigerCheckpoint" is the
+  // documented magic alias that resolves at cursor-open time to that
+  // latest rolling checkpoint. Analytics readers therefore see a
+  // snapshot up to ~10 s stale, which is acceptable for the
+  // aggregate-graph kernels we run (BFS, PR, SSSP, WCC, n-hop).
+  //
+  // Prerequisite: caller must have set FG_WT_PERSIST_MODE=ckpt_only
+  // (or otherwise ensured checkpoint=(wait=N) is in conn_config) so
+  // that auto-checkpoints actually fire. With persist_mode=none,
+  // returning "WiredTigerCheckpoint" will fail at cursor-open time.
+  if (const char* p = std::getenv("FG_USE_AUTO_CHECKPOINT");
+      p != nullptr && (p[0] == '1' || p[0] == 't' || p[0] == 'T'))
+  {
+    last_checkpoint = "WiredTigerCheckpoint";
+    std::cout << "[FlexoGraph] make_checkpoint(): using rolling auto-checkpoint "
+                 "alias (FG_USE_AUTO_CHECKPOINT=1) — no forced reconcile"
+              << std::endl;
+    return last_checkpoint;
+  }
+
   WT_SESSION *session;
   int ret = conn->open_session(conn, nullptr, nullptr, &session);
   if (ret != 0)
@@ -132,6 +165,23 @@ GraphBase *GraphEngine::create_ro_graph_handle(std::string &checkpoint_name)
         throw GraphException("Invalid partition strategy");
     }
     checkpoint_node_count = opts.num_nodes;
+    // Only EDGE_AWARE_ADJLIST sets checkpoint_edge_count, via its own
+    // adjlist traversal inside new_parts_from_adjlist (see line above
+    // the `checkpoint_edge_count = ...` assignment in that function).
+    // All other partition strategies leave it at the default 0, which
+    // crashes DoSSSP — DoSSSP allocates a delta-stepping pvector sized
+    // off the returned 0, and mmap_helper returns EINVAL.
+    //
+    // Fall back to opts.num_edges, which was loaded just above this
+    // switch from metadata (or, if metadata is stale because no
+    // sync_metadata has run since open, from the live atomic counter
+    // GraphBase::local_nedges that both AdjList and SplitEdgeKey
+    // maintain on every add_edge/delete_edge). That gives SSSP and
+    // anything else that needs an edge count a usable number on
+    // split_ekey and other non-adjlist layouts.
+    if (checkpoint_edge_count == 0) {
+      checkpoint_edge_count = opts.num_edges;
+    }
     ptr->set_ro_num_nodes(opts.num_nodes);
   }
 
