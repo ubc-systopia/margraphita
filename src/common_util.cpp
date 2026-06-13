@@ -135,7 +135,7 @@ int CommonUtil::open_connection(const char *db_name,
   {
     snprintf(config + strlen("create"), 1018, ",%s", _config.c_str());
   }
-  std::cout << "conn_config is: " << config << std::endl;
+  std::cerr << "conn_config is: " << config << std::endl;
 
   if (wiredtiger_open(db_name, nullptr, config, conn) != 0)
   {

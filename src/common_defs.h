@@ -196,7 +196,7 @@ struct graph_opts
 
     if (filename.empty())
     {
-      out = &std::cout;
+      out = &std::cerr;
     }
     else
     {
