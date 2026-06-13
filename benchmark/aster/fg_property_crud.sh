@@ -1,12 +1,13 @@
 #!/bin/bash
 # Run FlexoGraph property CRUD benchmark (search/update/insert/remove × vertex/edge).
 #
-# Usage: ./fg_property_crud.sh <dataset_alias> [graph_type]
+# Usage: ./fg_property_crud.sh <dataset_alias> [graph_type] [results_dir]
 #   dataset_alias: ldbc or freebase
 #   graph_type: adj (default) or split_ekey
+#   results_dir: where to write <dataset>_raw.dat (default: results/figure_7)
 #
-# Output: 8 lines matching reproduce_script.sh awk patterns:
-#   Time of vertex property search: <N>ns
+# Output: CSV lines appended to <results_dir>/<dataset>_raw.dat
+#   flexograph-adj,node-property-search.groovy,14567.72
 #   ...
 
 set -e
@@ -21,13 +22,17 @@ ASTER_ROOT="$(cd "$FG_ROOT/.." && pwd)"
 DATA_DIR="$ASTER_ROOT/AsterDB/dataset"
 DB_DIR="$BUILD_DIR/aster_props_dbs"
 
-DATASET="${1:?Usage: $0 <dataset_alias> [graph_type]}"
+DATASET="${1:?Usage: $0 <dataset_alias> [graph_type] [results_dir]}"
 GRAPH_TYPE="${2:-adj}"
+RESULTS_DIR="${3:-$ASTER_ROOT/results/figure_7}"
 
-mkdir -p "$DB_DIR"
+mkdir -p "$DB_DIR" "$RESULTS_DIR"
 
 DB_NAME="fg_props_${GRAPH_TYPE}_${DATASET}"
+RAW_FILE="$RESULTS_DIR/${DATASET}_raw.dat"
 
 $BENCH_BIN -g "$GRAPH_TYPE" -p "$DB_DIR" -m "$DB_NAME" \
   --data_dir="$DATA_DIR" --dataset="$DATASET" 2>/dev/null \
-  | grep -E '^Time of'
+  | tee -a "$RAW_FILE"
+
+echo "[INFO] Appended to $RAW_FILE"
