@@ -1053,7 +1053,7 @@ vector<node> StandardGraph::get_out_nodes(node_id_t node_id)
   vector<edge> out_edges;
   if (!has_node(node_id))
   {
-    throw GraphException("There is no node with ID " + to_string(node_id));
+    return {};
   }
   out_edges = get_out_edges(node_id);
   vector<node> nodes;
@@ -1079,7 +1079,7 @@ vector<node_id_t> StandardGraph::get_out_nodes_id(node_id_t node_id)
 
   if (!has_node(node_id))
   {
-    throw GraphException("There is no node with ID " + to_string(node_id));
+    return {};
   }
   out_edges = get_out_edges(node_id);
   vector<node_id_t> node_ids;

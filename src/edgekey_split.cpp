@@ -1439,8 +1439,7 @@ degree_t SplitEdgeKey::get_in_degree(node_id_t node_id)
     if (out_edge_cursor->search(out_edge_cursor) != 0)
     {
       out_edge_cursor->reset(out_edge_cursor);
-      throw GraphException("Node with ID " + std::to_string(node_id) +
-                           " does not exist");
+      return 0;
     }
     node found = {0};
     ekey_get_node_value(out_edge_cursor, &found.in_degree, &found.out_degree);
@@ -1525,8 +1524,7 @@ degree_t SplitEdgeKey::get_out_degree(node_id_t node_id)
   else
   {
     out_edge_cursor->reset(out_edge_cursor);
-    throw GraphException("Node with ID " + std::to_string(node_id) +
-                         " does not exist");
+    return 0;
   }
 
   return out_deg;
@@ -1558,8 +1556,8 @@ std::vector<edge> SplitEdgeKey::get_out_edges(node_id_t node_id)
   }
   else
   {
-    throw GraphException("The node " + to_string(node_id) +
-                         " does not exist in the graph");
+    out_edge_cursor->reset(out_edge_cursor);
+    return {};
   }
   out_edge_cursor->reset(out_edge_cursor);
   return out_edges;
@@ -1604,8 +1602,8 @@ std::vector<node> SplitEdgeKey::get_out_nodes(node_id_t node_id)
   }
   else
   {
-    throw GraphException("The node " + to_string(node_id) +
-                         " does not exist in the graph");
+    e_cur->close(e_cur);
+    return {};
   }
   e_cur->close(e_cur);
   return out_nodes;
@@ -1642,8 +1640,7 @@ std::vector<node_id_t> SplitEdgeKey::get_out_nodes_id(node_id_t node_id)
   else
   {
     e_cur->reset(e_cur);
-    throw GraphException("The node " + to_string(node_id) +
-                         " does not exist in the graph");
+    return {};
   }
   e_cur->reset(e_cur);
   return out_nodes_id;
@@ -1700,8 +1697,7 @@ std::vector<node> SplitEdgeKey::get_in_nodes(node_id_t node_id)
 {
   if (!has_node(node_id))
   {
-    throw GraphException("The node " + to_string(node_id) +
-                         " does not exist in the graph");
+    return {};
   }
   std::vector<node> in_nodes;
   WT_CURSOR *in_cur;  // need new cursor because we will be using the class
@@ -1753,8 +1749,7 @@ std::vector<node_id_t> SplitEdgeKey::get_in_nodes_id(node_id_t node_id)
 {
   if (!has_node(node_id))
   {
-    throw GraphException("The node " + to_string(node_id) +
-                         " does not exist in the graph");
+    return {};
   }
   std::vector<node_id_t> in_nodes_id;
   // Use the pre-opened rd_in_cursor (IN_EDGES if directed, OUT_EDGES if

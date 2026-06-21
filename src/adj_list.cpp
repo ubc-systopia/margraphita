@@ -2074,7 +2074,7 @@ std::vector<node> AdjList::get_out_nodes(node_id_t node_id)
   std::vector<node> out_nodes;
   if (!has_node(node_id))
   {
-    throw GraphException("There is no node with ID " + to_string(node_id));
+    return {};
   }
   std::vector<node_id_t> adjlist = get_adjlist(out_adjlist_cursor, node_id);
   std::sort(adjlist.begin(), adjlist.end());
@@ -2100,7 +2100,7 @@ std::vector<node_id_t> AdjList::get_out_nodes_id(node_id_t node_id)
   std::vector<node_id_t> adjlist;
   if (!has_node(node_id))
   {
-    throw GraphException("There is no node with ID " + to_string(node_id));
+    return {};
   }
   adjlist = get_adjlist(out_adjlist_cursor, node_id);
   std::sort(adjlist.begin(), adjlist.end());
@@ -2147,8 +2147,8 @@ std::vector<edge> AdjList::get_out_edges(node_id_t node_id)
   }
   else
   {
-    throw GraphException("Could not find node with ID " +
-                         std::to_string(node_id) + " in the adjlist");
+    out_adjlist_cursor->reset(out_adjlist_cursor);
+    return {};
   }
   return out_edges;
 }
@@ -2168,7 +2168,7 @@ std::vector<node> AdjList::get_in_nodes(node_id_t node_id)
   std::vector<node> in_nodes;
   if (!has_node(node_id))
   {
-    throw GraphException("There is no node with ID " + to_string(node_id));
+    return {};
   }
   std::vector<node_id_t> adjlist = get_adjlist(in_adjlist_cursor, node_id);
   std::sort(adjlist.begin(), adjlist.end());
@@ -2194,7 +2194,7 @@ std::vector<node_id_t> AdjList::get_in_nodes_id(node_id_t node_id)
   std::vector<node_id_t> in_nodes_id;
   if (!has_node(node_id))
   {
-    throw GraphException("There is no node with ID " + to_string(node_id));
+    return {};
   }
   std::vector<node_id_t> adjlist = get_adjlist(in_adjlist_cursor, node_id);
   in_adjlist_cursor->reset(in_adjlist_cursor);

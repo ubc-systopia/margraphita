@@ -351,11 +351,11 @@ int add_to_edgekey(WT_CURSOR *ekey_cur,
   // assert(src != OutOfBand_ID_MIN); // node_id 0 is valid and is handled in ekey_set_key
   for (int i = 0; i < edgelist.size(); i++)
   {
-    CommonUtil::ekey_set_key(ekey_cur, src, edgelist[i]);
+    CommonUtil::ekey_set_edge_key(ekey_cur, src, edgelist[i]);
     if (is_weighted)
       ekey_set_edge_value(ekey_cur, weights[i]);
     else
-      ekey_set_node_value(ekey_cur, 0, OutOfBand_ID_MAX);
+      ekey_set_edge_value(ekey_cur, 0.0);
 
     int ret = ekey_cur->insert(ekey_cur);
     if (ret != 0)

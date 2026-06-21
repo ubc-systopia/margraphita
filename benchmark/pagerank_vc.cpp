@@ -23,8 +23,9 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
                          node_id_t max_node_id,
                          double epsilon = 0)
 {
+  const ScoreT init_score = 1.0 / num_nodes;
   pvector<ScoreT> src(max_node_id, 0);
-  pvector<ScoreT> dst(max_node_id, 1 / num_nodes);
+  pvector<ScoreT> dst(max_node_id, 0);
   pvector<node_id_t> deg(max_node_id, 0);
 
   // Create graph handles once and reuse across all iterations
@@ -42,8 +43,10 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
     node_cursor->next(&found);
     while (found.id != OutOfBand_ID_MAX)
     {
-      //      std::cout << found.id << "\n";
       deg[found.id] = found.out_degree;
+      dst[found.id] = init_score;
+      if (found.out_degree > 0)
+        src[found.id] = init_score / found.out_degree;
       node_cursor->next(&found);
     }
     node_cursor->close();
@@ -74,7 +77,8 @@ pvector<ScoreT> pagerank(GraphEngine& graph_engine,
         ScoreT old_score = dst[found.node_id];
         dst[found.node_id] = (1 - kDamp) / num_nodes + kDamp * incoming_total;
         error += fabs(dst[found.node_id] - old_score);
-        src[found.node_id] = dst[found.node_id] / deg[found.node_id];
+        if (deg[found.node_id] > 0)
+          src[found.node_id] = dst[found.node_id] / deg[found.node_id];
 
         found.clear();
         in_cursor->next(&found);
