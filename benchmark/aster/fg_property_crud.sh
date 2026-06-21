@@ -20,7 +20,7 @@ BENCH_BIN="$BUILD_DIR/benchmark/aster/fg_property_bench"
 # Aster artifact root (parent of flexograph/)
 ASTER_ROOT="$(cd "$FG_ROOT/.." && pwd)"
 DATA_DIR="$ASTER_ROOT/AsterDB/dataset"
-DB_DIR="$BUILD_DIR/aster_props_dbs"
+DB_DIR="${FG_DB_DIR:-$ASTER_ROOT/flexograph_dbs}"
 
 DATASET="${1:?Usage: $0 <dataset_alias> [graph_type] [results_dir]}"
 GRAPH_TYPE="${2:-adj}"

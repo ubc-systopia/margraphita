@@ -9,18 +9,20 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FG_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="${FG_BUILD_DIR:-$FG_ROOT/build/preprocess_aster}"
-DB_DIR="$BUILD_DIR/aster_dbs"
+ASTER_ROOT="$(cd "$FG_ROOT/.." && pwd)"
+DB_DIR="${FG_DB_DIR:-$ASTER_ROOT/flexograph_dbs}"
 
 DATASET="${1:?Usage: $0 <dataset_alias>}"
 GRAPH_TYPE="${2:-adj}"
 
-# For directed datasets (cit-patents), use rd suffix
+# For directed datasets, use rd suffix
 case "$DATASET" in
-  cit-patents) DB_NAME="${GRAPH_TYPE}_rd_${DATASET}" ; DIRECTED=true ;;
-  *)           DB_NAME="${GRAPH_TYPE}_r_${DATASET}"  ; DIRECTED=false ;;
+  dblp)  DB_NAME="${GRAPH_TYPE}_r_${DATASET}"  ; DIRECTED=false ;;
+  *)     DB_NAME="${GRAPH_TYPE}_rd_${DATASET}" ; DIRECTED=true ;;
 esac
 
 COMMON_FLAGS="-p $DB_DIR -m $DB_NAME -g $GRAPH_TYPE -r"
+if [ "$DIRECTED" = "true" ]; then COMMON_FLAGS="$COMMON_FLAGS -d"; fi
 
 # PageRank (pr_vc)
 echo "=== PageRank ==="
