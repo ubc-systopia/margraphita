@@ -39,13 +39,24 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   // - internal_page_max=16KB: reasonable internal page size
   // - memory_page_max=10MB: defer page splits longer in memory
   // - split_pct=90: pack pages tighter before splitting
+  // FG_CACHE_RESIDENT=1: pin pages of this table in cache permanently. Used to
+  // test EX0 (see m2_attribution_20260618-170301.md §8h). Translates to
+  // WT_BTREE_IN_MEMORY at handle open (bt_handle.c:371-375) → walker cannot
+  // evict pages → no eviction-driven reconciliation on the writer-touched
+  // tables AND the checkpoint-cursor reads on the same table get pinned too.
+  const char* cr_env = std::getenv("FG_CACHE_RESIDENT");
+  std::string cache_resident_clause =
+      (cr_env != nullptr && (cr_env[0] == '1' || cr_env[0] == 't' || cr_env[0] == 'T'))
+        ? ",cache_resident=true"
+        : "";
+
   std::string out_table_config =
       "key_format=uu,value_format=u,"
       "columns=(" + std::string(SRC) + "," + std::string(DST) + "," + std::string(ATTR) + "),"
       "leaf_page_max=64KB,"
       "internal_page_max=16KB,"
       "memory_page_max=32MB,"
-      "split_pct=100";
+      "split_pct=100" + cache_resident_clause;
 
   // Set up the out-edge table
   std::string out_table = "table:" + std::string(OUT_EDGES);
@@ -58,14 +69,15 @@ void SplitEdgeKey::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
 
   if (opts.is_directed)
   {
-    // Set up the in-edge table with same tuning but different column order
+    // Set up the in-edge table with same tuning but different column order.
+    // cache_resident_clause (above) inherited from FG_CACHE_RESIDENT env var.
     std::string in_table_config =
         "key_format=uu,value_format=u,"
         "columns=(" + std::string(DST) + "," + std::string(SRC) + "," + std::string(ATTR) + "),"
         "leaf_page_max=64KB,"
         "internal_page_max=16KB,"
         "memory_page_max=32MB,"
-        "split_pct=100";
+        "split_pct=100" + cache_resident_clause;
 
     std::string in_table = "table:" + std::string(IN_EDGES);
     ret = sess->create(sess, in_table.c_str(), in_table_config.c_str());

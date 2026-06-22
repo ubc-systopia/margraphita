@@ -135,11 +135,20 @@ void AdjList::create_wt_tables(graph_opts &opts, WT_CONNECTION *conn)
   std::string internal_page_max = env_or("FG_ADJLIST_INTERNAL_PAGE_MAX", "16KB");
   std::string memory_page_max   = env_or("FG_ADJLIST_MEMORY_PAGE_MAX",   "10MB");
   std::string split_pct         = env_or("FG_ADJLIST_SPLIT_PCT",         "90");
+  // FG_CACHE_RESIDENT=1 pins this table's pages in cache (EX0 intervention,
+  // see m2_attribution_20260618-170301.md §8h). Walker cannot evict pinned
+  // pages → no eviction-driven reconciliation on the adjlist tables, and
+  // analytics checkpoint cursors on the same table also stay pinned.
+  const char* cr_env = std::getenv("FG_CACHE_RESIDENT");
+  std::string cache_resident_clause =
+      (cr_env != nullptr && (cr_env[0] == '1' || cr_env[0] == 't' || cr_env[0] == 'T'))
+        ? ",cache_resident=true"
+        : "";
   std::string table_config =
       "leaf_page_max=" + leaf_page_max + ","
       "internal_page_max=" + internal_page_max + ","
       "memory_page_max=" + memory_page_max + ","
-      "split_pct=" + split_pct;
+      "split_pct=" + split_pct + cache_resident_clause;
   std::cout << "[fg-adjlist] table_config=" << table_config << std::endl;
   /**
    * We only make the in_adjlist table if the graph is directed.

@@ -45,6 +45,31 @@ std::string GraphEngine::make_checkpoint()
   // (or otherwise ensured checkpoint=(wait=N) is in conn_config) so
   // that auto-checkpoints actually fire. With persist_mode=none,
   // returning "WiredTigerCheckpoint" will fail at cursor-open time.
+  // FG_USE_LIVE_TABLE_READS=1 bypasses the checkpoint mechanism entirely.
+  // Returns an empty name so downstream cursor opens skip the
+  // "checkpoint=..." config and open against the live table instead.
+  // Cursors see read-committed data (no explicit snapshot transaction —
+  // each read sees the latest committed value at that moment, which can
+  // mean slight inconsistency across cursor operations within one
+  // analytics pass).
+  //
+  // Why: tests whether bypassing checkpoint contention entirely (no
+  // metadata lock interaction with __ckpt_server) eliminates the
+  // create_handles latency we see under the piggyback policy. See
+  // mixed_workload_better_plan.md and the WT-checkpoint discussion
+  // thread in the postmortem follow-ups.
+  //
+  // Takes precedence over FG_USE_AUTO_CHECKPOINT.
+  if (const char* p = std::getenv("FG_USE_LIVE_TABLE_READS");
+      p != nullptr && (p[0] == '1' || p[0] == 't' || p[0] == 'T'))
+  {
+    last_checkpoint = "";
+    std::cout << "[FlexoGraph] make_checkpoint(): bypassing checkpoint mechanism "
+                 "(FG_USE_LIVE_TABLE_READS=1) — RO cursors will open against live "
+                 "table with no checkpoint config" << std::endl;
+    return last_checkpoint;
+  }
+
   if (const char* p = std::getenv("FG_USE_AUTO_CHECKPOINT");
       p != nullptr && (p[0] == '1' || p[0] == 't' || p[0] == 'T'))
   {
