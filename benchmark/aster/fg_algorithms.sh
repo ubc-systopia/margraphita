@@ -21,6 +21,13 @@ case "$DATASET" in
   *)     DB_NAME="${GRAPH_TYPE}_rd_${DATASET}" ; DIRECTED=true ;;
 esac
 
+# Source/destination vertices (matching AsterDB/baselines)
+case "$DATASET" in
+  cit-patents) SOURCE_VERTEX=3494505; DST_VERTEX=754148 ;;
+  wikitalk)    SOURCE_VERTEX=32822;   DST_VERTEX=33 ;;
+  *)           SOURCE_VERTEX=0;       DST_VERTEX=1 ;;
+esac
+
 COMMON_FLAGS="-p $DB_DIR -m $DB_NAME -g $GRAPH_TYPE -r"
 if [ "$DIRECTED" = "true" ]; then COMMON_FLAGS="$COMMON_FLAGS -d"; fi
 
@@ -28,17 +35,17 @@ if [ "$DIRECTED" = "true" ]; then COMMON_FLAGS="$COMMON_FLAGS -d"; fi
 echo "=== PageRank ==="
 $BUILD_DIR/benchmark/pr_vc $COMMON_FLAGS 2>/dev/null
 
-# BFS (bfs_parallel)
+# BFS — depth-5 bounded (matches Gremlin baselines)
 echo "=== BFS ==="
-$BUILD_DIR/benchmark/bfs_parallel $COMMON_FLAGS 2>/dev/null
+$BUILD_DIR/benchmark/aster/fg_bfs_light $COMMON_FLAGS -v $SOURCE_VERTEX --depth=5 2>/dev/null
 
 # WCC (cc_parallel)
 echo "=== WCC ==="
 $BUILD_DIR/benchmark/cc_parallel $COMMON_FLAGS 2>/dev/null
 
-# SSSP (sssp_parallel)
+# SSSP — single-pair shortest path (matches Gremlin baselines)
 echo "=== SSSP ==="
-$BUILD_DIR/benchmark/sssp_parallel $COMMON_FLAGS 2>/dev/null
+$BUILD_DIR/benchmark/aster/fg_sp_light $COMMON_FLAGS -v $SOURCE_VERTEX --dst=$DST_VERTEX 2>/dev/null
 
 # CDLP (fg_cdlp)
 echo "=== CDLP ==="
