@@ -784,15 +784,6 @@ static void tq_r1_person_profile(GraphBase &g, node_id_t pid, bool has_props,
     prop_blob pb = g.get_node_properties(pid);
     DecodedPerson p = decode_person_blob(pb);
     (void)p;
-    // cityId: walk isLocatedIn edge (same work in both modes)
-    for (node_id_t nb : g.get_out_nodes_id(pid))
-        if (VTYPE_OF(nb) == VT_CITY) break;
-    // emails + languages: only in COLUMNAR (secondary tables not present in EMBEDDED)
-    if (has_props) {
-        auto emails = g.get_person_emails(pid);
-        auto langs  = g.get_person_languages(pid);
-        (void)emails; (void)langs;
-    }
     if (out_ms) { TQ_END_CAP(r1_person_profile, *out_ms) }
     else        { TQ_END(r1_person_profile) }
 }

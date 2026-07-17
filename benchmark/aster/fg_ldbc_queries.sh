@@ -16,7 +16,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BENCH_BIN="${SCRIPT_DIR}/../../build/ldbc/fg_ldbc_bench"
+BENCH_BIN="${SCRIPT_DIR}/../../build/preprocess_aster/benchmark/ldbc/fg_ldbc_bench"
 
 if [ ! -x "$BENCH_BIN" ]; then
     echo "ERROR: fg_ldbc_bench not found at $BENCH_BIN" >&2
@@ -50,17 +50,17 @@ for arg in "$@"; do
 done
 
 # Target queries to extract
-TARGET_QUERIES="r1|x1|a2|a3|x5|x3|ic3|ic9|bi1|bi12"
+TARGET_QUERIES="a3|x5|x3|ic3|ic9|bi1|bi12"
 
 TMPDIR=$(mktemp -d)
 trap "rm -rf $TMPDIR" EXIT
 
-# Run 4 configurations
+# Run 4 configurations: gtype emb_flag sys_name db_subdir
 CONFIGS=(
-    "adj --embedded flexograph-adj-emb"
-    "splitekey --embedded flexograph-ekey-emb"
-    "adj _ flexograph-adj-col"
-    "splitekey _ flexograph-ekey-col"
+    "adj --embedded flexograph-adj-emb fg-adj-embedded-db"
+    "splitekey --embedded flexograph-ekey-emb fg-splitekey-embedded-db"
+    "adj _ flexograph-adj-col fg-adj-split-db"
+    "splitekey _ flexograph-ekey-col fg-splitekey-split-db"
 )
 
 # Output header (11-column)
@@ -72,11 +72,17 @@ else
 fi
 
 for config in "${CONFIGS[@]}"; do
-    read -r gtype emb_flag sys_name <<< "$config"
+    read -r gtype emb_flag sys_name db_subdir <<< "$config"
+
+    ACTUAL_DB="$DB_DIR/$db_subdir"
+    if [ ! -d "$ACTUAL_DB" ]; then
+        echo "[fg_ldbc_queries] WARNING: $ACTUAL_DB not found, skipping $sys_name" >&2
+        continue
+    fi
 
     CSV="$TMPDIR/${sys_name}.csv"
 
-    CMD="$BENCH_BIN $DB_DIR $gtype $SF_ARG $PARAMS_ARG"
+    CMD="$BENCH_BIN $ACTUAL_DB $gtype $SF_ARG $PARAMS_ARG"
     [ -n "$WARMUP_ARG" ]     && CMD="$CMD $WARMUP_ARG"
     [ -n "$QUERIES_ARG" ]    && CMD="$CMD $QUERIES_ARG"
     [ -n "$WARMUP_BI_ARG" ]  && CMD="$CMD $WARMUP_BI_ARG"
@@ -99,13 +105,9 @@ for config in "${CONFIGS[@]}"; do
     # replacing graph_type with our system name
     awk -F, -v sys="$sys_name" -v targets="$TARGET_QUERIES" '
     BEGIN { split(targets, t, "|"); for (i in t) tgt[t[i]] = 1 }
-    NR > 1 {
-        exp = $1
-        if (exp in tgt) {
-            # Replace graph_type (col 2) with sys_name
-            printf "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", \
-                $1, sys, $3, $4, $5, $6, $7, $8, $9, $10, $11
-        }
+    NR > 1 && ($1 in tgt) {
+        printf "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", \
+            $1, sys, $3, $4, $5, $6, $7, $8, $9, $10, $11
     }
     ' "$CSV" >> "${OUT_FILE:-/dev/stdout}"
 done

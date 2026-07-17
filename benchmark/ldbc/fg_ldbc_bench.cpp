@@ -250,209 +250,119 @@ int main(int argc, char **argv)
         fflush(csv_out);
     };
 
-    // Step 1: Write queries — single call each (non-repeatable)
-    fprintf(stderr, "[bench] Step 1: write queries\n");
+    // Step 1: Write queries — 1000 iterations each with unique IDs
+    const int N_WRITES = 1000;
+    fprintf(stderr, "[bench] Step 1: write queries (%d iterations each)\n", N_WRITES);
     {
-        // W1 / INS-1: insert a new person with all required edges
-        node_id_t new_pid = MAKE_TYPED_ID(VT_PERSON, 999999);
-        // Fixed representative targets (compact IDs — actual nodes in the DB)
+        // W1: insert 1000 new persons, each with isLocatedIn + hasInterest +
+        //     studyAt + workAt edges
         node_id_t city0 = MAKE_TYPED_ID(VT_CITY,       0);
         node_id_t tag0  = MAKE_TYPED_ID(VT_TAG,        0);
         node_id_t uni0  = MAKE_TYPED_ID(VT_UNIVERSITY, 0);
         node_id_t comp0 = MAKE_TYPED_ID(VT_COMPANY,    0);
-        auto t0 = Clock_t::now();
-        node n; n.id = new_pid;
-        g.add_node(n, false);
-        if (has_props) {
-            uint8_t buf[SNBPersonSchema::TOTAL_SIZE] = {};
-            SNBPersonSchema::set_creation_date(buf, 1700000000000LL);
-            g.set_node_properties(new_pid, buf, SNBPersonSchema::TOTAL_SIZE);
-        }
-        // isLocatedIn: Person -> City (structural, no edge props)
-        edge e_city; e_city.src_id = new_pid; e_city.dst_id = city0;
-        g.add_edge(e_city, false);
-        // hasInterest: Person -> Tag (structural, no edge props)
-        edge e_tag; e_tag.src_id = new_pid; e_tag.dst_id = tag0;
-        g.add_edge(e_tag, false);
-        // studyAt: Person -> University (classYear prop)
-        edge e_uni; e_uni.src_id = new_pid; e_uni.dst_id = uni0;
-        g.add_edge(e_uni, false);
-        if (has_props) {
-            uint8_t buf[SNBStudyAtSchema::TOTAL_SIZE] = {};
-            SNBStudyAtSchema::set_class_year(buf, 2020);
-            g.set_edge_properties(new_pid, uni0, buf, SNBStudyAtSchema::TOTAL_SIZE);
-        }
-        // workAt: Person -> Company (workFrom prop)
-        edge e_comp; e_comp.src_id = new_pid; e_comp.dst_id = comp0;
-        g.add_edge(e_comp, false);
-        if (has_props) {
-            uint8_t buf[SNBWorkAtSchema::TOTAL_SIZE] = {};
-            SNBWorkAtSchema::set_work_from(buf, 2010);
-            g.set_edge_properties(new_pid, comp0, buf, SNBWorkAtSchema::TOTAL_SIZE);
-        }
-        double w1_ms = Ms_t(Clock_t::now() - t0).count();
-        emit("w1_insert_person", "pid=999999", run_once(w1_ms));
+        node_id_t w1_base = person_count + 100000;
+        int w1_i = 0;
+        auto w1_r = run_timed([&]{
+            node_id_t new_pid = MAKE_TYPED_ID(VT_PERSON, w1_base + w1_i);
+            w1_i++;
+            node n; n.id = new_pid;
+            g.add_node(n, false);
+            if (has_props) {
+                uint8_t buf[SNBPersonSchema::TOTAL_SIZE] = {};
+                SNBPersonSchema::set_creation_date(buf, 1700000000000LL);
+                g.set_node_properties(new_pid, buf, SNBPersonSchema::TOTAL_SIZE);
+            }
+            edge e_city; e_city.src_id = new_pid; e_city.dst_id = city0;
+            g.add_edge(e_city, false);
+            edge e_tag; e_tag.src_id = new_pid; e_tag.dst_id = tag0;
+            g.add_edge(e_tag, false);
+            edge e_uni; e_uni.src_id = new_pid; e_uni.dst_id = uni0;
+            g.add_edge(e_uni, false);
+            if (has_props) {
+                uint8_t buf[SNBStudyAtSchema::TOTAL_SIZE] = {};
+                SNBStudyAtSchema::set_class_year(buf, 2020);
+                g.set_edge_properties(new_pid, uni0, buf, SNBStudyAtSchema::TOTAL_SIZE);
+            }
+            edge e_comp; e_comp.src_id = new_pid; e_comp.dst_id = comp0;
+            g.add_edge(e_comp, false);
+            if (has_props) {
+                uint8_t buf[SNBWorkAtSchema::TOTAL_SIZE] = {};
+                SNBWorkAtSchema::set_work_from(buf, 2010);
+                g.set_edge_properties(new_pid, comp0, buf, SNBWorkAtSchema::TOTAL_SIZE);
+            }
+        }, 0, N_WRITES);
+        emit("w1_insert_person", "n=1000;pid=unique", w1_r);
     }
     {
-        // INS-4: insert a new forum with hasModerator and hasTag edges
-        node_id_t new_forum = MAKE_TYPED_ID(VT_FORUM, 999999);
-        node_id_t mod_pid   = pid_cycle.next();
-        node_id_t tag0      = MAKE_TYPED_ID(VT_TAG, 0);
-        auto t0 = Clock_t::now();
-        node nf; nf.id = new_forum;
-        g.add_node(nf, false);
-        if (has_props) {
-            const char *title = "New Forum";
-            size_t bsz = SNBForumSchema::TOTAL_SIZE + strlen(title) + 1;
-            std::vector<uint8_t> buf(bsz, 0);
-            SNBForumSchema::set_creation_date(buf.data(), 1700000000000LL);
-            SNBForumSchema::set_moderator_id(buf.data(), (int64_t)mod_pid);
-            SNBForumSchema::set_title(buf.data(), title);
-            g.set_node_properties(new_forum, buf.data(), bsz);
-        }
-        // hasModerator: Forum -> Person (structural, no edge props)
-        edge e_mod; e_mod.src_id = new_forum; e_mod.dst_id = mod_pid;
-        g.add_edge(e_mod, false);
-        // hasTag: Forum -> Tag (structural, no edge props)
-        edge e_tag; e_tag.src_id = new_forum; e_tag.dst_id = tag0;
-        g.add_edge(e_tag, false);
-        double ins4_ms = Ms_t(Clock_t::now() - t0).count();
-        emit("ins4_insert_forum", "forum=999999;mod=sampled", run_once(ins4_ms));
+        // W2: insert 1000 knows edges (bidirectional), sampled endpoints
+        auto w2_r = run_timed([&]{
+            node_id_t src = pid_cycle.next();
+            node_id_t dst = pid_cycle.next();
+            edge e_fwd; e_fwd.src_id = src; e_fwd.dst_id = dst;
+            g.add_edge(e_fwd, false);
+            if (has_props) {
+                uint8_t buf[SNBKnowsSchema::TOTAL_SIZE] = {};
+                SNBKnowsSchema::set_creation_date(buf, 1700000000000LL);
+                g.set_edge_properties(src, dst, buf, SNBKnowsSchema::TOTAL_SIZE);
+            }
+            edge e_rev; e_rev.src_id = dst; e_rev.dst_id = src;
+            g.add_edge(e_rev, false);
+            if (has_props) {
+                uint8_t buf[SNBKnowsSchema::TOTAL_SIZE] = {};
+                SNBKnowsSchema::set_creation_date(buf, 1700000000000LL);
+                g.set_edge_properties(dst, src, buf, SNBKnowsSchema::TOTAL_SIZE);
+            }
+        }, 0, N_WRITES);
+        emit("w2_insert_knows", "n=1000;src=sampled;dst=sampled", w2_r);
     }
     {
-        // W2 / INS-8: insert a knows edge (both directions, per spec)
-        node_id_t w2_src = pid_cycle.next();
-        node_id_t w2_dst = pid_cycle.next();
-        auto t0 = Clock_t::now();
-        edge e_fwd; e_fwd.src_id = w2_src; e_fwd.dst_id = w2_dst;
-        g.add_edge(e_fwd, false);
-        if (has_props) {
-            uint8_t buf[SNBKnowsSchema::TOTAL_SIZE] = {};
-            SNBKnowsSchema::set_creation_date(buf, 1700000000000LL);
-            g.set_edge_properties(w2_src, w2_dst, buf, SNBKnowsSchema::TOTAL_SIZE);
-        }
-        edge e_rev; e_rev.src_id = w2_dst; e_rev.dst_id = w2_src;
-        g.add_edge(e_rev, false);
-        if (has_props) {
-            uint8_t buf[SNBKnowsSchema::TOTAL_SIZE] = {};
-            SNBKnowsSchema::set_creation_date(buf, 1700000000000LL);
-            g.set_edge_properties(w2_dst, w2_src, buf, SNBKnowsSchema::TOTAL_SIZE);
-        }
-        double w2_ms = Ms_t(Clock_t::now() - t0).count();
-        emit("w2_insert_knows", "src=sampled;dst=sampled", run_once(w2_ms));
+        // W3: insert 1000 new posts, each with hasCreator + containerOf +
+        //     isLocatedIn + hasTag edges, sampled author
+        node_id_t forum0   = MAKE_TYPED_ID(VT_FORUM,   0);
+        node_id_t country0 = MAKE_TYPED_ID(VT_COUNTRY, 0);
+        node_id_t tag0     = MAKE_TYPED_ID(VT_TAG,     0);
+        node_id_t w3_base  = post_count + 100000;
+        int w3_i = 0;
+        auto w3_r = run_timed([&]{
+            node_id_t new_post_id = MAKE_TYPED_ID(VT_POST, w3_base + w3_i);
+            node_id_t author = pid_cycle.next();
+            w3_i++;
+            node n2; n2.id = new_post_id;
+            g.add_node(n2, false);
+            if (has_props) {
+                const char *content = "benchmark post";
+                size_t bsz = SNBPostSchema::TOTAL_SIZE + strlen(content) + 1;
+                std::vector<uint8_t> buf(bsz, 0);
+                SNBPostSchema::set_creation_date(buf.data(), 1700000000000LL);
+                SNBPostSchema::set_length(buf.data(), (int32_t)strlen(content));
+                SNBPostSchema::set_content(buf.data(), content);
+                g.set_node_properties(new_post_id, buf.data(), bsz);
+            }
+            edge e_creator; e_creator.src_id = new_post_id; e_creator.dst_id = author;
+            g.add_edge(e_creator, false);
+            edge e_container; e_container.src_id = forum0; e_container.dst_id = new_post_id;
+            g.add_edge(e_container, false);
+            edge e_loc; e_loc.src_id = new_post_id; e_loc.dst_id = country0;
+            g.add_edge(e_loc, false);
+            edge e_tag; e_tag.src_id = new_post_id; e_tag.dst_id = tag0;
+            g.add_edge(e_tag, false);
+        }, 0, N_WRITES);
+        emit("w3_insert_post_with_creator", "n=1000;author=sampled", w3_r);
     }
     {
-        // W3 / INS-6: insert a post with hasCreator, containerOf, isLocatedIn, hasTag
-        node_id_t new_post_id = MAKE_TYPED_ID(VT_POST, post_count + 1);
-        node_id_t w3_author   = pid_cycle.next();
-        node_id_t forum0      = MAKE_TYPED_ID(VT_FORUM,   0);
-        node_id_t country0    = MAKE_TYPED_ID(VT_COUNTRY, 0);
-        node_id_t tag0        = MAKE_TYPED_ID(VT_TAG,     0);
-        auto t0 = Clock_t::now();
-        node n2; n2.id = new_post_id;
-        g.add_node(n2, false);
-        if (has_props) {
-            const char *content = "benchmark post";
-            size_t bsz = SNBPostSchema::TOTAL_SIZE + strlen(content) + 1;
-            std::vector<uint8_t> buf(bsz, 0);
-            SNBPostSchema::set_creation_date(buf.data(), 1700000000000LL);
-            SNBPostSchema::set_length(buf.data(), (int32_t)strlen(content));
-            SNBPostSchema::set_content(buf.data(), content);
-            g.set_node_properties(new_post_id, buf.data(), bsz);
-        }
-        // hasCreator: Post -> Person (structural)
-        edge e_creator; e_creator.src_id = new_post_id; e_creator.dst_id = w3_author;
-        g.add_edge(e_creator, false);
-        // containerOf: Forum -> Post (structural)
-        edge e_container; e_container.src_id = forum0; e_container.dst_id = new_post_id;
-        g.add_edge(e_container, false);
-        // isLocatedIn: Post -> Country (structural)
-        edge e_loc; e_loc.src_id = new_post_id; e_loc.dst_id = country0;
-        g.add_edge(e_loc, false);
-        // hasTag: Post -> Tag (structural)
-        edge e_tag; e_tag.src_id = new_post_id; e_tag.dst_id = tag0;
-        g.add_edge(e_tag, false);
-        double w3_ms = Ms_t(Clock_t::now() - t0).count();
-        emit("w3_insert_post_with_creator", "author=sampled", run_once(w3_ms));
-    }
-    {
-        // X4 / INS-2: insert a likes edge (Person -> Post)
-        node_id_t x4_pid  = pid_cycle.next();
-        node_id_t x4_post = post_cycle.next();
-        auto t0 = Clock_t::now();
-        edge e3; e3.src_id = x4_pid; e3.dst_id = x4_post;
-        g.add_edge(e3, false);
-        if (has_props) {
-            uint8_t buf[SNBLikesSchema::TOTAL_SIZE] = {};
-            SNBLikesSchema::set_creation_date(buf, 1700000000000LL);
-            g.set_edge_properties(x4_pid, x4_post, buf, SNBLikesSchema::TOTAL_SIZE);
-        }
-        double x4_ms = Ms_t(Clock_t::now() - t0).count();
-        emit("x4_insert_likes", "pid=sampled;post=sampled", run_once(x4_ms));
-    }
-    {
-        // INS-3: insert a likes edge (Person -> Comment)
-        node_id_t ins3_pid     = pid_cycle.next();
-        node_id_t ins3_comment = MAKE_TYPED_ID(VT_COMMENT, 0);
-        auto t0 = Clock_t::now();
-        edge e4; e4.src_id = ins3_pid; e4.dst_id = ins3_comment;
-        g.add_edge(e4, false);
-        if (has_props) {
-            uint8_t buf[SNBLikesSchema::TOTAL_SIZE] = {};
-            SNBLikesSchema::set_creation_date(buf, 1700000000000LL);
-            g.set_edge_properties(ins3_pid, ins3_comment, buf, SNBLikesSchema::TOTAL_SIZE);
-        }
-        double ins3_ms = Ms_t(Clock_t::now() - t0).count();
-        emit("ins3_insert_likes_comment", "pid=sampled;comment=0", run_once(ins3_ms));
-    }
-    {
-        // INS-5: insert a hasMember edge (Forum -> Person)
-        node_id_t ins5_forum = MAKE_TYPED_ID(VT_FORUM, 0);
-        node_id_t ins5_pid   = pid_cycle.next();
-        auto t0 = Clock_t::now();
-        edge e5; e5.src_id = ins5_forum; e5.dst_id = ins5_pid;
-        g.add_edge(e5, false);
-        if (has_props) {
-            uint8_t buf[SNBHasMemberSchema::TOTAL_SIZE] = {};
-            SNBHasMemberSchema::set_creation_date(buf, 1700000000000LL);
-            g.set_edge_properties(ins5_forum, ins5_pid, buf, SNBHasMemberSchema::TOTAL_SIZE);
-        }
-        double ins5_ms = Ms_t(Clock_t::now() - t0).count();
-        emit("ins5_insert_hasmember", "forum=0;pid=sampled", run_once(ins5_ms));
-    }
-    {
-        // INS-7: insert a new comment with hasCreator, replyOf, isLocatedIn, hasTag
-        node_id_t new_comment = MAKE_TYPED_ID(VT_COMMENT, 999999);
-        node_id_t ins7_author = pid_cycle.next();
-        node_id_t post0       = MAKE_TYPED_ID(VT_POST,    0);
-        node_id_t country0    = MAKE_TYPED_ID(VT_COUNTRY, 0);
-        node_id_t tag0        = MAKE_TYPED_ID(VT_TAG,     0);
-        auto t0 = Clock_t::now();
-        node nc; nc.id = new_comment;
-        g.add_node(nc, false);
-        if (has_props) {
-            const char *content = "benchmark comment";
-            size_t bsz = SNBCommentSchema::TOTAL_SIZE + strlen(content) + 1;
-            std::vector<uint8_t> buf(bsz, 0);
-            SNBCommentSchema::set_creation_date(buf.data(), 1700000000000LL);
-            SNBCommentSchema::set_length(buf.data(), (int32_t)strlen(content));
-            SNBCommentSchema::set_content(buf.data(), content);
-            g.set_node_properties(new_comment, buf.data(), bsz);
-        }
-        // hasCreator: Comment -> Person (structural)
-        edge e_creator; e_creator.src_id = new_comment; e_creator.dst_id = ins7_author;
-        g.add_edge(e_creator, false);
-        // replyOf: Comment -> Post (structural)
-        edge e_reply; e_reply.src_id = new_comment; e_reply.dst_id = post0;
-        g.add_edge(e_reply, false);
-        // isLocatedIn: Comment -> Country (structural)
-        edge e_loc; e_loc.src_id = new_comment; e_loc.dst_id = country0;
-        g.add_edge(e_loc, false);
-        // hasTag: Comment -> Tag (structural)
-        edge e_tag; e_tag.src_id = new_comment; e_tag.dst_id = tag0;
-        g.add_edge(e_tag, false);
-        double ins7_ms = Ms_t(Clock_t::now() - t0).count();
-        emit("ins7_insert_comment", "comment=999999;author=sampled", run_once(ins7_ms));
+        // X4: insert 1000 likes edges (Person -> Post), sampled endpoints
+        auto x4_r = run_timed([&]{
+            node_id_t pid  = pid_cycle.next();
+            node_id_t post = post_cycle.next();
+            edge e3; e3.src_id = pid; e3.dst_id = post;
+            g.add_edge(e3, false);
+            if (has_props) {
+                uint8_t buf[SNBLikesSchema::TOTAL_SIZE] = {};
+                SNBLikesSchema::set_creation_date(buf, 1700000000000LL);
+                g.set_edge_properties(pid, post, buf, SNBLikesSchema::TOTAL_SIZE);
+            }
+        }, 0, N_WRITES);
+        emit("x4_insert_likes", "n=1000;pid=sampled;post=sampled", x4_r);
     }
 
     // Step 2: Read/aggregate/IC queries
