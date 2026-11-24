@@ -734,7 +734,7 @@ inline RunResult run_reference_khop_embedding_outcursor_nested(GraphBase *g, con
 
     a->close();
     delete a;
-    oc->reset();                                         // shared cursor: reset, don't close
+    oc->close();                                         // own cursor since 30b1c40: close, then delete
     delete oc;
     r.top_k = top.drain_sorted();
     return r;

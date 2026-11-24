@@ -1178,7 +1178,8 @@ inline RunResult run_reference_khop_structural_outcursor_bfs(GraphBase *g, const
     // AdjList::get_outnbd_iter() returns the graph's own out_adjlist_cursor,
     // not a new one: close() would close it for every later get_out_nodes_id
     // on this handle (segfault in the next reference run). Reset, don't close.
-    oc->reset();
+    // Since 30b1c40 (8d1f2e4, 2026-11-22) the cursor is ours alone: close it.
+    oc->close();
     delete oc;
     r.top_k = top.drain_sorted();
     return r;
@@ -1334,7 +1335,7 @@ inline RunResult run_reference_khop_structural_outcursor_nested(GraphBase *g, co
 
     a->close();
     delete a;
-    oc->reset();                                         // shared cursor: reset, don't close
+    oc->close();                                         // own cursor since 30b1c40: close, then delete
     delete oc;
     r.top_k = top.drain_sorted();
     return r;
@@ -1606,7 +1607,7 @@ inline RunResult run_reference_khop_embedding_outcursor_nested(GraphBase *g, con
 
     a->close();
     delete a;
-    oc->reset();                                         // shared cursor: reset, don't close
+    oc->close();                                         // own cursor since 30b1c40: close, then delete
     delete oc;
     r.top_k = top.drain_sorted();
     return r;
