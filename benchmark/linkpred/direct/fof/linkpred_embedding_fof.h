@@ -100,13 +100,13 @@ static void embedding_worker_fof(GraphBase *g,
     a->next(&u);
 
     while (u.id != OutOfBand_ID_MAX) {
-        auto Nu = g->get_out_nodes_id(u.id);       // DB read: u's neighbours (walk + labels)
+        auto Nu = lp_nbrs(g, u.id, lp_both_directions(o.direction));       // DB read: u's neighbours (walk + labels)
         std::unordered_set<node_id_t> Nu_set(Nu.begin(), Nu.end());
 
         // candidates: same walk as structural_worker_fof
         std::unordered_set<node_id_t> fof;
         for (node_id_t w : Nu)
-            for (node_id_t v : g->get_out_nodes_id(w))   // DB read: w's neighbours
+            for (node_id_t v : lp_nbrs(g, w, lp_both_directions(o.direction)))   // DB read: w's neighbours
                 if (v > u.id) fof.insert(v);
         std::vector<node_id_t> vs(fof.begin(), fof.end());
         std::sort(vs.begin(), vs.end());
@@ -114,7 +114,8 @@ static void embedding_worker_fof(GraphBase *g,
         prop_blob pu = g->get_node_properties(u.id);  // u's embedding, once per u
         for (node_id_t v : vs) {
             prop_blob pv = g->get_node_properties(v);    // DB read: v's embedding (replaces N(v))
-            int label = Nu_set.count(v) ? 1 : 0;
+            int label = lp_label(u.id, v, Nu_set.count(v) != 0);   // --eval: recon / holdout
+            if (label < 0) { delete[] const_cast<uint8_t*>(pv.data); continue; }                    // holdout: training edge, not scored
             double s = (o.method == "cosine")
                        ? linkpred::cosine_from_bytes(pu.data, pu.size, pv.data, pv.size)
                        : linkpred::dot_from_bytes  (pu.data, pu.size, pv.data, pv.size);

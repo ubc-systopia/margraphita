@@ -113,3 +113,4 @@ target_link_libraries(pr_iter_getout PUBLIC ${NAME_LIB} graph_utils)
 
 add_subdirectory(ldbc)
 add_subdirectory(aster)
+add_subdirectory(linkpred)

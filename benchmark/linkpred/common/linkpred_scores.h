@@ -24,6 +24,7 @@
 
 #pragma once
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -31,6 +32,11 @@
 #include <vector>
 
 namespace linkpred {
+
+// Pairs scored with an empty embedding on either side (no node_props row, or a
+// zero-length vector): cosine / dot return 0 for them. Counted so a partial
+// embedding DB is visible instead of silently scoring 0 (added 2026-11-22).
+inline std::atomic<size_t> g_missing_embedding_pairs{0};
 
 // - Structural scores -
 
@@ -101,6 +107,7 @@ inline double score_pair(const std::string &method,
 inline double dot(const std::vector<float> &eu, const std::vector<float> &ev)
 {
     size_t n = std::min(eu.size(), ev.size());
+    if (n == 0) g_missing_embedding_pairs.fetch_add(1, std::memory_order_relaxed);
     double s = 0.0;
     for (size_t i = 0; i < n; ++i)
         s += (double)eu[i] * (double)ev[i];
@@ -112,6 +119,7 @@ inline double dot(const std::vector<float> &eu, const std::vector<float> &ev)
 inline double cosine(const std::vector<float> &eu, const std::vector<float> &ev)
 {
     size_t n = std::min(eu.size(), ev.size());
+    if (n == 0) g_missing_embedding_pairs.fetch_add(1, std::memory_order_relaxed);
     double dot_uv = 0.0, norm_u = 0.0, norm_v = 0.0;
     for (size_t i = 0; i < n; ++i) {
         dot_uv += (double)eu[i] * (double)ev[i];
@@ -157,7 +165,7 @@ inline double cosine_from_bytes(const uint8_t *a, size_t a_bytes,
                                 const uint8_t *b, size_t b_bytes)
 {
     size_t dim = std::min(a_bytes, b_bytes) / sizeof(float);
-    if (dim == 0) return 0.0;
+    if (dim == 0) { g_missing_embedding_pairs.fetch_add(1, std::memory_order_relaxed); return 0.0; }
     return cosine_from_ptrs(reinterpret_cast<const float*>(a),
                             reinterpret_cast<const float*>(b), dim);
 }
@@ -166,7 +174,7 @@ inline double dot_from_bytes(const uint8_t *a, size_t a_bytes,
                              const uint8_t *b, size_t b_bytes)
 {
     size_t dim = std::min(a_bytes, b_bytes) / sizeof(float);
-    if (dim == 0) return 0.0;
+    if (dim == 0) { g_missing_embedding_pairs.fetch_add(1, std::memory_order_relaxed); return 0.0; }
     return dot_from_ptrs(reinterpret_cast<const float*>(a),
                          reinterpret_cast<const float*>(b), dim);
 }
@@ -176,6 +184,7 @@ inline double dot_from_bytes(const uint8_t *a, size_t a_bytes,
 
 
 // COULD DO: (below is not wired up if they do exists)
+// Neo4J has them written out nicely for reference: https://neo4j.com/docs/graph-data-science/current/algorithms/topological-link-prediction/preferential-attachment/
 // TODO: adamic_adar, preferential_attachment, resource_allocation
 //       (need a degree-lookup callback std::function<int64_t(T)>).
 // TODO: neg_euclidean (needs the same float-vector signature as dot/cosine).
