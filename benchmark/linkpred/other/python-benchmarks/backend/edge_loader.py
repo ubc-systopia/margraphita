@@ -82,14 +82,17 @@ def load_edges_from_flexo(db_dir, db_name, graph_type="adj",
     if dump_binary is None:
         dump_binary = os.environ.get("FLEXO_DUMP_BIN", _DEFAULT_DUMP_BIN)
 
-    if not os.path.exists(dump_binary):
-        raise FileNotFoundError(
-            f"dump_edges not found at {dump_binary}. "
-            f"Build it with: cmake --build build/release --target dump_edges, "
-            f"or set FLEXO_DUMP_BIN."
-        )
-
     args = [dump_binary, db_dir, db_name, graph_type]
+    if not os.path.exists(dump_binary):
+        # 2026-11-24: on the WSL host (torch/PyG) the tool lives in the container
+        container = os.environ.get("FLEXO_CONTAINER")
+        if not container:
+            raise FileNotFoundError(
+                f"dump_edges not found at {dump_binary}. "
+                f"Build it with: cmake --build build/release --target dump_edges, "
+                f"set FLEXO_DUMP_BIN, or set FLEXO_CONTAINER to run it via docker exec."
+            )
+        args = ["docker", "exec", container] + args
     if directed:
         args.append("--directed")
 
@@ -130,3 +133,38 @@ def load_edges_from_flexo(db_dir, db_name, graph_type="adj",
     ei = torch.stack([key // n, key % n])
     ei = ei[:, ei[0] != ei[1]]
     return ei, n
+
+# ─── Node features from a FlexoGraph DB (2026-11-24) ───────────────────
+# dump_edges --features=OUT.npy --features-only writes the DB's node properties (e.g. the
+# FastRP embeddings fg_fastrp stores with FG_OUT=db) as a float32 [max_id + 1, dim] matrix,
+# row = node id, the same indexing load_edges_from_flexo uses. torch/PyG live on the WSL host
+# and the tool lives in the container, so if the binary is not on this machine the call goes
+# through `docker exec $FLEXO_CONTAINER` and paths are mapped between FLEXO_HOST_ROOT (host)
+# and FLEXO_CONTAINER_ROOT (container).
+_HOST_ROOT = os.environ.get("FLEXO_HOST_ROOT", os.path.expanduser("~/flexography-clone-structural"))
+_CONT_ROOT = os.environ.get("FLEXO_CONTAINER_ROOT", "/FlexoGraph")
+
+
+def export_features_from_flexo(db_dir, db_name, out_npy, graph_type="adj",
+                               dump_binary=None, container=None):
+    """Write the DB's node features to out_npy (a host path). Returns out_npy.
+
+    db_dir is a container path (as for load_edges_from_flexo). out_npy must be under
+    FLEXO_HOST_ROOT when going through docker, so the container can write it.
+    """
+    if dump_binary is None:
+        dump_binary = os.environ.get("FLEXO_DUMP_BIN", _DEFAULT_DUMP_BIN)
+    out_npy = os.path.abspath(out_npy)
+    os.makedirs(os.path.dirname(out_npy), exist_ok=True)
+    if os.path.exists(dump_binary):                      # running where Flexograph is built
+        args = [dump_binary, db_dir, db_name, graph_type,
+                f"--features={out_npy}", "--features-only"]
+    else:                                                # host -> container
+        container = container or os.environ.get("FLEXO_CONTAINER", "flexograph-fresh")
+        if not out_npy.startswith(_HOST_ROOT + "/"):
+            raise ValueError(f"out_npy must be under {_HOST_ROOT} to be visible in the container")
+        cont_out = _CONT_ROOT + out_npy[len(_HOST_ROOT):]
+        args = ["docker", "exec", container, dump_binary, db_dir, db_name, graph_type,
+                f"--features={cont_out}", "--features-only"]
+    subprocess.run(args, check=True, stdout=subprocess.DEVNULL)
+    return out_npy

@@ -85,7 +85,7 @@ Bulk loop (one mode per process → clean RSS):
       ~/pyg/bin/python py_khop_baseline.py \\
         --edges /path/to/$g/graph_$g \\
         --mode $m --cand khop2,fof --samples 263 \\
-        --results-dir ~/flexography-clone-structural/results/py_baseline \\
+        --results-dir benchmark/linkpred/output/python_baselines/py_baseline \\
         --tag bulk_v1
     done
   done

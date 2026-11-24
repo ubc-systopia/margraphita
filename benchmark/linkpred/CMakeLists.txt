@@ -129,6 +129,12 @@ foreach(f run_next_vs_cosine.sh run_fetch_random_parallel.sh run_microbench_swee
 endforeach()
 
 
+# Edge export tool for external consumers (PyG backend, etc.).
+# Reads a FlexoGraph DB and prints 'u v' per line.
+# Source lives in python-benchmarks/backend-cpp/ so it travels with the Python code.
+add_executable(dump_edges other/python-benchmarks/backend-cpp/dump_edges.cpp)
+target_include_directories(dump_edges PRIVATE ${PATH_SRC} ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(dump_edges PUBLIC ${NAME_LIB} graph_utils)
 # FastRP embeddings computed from a Flexograph DB (writes a row-per-node-id .npy
 # that test/graphml/add_pytorch_emb_npy loads into node_props).
 add_executable(fg_fastrp tools/fastrp.cpp)
