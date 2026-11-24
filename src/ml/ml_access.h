@@ -71,3 +71,26 @@ VectorBatch get_edge_vectors(GraphBase& graph,
 AttributeBatch get_edge_attributes(GraphBase& graph,
     const std::vector<EdgeId>& ids, const AttributeRequest& request);
 }
+
+namespace ml_access {
+// Could be called write_vertex_embeddings() if limited to embeddings.
+// Use vectors instead to support features and intermediate representations too.
+// Replaces existing blobs; caller must reserve them for raw Float32 vectors.
+// Direct writes in input order; last duplicate wins. Not an atomic batch.
+// Storage contract: the caller must ensure the database stores vertex properties as raw
+// Float32 blobs (EMBEDDED-style property storage). The ML API cannot inspect the graph's
+// storage configuration (GraphBase keeps its options protected), so it does not check this.
+// A GraphBase supports_embedded_vertex_vectors() / supports_embedded_edge_vectors() could
+// be added in the future to reject incompatible storage before writing.
+void set_vertex_vectors(                       // Store vertex vectors
+    GraphBase& graph,                          // Existing graph handle
+    const std::vector<node_id_t>& ids,          // Destination vertex IDs
+    const VectorBatch& batch);                 // Row-major Float32 data
+
+// Same operation for edges; could be called write_edge_embeddings().
+// Same storage contract: the caller must ensure raw Float32 edge property blobs.
+void set_edge_vectors(                         // Store edge vectors
+    GraphBase& graph,                          // Existing graph handle
+    const std::vector<EdgeId>& ids,             // Source/destination pairs
+    const VectorBatch& batch);                 // Row-major Float32 data
+}

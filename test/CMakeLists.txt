@@ -27,6 +27,19 @@ TARGET_LINK_LIBRARIES(test_ml_edge_access PUBLIC ${NAME_LIB} ${wt_shared_lib})
 ADD_EXECUTABLE(test_ml_vector_persistence "${PATH_TEST}/ml/test_ml_vector_persistence.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_ml_vector_persistence PRIVATE ${PATH_SRC})
 TARGET_LINK_LIBRARIES(test_ml_vector_persistence PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+ADD_EXECUTABLE(test_fastrp "${PATH_TEST}/ml/test_fastrp.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_fastrp PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_fastrp PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+ADD_EXECUTABLE(test_fastrp_db "${PATH_TEST}/ml/test_fastrp_db.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_fastrp_db PRIVATE ${PATH_SRC} ${UTILS})
+TARGET_LINK_LIBRARIES(test_fastrp_db PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
+ADD_EXECUTABLE(test_ml_sampling "${PATH_TEST}/ml/test_ml_sampling.cpp")
+TARGET_INCLUDE_DIRECTORIES(test_ml_sampling PRIVATE ${PATH_SRC})
+TARGET_LINK_LIBRARIES(test_ml_sampling PUBLIC ${NAME_LIB} ${wt_shared_lib})
+
 # Test Split EdgeKey
 ADD_EXECUTABLE(test_split_ekey "${PATH_TEST}/test_split_edgekey.cpp")
 TARGET_INCLUDE_DIRECTORIES(test_split_ekey PRIVATE ${PATH_SRC})

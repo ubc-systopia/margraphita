@@ -120,6 +120,30 @@ void test_edge_attributes(GraphBase &g)
     PASS();
 }
 
+
+void test_edge_writes(GraphBase& g) {
+    INFO();
+    const auto before_nodes = g.get_num_nodes(); // Preserve topology counts
+    const auto before_edges = g.get_num_edges();
+    set_edge_vectors(g, {{1,2},{1,3},{1,2}}, {3,3,{10,11,12,20,21,22,30,31,32}}); // Duplicate: last wins
+    const std::vector<float> expected = {30,31,32,20,21,22};
+    for (auto strategy : strategies) // Read back with all existing retrieval strategies
+        assert(get_edge_vectors(g, {{1,2},{1,3}}, {3,strategy}).values == expected);
+    set_edge_vectors(g, {}, {0,3,{}}); // Empty batch is a no-op
+    auto reject = [&](auto action) { // Verify malformed requests throw
+        bool rejected = false;
+        try { action(); } catch (const std::exception&) { rejected = true; }
+        assert(rejected);
+    };
+    reject([&]{ set_edge_vectors(g, {{1,2},{1,3}}, {1,3,{1,2,3}}); }); // Wrong row count
+    reject([&]{ set_edge_vectors(g, {{1,2},{1,3}}, {2,0,{}}); }); // Zero dimension
+    reject([&]{ set_edge_vectors(g, {{1,2},{1,3}}, {2,3,{1}}); }); // Wrong float count
+    reject([&]{ set_edge_vectors(g, {{1,2},{3,1}}, {2,3,{1,2,3,4,5,6}}); }); // Missing ID
+    assert(get_edge_vectors(g, {{1,2},{1,3}}, {3}).values == expected); // No writes on validation failure
+    assert(g.get_num_nodes() == before_nodes && g.get_num_edges() == before_edges);
+    PASS();
+}
+
 int main()
 {
     graph_opts opts;
@@ -143,6 +167,7 @@ int main()
         test_edge_vectors(*g);
         test_empty_edges(*g);
         test_invalid_edges(*g);
+        test_edge_writes(*g);
         g->close(false);
         engine.close_graph();
     }

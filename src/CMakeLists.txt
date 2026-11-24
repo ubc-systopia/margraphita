@@ -5,6 +5,9 @@ FILE(GLOB SOURCES_LIB "${OMP_INCLUDE_DIR}/omp.h"
         "${PATH_SRC}/emb_prop_cursor.cpp"
         "${PATH_SRC}/common_util.cpp"
         "${PATH_SRC}/graph_engine.cpp"
+        "${PATH_SRC}/ml/ml_access.cpp"
+        "${PATH_SRC}/ml/algorithms/fastrp.cpp"
+        "${PATH_SRC}/ml/ml_sampling.cpp"
 )
 
 # removing headers from the list of sources
