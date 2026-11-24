@@ -50,6 +50,27 @@ add_executable(test_linkpred_candidates other/tests/test_linkpred_candidates.cpp
 target_include_directories(test_linkpred_candidates PRIVATE ${LINKPRED_INCLUDE_DIRS})
 target_link_libraries(test_linkpred_candidates PUBLIC ${NAME_LIB})
 
+# Microbenchmark: NodeCursor::next / get_node_properties vs cosine (ns per call).
+# Source lives in ../microbenchmarks; built here because benchmark/CMakeLists.txt
+# has add_subdirectory(microbenchmarks) commented out. Uses linkpred_scores.h.
+add_executable(next_vs_cosine ../microbenchmarks/next_vs_cosine.cpp)
+target_include_directories(next_vs_cosine PRIVATE ${LINKPRED_INCLUDE_DIRS})
+target_link_libraries(next_vs_cosine PUBLIC ${NAME_LIB} graph_utils)
+
+# Microbenchmark: random embedding fetch with 1..T threads (does it scale?).
+# ML data-access microbenchmark (2026-11-24): per-query p50/p95/p99 for features, sampling, k-hop
+add_executable(ml_access_bench ../microbenchmarks/ml_access_bench.cpp)
+target_include_directories(ml_access_bench PRIVATE ${LINKPRED_INCLUDE_DIRS})
+target_link_libraries(ml_access_bench PUBLIC ${NAME_LIB} graph_utils)
+
+# AdjList neighbour-lookup cost (has_node() guard removal, 2026-11-24)
+add_executable(adj_lookup_bench ../microbenchmarks/adj_lookup_bench.cpp)
+target_link_libraries(adj_lookup_bench PUBLIC ${NAME_LIB} graph_utils)
+
+add_executable(fetch_random_parallel ../microbenchmarks/fetch_random_parallel.cpp)
+target_include_directories(fetch_random_parallel PRIVATE ${LINKPRED_INCLUDE_DIRS})
+target_link_libraries(fetch_random_parallel PUBLIC ${NAME_LIB} graph_utils)   # OpenMP flags are global, as for fg_linkpred_bench_db
+
 # Throwaway A/B: block stealing vs contiguous partition (needs a real DB to run).
 add_executable(test_partition_compare other/tests/test_partition_compare.cpp)
 target_include_directories(test_partition_compare PRIVATE ${LINKPRED_INCLUDE_DIRS})
@@ -91,6 +112,21 @@ file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/run_perf_ref.sh"
      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                  GROUP_READ GROUP_EXECUTE
                  WORLD_READ WORLD_EXECUTE)
+
+# Microbenchmark runners + output READMEs, copied next to next_vs_cosine and
+# fetch_random_parallel so `./run_microbench_sweep.sh` works from the build dir.
+# Sources live in ../microbenchmarks.
+foreach(f run_next_vs_cosine.sh run_fetch_random_parallel.sh run_microbench_sweep.sh
+          next_vs_cosine_output_README.md fetch_random_parallel_output_README.md)
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../microbenchmarks/${f}"
+                 "${CMAKE_CURRENT_BINARY_DIR}/${f}" COPYONLY)
+endforeach()
+foreach(f run_next_vs_cosine.sh run_fetch_random_parallel.sh run_microbench_sweep.sh)
+  file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/${f}"
+       PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                   GROUP_READ GROUP_EXECUTE
+                   WORLD_READ WORLD_EXECUTE)
+endforeach()
 
 
 # FastRP embeddings computed from a Flexograph DB (writes a row-per-node-id .npy
